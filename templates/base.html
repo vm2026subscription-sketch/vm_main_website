@@ -153,6 +153,7 @@
                 <a href="{{ url_for('admissions') }}" class="{% if request.endpoint == 'admissions' %}active{% endif %}">Admissions</a>
                 <a href="{{ url_for('news') }}" class="{% if request.endpoint == 'news' %}active{% endif %}">News</a>
                 <a href="{{ url_for('epaper') }}" class="{% if request.endpoint == 'epaper' %}active{% endif %}">Epaper<span class="badge-new">New</span></a>
+                <a href="{{ url_for('excel_upload') }}" class="{% if request.endpoint == 'excel_upload' %}active{% endif %}">Excel Upload</a>
                 <a href="{{ url_for('guide_me') }}" class="{% if request.endpoint == 'guide_me' %}active{% endif %}">Guide Me</a>
                 <a href="javascript:void(0)" class="nav-search"><i class="fa fa-search"></i></a>
             </nav>

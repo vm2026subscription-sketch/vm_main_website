@@ -1,7 +1,129 @@
+import io
+import os
+import re
+
+import pandas as pd
 from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
+from psycopg2 import connect
+from psycopg2.extras import Json, execute_values
+from supabase import create_client
 
 app = Flask(__name__)
 app.secret_key = "vidyarthi-mitra-dev-key"
+app.config["MAX_CONTENT_LENGTH"] = 15 * 1024 * 1024  # 15 MB upload limit
+
+UPLOAD_TARGET_TABLES = [
+    {"value": "universities", "label": "Universities"},
+    {"value": "colleges", "label": "Colleges"},
+    {"value": "courses", "label": "Courses"},
+    {"value": "entrance_exams", "label": "Entrance Exams"},
+]
+
+
+def get_supabase_client():
+    url = os.getenv("SUPABASE_URL", "").strip()
+    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip() or os.getenv("SUPABASE_ANON_KEY", "").strip()
+
+    if not url or not key:
+        return None
+
+    return create_client(url, key)
+
+
+def get_postgres_connection_url():
+    return os.getenv("SUPABASE_POSTGRES_URL", "").strip() or os.getenv("DATABASE_URL", "").strip()
+
+
+def convert_excel_to_records(uploaded_file):
+    excel_bytes = uploaded_file.read()
+    if not excel_bytes:
+        raise ValueError("The uploaded file is empty.")
+
+    workbook = pd.read_excel(io.BytesIO(excel_bytes), sheet_name=None)
+    if not workbook:
+        raise ValueError("No sheets found in the uploaded Excel file.")
+
+    records = []
+    for sheet_name, dataframe in workbook.items():
+        cleaned_dataframe = dataframe.where(pd.notnull(dataframe), None)
+        for row_index, row in cleaned_dataframe.iterrows():
+            payload = {}
+            for column_name, value in row.items():
+                normalized_column = str(column_name).strip()
+                if not normalized_column:
+                    continue
+                payload[normalized_column] = value
+
+            if not payload:
+                continue
+
+            records.append(
+                {
+                    "file_name": uploaded_file.filename,
+                    "sheet_name": str(sheet_name),
+                    "row_number": int(row_index) + 2,
+                    "payload": payload,
+                }
+            )
+
+    if not records:
+        raise ValueError("The uploaded Excel file has no data rows to store.")
+
+    return records
+
+
+def insert_records_in_batches(supabase_client, table_name, records, batch_size=500):
+    inserted = 0
+    for i in range(0, len(records), batch_size):
+        batch = records[i : i + batch_size]
+        supabase_client.table(table_name).insert(batch).execute()
+        inserted += len(batch)
+    return inserted
+
+
+def insert_records_via_postgres(connection_url, table_name, records):
+    if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", table_name):
+        raise ValueError("Invalid table name. Use letters, numbers, and underscore only.")
+
+    rows = [
+        (
+            item["file_name"],
+            item["sheet_name"],
+            item["row_number"],
+            Json(item["payload"]),
+        )
+        for item in records
+    ]
+
+    with connect(connection_url) as conn:
+        with conn.cursor() as cursor:
+            query = (
+                f"INSERT INTO {table_name} (file_name, sheet_name, row_number, payload) "
+                "VALUES %s"
+            )
+            execute_values(cursor, query, rows, page_size=500)
+
+    return len(rows)
+
+
+def ensure_upload_table_exists(connection_url, table_name):
+    if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", table_name):
+        raise ValueError("Invalid table name. Use letters, numbers, and underscore only.")
+
+    with connect(connection_url) as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                f"""
+                CREATE TABLE IF NOT EXISTS {table_name} (
+                    id bigserial PRIMARY KEY,
+                    file_name text NOT NULL,
+                    sheet_name text NOT NULL,
+                    row_number integer NOT NULL,
+                    payload jsonb NOT NULL,
+                    uploaded_at timestamptz DEFAULT now()
+                )
+                """
+            )
 
 
 UNIVERSITIES_DATA = [
@@ -560,6 +682,100 @@ def guide_me():
 @app.route('/refund-policy')
 def refund_policy():
     return render_template('refund.html')
+
+
+@app.route("/excel-upload", methods=["GET", "POST"])
+def excel_upload():
+    allowed_tables = {item["value"] for item in UPLOAD_TARGET_TABLES}
+    default_table = os.getenv("SUPABASE_EXCEL_TABLE", "universities").strip() or "universities"
+    if default_table not in allowed_tables:
+        default_table = "universities"
+
+    supabase_client = get_supabase_client()
+    postgres_connection_url = get_postgres_connection_url()
+    configured = supabase_client is not None or bool(postgres_connection_url)
+    connection_mode = "postgres-url" if postgres_connection_url else "supabase-api"
+    selected_table = default_table
+
+    if request.method == "POST":
+        selected_table = request.form.get("target_table", default_table).strip()
+        if selected_table not in allowed_tables:
+            flash("Please choose a valid target table.", "error")
+            return render_template(
+                "excel_upload.html",
+                configured=configured,
+                table_name=default_table,
+                selected_table=default_table,
+                upload_targets=UPLOAD_TARGET_TABLES,
+                connection_mode=connection_mode,
+            )
+
+        if not configured:
+            flash(
+                "Supabase is not configured. Set SUPABASE_POSTGRES_URL (or DATABASE_URL), or set SUPABASE_URL with SUPABASE_SERVICE_ROLE_KEY.",
+                "error",
+            )
+            return render_template(
+                "excel_upload.html",
+                configured=False,
+                table_name=selected_table,
+                selected_table=selected_table,
+                upload_targets=UPLOAD_TARGET_TABLES,
+                connection_mode=connection_mode,
+            )
+
+        uploaded_file = request.files.get("excel_file")
+        if uploaded_file is None or not uploaded_file.filename:
+            flash("Please choose an Excel file to upload.", "error")
+            return render_template(
+                "excel_upload.html",
+                configured=True,
+                table_name=selected_table,
+                selected_table=selected_table,
+                upload_targets=UPLOAD_TARGET_TABLES,
+                connection_mode=connection_mode,
+            )
+
+        if not uploaded_file.filename.lower().endswith((".xlsx", ".xls")):
+            flash("Invalid file type. Please upload an .xlsx or .xls file.", "error")
+            return render_template(
+                "excel_upload.html",
+                configured=True,
+                table_name=selected_table,
+                selected_table=selected_table,
+                upload_targets=UPLOAD_TARGET_TABLES,
+                connection_mode=connection_mode,
+            )
+
+        try:
+            records = convert_excel_to_records(uploaded_file)
+            if postgres_connection_url:
+                ensure_upload_table_exists(postgres_connection_url, selected_table)
+                inserted_rows = insert_records_via_postgres(postgres_connection_url, selected_table, records)
+            else:
+                inserted_rows = insert_records_in_batches(supabase_client, selected_table, records)
+        except Exception as exc:
+            flash(f"Upload failed: {exc}", "error")
+            return render_template(
+                "excel_upload.html",
+                configured=True,
+                table_name=selected_table,
+                selected_table=selected_table,
+                upload_targets=UPLOAD_TARGET_TABLES,
+                connection_mode=connection_mode,
+            )
+
+        flash(f"Upload successful. Inserted {inserted_rows} row(s) into {selected_table}.", "success")
+        return redirect(url_for("excel_upload"))
+
+    return render_template(
+        "excel_upload.html",
+        configured=configured,
+        table_name=selected_table,
+        selected_table=selected_table,
+        upload_targets=UPLOAD_TARGET_TABLES,
+        connection_mode=connection_mode,
+    )
 
 
 if __name__ == "__main__":

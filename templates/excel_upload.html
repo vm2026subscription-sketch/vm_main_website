@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Excel Upload | Vidyarthi Mitra{% endblock %}
+
+{% block page_styles %}
+<style>
+    .upload-wrap {
+        max-width: 920px;
+        margin: 28px auto;
+        padding: 0 16px 24px;
+    }
+    .upload-card {
+        background: #ffffff;
+        border: 1px solid #e8ecf1;
+        border-radius: 14px;
+        box-shadow: 0 8px 22px rgba(30, 41, 59, 0.08);
+        overflow: hidden;
+    }
+    .upload-head {
+        padding: 18px 20px;
+        background: linear-gradient(120deg, #f5f9ff, #eef4ff);
+        border-bottom: 1px solid #e8ecf1;
+    }
+    .upload-head h1 {
+        margin: 0;
+        font-size: 24px;
+        color: #1f2937;
+    }
+    .upload-head p {
+        margin: 8px 0 0;
+        color: #4b5563;
+        font-size: 14px;
+    }
+    .upload-body {
+        padding: 20px;
+    }
+    .status-pill {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        margin-left: 8px;
+        vertical-align: middle;
+    }
+    .status-on {
+        background: #dcfce7;
+        color: #166534;
+    }
+    .status-off {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+    .msg {
+        border-radius: 10px;
+        padding: 12px 14px;
+        margin-bottom: 12px;
+        font-size: 14px;
+    }
+    .msg.success {
+        background: #ecfdf3;
+        border: 1px solid #a7f3d0;
+        color: #065f46;
+    }
+    .msg.error {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        color: #991b1b;
+    }
+    .upload-form {
+        display: grid;
+        gap: 14px;
+    }
+    .label {
+        display: block;
+        font-size: 13px;
+        color: #374151;
+        font-weight: 700;
+        margin-bottom: 6px;
+    }
+    .input {
+        width: 100%;
+        border: 1px solid #d1d5db;
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 14px;
+    }
+    .upload-btn {
+        width: fit-content;
+        border: 0;
+        border-radius: 10px;
+        background: #1d4ed8;
+        color: #ffffff;
+        padding: 10px 16px;
+        font-weight: 700;
+        font-size: 14px;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .upload-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(29, 78, 216, 0.22);
+    }
+    .hint-box {
+        margin-top: 16px;
+        border: 1px dashed #cbd5e1;
+        border-radius: 10px;
+        background: #f8fafc;
+        padding: 12px 14px;
+        color: #334155;
+        font-size: 13px;
+        line-height: 1.45;
+    }
+    @media (max-width: 720px) {
+        .upload-head h1 {
+            font-size: 20px;
+        }
+        .upload-head p {
+            font-size: 13px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="upload-wrap">
+    <div class="upload-card">
+        <div class="upload-head">
+            <h1>
+                Upload Excel To Supabase
+                {% if configured %}
+                    <span class="status-pill status-on">Connected</span>
+                {% else %}
+                    <span class="status-pill status-off">Not Configured</span>
+                {% endif %}
+            </h1>
+            <p>
+                Excel rows are stored in table: <strong>{{ table_name }}</strong> (as JSON payload per row).
+                Current mode: <strong>{{ connection_mode }}</strong>
+            </p>
+        </div>
+
+        <div class="upload-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="msg {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form class="upload-form" method="post" enctype="multipart/form-data">
+                <div>
+                    <label class="label" for="target_table">Target Table</label>
+                    <select class="input" id="target_table" name="target_table" required>
+                        {% for option in upload_targets %}
+                            <option value="{{ option.value }}" {% if option.value == selected_table %}selected{% endif %}>{{ option.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="label" for="excel_file">Excel File (.xlsx or .xls)</label>
+                    <input class="input" type="file" id="excel_file" name="excel_file" accept=".xlsx,.xls" required>
+                </div>
+                <button class="upload-btn" type="submit">Upload And Insert</button>
+            </form>
+
+            <div class="hint-box">
+                Set one mode before upload:<br>
+                1) SUPABASE_POSTGRES_URL (or DATABASE_URL), optional SUPABASE_EXCEL_TABLE default.<br>
+                2) SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_ANON_KEY), optional SUPABASE_EXCEL_TABLE.<br>
+                For postgres-url mode, selected table is auto-created if missing with schema: file_name text, sheet_name text, row_number int, payload jsonb, uploaded_at timestamptz default now().
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
