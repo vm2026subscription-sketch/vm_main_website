@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admissions 2026-2027 | VidyarthiMitra</title>
+  <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='admissions.css') }}"/>
+</head>
+<body>
+
+  <!-- Feedback Tab -->
+  <div class="feedback-tab">FEEDBACK</div>
+  <!-- Scroll To Top -->
+  <div class="scroll-top" id="scrollTop">&#9650;</div>
+
+  <!-- Top Black Bar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <a href="#">Blog</a>
+      <a href="#">Epaper</a>
+    </div>
+    <div class="topbar-right">&#2357;&#2367;&#2342;&#2381;&#2351;&#2366;&#2352;&#2381;&#2341;&#2368; &#2350;&#2367;&#2340;&#2381;&#2352; <span>&#174;</span></div>
+  </div>
+
+  <!-- Main Navbar -->
+  <nav class="navbar">
+    <a class="logo" href="#">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="Vidyarthi Mitra" class="logo-image"/>
+    </a>
+    <div class="nav-links">
+      <a href="{{ url_for('index') }}">HOME</a>
+      <a class="nav-link active" href="{{ url_for('universities') }}">Universities</a>
+      <a class="nav-link" href="{{ url_for('colleges') }}">Colleges</a>
+      <a class="nav-link" href="{{ url_for('courses') }}">Courses</a>
+      <a class="nav-link" href="{{ url_for('exams') }}">Entrance Exams</a>
+      <a class="nav-link" href="{{ url_for('mock_exams') }}">Mock Exams</a>
+      <a class="nav-link" href="{{ url_for('news') }}">News</a>
+    </div>
+  </nav>
+
+  <!-- Hero Banner -->
+  <div class="hero-banner">
+    <h1>ADMISSIONS 2026-27</h1>
+  </div>
+
+  <!-- Main Content -->
+  <div class="container">
+
+    <!-- Trending Searches -->
+    <div class="trending-title">TRENDING SEARCHES</div>
+    <div class="trending-box">
+      <span class="all-btn" id="allBtn">All</span>
+      <span class="sep">|</span><a href="#">Agriculture</a>
+      <span class="sep">|</span><a href="#">Architecture</a>
+      <span class="sep">|</span><a href="#">Arts</a>
+      <span class="sep">|</span><a href="#">Aviation</a>
+      <span class="sep">|</span><a href="#">Commerce</a>
+      <span class="sep">|</span><a href="#">Computer Applications</a>
+      <span class="sep">|</span><a href="#">Defence</a>
+      <span class="sep">|</span><a href="#">Dental</a>
+      <span class="sep">|</span><a href="#">Design</a>
+      <span class="sep">|</span><a href="#">Hotel Management</a>
+      <span class="sep">|</span><a href="#">Mass Communications</a>
+      <span class="sep">|</span><a href="#">Paramedical</a>
+      <span class="sep">|</span><a href="#">Science</a>
+      <span class="sep">|</span><a href="#">Short Term Courses</a>
+      <span class="sep">|</span><a href="#">Veterinary Sciences</a>
+      <span class="sep">|</span><a href="#">Social Studies</a>
+      <span class="sep">|</span><a href="#">Teaching and Education</a>
+      <span class="sep">|</span><a href="#">Engineering</a>
+      <span class="sep">|</span><a href="#">Scholastic Exams</a>
+      <span class="sep">|</span><a href="#">Management</a>
+      <span class="sep">|</span><a href="#">Medical</a>
+      <span class="sep">|</span><a href="#">Pharmacy</a>
+      <span class="sep">|</span><a href="#">Film &amp; Entertainment</a>
+      <span class="sep">|</span><a href="#">Vocational Courses</a>
+      <span class="sep">|</span><a href="#">Law (Legal Studies)</a>
+      <span class="sep">|</span><a href="#">Banking</a>
+      <span class="sep">|</span><a href="#">Merchant Navy</a>
+      <span class="sep">|</span><a href="#">Civil Services Exams</a>
+      <span class="sep">|</span><a href="#">Sports</a>
+    </div>
+
+    <!-- Admission Cards Grid -->
+    <div class="cards-grid" id="cardsGrid">
+
+      <div class="adm-card">
+        <div class="adm-card-title">MODERN COLLEGE OF ARTS, SCIENCE AND COMMERCE ADMISSIONS 2022</div>
+        <hr class="adm-card-divider"/>
+        <div class="adm-card-date"><span class="cal-icon">&#128197;</span> 15th March 2022</div>
+        <div class="adm-card-tags">
+          <span class="adm-tag">BA</span><span class="tag-sep">|</span>
+          <span class="adm-tag">B.Sc</span><span class="tag-sep">|</span>
+          <span class="adm-tag">B.Com</span>
+        </div>
+        <button class="read-more-btn">READ MORE</button>
+      </div>
+
+      <div class="adm-card">
+        <div class="adm-card-title">INSTITUTE OF DISTANCE AND OPEN LEARNING (IDOL) ADMISSIONS OPEN</div>
+        <hr class="adm-card-divider"/>
+        <div class="adm-card-date"><span class="cal-icon">&#128197;</span> 10th March 2022</div>
+        <div class="adm-card-tags">
+          <span class="adm-tag">BA</span><span class="tag-sep">|</span>
+          <span class="adm-tag">B.Com</span><span class="tag-sep">|</span>
+          <span class="adm-tag">M.A</span>
+        </div>
+        <button class="read-more-btn">READ MORE</button>
+      </div>
+
+      <div class="adm-card">
+        <div class="adm-card-title">WESCHOOL WELINGKAR EDUCATION ADMISSION TO 2 YEARS MBA</div>
+        <hr class="adm-card-divider"/>
+        <div class="adm-card-date"><span class="cal-icon">&#128197;</span> 8th March 2022</div>
+        <div class="adm-card-tags">
+          <span class="adm-tag">MBA</span><span class="tag-sep">|</span>
+          <span class="adm-tag">PGDM</span>
+        </div>
+        <button class="read-more-btn">READ MORE</button>
+      </div>
+
+      <div class="adm-card">
+        <div class="adm-card-title">ENGINEERING- PGDIE ADMISSION AT NITIE MUMBAI</div>
+        <hr class="adm-card-divider"/>
+        <div class="adm-card-date"><span class="cal-icon">&#128197;</span> 5th March 2022</div>
+        <div class="adm-card-tags">
+          <span class="adm-tag">PGDIE</span><span class="tag-sep">|</span>
+          <span class="adm-tag">PGDMM</span><span class="tag-sep">|</span>
+          <span class="adm-tag">PGDPM</span>
+        </div>
+        <button class="read-more-btn">READ MORE</button>
+      </div>
+
+      <div class="adm-card">
+        <div class="adm-card-title">ELECTRONICS &amp; INFORMATION TECHNOLOGY ADMISSIONS OPEN</div>
+        <hr class="adm-card-divider"/>
+        <div class="adm-card-date"><span class="cal-icon">&#128197;</span> 28th February 2022</div>
+        <div class="adm-card-tags">
+          <span class="adm-tag">PGDIASD</span>
+        </div>
+        <button class="read-more-btn">READ MORE</button>
+      </div>
+
+      <div class="adm-card">
+        <div class="adm-card-title">DELHI SCHOOL OF MANAGEMENT ADMISSIONS OPEN</div>
+        <hr class="adm-card-divider"/>
+        <div class="adm-card-date"><span class="cal-icon">&#128197;</span> 26th February 2022</div>
+        <div class="adm-card-tags">
+          <span class="adm-tag">Executive MBA</span>
+        </div>
+        <button class="read-more-btn">READ MORE</button>
+      </div>
+
+      <div class="adm-card">
+        <div class="adm-card-title">ADMISSION FOR LLB &amp; LLM IN IIT KHARAGPUR</div>
+        <hr class="adm-card-divider"/>
+        <div class="adm-card-date"><span class="cal-icon">&#128197;</span> 4th March 2017</div>
+        <div class="adm-card-tags">
+          <span class="adm-tag">LL.M-Prog</span><span class="tag-sep">|</span>
+          <span class="adm-tag">LLB-HIPL</span>
+        </div>
+        <button class="read-more-btn">READ MORE</button>
+      </div>
+
+      <div class="adm-card">
+        <div class="adm-card-title">SYMBIOSIS SCHOOL FOR LIBERAL ARTS</div>
+        <hr class="adm-card-divider"/>
+        <div class="adm-card-date"><span class="cal-icon">&#128197;</span> 25th February 2017</div>
+        <div class="adm-card-tags">
+          <span class="adm-tag">BA</span><span class="tag-sep">|</span>
+          <span class="adm-tag">B.Sc</span>
+        </div>
+        <button class="read-more-btn">READ MORE</button>
+      </div>
+
+      <div class="adm-card">
+        <div class="adm-card-title">INDIAN AGRICULTURAL RESEARCH INSTITUTE</div>
+        <hr class="adm-card-divider"/>
+        <div class="adm-card-date"><span class="cal-icon">&#128197;</span> 25th February 2017</div>
+        <div class="adm-card-tags">
+          <span class="adm-tag">Ph.D Programme</span>
+        </div>
+        <button class="read-more-btn">READ MORE</button>
+      </div>
+
+      <div class="adm-card">
+        <div class="adm-card-title">NARSEE MONJEE INSTITUTE OF MANAGEMENT STUDIES ADMISSIONS 2024</div>
+        <hr class="adm-card-divider"/>
+        <div class="adm-card-date"><span class="cal-icon">&#128197;</span> 20th February 2024</div>
+        <div class="adm-card-tags">
+          <span class="adm-tag">MBA</span><span class="tag-sep">|</span>
+          <span class="adm-tag">BBA</span>
+        </div>
+        <button class="read-more-btn">READ MORE</button>
+      </div>
+
+      <div class="adm-card">
+        <div class="adm-card-title">JAMNALAL BAJAJ INSTITUTE OF MANAGEMENT STUDIES ADMISSIONS</div>
+        <hr class="adm-card-divider"/>
+        <div class="adm-card-date"><span class="cal-icon">&#128197;</span> 18th February 2024</div>
+        <div class="adm-card-tags">
+          <span class="adm-tag">MMS</span><span class="tag-sep">|</span>
+          <span class="adm-tag">MBA</span>
+        </div>
+        <button class="read-more-btn">READ MORE</button>
+      </div>
+
+      <div class="adm-card">
+        <div class="adm-card-title">PUNE INSTITUTE OF COMPUTER TECHNOLOGY ADMISSIONS 2024-25</div>
+        <hr class="adm-card-divider"/>
+        <div class="adm-card-date"><span class="cal-icon">&#128197;</span> 15th February 2024</div>
+        <div class="adm-card-tags">
+          <span class="adm-tag">B.Tech</span><span class="tag-sep">|</span>
+          <span class="adm-tag">M.Tech</span>
+        </div>
+        <button class="read-more-btn">READ MORE</button>
+      </div>
+
+    </div><!-- /cards-grid -->
+
+    <div class="load-more-wrap">
+      <button class="load-more-btn" id="loadMoreBtn">LOAD MORE</button>
+    </div>
+
+  </div><!-- /container -->
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-links">
+      <a href="#">About Us</a>
+      <a href="#">Contact</a>
+      <a href="#">Privacy Policy</a>
+      <a href="#">Terms of Use</a>
+      <a href="#">Disclaimer</a>
+      <a href="#">Advertise With Us</a>
+    </div>
+    <div class="footer-bottom">&copy; 2024 VidyarthiMitra. All Rights Reserved.</div>
+  </div>
+
+  <script src="{{ url_for('static', filename='admissions.js') }}"></script>
+</body>
+</html>

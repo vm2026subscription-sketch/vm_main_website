@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unnati AI Chatbot</title>
+  <style>
+    :root {
+      --orange: #ff6600;
+      --orange-dark: #e55a00;
+      --white: #ffffff;
+      --light: #fff7f0;
+      --border: #f3f4f6;
+      --text: #1f2937;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Poppins", Arial, sans-serif;
+      background: transparent;
+    }
+    #chat-trigger {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--orange);
+      color: #fff;
+      font-size: 22px;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+      cursor: pointer;
+      margin-left: auto;
+    }
+    #chat-widget {
+      display: none;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      background: var(--white);
+      border-radius: 14px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.25);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .chat-header {
+      background: var(--orange);
+      color: #fff;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .chat-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .chat-close {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255,255,255,0.25);
+      color: #fff;
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .chat-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .chat-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #fff;
+      color: var(--orange);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 700;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .lang-switch {
+      display: flex;
+      gap: 6px;
+    }
+    .lang-switch button {
+      border: 1px solid rgba(255,255,255,0.6);
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+    .lang-switch button.active {
+      background: #fff;
+      color: var(--orange);
+      border-color: #fff;
+      font-weight: 700;
+    }
+    .chat-body {
+      padding: 12px 16px;
+      background: var(--light);
+      flex: 1;
+      overflow-y: auto;
+      font-size: 13px;
+      color: var(--text);
+    }
+    .chat-message {
+      margin-bottom: 10px;
+      padding: 10px 12px;
+      background: #fff;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      line-height: 1.5;
+    }
+    .chat-message.user {
+      background: #fff0e6;
+      border-color: rgba(255,102,0,0.2);
+      align-self: flex-end;
+    }
+    .chat-footer {
+      display: flex;
+      gap: 8px;
+      padding: 10px;
+      border-top: 1px solid var(--border);
+      background: #fff;
+    }
+    .quick-replies {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 0 10px 10px;
+      background: #fff;
+    }
+    .quick-replies button {
+      border: 1px solid rgba(255,102,0,0.25);
+      background: #fff7f0;
+      color: var(--orange);
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+    .quick-replies button:hover {
+      background: #ffe7d8;
+    }
+    .chat-footer input {
+      flex: 1;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      outline: none;
+      font-size: 13px;
+    }
+    .chat-footer button {
+      background: var(--orange);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .chat-footer button:hover {
+      background: var(--orange-dark);
+    }
+    .chat-hint {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div id="chat-widget">
+    <div class="chat-header">
+      <div class="chat-title">
+        <span class="chat-avatar">U</span>
+        <span>Unnati AI Chatbot</span>
+      </div>
+      <div class="chat-actions">
+        <div class="lang-switch" role="tablist" aria-label="Language">
+          <button type="button" class="lang-btn active" data-lang="en" onclick="setLanguageUi('en')">EN</button>
+          <button type="button" class="lang-btn" data-lang="hi" onclick="setLanguageUi('hi')">HI</button>
+          <button type="button" class="lang-btn" data-lang="mr" onclick="setLanguageUi('mr')">MR</button>
+        </div>
+        <button type="button" class="chat-close" id="chat-close" aria-label="Close chat" onclick="closeWidgetUi()">&times;</button>
+      </div>
+    </div>
+    <div class="chat-body" id="chat-body">
+      <div class="chat-message" id="welcome-message">Hi! I’m Unnati. Ask me about courses, colleges, or exams.</div>
+    </div>
+    <div class="quick-replies" id="quickReplies">
+      <button type="button" data-topic="admissions" onclick="handleQuickReplyUi('admissions')">Admission Alerts</button>
+      <button type="button" data-topic="careers" onclick="handleQuickReplyUi('careers')">Career Options</button>
+      <button type="button" data-topic="exams" onclick="handleQuickReplyUi('exams')">Entrance Exam Info</button>
+    </div>
+    <div class="chat-footer">
+      <input type="text" id="chat-input" placeholder="Type your question...">
+      <button type="button" id="chat-send" onclick="sendMessageUi()">Send</button>
+    </div>
+  </div>
+
+  <div id="chat-trigger" title="Open chat">💬</div>
+
+  <script>
+    function loadHistory() {
+      return;
+    }
+
+    const widget = document.getElementById('chat-widget');
+    const trigger = document.getElementById('chat-trigger');
+    const input = document.getElementById('chat-input');
+    const send = document.getElementById('chat-send');
+    const body = document.getElementById('chat-body');
+    const welcome = document.getElementById('welcome-message');
+    const closeBtn = document.getElementById('chat-close');
+
+    const strings = {
+      en: {
+        welcome: 'Hi! I’m Unnati. Ask me about courses, colleges, or exams.',
+        hello: 'Hello! How can I help you today?',
+        placeholder: 'Type your question...',
+        reply: 'Thanks! Our team will respond soon.',
+        quick: {
+          admissions: 'Admission Alerts: Deadlines, eligibility, documents, and key dates. Tell me your exam or course and your state.',
+          careers: 'Career Options: Share your stream, interests, and strengths. I’ll suggest paths and next steps.',
+          exams: 'Entrance Exam Info: Ask for syllabus, eligibility, dates, or cutoffs (JEE, NEET, MHT-CET, etc.).'
+        }
+      },
+      hi: {
+        welcome: 'नमस्ते! मैं उन्नति हूँ। कोर्स, कॉलेज या परीक्षाओं के बारे में पूछें।',
+        hello: 'नमस्ते! मैं आपकी कैसे मदद कर सकती हूँ?',
+        placeholder: 'अपना सवाल लिखें...',
+        reply: 'धन्यवाद! हमारी टीम जल्द ही जवाब देगी।',
+        quick: {
+          admissions: 'एडमिशन अलर्ट: डेडलाइन, पात्रता, दस्तावेज़ और महत्वपूर्ण तारीखें। अपनी परीक्षा/कोर्स और राज्य बताइए।',
+          careers: 'करियर विकल्प: अपनी स्ट्रीम, रुचि और ताकतें बताइए। मैं विकल्प और अगले कदम बताऊँगी।',
+          exams: 'प्रवेश परीक्षा जानकारी: सिलेबस, पात्रता, तारीखें या कटऑफ पूछें (JEE, NEET, MHT-CET आदि)।'
+        }
+      },
+      mr: {
+        welcome: 'नमस्कार! मी उन्नती आहे. कोर्स, कॉलेज किंवा परीक्षा याबद्दल विचारा.',
+        hello: 'नमस्कार! मी कशी मदत करू?',
+        placeholder: 'आपला प्रश्न लिहा...',
+        reply: 'धन्यवाद! आमची टीम लवकरच उत्तर देईल.',
+        quick: {
+          admissions: 'अॅडमिशन अलर्ट्स: डेडलाईन्स, पात्रता, कागदपत्रे आणि महत्त्वाच्या तारखा. तुमची परीक्षा/कोर्स आणि राज्य सांगा.',
+          careers: 'करिअर पर्याय: तुमची स्ट्रीम, आवड आणि ताकदी सांगा. मी पर्याय आणि पुढील पावले सुचवतो.',
+          exams: 'प्रवेश परीक्षा माहिती: अभ्यासक्रम, पात्रता, तारखा किंवा कटऑफ विचारा (JEE, NEET, MHT-CET इ.).'
+        }
+      }
+    };
+
+    let currentLang = 'en';
+
+    function openWidget() {
+      widget.style.display = 'flex';
+      trigger.style.display = 'none';
+      setTimeout(() => input.focus(), 50);
+    }
+
+    function closeWidget() {
+      widget.style.display = 'none';
+      trigger.style.display = 'flex';
+      try {
+        if (window.parent) {
+          window.parent.postMessage({ type: 'chatbot-close' }, '*');
+        }
+      } catch (e) {
+        return;
+      }
+    }
+
+    function addMessage(text, type = 'bot') {
+      const msg = document.createElement('div');
+      msg.className = 'chat-message' + (type === 'user' ? ' user' : '');
+      msg.textContent = text;
+      body.appendChild(msg);
+      body.scrollTop = body.scrollHeight;
+    }
+
+    function sendMessage() {
+      const text = input.value.trim();
+      if (!text) return;
+      addMessage(text, 'user');
+      input.value = '';
+      setTimeout(() => addMessage(strings[currentLang].reply), 200);
+    }
+
+    function handleQuickReply(topic) {
+      const reply = strings[currentLang].quick[topic];
+      if (!reply) return;
+      addMessage(topic === 'admissions' ? 'Admission Alerts' : topic === 'careers' ? 'Career Options' : 'Entrance Exam Info', 'user');
+      setTimeout(() => addMessage(reply), 200);
+    }
+
+    function setLanguage(lang, silent = false) {
+      currentLang = lang;
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.lang === lang);
+      });
+      welcome.textContent = strings[lang].welcome;
+      input.placeholder = strings[lang].placeholder;
+      if (!silent) {
+        addMessage(strings[lang].hello);
+      }
+    }
+
+    window.setLanguageUi = function(lang) {
+      setLanguage(lang);
+    };
+
+    window.handleQuickReplyUi = function(topic) {
+      handleQuickReply(topic);
+    };
+
+    window.sendMessageUi = function() {
+      sendMessage();
+    };
+
+    window.closeWidgetUi = function() {
+      closeWidget();
+    };
+
+    window.openWidgetUi = function() {
+      openWidget();
+    };
+
+    if (send) {
+      send.addEventListener('click', sendMessage);
+    }
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', closeWidget);
+    }
+
+    if (trigger) {
+      trigger.addEventListener('click', openWidget);
+    }
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+      btn.addEventListener('click', () => setLanguage(btn.dataset.lang));
+    });
+
+    document.querySelectorAll('#quickReplies button').forEach(btn => {
+      btn.addEventListener('click', () => handleQuickReply(btn.dataset.topic));
+    });
+
+    window.addEventListener('message', (event) => {
+      if (!event || !event.data) return;
+      if (event.data.type === 'chatbot-open') {
+        openWidget();
+      }
+    });
+
+    setLanguage('en', true);
+
+    if (window === window.top) {
+      openWidget();
+    }
+  </script>
+</body>
+</html>

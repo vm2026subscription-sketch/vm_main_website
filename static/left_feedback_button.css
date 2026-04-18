@@ -1,0 +1,98 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+}
+
+/* REQUIRED STAR */
+.required {
+    color: red;
+}
+
+/* LEFT ORANGE FEEDBACK TAB */
+.feedback-tab {
+    position: fixed;
+    left: 0;
+    top: 40%;
+    background-color: rgb(228, 103, 0);
+    color: white;
+    font-weight: bold;
+    padding: 14px 8px;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    cursor: pointer;
+    border-radius: 0 6px 6px 0;
+    z-index: 1000;
+    
+}
+
+/* FULL PAGE FORM */
+.feedback-page {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: white;
+    display: none;
+    z-index: 999;
+}
+
+/* FORM BOX */
+.feedback-form {
+    width: 450px;
+    margin: 50px auto;
+}
+
+/* LABELS */
+.feedback-form label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 6px;
+    color: #0a2c63;
+}
+
+/* INPUTS */
+.feedback-form input,
+.feedback-form textarea {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.feedback-form textarea {
+    height: 100px;
+}
+
+/* BUTTON GROUP */
+.button-group {
+    display: flex;
+    gap: 15px;
+}
+
+/* SUBMIT BUTTON */
+.submit-btn {
+    background-color: #6ccf8e;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.submit-btn:hover {
+    background-color: #58b97b;
+    transform: scale(1.05);
+}
+
+/* CANCEL BUTTON */
+.cancel-btn {
+    background-color: #e53935;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 8px;
+    cursor: pointer;
+}

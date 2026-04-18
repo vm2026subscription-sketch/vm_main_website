@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Career Articles</title>
+      <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Lora:ital,wght@0,600;0,700;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='articles.css') }}">
+</head>
+<body>
+
+  <nav class="top-nav">
+    <a class="nav-logo" href="{{ url_for('index') }}" aria-label="Vidyarthi Mitra Home">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="Vidyarthi Mitra">
+    </a>
+    <div class="nav-links">
+      <a href="{{ url_for('index') }}">Home</a>
+        <a class="nav-link active" href="{{ url_for('universities') }}">Universities</a>
+      <a class="nav-link" href="{{ url_for('colleges') }}">Colleges</a>
+      <a class="nav-link" href="{{ url_for('courses') }}">Courses</a>
+      <a class="nav-link" href="{{ url_for('exams') }}">Entrance Exams</a>
+      <a class="nav-link" href="{{ url_for('mock_exams') }}">Mock Exams</a>
+      <a class="nav-link" href="{{ url_for('news') }}">News</a>
+    </div>
+  </nav>
+
+  <!-- ── HEADER ─────────────────────────────────────── -->
+  <header class="header">
+    <div class="header-bg-circles">
+      <span class="hc hc1"></span>
+      <span class="hc hc2"></span>
+      <span class="hc hc3"></span>
+    </div>
+    <div class="header-inner">
+      <h1 class="header-title">Career <em>Articles</em></h1>
+      <p class="header-sub">Industry insights, career planning &amp; expert guidance</p>
+      <div class="header-stats">
+        <div class="stat"><strong>{{ total }}</strong><span>Articles</span></div>
+        <div class="stat-div"></div>
+        <div class="stat"><strong>{{ categories|length - 1 }}</strong><span>Categories</span></div>
+        <div class="stat-div"></div>
+        <div class="stat"><strong>Free</strong><span>Access</span></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── MAIN ───────────────────────────────────────── -->
+  <main class="container">
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <div class="search-row">
+        <div class="search-wrap">
+          <svg class="search-ico" viewBox="0 0 20 20" fill="none">
+            <circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.8"/>
+            <path d="M14 14l3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+          <input id="search-input" type="text" placeholder="Search articles…" value="{{ query }}" autocomplete="off">
+          <button class="search-clear" id="search-clear" type="button" title="Clear">✕</button>
+        </div>
+        <button class="search-btn" id="search-btn" type="button">Search</button>
+      </div>
+
+      <div class="cat-scroll">
+        {% for cat in categories %}
+        <button class="cat-pill {% if cat.value == active_category %}active{% endif %}"
+                data-cat="{{ cat.value }}">{{ cat.label }}</button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Results meta -->
+    <p class="meta-line" id="meta-line" data-total="{{ total }}">
+      Showing all {{ total }} articles
+    </p>
+
+    <!-- Card grid -->
+    <div class="grid" id="card-grid">
+      {% for a in articles %}
+      <article class="card" data-cat="{{ a.category }}"
+               data-title="{{ a.title | lower }}"
+               data-desc="{{ a.desc | lower }}"
+               style="--i: {{ loop.index0 }};">
+        <div class="card-head">
+          <span class="cat-badge cat-{{ a.category }}">{{ a.category }}</span>
+          <span class="card-num">{{ '%02d' % loop.index }}</span>
+        </div>
+        <h2 class="card-title">{{ a.title }}</h2>
+        <p class="card-desc">{{ a.desc }}</p>
+        <div class="card-foot">
+          <a href="{{ url_for('article_detail', article_id=a.id) }}" target="_blank" rel="noopener noreferrer" class="btn-primary">
+            Read More
+            <svg viewBox="0 0 16 16" fill="none" width="14" height="14">
+              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+          <button class="btn-ghost" data-title="{{ a.title }}" onclick="openModal(this)">Reach Us</button>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+
+    <!-- Empty state -->
+    <div class="empty" id="empty" hidden>
+      <div class="empty-icon">🔍</div>
+      <p>No articles match your search.<br>Try a different keyword or category.</p>
+      <button onclick="resetAll()">Reset Filters</button>
+    </div>
+
+  </main>
+
+  <!-- ── MODAL ──────────────────────────────────────── -->
+  <div class="modal-wrap" id="modal-wrap" aria-hidden="true">
+    <div class="modal" role="dialog" aria-labelledby="modal-heading">
+      <button class="modal-x" onclick="closeModal()" aria-label="Close">
+        <svg viewBox="0 0 16 16" fill="none" width="16" height="16">
+          <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <p class="modal-eyebrow">Get in Touch</p>
+      <h3 class="modal-heading" id="modal-heading">We're here to help</h3>
+      <p class="modal-article" id="modal-article"></p>
+      <div class="modal-form">
+        <div class="form-row">
+          <input class="form-input" type="text"  id="f-name"  placeholder="Full Name">
+          <input class="form-input" type="email" id="f-email" placeholder="Email Address">
+        </div>
+        <input class="form-input" type="tel" id="f-phone" placeholder="Phone Number">
+        <textarea class="form-input form-ta" id="f-msg" placeholder="Your query or message…"></textarea>
+      </div>
+      <button class="modal-submit" id="modal-submit" onclick="submitModal()">Send Message</button>
+    </div>
+  </div>
+
+  <!-- ── FOOTER ─────────────────────────────────────── -->
+  <footer class="footer">
+    <p>© 2026 Vidyarthi Mitra &nbsp;·&nbsp; All rights reserved</p>
+  </footer>
+
+  <script src="{{ url_for('static', filename='articles.js') }}"></script>
+</body>
+</html>

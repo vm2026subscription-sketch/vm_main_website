@@ -1,0 +1,197 @@
+/* ROOT VARIABLES FOR CONSISTENCY */
+:root {
+  --primary-orange: #ff7a00;
+  --deep-orange: #e65c00;
+  --soft-peach: #fff5ed;
+  --pure-white: #ffffff;
+  --text-dark: #1f2933;
+  --glass-white: rgba(255, 255, 255, 0.85);
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--pure-white); /* Clean white base */
+  color: var(--text-dark);
+  margin: 0;
+}
+
+/* UNIQUE SLANTED HEADER */
+.exam-header {
+  background: linear-gradient(135deg, var(--primary-orange), var(--deep-orange));
+  color: var(--pure-white);
+  padding: 80px 20px 120px;
+  text-align: center;
+  clip-path: ellipse(150% 100% at 50% 0%); /* Attractive curved bottom */
+}
+
+/* FLOATING SEARCH BAR (Glassmorphism) */
+.filter-bar {
+  max-width: 900px;
+  margin: -60px auto 40px;
+  background: var(--glass-white);
+  backdrop-filter: blur(10px);
+  padding: 25px;
+  border-radius: 20px;
+  display: flex;
+  gap: 15px;
+  box-shadow: 0 15px 35px rgba(255, 122, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  z-index: 10;
+  position: relative;
+}
+
+.filter-bar input, .filter-bar select {
+  border: 2px solid #ffffff;
+  padding: 12px;
+  border-radius: 12px;
+  outline: none;
+  transition: 0.3s;
+}
+
+.filter-bar input:focus {
+  border-color: var(--primary-orange);
+  box-shadow: 0 0 8px rgba(255, 122, 0, 0.2);
+}
+
+/* UNIQUE INTERACTIVE CARDS */
+.exam-card {
+  background: var(--pure-white);
+  border: 1px solid #ffffff;
+  border-radius: 24px;
+  padding: 30px;
+  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+/* The "Orange Reveal" on Hover */
+.exam-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: var(--primary-orange);
+  transform: scaleX(0);
+  transition: 0.3s ease;
+}
+
+.exam-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 25px 50px rgba(0,0,0,0.06);
+  border-color: var(--primary-orange);
+}
+
+.exam-card:hover::before {
+  transform: scaleX(1);
+}
+
+.exam-card h3 {
+  color: var(--deep-orange);
+  font-weight: 700;
+}
+
+/* VIBRANT TAGS */
+.tag {
+  background: var(--soft-peach);
+  color: var(--deep-orange);
+  font-weight: 800;
+  padding: 6px 15px;
+  border-radius: 50px;
+  font-size: 11px;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 122, 0, 0.2);
+}
+/* NAVBAR STYLES */
+.navbar {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  height: 80px;
+  display: flex;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  border-bottom: 1px solid rgba(255, 122, 0, 0.1);
+}
+
+.nav-container {
+  width: 90%;
+  max-width: 1200px;
+  margin: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* LOGO - Orange Accent */
+.logo {
+  font-size: 24px;
+  font-weight: 800;
+  color: #333;
+  text-decoration: none;
+  letter-spacing: -1px;
+}
+
+.logo span {
+  color: #ff7a00;
+}
+
+/* NAV LINKS */
+.nav-links {
+  display: flex;
+  list-style: none;
+  gap: 30px;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: #555;
+  font-weight: 500;
+  font-size: 15px;
+  transition: 0.3s;
+  position: relative;
+  padding: 5px 0;
+}
+
+/* Animated Underline Effect */
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: 0;
+  left: 0;
+  background-color: #ff7a00;
+  transition: 0.3s;
+}
+
+.nav-links a:hover::after, 
+.nav-links a.active::after {
+  width: 100%;
+}
+
+.nav-links a:hover,
+.nav-links a.active {
+  color: #ff7a00;
+}
+
+/* ACTION BUTTON */
+.btn-login {
+  background: #ff7a00;
+  color: white;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 50px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s;
+  box-shadow: 0 4px 15px rgba(255, 122, 0, 0.2);
+}
+
+.btn-login:hover {
+  background: #e65c00;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 122, 0, 0.3);
+}

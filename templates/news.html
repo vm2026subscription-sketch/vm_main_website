@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Education News | Vidyarthi Mitra</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+   <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+
+  <!-- Page Styles -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='news.css') }}">
+</head>
+<body>
+
+  <!-- BREAKING NEWS TICKER -->
+  <div class="ticker-bar">
+    <div class="ticker-label">
+      <i class="fa fa-circle"></i> Breaking
+    </div>
+    <div class="ticker-track-wrap">
+      <div class="ticker-track" id="tickerTrack">
+        <span class="ticker-item">MHT-CET 2026 Round 1 Allotment Released — Check Official Site Now</span>
+        <span class="ticker-item">JEE Main 2026 Admit Card Available for Download</span>
+        <span class="ticker-item">NEET UG Registration Deadline Extended by 2 Weeks</span>
+        <span class="ticker-item">SSC GD Constable 2026: Application Window Closing Soon</span>
+        <span class="ticker-item">UGC NET December 2026 Exam City Intimation Slip Released</span>
+        <span class="ticker-item">CBSE Board Practical Exams Begin January 2026</span>
+        <span class="ticker-item">Maharashtra SSC Result 2025 Expected Next Month</span>
+        <span class="ticker-item">CAT 2026 Analysis: Expected Cut-offs and Percentile Predictions</span>
+        <!-- Duplicate for seamless loop -->
+        <span class="ticker-item">MHT-CET 2026 Round 1 Allotment Released — Check Official Site Now</span>
+        <span class="ticker-item">JEE Main 2026 Admit Card Available for Download</span>
+        <span class="ticker-item">NEET UG Registration Deadline Extended by 2 Weeks</span>
+        <span class="ticker-item">SSC GD Constable 2026: Application Window Closing Soon</span>
+        <span class="ticker-item">UGC NET December 2026 Exam City Intimation Slip Released</span>
+        <span class="ticker-item">CBSE Board Practical Exams Begin January 2026</span>
+        <span class="ticker-item">Maharashtra SSC Result 2026 Expected Next Month</span>
+        <span class="ticker-item">CAT 2026 Analysis: Expected Cut-offs and Percentile Predictions</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MASTHEAD -->
+  <header class="masthead">
+    <div class="masthead-inner">
+      <a href="/" class="masthead-logo">&#2357;&#2367;&#2342;&#2381;&#2351;&#2366;&#2352;&#2381;&#2341;&#2368; <span>&#2350;&#2367;&#2340;&#2381;&#2352;.org</span></a>
+      <div class="masthead-divider"></div>
+      <div class="masthead-title">Education News</div>
+      <div class="masthead-search">
+        <i class="fa fa-search"></i>
+        <input type="text" id="searchInput" placeholder="Search news..." autocomplete="off">
+      </div>
+      <div class="masthead-date" id="currentDate">--</div>
+    </div>
+    <nav class="cat-nav">
+      <div class="cat-nav-inner">
+        <button class="cat-btn active" data-cat="all">All News</button>
+        <button class="cat-btn" data-cat="exams">Entrance Exams</button>
+        <button class="cat-btn" data-cat="results">Results</button>
+        <button class="cat-btn" data-cat="admission">Admissions</button>
+        <button class="cat-btn" data-cat="govt">Govt Jobs</button>
+        <button class="cat-btn" data-cat="scholar">Scholarships</button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- PAGE LAYOUT -->
+  <div class="page-wrap">
+
+    <!-- MAIN COLUMN -->
+    <main>
+
+      <!-- Hero Story -->
+      <div class="hero-story" onclick="openModal(0)">
+        <div class="hero-story-visual">&#127891;</div>
+        <div class="hero-story-content">
+          <div class="story-category"><i class="fa fa-bolt"></i> Top Story</div>
+          <h2>DTE Maharashtra Admissions 2026-27: Option Form Filling Guide Released</h2>
+          <p>The Directorate of Technical Education has published the comprehensive guide for engineering option form filling. Students are advised to carefully study the cut-off trends before locking preferences.</p>
+          <div class="hero-meta">
+            <span><i class="fa fa-calendar"></i> March 2, 2026</span>
+            <span><i class="fa fa-clock"></i> 5 min read</span>
+            <span><i class="fa fa-eye"></i> 24.6k views</span>
+          </div>
+          <button class="btn-read-hero"><i class="fa fa-book-open"></i> Read Full Story</button>
+        </div>
+      </div>
+
+      <!-- Section Header -->
+      <div class="sec-header">
+        <h3>Latest News</h3>
+        <div class="sec-line"></div>
+        <div class="sec-count" id="visibleCount">0</div>
+      </div>
+
+      <!-- Cards populated by JS -->
+      <div class="news-grid" id="newsGrid"></div>
+
+      <!-- Empty state -->
+      <div class="empty-state" id="emptyState">
+        <i class="fa fa-newspaper"></i>
+        <h4>No articles found</h4>
+        <p>Try a different search term or category.</p>
+      </div>
+
+      <!-- Load More -->
+      <div class="load-more-wrap" id="loadMoreWrap" style="display:none;">
+        <button class="btn-load-more" id="loadMoreBtn">
+          <i class="fa fa-plus"></i> Load More Articles
+        </button>
+      </div>
+
+    </main>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+
+      <!-- Trending -->
+      <div class="sidebar-widget">
+        <div class="widget-title"><i class="fa fa-fire"></i> Trending Searches</div>
+        <div class="tag-cloud">
+          <a class="tag-pill hot" href="#">NEET &#128293;</a>
+          <a class="tag-pill hot" href="#">JEE Main &#128293;</a>
+          <a class="tag-pill" href="#">MHT-CET</a>
+          <a class="tag-pill" href="#">11th Admission</a>
+          <a class="tag-pill" href="#">GATE</a>
+          <a class="tag-pill" href="#">Scholarships</a>
+          <a class="tag-pill" href="#">Results</a>
+          <a class="tag-pill" href="#">Govt Jobs</a>
+          <a class="tag-pill" href="#">Engineering</a>
+          <a class="tag-pill" href="#">CBSE</a>
+          <a class="tag-pill" href="#">AI Courses</a>
+          <a class="tag-pill" href="#">CAT 2025</a>
+          <a class="tag-pill" href="#">CLAT</a>
+          <a class="tag-pill" href="#">NDA</a>
+        </div>
+      </div>
+
+      <!-- Most Read -->
+      <div class="sidebar-widget">
+        <div class="widget-title"><i class="fa fa-chart-bar"></i> Most Read This Week</div>
+        <div class="story-list">
+          <div class="story-list-item">
+            <div class="story-num">01</div>
+            <div class="story-info">
+              <h5>DTE Maharashtra Option Form Filling Begins — Complete Guide</h5>
+              <small><i class="fa fa-eye"></i> 24.6k views</small>
+            </div>
+          </div>
+          <div class="story-list-item">
+            <div class="story-num">02</div>
+            <div class="story-info">
+              <h5>JEE Main 2025: Last-Minute Preparation Tips From Toppers</h5>
+              <small><i class="fa fa-eye"></i> 18.3k views</small>
+            </div>
+          </div>
+          <div class="story-list-item">
+            <div class="story-num">03</div>
+            <div class="story-info">
+              <h5>NEET UG 2025 Counselling — State vs All India Quota Explained</h5>
+              <small><i class="fa fa-eye"></i> 15.9k views</small>
+            </div>
+          </div>
+          <div class="story-list-item">
+            <div class="story-num">04</div>
+            <div class="story-info">
+              <h5>MHT-CET Cut-offs 2025 — Expected vs Previous Year Analysis</h5>
+              <small><i class="fa fa-eye"></i> 12.1k views</small>
+            </div>
+          </div>
+          <div class="story-list-item">
+            <div class="story-num">05</div>
+            <div class="story-info">
+              <h5>Scholarship Portal Deadline Extended — How to Apply Now</h5>
+              <small><i class="fa fa-eye"></i> 9.4k views</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Why VM -->
+      <div class="sidebar-widget">
+        <div class="widget-title"><i class="fa fa-shield-halved"></i> Why Vidyarthi Mitra?</div>
+        <div class="feature-list">
+          <div class="feature-item">
+            <div class="feature-icon"><i class="fa fa-check"></i></div>
+            Verified &amp; Accurate Updates
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon"><i class="fa fa-bolt"></i></div>
+            Fast Breaking Notifications
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon"><i class="fa fa-graduation-cap"></i></div>
+            Student-First Approach
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon"><i class="fa fa-bullseye"></i></div>
+            Exam-Focused Coverage
+          </div>
+        </div>
+      </div>
+
+      <!-- Newsletter -->
+      <div class="sidebar-widget">
+        <div class="widget-title"><i class="fa fa-envelope"></i> Daily News Digest</div>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6;">
+          Get the most important education news delivered to your inbox every morning.
+        </p>
+       <div class="nl-form">
+  <input type="email" id="nlEmail" placeholder="your@email.com" required> 
+  <button onclick="validateSubscription()">
+    <i class="fa fa-paper-plane"></i> Subscribe Free
+  </button>
+</div>
+        </div>
+      </div>
+
+    </aside>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-bg" id="modalBg">
+    <div class="modal" id="modal">
+      <div class="modal-head">
+        <button class="modal-close-btn" id="modalClose"><i class="fa fa-times"></i></button>
+        <div class="modal-cat-badge" id="mCat">--</div>
+        <h2 class="modal-title" id="mTitle">--</h2>
+        <div class="modal-meta">
+          <span><i class="fa fa-calendar"></i> <span id="mDate">--</span></span>
+          <span><i class="fa fa-clock"></i> <span id="mRead">--</span></span>
+          <span><i class="fa fa-eye"></i> <span id="mViews">--</span></span>
+        </div>
+      </div>
+      <div class="modal-divider"></div>
+      <div class="modal-body">
+        <p id="mBody">--</p>
+        <div class="modal-actions">
+          <button class="modal-btn primary" onclick="showToast('Opening full article...')">
+            <i class="fa fa-external-link-alt"></i> Full Article
+          </button>
+          <button class="modal-btn secondary" onclick="shareArticle()">
+            <i class="fa fa-share-alt"></i> Share
+          </button>
+          <button class="modal-btn secondary" id="mBookmarkBtn" onclick="toggleModalBookmark()">
+            <i class="fa fa-bookmark"></i> Save
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast">
+    <i class="fa fa-check-circle"></i>
+    <span id="toastMsg">Done</span>
+  </div>
+
+  <!-- Page Script -->
+  <script src="{{ url_for('static', filename='news.js') }}"></script>
+
+</body>
+</html>

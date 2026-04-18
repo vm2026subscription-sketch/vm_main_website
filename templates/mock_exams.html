@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mock Exams | Vidyarthi Mitra</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
+
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='mock-exams.css') }}">
+</head>
+<body>
+
+    <header class="header">
+        <div class="nav-container">
+            <h2 class="logo">विद्यार्थी <span>मित्र.org</span></h2>
+            <nav>
+                <a href="{{ url_for('index') }}">Home</a>
+            
+                <a href="#">Pricing</a>
+                <a href="#">Help</a>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="hero-content">
+            <h1>A Golden Chance to Take Exam, <br><span>Before Actual Exam</span></h1>
+            <p>Experience real-time exam environments and improve your national ranking.</p>
+
+            <div class="exam-grid">
+                {% if exams %}
+                    {% for exam in exams %}
+                    <div class="exam-card">
+                        <div class="card-inner">
+                            <h3>{{ exam }}</h3>
+                            <span>2026-27</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p>No exams available at the moment.</p>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    <section class="streams">
+        <div class="section-head">
+            <h2>Explore by <span>Stream</span></h2>
+            <div class="underline"></div>
+        </div>
+        <div class="stream-container">
+            {% if streams %}
+                {% for stream in streams %}
+                <div class="stream-box {{ stream.class }}">
+                    <div class="stream-icon">
+                        <i class="fa {{ stream.icon }}"></i>
+                    </div>
+                    <h3>{{ stream.name }}</h3>
+                    <p>Updated for 2026 pattern</p>
+                </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="stats-bar" id="statsBar">
+        <div class="stat-item">
+            <span class="count" data-target="50000">0</span>
+            <p>Students Registered</p>
+        </div>
+        <div class="stat-item">
+            <span class="count" data-target="100000">0</span>
+            <p>Total Mock Tests</p>
+        </div>
+        <div class="stat-item">
+            <span class="count" data-target="20">0</span>
+            <p>Expert Mentors</p>
+        </div>
+    </section>
+
+    <section class="subscribe-section">
+        <div class="sub-card">
+            <h2>Get Early Access to <span>2026 Mocks</span></h2>
+            <p>Join 200,000+ students getting daily exam updates.</p>
+            <div class="sub-form">
+                <input type="email" id="subEmail" placeholder="Your Email" required>
+                <input type="text" id="subMobile" placeholder="WhatsApp Number" required>
+                <button type="button" onclick="handleSubscribe()">
+                    <i class="fa fa-paper-plane"></i> Join Free
+                </button>
+            </div>
+            <p id="subStatus" style="margin-top: 15px; font-weight: 600;"></p>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <p>&copy; 2026 Vidyarthi Mitra. Empowering Students Nationwide.</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='mock-exams.js') }}"></script>
+</body>
+</html>

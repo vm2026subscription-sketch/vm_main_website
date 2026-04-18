@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Guide Me - Admission Guidance Form | Vidyarthi Mitra{% endblock %}
+
+{% block page_styles %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='GuideMe1.css') }}" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Poppins', sans-serif; background: #f5f5f5; }
+    .back-btn { color: #f97316; text-decoration: none; font-weight: bold; display: inline-block; margin-bottom: 20px; }
+    .form-section { max-width: 800px; margin: 40px auto; padding: 20px; background: #fff; border-radius: 8px; }
+    .field { margin-bottom: 15px; }
+    .required { color: red; }
+    .conditional-section { margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px; }
+    input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; }
+    .btn { background: #22c55e; color: white; border: none; padding: 12px 25px; cursor: pointer; border-radius: 4px; margin-top: 10px; }
+    .flash-wrap { max-width: 800px; margin: 25px auto -15px; }
+    .flash {
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 14px;
+      margin-bottom: 10px;
+      border: 1px solid transparent;
+    }
+    .flash-success { background: #e7f8ee; color: #1f7a47; border-color: #bfe8cf; }
+    .flash-error { background: #fdeceb; color: #b42318; border-color: #f7c5c2; }
+  </style>
+{% endblock %}
+
+{% block content %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flash-wrap">
+      {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<section class="form-section">
+  <a href="{{ url_for('index') }}" class="back-btn">← Back to Home</a>
+  <h2 style="color: orange; margin-bottom: 20px;">REGISTRATION FORM</h2>
+
+  <form action="{{ url_for('guide_me') }}" method="POST">
+    <div class="grid">
+      <div class="field">
+        <label>Full Name <span class="required">*</span></label>
+        <input type="text" name="full_name" required placeholder="Enter Full Name">
+      </div>
+
+      <div class="field">
+        <label>WhatsApp No. <span class="required">*</span></label>
+        <input type="text" name="whatsapp" required placeholder="10 Digit Number" maxlength="10">
+      </div>
+
+      <div class="field">
+        <label>Email <span class="required">*</span></label>
+        <input type="email" name="email" required placeholder="example@gmail.com">
+      </div>
+
+      <div class="field">
+        <label>Address <span class="required">*</span></label>
+        <input type="text" name="address" required placeholder="Your Address">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>REQUIREMENTS FROM OUR SIDE <span class="required">*</span></label>
+      <select id="requirementSelect" name="requirement_type" required onchange="toggleSections()">
+        <option value="">--Select--</option>
+        <option value="career">Career Aptitude Test</option>
+        <option value="admission">Admission Guidance</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+
+    <div id="careerSection" class="conditional-section" style="display: none;">
+      <label>I'M IN</label>
+      <select name="career_level">
+        <option value="">--Select--</option>
+        <option value="10th">10th</option>
+        <option value="12th">12th</option>
+        <option value="Graduate">Graduate</option>
+      </select>
+      <label>Any Message (Max 50 words)</label>
+      <textarea name="career_msg" placeholder="Any Message for us"></textarea>
+    </div>
+
+    <div id="admissionSection" class="conditional-section" style="display: none;">
+      <div class="field">
+        <label>Course</label>
+        <select name="adm_course">
+          <option value="">--Select Course--</option>
+          <option>Engineering</option>
+          <option>Medical</option>
+          <option>Pharmacy</option>
+          <option>MBA</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>12th Percentage <span class="required">*</span></label>
+        <input type="number" name="adm_12th" step="0.01" placeholder="%">
+      </div>
+    </div>
+
+    <div id="otherSection" class="conditional-section" style="display: none;">
+      <textarea name="other_msg" maxlength="250" placeholder="Any Message for us"></textarea>
+    </div>
+
+    <button type="submit" class="btn">SUBMIT FORM</button>
+  </form>
+</section>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+  function toggleSections() {
+    const val = document.getElementById('requirementSelect').value;
+    document.getElementById('careerSection').style.display = (val === 'career') ? 'block' : 'none';
+    document.getElementById('admissionSection').style.display = (val === 'admission') ? 'block' : 'none';
+    document.getElementById('otherSection').style.display = (val === 'other') ? 'block' : 'none';
+  }
+</script>
+{% endblock %}

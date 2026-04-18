@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Universities | Vidyarthi Mitra</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #ff6600;
+            --primary-dark: #e65c00;
+            --secondary: #e65c00;
+            --text: #1e293b;
+            --muted: #64748b;
+            --bg-soft: #f8fafc;
+            --line: #e2e8f0;
+            --chip: #ff8a33;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            color: var(--text);
+            background: var(--bg-soft);
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 700;
+        }
+
+        .main-nav {
+            border-bottom: 1px solid var(--line);
+            background: #fff;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .navbar-brand img { height: 42px; }
+
+        .navbar-nav .nav-link {
+            color: var(--text);
+            font-weight: 600;
+            margin: 0 6px;
+            padding: 8px 10px !important;
+            text-decoration: none !important;
+        }
+
+        .navbar-nav .nav-link:hover,
+        .navbar-nav .nav-link.active {
+            color: var(--primary);
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #e65c00, #ff8a33);
+            color: #fff;
+            padding: 56px 0;
+        }
+
+        .hero h1 {
+            font-size: clamp(2rem, 5vw, 3rem);
+            margin-bottom: 12px;
+        }
+
+        .hero p {
+            margin: 0;
+            max-width: 960px;
+            opacity: .95;
+            font-size: 1rem;
+        }
+
+        .section-pad { padding: 34px 0 52px; }
+
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 22px;
+        }
+
+        .panel {
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(15,23,42,.05);
+            margin-bottom: 14px;
+        }
+
+        .panel-head {
+            background: #fff4eb;
+            color: #e65c00;
+            padding: 14px 16px;
+            font-weight: 700;
+            border-bottom: 1px solid #ffd9bf;
+        }
+
+        .panel-search {
+            border: 0;
+            border-bottom: 1px solid var(--line);
+            width: 100%;
+            padding: 12px 14px;
+            outline: none;
+            font-size: .95rem;
+        }
+
+        .state-list {
+            max-height: 220px;
+            overflow: auto;
+            padding: 8px 0;
+        }
+
+        .state-item {
+            padding: 10px 14px;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: .9rem;
+            color: #334155;
+        }
+
+        .state-item input { width: 16px; height: 16px; }
+
+        .cards-wrap { display: grid; gap: 14px; }
+
+        .uni-card {
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 14px;
+            display: grid;
+            grid-template-columns: 110px 1fr;
+            gap: 14px;
+            box-shadow: 0 8px 20px rgba(15,23,42,.05);
+            transition: .2s ease;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .uni-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 28px rgba(15,23,42,.08);
+        }
+
+        .uni-logo {
+            width: 100%;
+            height: 90px;
+            object-fit: contain;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            background: #f8fafc;
+            padding: 8px;
+        }
+
+        .uni-title {
+            margin: 0 0 10px;
+            color: var(--primary-dark);
+            font-size: clamp(1rem, 1.7vw, 1.25rem);
+            line-height: 1.35;
+        }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .chip {
+            background: var(--chip);
+            color: #fff;
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: .76rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .2px;
+        }
+
+        .chip.nirf {
+            background: var(--primary);
+        }
+
+        .meta-note {
+            margin-bottom: 14px;
+            font-size: .92rem;
+            color: var(--muted);
+        }
+
+        .empty-state {
+            background: #fff;
+            border: 1px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 18px;
+            color: #64748b;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        @media (max-width: 992px) {
+            .layout-grid { grid-template-columns: 1fr; }
+            .panel-stack { order: 2; }
+        }
+
+        @media (max-width: 576px) {
+            .uni-card {
+                grid-template-columns: 1fr;
+            }
+
+            .uni-logo {
+                height: 80px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="main-nav">
+        <div class="container">
+            <nav class="navbar navbar-expand-lg">
+                <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="{{ url_for('index') }}">
+                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Vidyarthi Mitra">
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="mainNav">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Home</a></li>
+                        <li class="nav-item"><a class="nav-link active" href="{{ url_for('universities') }}">Universities</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('colleges') }}">Colleges</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('courses') }}">Courses</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('exams') }}">Entrance Exams</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('mock_exams') }}">Mock Exams</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('admissions') }}">Admissions</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('news') }}">News</a></li>
+                    </ul>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h1>Top Universities in India</h1>
+            <p>Trusted and structured university information to help students compare options by location, institution type, and ranking context.</p>
+        </div>
+    </section>
+
+    <main class="section-pad">
+        <div class="container">
+            <p class="meta-note">Live source powered top universities with discover-more style filters. Showing {{ universities|length }} records.</p>
+
+            <div class="layout-grid">
+                <aside class="panel-stack">
+                    <div class="panel">
+                        <div class="panel-head"><i class="fa-solid fa-map-location-dot me-2"></i>State</div>
+                        <input class="panel-search" type="text" id="stateSearch" placeholder="Search state..." aria-label="Search states">
+                        <div class="state-list" id="stateList">
+                            {% for state in states %}
+                            <label class="state-item">
+                                <input type="checkbox" data-filter-group="state" value="{{ state }}">
+                                <span>{{ state }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-head"><i class="fa-solid fa-location-dot me-2"></i>City</div>
+                        <div class="state-list">
+                            {% for city in cities %}
+                            <label class="state-item">
+                                <input type="checkbox" data-filter-group="city" value="{{ city }}">
+                                <span>{{ city }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-head"><i class="fa-solid fa-layer-group me-2"></i>Type</div>
+                        <div class="state-list">
+                            {% for type in types %}
+                            <label class="state-item">
+                                <input type="checkbox" data-filter-group="type" value="{{ type }}">
+                                <span>{{ type }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-head"><i class="fa-solid fa-book me-2"></i>Stream</div>
+                        <div class="state-list">
+                            {% for stream in streams %}
+                            <label class="state-item">
+                                <input type="checkbox" data-filter-group="stream" value="{{ stream }}">
+                                <span>{{ stream }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </aside>
+
+                <section>
+                    <div class="cards-wrap" id="universityCards">
+                        {% for university in universities %}
+                        <a class="uni-card"
+                           href="{{ url_for('university_detail', slug=university.slug) }}"
+                           data-state="{{ university.state }}"
+                           data-city="{{ university.location }}"
+                           data-type="{{ university.type }}"
+                           data-stream="{{ university.stream }}">
+                            <img class="uni-logo" src="{{ university.logo_url }}" alt="{{ university.name }}">
+                            <div>
+                                <h2 class="uni-title">{{ university.name }}</h2>
+                                <div class="chips">
+                                    <span class="chip"><i class="fa-solid fa-location-dot me-1"></i>{{ university.location }}</span>
+                                    <span class="chip">{{ university.type }}</span>
+                                    <span class="chip nirf">NIRF {{ university.nirf }}</span>
+                                </div>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    <div id="emptyState" class="empty-state" style="display:none;">No universities match your selected filters.</div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.uni-card');
+            const checkboxes = document.querySelectorAll('.state-item input[type="checkbox"]');
+            const stateSearch = document.getElementById('stateSearch');
+            const stateItems = document.querySelectorAll('#stateList .state-item');
+            const emptyState = document.getElementById('emptyState');
+
+            function selectedValues(groupName) {
+                return Array.from(document.querySelectorAll(`input[data-filter-group="${groupName}"]:checked`))
+                    .map(cb => cb.value.trim());
+            }
+
+            function applyFilters() {
+                const stateFilters = selectedValues('state');
+                const cityFilters = selectedValues('city');
+                const typeFilters = selectedValues('type');
+                const streamFilters = selectedValues('stream');
+
+                let visibleCount = 0;
+
+                cards.forEach(card => {
+                    const state = card.dataset.state || '';
+                    const city = card.dataset.city || '';
+                    const type = card.dataset.type || '';
+                    const stream = card.dataset.stream || '';
+
+                    const matchesState = stateFilters.length === 0 || stateFilters.includes(state);
+                    const matchesCity = cityFilters.length === 0 || cityFilters.includes(city);
+                    const matchesType = typeFilters.length === 0 || typeFilters.includes(type);
+                    const matchesStream = streamFilters.length === 0 || streamFilters.includes(stream);
+
+                    const visible = matchesState && matchesCity && matchesType && matchesStream;
+                    card.style.display = visible ? 'grid' : 'none';
+                    if (visible) {
+                        visibleCount += 1;
+                    }
+                });
+
+                emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+            }
+
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', applyFilters);
+            });
+
+            if (stateSearch) {
+                stateSearch.addEventListener('input', function() {
+                    const query = this.value.toLowerCase().trim();
+                    stateItems.forEach(item => {
+                        const text = item.textContent.toLowerCase();
+                        item.style.display = text.includes(query) ? 'flex' : 'none';
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>

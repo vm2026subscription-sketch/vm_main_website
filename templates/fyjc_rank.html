@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FYJC Rank Predictor – Vidyarthi Mitra</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700;800&family=Noto+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='fyjc_rank.css') }}">
+ <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <span class="dot"></span>
+    महाराष्ट्र शासन · Government of Maharashtra
+    <span class="dot"></span>
+    School Education Department
+  </div>
+  <div class="header-main">
+    <div class="logo-box">🎓</div>
+    <div class="header-text">
+      <h1>Vidyarthi Mitra</h1>
+      <p>FYJC Centralized Admission Process · विद्यार्थी मित्र</p>
+    </div>
+    <div class="header-badge">
+      <span class="live-dot"></span>
+      AY 2025–26
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="intro-card">
+    <span class="icon">ℹ️</span>
+    <div>
+      <strong>FYJC Rank Predictor</strong> — Enter your SSC (10th) marks, board, category, and preferences
+      to get an estimated merit rank and eligible college list for the upcoming FYJC admission round.
+      This tool uses historical cut-off data and is for <em>reference only</em>.
+    </div>
+  </div>
+
+  <!-- ── Step 1 ─────────────────────────────────────────────────────────── -->
+  <div class="form-card">
+    <div class="form-section-title">
+      <span class="step-badge">1</span>
+      Student &amp; Board Details
+    </div>
+    <div class="form-body">
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label for="board">SSC Board <span class="required">*</span></label>
+          <select id="board">
+            <option value="">— Select Board —</option>
+            <option value="maharashtra">Maharashtra State Board (SSC)</option>
+            <option value="cbse">CBSE</option>
+            <option value="icse">ICSE / ISC</option>
+            <option value="other">Other Recognized Board</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="category">Category <span class="required">*</span></label>
+          <select id="category">
+            <option value="">— Select Category —</option>
+            <option value="open">Open / General</option>
+            <option value="obc">OBC (Other Backward Class)</option>
+            <option value="sc">SC (Scheduled Caste)</option>
+            <option value="st">ST (Scheduled Tribe)</option>
+            <option value="nt">NT (Nomadic Tribe)</option>
+            <option value="vj">VJ / DT (Vimukta Jati)</option>
+            <option value="sbc">SBC (Special Backward Class)</option>
+            <option value="ews">EWS (Economically Weaker Section)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="division">Division <span class="required">*</span></label>
+          <select id="division">
+            <option value="">— Select Division —</option>
+            <option value="mumbai">Mumbai</option>
+            <option value="pune">Pune</option>
+            <option value="nashik">Nashik</option>
+            <option value="aurangabad">Chhatrapati Sambhajinagar (Aurangabad)</option>
+            <option value="amravati">Amravati</option>
+            <option value="nagpur">Nagpur</option>
+            <option value="konkan">Konkan</option>
+            <option value="latur">Latur</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="pwd">PWD / Special Category <span class="hint">(if applicable)</span></label>
+          <select id="pwd">
+            <option value="no">No</option>
+            <option value="yes">Yes – PH/PWD</option>
+            <option value="exservice">Ex-Serviceman Ward</option>
+            <option value="sports">Sports Category</option>
+          </select>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Step 2 ─────────────────────────────────────────────────────────── -->
+  <div class="form-card">
+    <div class="form-section-title">
+      <span class="step-badge">2</span>
+      SSC Marks (Out of 100 each)
+    </div>
+    <div class="form-body">
+
+      <div class="marks-row">
+        <div class="subject-input">
+          <label for="m1">Language 1<br><span class="sub-hint">(Marathi/Hindi)</span></label>
+          <input type="number" id="m1" min="0" max="100" placeholder="0–100" oninput="updateTotal()">
+        </div>
+        <div class="subject-input">
+          <label for="m2">Language 2<br><span class="sub-hint">(English)</span></label>
+          <input type="number" id="m2" min="0" max="100" placeholder="0–100" oninput="updateTotal()">
+        </div>
+        <div class="subject-input">
+          <label for="m3">Mathematics<br><span class="sub-hint">(Algebra+Geom)</span></label>
+          <input type="number" id="m3" min="0" max="100" placeholder="0–100" oninput="updateTotal()">
+        </div>
+        <div class="subject-input">
+          <label for="m4">Science &amp; Tech<br><span class="sub-hint">(Part I+II)</span></label>
+          <input type="number" id="m4" min="0" max="100" placeholder="0–100" oninput="updateTotal()">
+        </div>
+        <div class="subject-input">
+          <label for="m5">Social Science<br><span class="sub-hint">(History/Geo)</span></label>
+          <input type="number" id="m5" min="0" max="100" placeholder="0–100" oninput="updateTotal()">
+        </div>
+      </div>
+
+      <div class="marks-total-bar">
+        <div>
+          <div class="label">Total Marks</div>
+          <div class="marks-progress" style="width:180px">
+            <div class="marks-progress-fill" id="progress-fill" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="marks-total-display">
+          <span class="total-number" id="total-display">0</span>
+          <span class="total-denom">/ 500</span>
+          <span class="percent-badge" id="percent-display">0.00%</span>
+        </div>
+      </div>
+
+      <p class="error-msg" id="marks-error">⚠ Please enter valid marks (0–100) for all subjects.</p>
+
+      <!-- Stream -->
+      <div style="margin-top:16px">
+        <label style="margin-bottom:8px;display:block">
+          Preferred Stream <span class="required">*</span>
+        </label>
+        <div class="stream-options">
+          <label class="stream-option">
+            <input type="radio" name="stream" value="science">
+            <div class="stream-card">
+              <span class="s-icon">🔬</span>
+              <span class="s-name">Science</span>
+              <span class="s-sub">PCM / PCB</span>
+            </div>
+          </label>
+          <label class="stream-option">
+            <input type="radio" name="stream" value="commerce">
+            <div class="stream-card">
+              <span class="s-icon">📊</span>
+              <span class="s-name">Commerce</span>
+              <span class="s-sub">OCM / Eco</span>
+            </div>
+          </label>
+          <label class="stream-option">
+            <input type="radio" name="stream" value="arts">
+            <div class="stream-card">
+              <span class="s-icon">🎨</span>
+              <span class="s-name">Arts / Humanities</span>
+              <span class="s-sub">History / Psych</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <button class="submit-btn" id="predict-btn" onclick="predict()">
+    🔍 Predict My FYJC Rank
+  </button>
+
+  <!-- ── Results ────────────────────────────────────────────────────────── -->
+  <div id="result-section" style="display:none">
+
+    <div class="result-hero">
+      <div class="result-hero-label">ESTIMATED MERIT RANK</div>
+      <div class="result-hero-rank">
+        <span class="rank-prefix">#</span>
+        <span id="rank-number">—</span>
+        <span class="rank-suffix" id="rank-suffix-text">to #—</span>
+      </div>
+      <div class="result-hero-sub" id="result-sub-text">Based on historical FYJC data</div>
+      <div class="result-pills" id="result-pills"></div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">📈</div>
+        <div class="stat-value" id="stat-percentile">—</div>
+        <div class="stat-label">Percentile</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🏫</div>
+        <div class="stat-value" id="stat-colleges">—</div>
+        <div class="stat-label">Eligible Colleges</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">⭐</div>
+        <div class="stat-value" id="stat-cutoff">—</div>
+        <div class="stat-label">Marks vs Last Cutoff</div>
+      </div>
+    </div>
+
+    <div class="colleges-card">
+      <div class="colleges-header">
+        🏛️ Likely Eligible Colleges (Based on Last Year Cut-offs)
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>College</th>
+            <th>Min Cut-off %</th>
+            <th>Admission Chance</th>
+          </tr>
+        </thead>
+        <tbody id="colleges-tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="disclaimer">
+      <span class="icon">⚠️</span>
+      <div>
+        <strong>Disclaimer:</strong> This rank prediction is based on
+        <em>historical cut-off data and statistical modelling</em> and is provided for reference only.
+        Actual merit rank and eligibility depend on the total number of applicants, current-year
+        reservation policy, and official Vidyarthi Mitra CAP rounds.
+        Always verify with the official portal at <strong>vidyarthimitra.org</strong>.
+      </div>
+    </div>
+
+    <button class="reset-btn" onclick="resetForm()">↩ Recalculate for Different Marks</button>
+
+  </div><!-- /result-section -->
+</div><!-- /container -->
+
+<footer>
+  <strong>Vidyarthi Mitra</strong> — Maharashtra FYJC Centralized Admission Process &nbsp;|&nbsp;
+  School Education &amp; Sports Department, Government of Maharashtra &nbsp;|&nbsp;
+  <strong>vidyarthimitra.org</strong>
+</footer>
+
+<script src="{{ url_for('static', filename='fyjc_rank.js') }}"></script>
+</body>
+</html>

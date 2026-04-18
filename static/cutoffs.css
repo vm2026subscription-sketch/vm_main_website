@@ -1,0 +1,222 @@
+/* =========================
+   ROOT & GLOBAL
+========================= */
+:root {
+  --orange: #ff6600;
+  --orange-dark: #e65c00;
+  --secondary: #0f2f6d;
+  --light-bg: #fff4eb;
+  --white: #ffffff;
+  --text-dark: #374151;
+  --shadow: 0 12px 30px rgba(0,0,0,0.12);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Inter", sans-serif;
+  background: #fafafa;
+  color: var(--text-dark);
+  line-height: 1.7;
+}
+
+/* =========================
+   HERO SECTION
+========================= */
+.cutoff-hero {
+  min-height: 70vh;
+  background:
+    linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)),
+    url("assets/images/campus.jpg");
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.cutoff-hero-content {
+  max-width: 900px;
+  color: var(--white);
+}
+
+.cutoff-hero h1 {
+  font-size: 42px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.cutoff-hero p {
+  font-size: 18px;
+  opacity: 0.95;
+}
+
+/* =========================
+   HERO BUTTONS
+========================= */
+.cutoff-buttons {
+  margin-top: 32px;
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-primary,
+.btn-outline {
+  padding: 14px 32px;
+  border-radius: 50px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-primary {
+  background: var(--orange);
+  color: var(--white);
+  box-shadow: var(--shadow);
+}
+
+.btn-primary:hover {
+  background: var(--orange-dark);
+  transform: translateY(-4px);
+}
+
+.btn-outline {
+  border: 2px solid var(--white);
+  color: var(--white);
+}
+
+.btn-outline:hover {
+  background: var(--white);
+  color: var(--orange-dark);
+}
+
+/* =========================
+   DASHBOARD SECTION
+========================= */
+.cutoff-dashboard {
+  padding: 90px 24px;
+  background: var(--light-bg);
+  text-align: center;
+}
+
+.cutoff-dashboard h2 {
+  font-size: 34px;
+  margin-bottom: 50px;
+  color: var(--secondary);
+}
+
+.dashboard-grid {
+  max-width: 1200px;
+  margin: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 28px;
+}
+
+.dashboard-card {
+  background: var(--white);
+  padding: 36px 24px;
+  border-radius: 18px;
+  font-weight: 600;
+  font-size: 16px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: all 0.35s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--orange), var(--orange-dark));
+  opacity: 0;
+  transition: 0.35s;
+}
+
+.dashboard-card:hover::before {
+  opacity: 1;
+}
+
+.dashboard-card:hover {
+  color: var(--white);
+  transform: translateY(-8px);
+}
+
+/* =========================
+   RANK FORM
+========================= */
+.rank-form {
+  padding: 90px 24px;
+  background: var(--white);
+  text-align: center;
+}
+
+.rank-form h2 {
+  font-size: 32px;
+  margin-bottom: 36px;
+}
+
+.rank-form form {
+  max-width: 420px;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.rank-form input,
+.rank-form select {
+  padding: 14px 18px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  font-size: 15px;
+}
+
+.rank-form input:focus,
+.rank-form select:focus {
+  outline: none;
+  border-color: var(--orange);
+}
+
+.rank-form button {
+  padding: 14px;
+  border-radius: 50px;
+  border: none;
+  background: var(--orange);
+  color: var(--white);
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.rank-form button:hover {
+  background: var(--orange-dark);
+  transform: translateY(-3px);
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+@media (max-width: 768px) {
+  .cutoff-hero h1 {
+    font-size: 32px;
+  }
+
+  .cutoff-dashboard h2 {
+    font-size: 26px;
+  }
+}

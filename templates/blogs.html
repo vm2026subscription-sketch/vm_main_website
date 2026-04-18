@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
+   <!-- Main Navbar -->
+  <nav class="navbar">
+    <a class="logo" href="#">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="Vidyarthi Mitra" class="logo-image"/>
+    </a>
+    <div class="nav-links">
+      <a href="{{ url_for('index') }}">HOME</a>
+      <a class="nav-link active" href="{{ url_for('universities') }}">Universities</a>
+      <a class="nav-link" href="{{ url_for('colleges') }}">Colleges</a>
+      <a class="nav-link" href="{{ url_for('courses') }}">Courses</a>
+      <a class="nav-link" href="{{ url_for('exams') }}">Entrance Exams</a>
+      <a class="nav-link" href="{{ url_for('mock_exams') }}">Mock Exams</a>
+      <a class="nav-link" href="{{ url_for('news') }}">News</a>
+    </div>
+  </nav>
+  <meta charset="UTF-8">
+  <title>Blogs & Updates | Vidyarthi Mitra</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&family=Inter&display=swap" rel="stylesheet">
+
+  <!-- Flask CSS (url_for) -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='blog.css') }}">
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="blog-header">
+  <h1>Educational Blogs &amp; Updates</h1>
+  <p>Latest news, exams, admissions, results &amp; career guidance</p>
+
+  <div class="blog-search">
+    <select id="categoryFilter">
+      <option value="all"       {% if category == 'all'       %}selected{% endif %}>All</option>
+      <option value="result"    {% if category == 'result'    %}selected{% endif %}>Result</option>
+      <option value="exam"      {% if category == 'exam'      %}selected{% endif %}>Exam</option>
+      <option value="admission" {% if category == 'admission' %}selected{% endif %}>Admission</option>
+      <option value="career"    {% if category == 'career'    %}selected{% endif %}>Career</option>
+    </select>
+
+    <input
+      type="text"
+      id="searchInput"
+      placeholder="Search blogs..."
+      value="{{ search }}"
+    >
+  </div>
+</header>
+
+<!-- BLOG CONTAINER -->
+<section class="blog-container" id="blogContainer">
+
+ <!-- BLOG CARD -->
+  <div class="blog-card result">
+    <img src="{{ url_for('static', filename='blog1.jpg') }}" alt="Maharashtra SSC Result 2025">
+    <div class="blog-content">
+      <span class="tag result">RESULT</span>
+      <h3>Maharashtra SSC Result 2026</h3>
+      <p>SSC results expected soon. Check official updates and cutoff trends.</p>
+      <button>Read More</button>
+    </div>
+  </div>
+
+  <div class="blog-card admission">
+    <img src="{{ url_for('static', filename='blog2.jpg') }}" alt="NEET UG 2025 Registration">
+    <div class="blog-content">
+      <span class="tag admission">ADMISSION</span>
+      <h3>NEET UG 2026 Registration</h3>
+      <p>Complete registration process, eligibility & important dates.</p>
+      <button>Read More</button>
+    </div>
+  </div>
+
+  <div class="blog-card exam">
+    <img src="{{ url_for('static', filename='blog3.jpg') }}" alt="JEE Main 2025 Admit Card">
+    <div class="blog-content">
+      <span class="tag exam">EXAM</span>
+      <h3>JEE Main 2026 Admit Card</h3>
+      <p>Admit card download link and exam-day guidelines.</p>
+      <button>Read More</button>
+    </div>
+  </div>
+
+  <div class="blog-card exam">
+    <img src="{{ url_for('static', filename='blog4.jpg') }}" alt="MHT-CET Mock Seat Allotment">
+    <div class="blog-content">
+      <span class="tag exam">EXAM</span>
+      <h3>MHT-CET Mock Seat Allotment</h3>
+      <p>Check provisional allotment and understand counselling rounds.</p>
+      <button>Read More</button>
+    </div>
+  </div>
+
+  <div class="blog-card career">
+    <img src="{{ url_for('static', filename='blog5.jpg') }}" alt="Top Career Options After 12th">
+    <div class="blog-content">
+      <span class="tag career">CAREER</span>
+      <h3>Top Career Options After 12th</h3>
+      <p>Explore engineering, medical, commerce & skill-based careers.</p>
+      <button>Read More</button>
+    </div>
+  </div>
+
+  <!-- ADD MORE BLOG CARDS AS NEEDED -->
+
+</section>
+
+<!-- Flask JS (url_for) -->
+<script src="{{ url_for('static', filename='blog.js') }}"></script>
+</body>
+</html>

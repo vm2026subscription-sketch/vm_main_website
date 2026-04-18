@@ -1,0 +1,103 @@
+/* ROOT VARIABLES */
+:root {
+  --primary-orange: #ff7a00;
+  --deep-orange: #e65c00;
+  --soft-white: #ffffff;
+  --bg-light: #f9fafb;
+  --text-main: #2d3436;
+}
+
+body {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  background-color: var(--bg-light);
+  color: var(--text-main);
+  margin: 0;
+}
+
+/* UNIQUE CURVED HERO */
+.hero {
+  background: linear-gradient(135deg, var(--primary-orange), #ff9f45);
+  color: white;
+  text-align: center;
+  padding: 100px 20px 140px;
+  clip-path: ellipse(150% 100% at 50% 0%); /* Modern curved aesthetic */
+}
+
+.hero h1 {
+  font-size: 3.5rem;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+/* STORIES GRID - Overlapping Design */
+.stories-container {
+  max-width: 1200px;
+  margin: -60px auto 80px;
+  padding: 0 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 30px;
+}
+
+/* ATTRACTIVE STORY CARDS */
+.story-card {
+  background: var(--soft-white);
+  padding: 40px 30px;
+  border-radius: 24px;
+  position: relative;
+  border: 1px solid #f0f0f0;
+  box-shadow: 0 15px 35px rgba(255, 122, 0, 0.08);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.story-card:hover {
+  transform: translateY(-12px);
+  box-shadow: 0 25px 50px rgba(255, 122, 0, 0.18);
+  border-color: var(--primary-orange);
+}
+
+.story-card h3 {
+  color: #1a1a1a;
+  margin-bottom: 15px;
+  font-size: 1.5rem;
+}
+
+/* ORANGE ACCENT TAGS */
+.tag {
+  position: absolute;
+  top: 25px;
+  right: 25px;
+  background: #fff5ed;
+  color: var(--primary-orange);
+  padding: 6px 14px;
+  border-radius: 50px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 122, 0, 0.2);
+}
+
+/* UNIQUE BUTTON STYLE */
+.story-card button {
+  background: transparent;
+  border: 2px solid var(--primary-orange);
+  color: var(--primary-orange);
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.story-card button:hover {
+  background: var(--primary-orange);
+  color: var(--soft-white);
+}
+
+/* FOOTER */
+.footer {
+  background: #1f2933;
+  color: #a4b0be;
+  text-align: center;
+  padding: 40px;
+}

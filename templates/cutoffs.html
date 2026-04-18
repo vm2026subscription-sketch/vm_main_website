@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Rank Predictor | Cut-Offs 2024–25{% endblock %}
+
+{% block page_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='cutoffs.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<!-- HERO SECTION -->
+<section class="cutoff-hero">
+  <div class="cutoff-hero-content">
+    <h1>Know the Best Colleges & Branches</h1>
+    <p>
+      Get college & branch options according to your
+      <strong>MHT-CET SML</strong>
+    </p>
+
+    <div class="cutoff-buttons">
+      <a href="#rank-form" class="btn-primary">Predict Your Rank</a>
+      <a href="https://play.google.com/store" target="_blank" class="btn-outline">
+        Download App
+      </a>
+      <a href="{{ url_for('courses') }}" class="btn-outline">Explore Courses</a>
+    </div>
+  </div>
+</section>
+
+<!-- DASHBOARD -->
+<section class="cutoff-dashboard">
+  <h2>Check Cut-Offs 2024-25</h2>
+
+  <div class="dashboard-grid">
+    <div class="dashboard-card">MHT-CET Engineering</div>
+    <div class="dashboard-card">Medical Admissions</div>
+    <div class="dashboard-card">IIT / NIT Cut-offs</div>
+    <div class="dashboard-card">Pharmacy Cut-offs</div>
+    <div class="dashboard-card">11th FYJC Admissions</div>
+    <div class="dashboard-card">College Predictor</div>
+  </div>
+</section>
+
+<!-- RANK FORM -->
+<section id="rank-form" class="rank-form">
+  <h2>Predict Your Rank</h2>
+
+  <form>
+    <input type="number" placeholder="Enter CET Score" required>
+    <select required>
+      <option value="">Select Category</option>
+      <option>OPEN</option>
+      <option>OBC</option>
+      <option>SC</option>
+      <option>ST</option>
+    </select>
+    <button type="submit">Predict</button>
+  </form>
+</section>
+
+{% endblock %}
+
+{% block page_scripts %}
+<script src="{{ url_for('static', filename='cutoffs.js') }}"></script>
+{% endblock %}

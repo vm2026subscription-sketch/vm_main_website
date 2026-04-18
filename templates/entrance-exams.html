@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Entrance Exams in India | Vidyarthi Mitra</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<link rel="stylesheet" href="{{ url_for('static', filename='entrance-exams.css') }}">
+</head>
+<body>
+
+<!-- ═══════════════════ NAVBAR ═══════════════════ -->
+<nav class="navbar">
+  <div class="nav-brand">
+    <img class="nav-logo" src="{{ url_for('static', filename='logo.png') }}" alt="Vidyarthi Mitra logo">
+  </div>
+  <div class="nav-links">
+    <a href="{{ url_for('index') }}">Home</a>
+    <a href="{{ url_for('colleges') }}">Colleges</a>
+   <a href="{{ url_for('cutoffs') }}">Cut-offs</a></li>
+    <a href="#" class="nav-cta">Get Started Free</a>
+  </div>
+</nav>
+
+<!-- ═══════════════════ HERO ═══════════════════ -->
+<header class="hero">
+  <div class="hero-grid">
+    <div class="hero-content reveal">
+      <div class="hero-label"><i class="fas fa-fire"></i> India's #1 Exam Guide</div>
+      <h1>Every <em>Entrance Exam</em><br>Under One Roof</h1>
+      <p class="hero-sub">Complete guide for 150+ national &amp; state entrance exams — Engineering, Medical, Law, Defence, Management, Banking &amp; more.</p>
+      <div class="hero-actions">
+        <a href="#exams" class="btn-primary"><i class="fas fa-search"></i> Explore Exams</a>
+        <a href="#search" class="btn-outline"><i class="fas fa-rocket"></i> Start Preparing</a>
+      </div>
+    </div>
+    <div class="hero-visual reveal">
+      <div class="hero-visual-inner">
+        <div class="hero-stat-grid">
+          <div class="hero-stat">
+            <div class="hero-stat-num">150+</div>
+            <div class="hero-stat-lbl">Entrance Exams</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-num">30+</div>
+            <div class="hero-stat-lbl">States Covered</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-num">50+</div>
+            <div class="hero-stat-lbl">Career Paths</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-num">2M+</div>
+            <div class="hero-stat-lbl">Aspirants</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════════ SEARCH ═══════════════════ -->
+<section class="search-section" id="search">
+  <div class="search-inner">
+    <h2>Find Your Exam</h2>
+    <p>Search across 150+ entrance exams by name, stream or state</p>
+    <div class="search-bar">
+      <input type="text" id="examInput" placeholder="e.g. JEE, NEET, CAT, CLAT, NDA...">
+      <button onclick="liveSearch()"><i class="fas fa-search"></i> Search</button>
+    </div>
+    <div id="searchResults"></div>
+  </div>
+</section>
+
+<!-- ═══════════════════ FILTER TABS ═══════════════════ -->
+<div class="filter-bar" id="exams">
+  <div class="filter-tabs">
+    <button class="filter-tab active" data-filter="all">All Exams</button>
+    <button class="filter-tab" data-filter="engineering">Engineering</button>
+    <button class="filter-tab" data-filter="medical">Medical</button>
+    <button class="filter-tab" data-filter="law">Law</button>
+    <button class="filter-tab" data-filter="defence">Defence</button>
+    <button class="filter-tab" data-filter="management">Management</button>
+    <button class="filter-tab" data-filter="banking">Banking</button>
+    <button class="filter-tab" data-filter="civil">Civil Services</button>
+    <button class="filter-tab" data-filter="design">Design &amp; Arts</button>
+    <button class="filter-tab" data-filter="pharma">Pharmacy</button>
+    <button class="filter-tab" data-filter="hotel">Hotel Management</button>
+    <button class="filter-tab" data-filter="agri">Agriculture</button>
+    <button class="filter-tab" data-filter="science">Science &amp; Research</button>
+  </div>
+</div>
+
+<!-- ═══════════════════ EXAM SECTIONS ═══════════════════ -->
+<div class="exam-sections">
+
+  <!-- ── ENGINEERING ── -->
+  <section class="exam-section reveal" data-category="engineering" id="sec-engineering">
+    <div class="section-header">
+      <div class="section-icon">⚙️</div>
+      <div class="section-meta">
+        <div class="section-label">Stream 01</div>
+        <div class="section-title">Engineering Entrance Exams <span class="section-count">20</span></div>
+      </div>
+    </div>
+    <div class="exam-grid">
+      <div class="exam-card">
+        <div class="exam-card-top"><div class="exam-abbr">JEE Main</div><span class="exam-level level-national">National</span></div>
+        <div class="exam-body">NITs, IIITs &amp; GFTIs Admission</div>
+        <div class="exam-name">Joint Entrance Examination (Main)</div>
+        <div class="exam-footer-row"><span class="exam-conducting">NTA</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div>
+      </div>
+      <div class="exam-card">
+        <div class="exam-card-top"><div class="exam-abbr">JEE Advanced</div><span class="exam-level level-national">National</span></div>
+        <div class="exam-body">Gateway to 23 IITs</div>
+        <div class="exam-name">Joint Entrance Exam (Advanced)</div>
+        <div class="exam-footer-row"><span class="exam-conducting">IIT Council</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div>
+      </div>
+      <div class="exam-card">
+        <div class="exam-card-top"><div class="exam-abbr">BITSAT</div><span class="exam-level level-national">National</span></div>
+        <div class="exam-body">BITS Pilani, Goa, Hyderabad</div>
+        <div class="exam-name">BITS Admission Test</div>
+        <div class="exam-footer-row"><span class="exam-conducting">BITS Pilani</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div>
+      </div>
+      <div class="exam-card">
+        <div class="exam-card-top"><div class="exam-abbr">VITEEE</div><span class="exam-level level-national">National</span></div>
+        <div class="exam-body">VIT University Admissions</div>
+        <div class="exam-name">VIT Engineering Entrance</div>
+        <div class="exam-footer-row"><span class="exam-conducting">VIT</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div>
+      </div>
+      <div class="exam-card">
+        <div class="exam-card-top"><div class="exam-abbr">SRMJEEE</div><span class="exam-level level-national">National</span></div>
+        <div class="exam-body">SRM Institute of Science &amp; Tech</div>
+        <div class="exam-name">SRM Joint Engineering Entrance</div>
+        <div class="exam-footer-row"><span class="exam-conducting">SRM</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div>
+      </div>
+      <div class="exam-card">
+        <div class="exam-card-top"><div class="exam-abbr">MHT-CET</div><span class="exam-level level-state">State</span></div>
+        <div class="exam-body">Maharashtra Engineering Admissions</div>
+        <div class="exam-name">Maharashtra CET</div>
+        <div class="exam-footer-row"><span class="exam-conducting">MHT-CET Board</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div>
+      </div>
+      <div class="exam-card">
+        <div class="exam-card-top"><div class="exam-abbr">KCET</div><span class="exam-level level-state">State</span></div>
+        <div class="exam-body">Karnataka Engineering Admissions</div>
+        <div class="exam-name">Karnataka CET</div>
+        <div class="exam-footer-row"><span class="exam-conducting">KEA</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div>
+      </div>
+      <div class="exam-card">
+        <div class="exam-card-top"><div class="exam-abbr">WBJEE</div><span class="exam-level level-state">State</span></div>
+        <div class="exam-body">West Bengal Engineering</div>
+        <div class="exam-name">West Bengal JEE</div>
+        <div class="exam-footer-row"><span class="exam-conducting">WBJEEB</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div>
+      </div>
+      <div class="exam-card">
+        <div class="exam-card-top"><div class="exam-abbr">COMEDK</div><span class="exam-level level-state">State</span></div>
+        <div class="exam-body">Karnataka Private Colleges</div>
+        <div class="exam-name">COMEDK UGET</div>
+        <div class="exam-footer-row"><span class="exam-conducting">COMEDK</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div>
+      </div>
+      <div class="exam-card">
+        <div class="exam-card-top"><div class="exam-abbr">GUJCET</div><span class="exam-level level-state">State</span></div>
+        <div class="exam-body">Gujarat Engineering Admissions</div>
+        <div class="exam-name">Gujarat CET</div>
+        <div class="exam-footer-row"><span class="exam-conducting">GSEB</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div>
+      </div>
+      <div class="exam-card">
+        <div class="exam-card-top"><div class="exam-abbr">AP EAMCET</div><span class="exam-level level-state">State</span></div>
+        <div class="exam-body">AP Engineering Admissions</div>
+        <div class="exam-name">AP Engineering, Agriculture &amp; Medical CET</div>
+        <div class="exam-footer-row"><span class="exam-conducting">APSCHE</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div>
+      </div>
+      <div class="exam-card">
+        <div class="exam-card-top"><div class="exam-abbr">TS EAMCET</div><span class="exam-level level-state">State</span></div>
+        <div class="exam-body">Telangana Engineering Admissions</div>
+        <div class="exam-name">Telangana EAMCET</div>
+        <div class="exam-footer-row"><span class="exam-conducting">JNTU Hyderabad</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div>
+      </div>
+      <div class="exam-card">
+        <div class="exam-card-top"><div class="exam-abbr">KEAM</div><span class="exam-level level-state">State</span></div>
+        <div class="exam-body">Kerala Engineering Admissions</div>
+        <div class="exam-name">Kerala Engineering Architecture Medical</div>
+        <div class="exam-footer-row"><span class="exam-conducting">CEE Kerala</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div>
+      </div>
+      <div class="exam-card">
+        <div class="exam-card-top"><div class="exam-abbr">UPSEE</div><span class="exam-level level-state">State</span></div>
+        <div class="exam-body">Uttar Pradesh Engineering</div>
+        <div class="exam-name">AKTU / UPSEE</div>
+        <div class="exam-footer-row"><span class="exam-conducting">AKTU</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div>
+      </div>
+      <div class="exam-card">
+        <div class="exam-card-top"><div class="exam-abbr">TANCET</div><span class="exam-level level-state">State</span></div>
+        <div class="exam-body">Tamil Nadu Engineering PG</div>
+        <div class="exam-name">Tamil Nadu CET</div>
+        <div class="exam-footer-row"><span class="exam-conducting">Anna University</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div>
+      </div>
+      <div class="exam-card">
+        <div class="exam-card-top"><div class="exam-abbr">TNEA</div><span class="exam-level level-state">State</span></div>
+        <div class="exam-body">Tamil Nadu UG Engineering</div>
+        <div class="exam-name">TN Engineering Admissions</div>
+        <div class="exam-footer-row"><span class="exam-conducting">Anna University</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div>
+      </div>
+      <div class="exam-card">
+        <div class="exam-card-top"><div class="exam-abbr">OJEE</div><span class="exam-level level-state">State</span></div>
+        <div class="exam-body">Odisha Engineering Lateral Entry</div>
+        <div class="exam-name">Odisha JEE</div>
+        <div class="exam-footer-row"><span class="exam-conducting">OJEE Board</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div>
+      </div>
+      <div class="exam-card">
+        <div class="exam-card-top"><div class="exam-abbr">HPCET</div><span class="exam-level level-state">State</span></div>
+        <div class="exam-body">Himachal Pradesh Engineering</div>
+        <div class="exam-name">HP Combined Entrance Test</div>
+        <div class="exam-footer-row"><span class="exam-conducting">HIMTU</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div>
+      </div>
+      <div class="exam-card">
+        <div class="exam-card-top"><div class="exam-abbr">RPET</div><span class="exam-level level-state">State</span></div>
+        <div class="exam-body">Rajasthan Engineering Admissions</div>
+        <div class="exam-name">Rajasthan Pre Engineering Test</div>
+        <div class="exam-footer-row"><span class="exam-conducting">BTER</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div>
+      </div>
+      <div class="exam-card">
+        <div class="exam-card-top"><div class="exam-abbr">MERI</div><span class="exam-level level-national">National</span></div>
+        <div class="exam-body">Marine Engineering &amp; Research</div>
+        <div class="exam-name">MERI Entrance Examination</div>
+        <div class="exam-footer-row"><span class="exam-conducting">MERI</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── MEDICAL ── -->
+  <section class="exam-section reveal" data-category="medical" id="sec-medical">
+    <div class="section-header">
+      <div class="section-icon">🩺</div>
+      <div class="section-meta">
+        <div class="section-label">Stream 02</div>
+        <div class="section-title">Medical Entrance Exams <span class="section-count">10</span></div>
+      </div>
+    </div>
+    <div class="exam-grid">
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">NEET-UG</div><span class="exam-level level-national">National</span></div><div class="exam-body">MBBS, BDS, BAMS, BHMS Admissions</div><div class="exam-name">National Eligibility cum Entrance Test (UG)</div><div class="exam-footer-row"><span class="exam-conducting">NTA</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">NEET-PG</div><span class="exam-level level-pg">Postgraduate</span></div><div class="exam-body">MD, MS, PG Diploma Admissions</div><div class="exam-name">National Eligibility cum Entrance Test (PG)</div><div class="exam-footer-row"><span class="exam-conducting">NBE</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">NEET-SS</div><span class="exam-level level-pg">Super Specialty</span></div><div class="exam-body">DM / MCh Super Specialty Programs</div><div class="exam-name">NEET Super Specialty</div><div class="exam-footer-row"><span class="exam-conducting">NBE</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">AIIMS PG</div><span class="exam-level level-national">National</span></div><div class="exam-body">AIIMS Postgraduate Admissions</div><div class="exam-name">AIIMS PG Entrance Exam</div><div class="exam-footer-row"><span class="exam-conducting">AIIMS Delhi</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">JIPMER</div><span class="exam-level level-national">National</span></div><div class="exam-body">JIPMER Puducherry Admissions</div><div class="exam-name">JIPMER MBBS Entrance</div><div class="exam-footer-row"><span class="exam-conducting">JIPMER</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">FMGE</div><span class="exam-level level-national">National</span></div><div class="exam-body">Foreign Medical Graduate Screening</div><div class="exam-name">Foreign Medical Graduate Exam</div><div class="exam-footer-row"><span class="exam-conducting">NBE</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">INI-CET</div><span class="exam-level level-national">National</span></div><div class="exam-body">AIIMS, JIPMER, PGIMER, NIMHANS</div><div class="exam-name">Institute of National Importance CET</div><div class="exam-footer-row"><span class="exam-conducting">AIIMS</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">PGIMER</div><span class="exam-level level-national">National</span></div><div class="exam-body">PGI Chandigarh Admissions</div><div class="exam-name">PGI Entrance Exam</div><div class="exam-footer-row"><span class="exam-conducting">PGIMER</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">BHU PMT</div><span class="exam-level level-national">National</span></div><div class="exam-body">BHU Medical Admissions</div><div class="exam-name">BHU Pre Medical Test</div><div class="exam-footer-row"><span class="exam-conducting">BHU</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">NIMHANS</div><span class="exam-level level-national">National</span></div><div class="exam-body">Mental Health Science PG</div><div class="exam-name">NIMHANS Entrance Exam</div><div class="exam-footer-row"><span class="exam-conducting">NIMHANS</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+    </div>
+  </section>
+
+  <!-- ── LAW ── -->
+  <section class="exam-section reveal" data-category="law" id="sec-law">
+    <div class="section-header">
+      <div class="section-icon">⚖️</div>
+      <div class="section-meta">
+        <div class="section-label">Stream 03</div>
+        <div class="section-title">Law Entrance Exams <span class="section-count">7</span></div>
+      </div>
+    </div>
+    <div class="exam-grid">
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">CLAT</div><span class="exam-level level-national">National</span></div><div class="exam-body">25 NLU Admissions</div><div class="exam-name">Common Law Admission Test</div><div class="exam-footer-row"><span class="exam-conducting">Consortium of NLUs</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">AILET</div><span class="exam-level level-national">National</span></div><div class="exam-body">NLU Delhi</div><div class="exam-name">All India Law Entrance Test</div><div class="exam-footer-row"><span class="exam-conducting">NLU Delhi</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">LSAT India</div><span class="exam-level level-intl">International</span></div><div class="exam-body">Private Law Colleges India</div><div class="exam-name">Law School Admission Test India</div><div class="exam-footer-row"><span class="exam-conducting">Pearson VUE</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">MH-CET Law</div><span class="exam-level level-state">State</span></div><div class="exam-body">Maharashtra Law Admissions</div><div class="exam-name">Maharashtra Law CET</div><div class="exam-footer-row"><span class="exam-conducting">MHT-CET Cell</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">SLAT</div><span class="exam-level level-national">National</span></div><div class="exam-body">Symbiosis Law School</div><div class="exam-name">Symbiosis Law Admission Test</div><div class="exam-footer-row"><span class="exam-conducting">Symbiosis</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">ILICAT</div><span class="exam-level level-national">National</span></div><div class="exam-body">Indian Law Institute</div><div class="exam-name">ILI Common Admission Test</div><div class="exam-footer-row"><span class="exam-conducting">ILI</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">LFAT</div><span class="exam-level level-national">National</span></div><div class="exam-body">Lloyd Law College</div><div class="exam-name">Lloyd Foundation Admission Test</div><div class="exam-footer-row"><span class="exam-conducting">Lloyd College</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+    </div>
+  </section>
+
+  <!-- ── DEFENCE ── -->
+  <section class="exam-section reveal" data-category="defence" id="sec-defence">
+    <div class="section-header">
+      <div class="section-icon">🎖️</div>
+      <div class="section-meta">
+        <div class="section-label">Stream 04</div>
+        <div class="section-title">Defence &amp; Government Exams <span class="section-count">8</span></div>
+      </div>
+    </div>
+    <div class="exam-grid">
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">NDA</div><span class="exam-level level-defence">Defence</span></div><div class="exam-body">Army, Navy, Air Force Entry</div><div class="exam-name">National Defence Academy</div><div class="exam-footer-row"><span class="exam-conducting">UPSC</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">CDS</div><span class="exam-level level-defence">Defence</span></div><div class="exam-body">IMA, INA, AFA, OTA Entry</div><div class="exam-name">Combined Defence Services</div><div class="exam-footer-row"><span class="exam-conducting">UPSC</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">INET</div><span class="exam-level level-defence">Defence</span></div><div class="exam-body">Indian Navy Officer Entry</div><div class="exam-name">Indian Navy Entrance Test</div><div class="exam-footer-row"><span class="exam-conducting">Indian Navy</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">AFCAT</div><span class="exam-level level-defence">Defence</span></div><div class="exam-body">Air Force Flying / Ground Duty</div><div class="exam-name">Air Force Common Admission Test</div><div class="exam-footer-row"><span class="exam-conducting">Indian Air Force</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">MNS</div><span class="exam-level level-defence">Defence</span></div><div class="exam-body">Military Nursing Service</div><div class="exam-name">Army B.Sc. Nursing Exam</div><div class="exam-footer-row"><span class="exam-conducting">Indian Army</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">TES</div><span class="exam-level level-defence">Defence</span></div><div class="exam-body">Army Technical Entry</div><div class="exam-name">Technical Entry Scheme</div><div class="exam-footer-row"><span class="exam-conducting">Indian Army</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">SSB</div><span class="exam-level level-defence">Defence</span></div><div class="exam-body">Officer Selection Interview</div><div class="exam-name">Services Selection Board</div><div class="exam-footer-row"><span class="exam-conducting">MoD</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">Coast Guard</div><span class="exam-level level-defence">Defence</span></div><div class="exam-body">Navik &amp; Assistant Commandant</div><div class="exam-name">Indian Coast Guard Recruitment</div><div class="exam-footer-row"><span class="exam-conducting">ICG</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+    </div>
+  </section>
+
+  <!-- ── MANAGEMENT ── -->
+  <section class="exam-section reveal" data-category="management" id="sec-management">
+    <div class="section-header">
+      <div class="section-icon">💼</div>
+      <div class="section-meta">
+        <div class="section-label">Stream 05</div>
+        <div class="section-title">Management Entrance Exams <span class="section-count">12</span></div>
+      </div>
+    </div>
+    <div class="exam-grid">
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">CAT</div><span class="exam-level level-national">National</span></div><div class="exam-body">20 IIMs + Top B-Schools</div><div class="exam-name">Common Admission Test</div><div class="exam-footer-row"><span class="exam-conducting">IIMs</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">XAT</div><span class="exam-level level-national">National</span></div><div class="exam-body">XLRI &amp; 150+ B-Schools</div><div class="exam-name">Xavier Aptitude Test</div><div class="exam-footer-row"><span class="exam-conducting">XLRI Jamshedpur</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">CMAT</div><span class="exam-level level-national">National</span></div><div class="exam-body">AICTE Approved MBA Colleges</div><div class="exam-name">Common Management Admission Test</div><div class="exam-footer-row"><span class="exam-conducting">NTA</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">SNAP</div><span class="exam-level level-national">National</span></div><div class="exam-body">Symbiosis MBA Programs</div><div class="exam-name">Symbiosis National Aptitude Test</div><div class="exam-footer-row"><span class="exam-conducting">Symbiosis International</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">IIFT</div><span class="exam-level level-national">National</span></div><div class="exam-body">International Business MBA</div><div class="exam-name">IIFT Entrance Exam</div><div class="exam-footer-row"><span class="exam-conducting">NTA / IIFT</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">MAT</div><span class="exam-level level-national">National</span></div><div class="exam-body">600+ MBA Colleges</div><div class="exam-name">Management Aptitude Test</div><div class="exam-footer-row"><span class="exam-conducting">AIMA</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">ATMA</div><span class="exam-level level-national">National</span></div><div class="exam-body">AIMS Member Institutes</div><div class="exam-name">AIMS Test for Management</div><div class="exam-footer-row"><span class="exam-conducting">AIMS</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">NMAT</div><span class="exam-level level-national">National</span></div><div class="exam-body">NMIMS &amp; Partner Schools</div><div class="exam-name">NMAT by GMAC</div><div class="exam-footer-row"><span class="exam-conducting">GMAC</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">MICAT</div><span class="exam-level level-national">National</span></div><div class="exam-body">MICA Ahmedabad</div><div class="exam-name">MICA Admission Test</div><div class="exam-footer-row"><span class="exam-conducting">MICA</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">IRMASAT</div><span class="exam-level level-national">National</span></div><div class="exam-body">Rural Management (IRMA)</div><div class="exam-name">IRMA Social Awareness Test</div><div class="exam-footer-row"><span class="exam-conducting">IRMA</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">TISSNET</div><span class="exam-level level-national">National</span></div><div class="exam-body">TISS Mumbai Admissions</div><div class="exam-name">TISS National Entrance Test</div><div class="exam-footer-row"><span class="exam-conducting">TISS</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">GMAT</div><span class="exam-level level-intl">International</span></div><div class="exam-body">Global B-School Admissions</div><div class="exam-name">Graduate Management Admission Test</div><div class="exam-footer-row"><span class="exam-conducting">GMAC</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+    </div>
+  </section>
+
+  <!-- ── BANKING ── -->
+  <section class="exam-section reveal" data-category="banking" id="sec-banking">
+    <div class="section-header">
+      <div class="section-icon">🏦</div>
+      <div class="section-meta">
+        <div class="section-label">Stream 06</div>
+        <div class="section-title">Banking &amp; Finance Exams <span class="section-count">10</span></div>
+      </div>
+    </div>
+    <div class="exam-grid">
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">IBPS PO</div><span class="exam-level level-banking">Banking</span></div><div class="exam-body">Probationary Officer in PSU Banks</div><div class="exam-name">IBPS PO Exam</div><div class="exam-footer-row"><span class="exam-conducting">IBPS</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">IBPS Clerk</div><span class="exam-level level-banking">Banking</span></div><div class="exam-body">Clerical Cadre PSU Banks</div><div class="exam-name">IBPS Clerk Exam</div><div class="exam-footer-row"><span class="exam-conducting">IBPS</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">SBI PO</div><span class="exam-level level-banking">Banking</span></div><div class="exam-body">SBI Probationary Officers</div><div class="exam-name">SBI PO Exam</div><div class="exam-footer-row"><span class="exam-conducting">SBI</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">SBI Clerk</div><span class="exam-level level-banking">Banking</span></div><div class="exam-body">SBI Junior Associates</div><div class="exam-name">SBI Clerk Exam</div><div class="exam-footer-row"><span class="exam-conducting">SBI</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">RBI Grade B</div><span class="exam-level level-banking">Banking</span></div><div class="exam-body">Reserve Bank of India Officers</div><div class="exam-name">RBI Grade B Officers</div><div class="exam-footer-row"><span class="exam-conducting">RBI</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">NABARD</div><span class="exam-level level-banking">Banking</span></div><div class="exam-body">Grade A &amp; B Officers</div><div class="exam-name">NABARD Development Asst</div><div class="exam-footer-row"><span class="exam-conducting">NABARD</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">IBPS SO</div><span class="exam-level level-banking">Banking</span></div><div class="exam-body">Specialist Officers in Banks</div><div class="exam-name">IBPS Specialist Officer</div><div class="exam-footer-row"><span class="exam-conducting">IBPS</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">LIC AAO</div><span class="exam-level level-banking">Banking</span></div><div class="exam-body">LIC Assistant Administrative Officer</div><div class="exam-name">LIC AAO Exam</div><div class="exam-footer-row"><span class="exam-conducting">LIC India</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">SEBI Grade A</div><span class="exam-level level-banking">Banking</span></div><div class="exam-body">Securities &amp; Exchange Board</div><div class="exam-name">SEBI Officer Grade A</div><div class="exam-footer-row"><span class="exam-conducting">SEBI</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">IPPB Officer</div><span class="exam-level level-banking">Banking</span></div><div class="exam-body">India Post Payments Bank</div><div class="exam-name">IPPB Officer Scale I</div><div class="exam-footer-row"><span class="exam-conducting">IPPB</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+    </div>
+  </section>
+
+  <!-- ── CIVIL SERVICES ── -->
+  <section class="exam-section reveal" data-category="civil" id="sec-civil">
+    <div class="section-header">
+      <div class="section-icon">🏛️</div>
+      <div class="section-meta">
+        <div class="section-label">Stream 07</div>
+        <div class="section-title">Civil Services Exams <span class="section-count">8</span></div>
+      </div>
+    </div>
+    <div class="exam-grid">
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">UPSC CSE</div><span class="exam-level level-upsc">UPSC</span></div><div class="exam-body">IAS, IPS, IFS &amp; Allied Services</div><div class="exam-name">Civil Services Examination</div><div class="exam-footer-row"><span class="exam-conducting">UPSC</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">SSC CGL</div><span class="exam-level level-national">National</span></div><div class="exam-body">Group B &amp; C Central Govt Posts</div><div class="exam-name">SSC Combined Graduate Level</div><div class="exam-footer-row"><span class="exam-conducting">SSC</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">SSC CHSL</div><span class="exam-level level-national">National</span></div><div class="exam-body">LDC, JSA, PA, SA Posts</div><div class="exam-name">SSC Combined Higher Secondary</div><div class="exam-footer-row"><span class="exam-conducting">SSC</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">MPSC</div><span class="exam-level level-state">State</span></div><div class="exam-body">Maharashtra State Services</div><div class="exam-name">Maharashtra PSC</div><div class="exam-footer-row"><span class="exam-conducting">MPSC</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">UPSC IES</div><span class="exam-level level-upsc">UPSC</span></div><div class="exam-body">Engineering Services in Govt</div><div class="exam-name">Indian Engineering Services</div><div class="exam-footer-row"><span class="exam-conducting">UPSC</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">CAPF AC</div><span class="exam-level level-upsc">UPSC</span></div><div class="exam-body">BSF, CRPF, CISF, SSB, ITBP</div><div class="exam-name">Central Armed Police Forces</div><div class="exam-footer-row"><span class="exam-conducting">UPSC</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">RPSC RAS</div><span class="exam-level level-state">State</span></div><div class="exam-body">Rajasthan Administrative Services</div><div class="exam-name">Rajasthan Administrative Service</div><div class="exam-footer-row"><span class="exam-conducting">RPSC</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">TNPSC</div><span class="exam-level level-state">State</span></div><div class="exam-body">Tamil Nadu Group I,II,IV Services</div><div class="exam-name">Tamil Nadu PSC</div><div class="exam-footer-row"><span class="exam-conducting">TNPSC</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+    </div>
+  </section>
+
+  <!-- ── DESIGN & ARTS ── -->
+  <section class="exam-section reveal" data-category="design" id="sec-design">
+    <div class="section-header">
+      <div class="section-icon">🎨</div>
+      <div class="section-meta">
+        <div class="section-label">Stream 08</div>
+        <div class="section-title">Design, Architecture &amp; Arts <span class="section-count">8</span></div>
+      </div>
+    </div>
+    <div class="exam-grid">
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">NATA</div><span class="exam-level level-national">National</span></div><div class="exam-body">Architecture Admissions India</div><div class="exam-name">National Aptitude Test in Architecture</div><div class="exam-footer-row"><span class="exam-conducting">COA</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">JEE B.Arch</div><span class="exam-level level-national">National</span></div><div class="exam-body">Architecture via JEE Paper 2</div><div class="exam-name">JEE Main Paper 2 (B.Arch)</div><div class="exam-footer-row"><span class="exam-conducting">NTA</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">UCEED</div><span class="exam-level level-national">National</span></div><div class="exam-body">IIT B.Des Programs</div><div class="exam-name">Undergraduate Common Entrance Exam for Design</div><div class="exam-footer-row"><span class="exam-conducting">IIT Bombay</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">CEED</div><span class="exam-level level-national">National</span></div><div class="exam-body">IIT M.Des Programs</div><div class="exam-name">Common Entrance Exam for Design</div><div class="exam-footer-row"><span class="exam-conducting">IIT Bombay</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">NID DAT</div><span class="exam-level level-national">National</span></div><div class="exam-body">NID Ahmedabad &amp; Campuses</div><div class="exam-name">NID Design Aptitude Test</div><div class="exam-footer-row"><span class="exam-conducting">NID</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">NIFT</div><span class="exam-level level-national">National</span></div><div class="exam-body">Fashion Technology Institutes</div><div class="exam-name">NIFT Entrance Exam</div><div class="exam-footer-row"><span class="exam-conducting">NIFT</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">Pearl Academy</div><span class="exam-level level-national">National</span></div><div class="exam-body">Design &amp; Fashion Programs</div><div class="exam-name">Pearl Academy Entrance Test</div><div class="exam-footer-row"><span class="exam-conducting">Pearl Academy</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">SEED</div><span class="exam-level level-national">National</span></div><div class="exam-body">Symbiosis Design Programs</div><div class="exam-name">Symbiosis Entrance Exam for Design</div><div class="exam-footer-row"><span class="exam-conducting">Symbiosis</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+    </div>
+  </section>
+
+  <!-- ── PHARMACY ── -->
+  <section class="exam-section reveal" data-category="pharma" id="sec-pharma">
+    <div class="section-header">
+      <div class="section-icon">💊</div>
+      <div class="section-meta">
+        <div class="section-label">Stream 09</div>
+        <div class="section-title">Pharmacy Entrance Exams <span class="section-count">5</span></div>
+      </div>
+    </div>
+    <div class="exam-grid">
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">GPAT</div><span class="exam-level level-national">National</span></div><div class="exam-body">M.Pharm Admissions</div><div class="exam-name">Graduate Pharmacy Aptitude Test</div><div class="exam-footer-row"><span class="exam-conducting">NTA</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">NIPER JEE</div><span class="exam-level level-national">National</span></div><div class="exam-body">NIPER Institutes Nationwide</div><div class="exam-name">NIPER Joint Entrance Exam</div><div class="exam-footer-row"><span class="exam-conducting">NIPER</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">MHT-CET Pharm</div><span class="exam-level level-state">State</span></div><div class="exam-body">Maharashtra Pharmacy Admissions</div><div class="exam-name">Maharashtra Pharmacy CET</div><div class="exam-footer-row"><span class="exam-conducting">MHT-CET Cell</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">TS EAMCET Pharm</div><span class="exam-level level-state">State</span></div><div class="exam-body">Telangana Pharmacy</div><div class="exam-name">TS EAMCET Pharmacy Stream</div><div class="exam-footer-row"><span class="exam-conducting">JNTU</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">PUCET Pharma</div><span class="exam-level level-state">State</span></div><div class="exam-body">Punjab University Pharmacy</div><div class="exam-name">PU CET Pharmacy</div><div class="exam-footer-row"><span class="exam-conducting">PU Chandigarh</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+    </div>
+  </section>
+
+  <!-- ── HOTEL MANAGEMENT ── -->
+  <section class="exam-section reveal" data-category="hotel" id="sec-hotel">
+    <div class="section-header">
+      <div class="section-icon">🏨</div>
+      <div class="section-meta">
+        <div class="section-label">Stream 10</div>
+        <div class="section-title">Hotel Management Exams <span class="section-count">4</span></div>
+      </div>
+    </div>
+    <div class="exam-grid">
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">NCHMCT JEE</div><span class="exam-level level-national">National</span></div><div class="exam-body">IHMs across India</div><div class="exam-name">NCHM Joint Entrance Exam</div><div class="exam-footer-row"><span class="exam-conducting">NTA</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">IIHM eCHAT</div><span class="exam-level level-national">National</span></div><div class="exam-body">IIHM Colleges Nationwide</div><div class="exam-name">IIHM e-Common Hotel Aptitude Test</div><div class="exam-footer-row"><span class="exam-conducting">IIHM</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">AIMA UGAT</div><span class="exam-level level-national">National</span></div><div class="exam-body">Hotel Mgmt + Other UG Programs</div><div class="exam-name">AIMA Under Graduate Aptitude Test</div><div class="exam-footer-row"><span class="exam-conducting">AIMA</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">MAH HM CET</div><span class="exam-level level-state">State</span></div><div class="exam-body">Maharashtra Hotel Mgmt</div><div class="exam-name">Maharashtra Hotel Management CET</div><div class="exam-footer-row"><span class="exam-conducting">DTE Maharashtra</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+    </div>
+  </section>
+
+  <!-- ── AGRICULTURE ── -->
+  <section class="exam-section reveal" data-category="agri" id="sec-agri">
+    <div class="section-header">
+      <div class="section-icon">🌾</div>
+      <div class="section-meta">
+        <div class="section-label">Stream 11</div>
+        <div class="section-title">Agriculture Entrance Exams <span class="section-count">5</span></div>
+      </div>
+    </div>
+    <div class="exam-grid">
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">ICAR AIEEA</div><span class="exam-level level-national">National</span></div><div class="exam-body">Agricultural Universities Nationwide</div><div class="exam-name">ICAR All India Entrance Exam</div><div class="exam-footer-row"><span class="exam-conducting">NTA / ICAR</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">UPCATET</div><span class="exam-level level-state">State</span></div><div class="exam-body">UP Agricultural Universities</div><div class="exam-name">UP Combined Agriculture &amp; Tech Entrance</div><div class="exam-footer-row"><span class="exam-conducting">UPCATET Board</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">TNAU</div><span class="exam-level level-state">State</span></div><div class="exam-body">Tamil Nadu Agricultural Univ</div><div class="exam-name">TNAU Admission</div><div class="exam-footer-row"><span class="exam-conducting">TNAU</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">RAWE</div><span class="exam-level level-national">National</span></div><div class="exam-body">Rural Agricultural Work Experience</div><div class="exam-name">RAWE Program</div><div class="exam-footer-row"><span class="exam-conducting">Agriculture Univ</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">OUAT</div><span class="exam-level level-state">State</span></div><div class="exam-body">Odisha University of Agri &amp; Tech</div><div class="exam-name">OUAT Entrance Exam</div><div class="exam-footer-row"><span class="exam-conducting">OUAT</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+    </div>
+  </section>
+
+  <!-- ── SCIENCE & RESEARCH ── -->
+  <section class="exam-section reveal" data-category="science" id="sec-science">
+    <div class="section-header">
+      <div class="section-icon">🔬</div>
+      <div class="section-meta">
+        <div class="section-label">Stream 12</div>
+        <div class="section-title">Science &amp; Research Exams <span class="section-count">7</span></div>
+      </div>
+    </div>
+    <div class="exam-grid">
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">JAM</div><span class="exam-level level-national">National</span></div><div class="exam-body">IIT M.Sc. Admissions</div><div class="exam-name">Joint Admission Test for M.Sc.</div><div class="exam-footer-row"><span class="exam-conducting">IITs</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">GATE</div><span class="exam-level level-national">National</span></div><div class="exam-body">PG Engineering + PSU Jobs</div><div class="exam-name">Graduate Aptitude Test in Engineering</div><div class="exam-footer-row"><span class="exam-conducting">IITs / IISc</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">CSIR NET</div><span class="exam-level level-national">National</span></div><div class="exam-body">JRF / Lectureship in Science</div><div class="exam-name">CSIR National Eligibility Test</div><div class="exam-footer-row"><span class="exam-conducting">NTA</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">UGC NET</div><span class="exam-level level-national">National</span></div><div class="exam-body">Lectureship + JRF 100 Subjects</div><div class="exam-name">UGC National Eligibility Test</div><div class="exam-footer-row"><span class="exam-conducting">NTA</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">JEST</div><span class="exam-level level-national">National</span></div><div class="exam-body">Physics / Neuroscience PhD</div><div class="exam-name">Joint Entrance Screening Test</div><div class="exam-footer-row"><span class="exam-conducting">Science Institutes</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">TIFR GS</div><span class="exam-level level-national">National</span></div><div class="exam-body">TIFR PhD Programs</div><div class="exam-name">TIFR Graduate School Admissions</div><div class="exam-footer-row"><span class="exam-conducting">TIFR</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+      <div class="exam-card"><div class="exam-card-top"><div class="exam-abbr">KVPY</div><span class="exam-level level-national">National</span></div><div class="exam-body">Scholarship for Science Students</div><div class="exam-name">Kishore Vaigyanik Protsahan Yojana</div><div class="exam-footer-row"><span class="exam-conducting">DST / IISc</span><a href="#" class="exam-link">Details <i class="fas fa-arrow-right"></i></a></div></div>
+    </div>
+  </section>
+
+</div><!-- end .exam-sections -->
+
+<!-- ═══════════════════ PREPARATION ═══════════════════ -->
+<section class="prep-section">
+  <h2>Preparation &amp; Guidance</h2>
+  <p>Everything you need to crack your exam — all in one place</p>
+  <div class="prep-grid">
+    <div class="prep-card"><div class="prep-icon">📘</div>Syllabus</div>
+    <div class="prep-card"><div class="prep-icon">📝</div>Mock Tests</div>
+    <div class="prep-card"><div class="prep-icon">📅</div>Exam Dates</div>
+    <div class="prep-card"><div class="prep-icon">📊</div>Cut-Offs</div>
+    <div class="prep-card"><div class="prep-icon">🎓</div>Counselling</div>
+    <div class="prep-card"><div class="prep-icon">📂</div>PYQs</div>
+    <div class="prep-card"><div class="prep-icon">🧠</div>Study Plans</div>
+    <div class="prep-card"><div class="prep-icon">🏆</div>Rank Predictor</div>
+  </div>
+</section>
+
+<!-- ═══════════════════ CAREER SECTION ═══════════════════ -->
+<section class="career-section">
+  <h2 class="sec-title">Career Opportunities After Exams</h2>
+  <p class="sec-sub">Explore paths that await you after clearing your entrance exam</p>
+  <div class="career-grid">
+    <div class="career-card"><div class="career-icon">⚙️</div>Engineering</div>
+    <div class="career-card"><div class="career-icon">🩺</div>Medical</div>
+    <div class="career-card"><div class="career-icon">⚖️</div>Law</div>
+    <div class="career-card"><div class="career-icon">🎖️</div>Defence</div>
+    <div class="career-card"><div class="career-icon">💼</div>Management</div>
+    <div class="career-card"><div class="career-icon">🔬</div>Research</div>
+    <div class="career-card"><div class="career-icon">🎨</div>Design</div>
+    <div class="career-card"><div class="career-icon">🏦</div>Banking</div>
+    <div class="career-card"><div class="career-icon">🏛️</div>Civil Services</div>
+    <div class="career-card"><div class="career-icon">🌾</div>Agriculture</div>
+  </div>
+</section>
+
+<!-- ═══════════════════ FOOTER ═══════════════════ -->
+<footer class="footer">
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <div class="f-logo">Vidyarthi <span>Mitra</span></div>
+      <p>India's most comprehensive entrance exam guide. Helping millions of students find their path since 2010.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Exam Streams</h4>
+      <a href="#">Engineering</a>
+      <a href="#">Medical</a>
+      <a href="#">Law</a>
+      <a href="#">Management</a>
+      <a href="#">Defence</a>
+      <a href="#">Banking</a>
+    </div>
+    <div class="footer-col">
+      <h4>Resources</h4>
+      <a href="#">Mock Tests</a>
+      <a href="#">Previous Papers</a>
+      <a href="#">Study Material</a>
+      <a href="#">Counselling</a>
+      <a href="#">About Us</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 VidyarthiMitra.org | All Rights Reserved</span>
+  </div>
+</footer>
+
+
+<script src="{{ url_for('static', filename='entrance-exams.js') }}"></script>
+</body>
+</html>

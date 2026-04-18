@@ -1,0 +1,286 @@
+/* ═══════════════════════════════════════════════════════════
+   Vidyarthi Mitra  |  Feedback Form  |  feedback.css
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Reset ─────────────────────────────────────────────────── */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+/* ── Base ──────────────────────────────────────────────────── */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #ffffff;
+}
+
+/* ── Orange Gradient Banner ────────────────────────────────── */
+.orange-banner {
+    background: linear-gradient(90deg, #ff6600 0%, #ff8a33 100%);
+    color: white;
+    text-align: center;
+    padding: 50px 0;
+    margin-bottom: 40px;
+}
+
+.orange-banner h1 {
+    font-size: 3rem;
+    letter-spacing: 2px;
+    margin: 0;
+}
+
+/* ── Red Required Asterisk ─────────────────────────────────── */
+.required {
+    color: #ff0000;
+    margin-left: 4px;
+    font-weight: bold;
+}
+
+/* ── Container ─────────────────────────────────────────────── */
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 20px 50px;
+}
+
+/* ── Two-Column Layout ─────────────────────────────────────── */
+.flex-row {
+    display: flex;
+    gap: 50px;
+    flex-wrap: wrap;
+}
+
+.input-column {
+    flex: 2;
+    min-width: 280px;
+}
+
+.avatar-column {
+    flex: 1;
+    min-width: 250px;
+}
+
+/* ── Field Wrapper ─────────────────────────────────────────── */
+.field {
+    margin-bottom: 20px;
+}
+
+.field label {
+    display: block;
+    font-size: 13px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+/* ── Inputs & Textarea ─────────────────────────────────────── */
+input[type="text"],
+input[type="tel"],
+input[type="email"],
+textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+    background-color: #fafafa;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    color: #333;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input[type="text"]:focus,
+input[type="tel"]:focus,
+input[type="email"]:focus,
+textarea:focus {
+    outline: none;
+    border-color: #ff6600;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(255, 102, 0, 0.12);
+}
+
+/* Invalid state — applied by JS on validation failure */
+input.invalid,
+textarea.invalid {
+    border-color: #dc3545 !important;
+    background-color: #fff8f8;
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.10);
+}
+
+/* Valid state — applied by JS after successful field check */
+input.valid,
+textarea.valid {
+    border-color: #28a745;
+}
+
+textarea {
+    height: 100px;
+    resize: vertical;
+}
+
+/* ── Green Submit Button ───────────────────────────────────── */
+.submit-btn {
+    background-color: #28a745;
+    color: white;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 16px;
+    font-family: Arial, sans-serif;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.submit-btn:hover  { background-color: #218838; }
+.submit-btn:active { background-color: #1e7e34; transform: scale(0.98); }
+
+/* Disabled during submit — prevents double-click */
+.submit-btn:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.75;
+}
+
+/* ── Inline Field Errors (shown by JS) ────────────────────── */
+.field-error {
+    display: none;
+    color: #dc3545;
+    font-size: 12px;
+    margin-top: 5px;
+}
+
+.field-error.show {
+    display: block;
+    animation: fadeIn 0.2s ease;
+}
+
+/* ── Avatar Preview ────────────────────────────────────────── */
+.preview-label {
+    font-size: 14px;
+    font-weight: bold;
+    margin-top: 30px;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.image-box {
+    width: 200px;
+    height: 200px;
+    border: 1px solid #eee;
+    background-color: #f9f9f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 4px;
+    transition: border-color 0.2s ease;
+}
+
+.image-box:hover {
+    border-color: #ff6600;
+}
+
+/* Hidden until a file is chosen — shown by JS */
+#previewImg {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: cover;
+    display: none;
+}
+
+/* Placeholder SVG + text shown before upload */
+.img-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: #bbb;
+    font-size: 12px;
+    text-align: center;
+    padding: 10px;
+}
+
+/* Small note under file input */
+.file-note {
+    display: block;
+    font-size: 11px;
+    color: #999;
+    margin-top: 5px;
+}
+
+/* Remove image button */
+.remove-btn {
+    display: block;
+    margin-top: 10px;
+    background: none;
+    border: 1px solid #dc3545;
+    color: #dc3545;
+    border-radius: 4px;
+    padding: 5px 14px;
+    font-size: 12px;
+    font-family: Arial, sans-serif;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.remove-btn:hover {
+    background-color: #dc3545;
+    color: #ffffff;
+}
+
+/* ── Flask Flash Messages ──────────────────────────────────── */
+.flash-wrap {
+    margin-bottom: 24px;
+}
+
+.flash {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 18px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    animation: slideDown 0.3s ease;
+}
+
+.flash-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.flash-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.flash-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+/* ── Animations ────────────────────────────────────────────── */
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0);    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* ── Responsive ────────────────────────────────────────────── */
+@media (max-width: 680px) {
+    .orange-banner h1 { font-size: 2rem; }
+    .flex-row         { flex-direction: column; gap: 10px; }
+    .input-column,
+    .avatar-column    { min-width: 100%; }
+    .image-box        { width: 160px; height: 160px; }
+}

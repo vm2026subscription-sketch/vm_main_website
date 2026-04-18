@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Stories | Vidyarthi Mitra</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
+  <link rel="stylesheet" href="{{ url_for('static', filename='student-stories-navbar.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='student-stories.css') }}">
+</head>
+<body>
+<header class="stories-navbar">
+  <div class="stories-navbar-inner">
+<img src="{{ url_for('static', filename='logo.png') }}" alt="Vidyarthi Mitra">
+    <button class="stories-nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="storiesNavMenu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+    <nav id="storiesNavMenu" class="stories-nav-links" aria-label="Main navigation">
+      <a href="{{ url_for('index') }}">Home</a>
+      <a href="{{ url_for('universities') }}">Universities</a>
+      <a href="{{ url_for('colleges') }}">Colleges</a>
+      <a href="{{ url_for('mock_exams') }}">Mock Exams</a>
+      <a href="{{ url_for('feedback') }}">Feedback</a>
+    </nav>
+  </div>
+</header>
+<header class="hero">
+  <h1>Student Stories</h1>
+  <p>Real journeys • Real struggles • Real success</p>
+</header>
+
+<section class="stories-container" id="storiesContainer">
+  <div class="story-card">
+    <span class="tag">IIT Bombay</span>
+    <h3>From Village to IIT Bombay</h3>
+    <p>A student from a rural background shares how discipline, self-study, and mentorship helped crack JEE Advanced.</p>
+    <button>Read Full Story</button>
+  </div>
+<div class="story-card design">
+  <span class="tag">NID / Design</span>
+  <h3>Designing a Dream: NID Success</h3>
+  <p>How a shift from Science to Design led to an All India Rank in the NID DAT exams. Tips on sketching and portfolio building.</p>
+  <button>Read Full Story</button>
+</div>
+
+<div class="story-card medical">
+  <span class="tag">AIIMS / NEET</span>
+  <h3>Cracking AIIMS from a Small Town</h3>
+  <p>Overcoming the lack of big-city coaching centers through online resources and rigorous self-discipline to reach AIIMS Delhi.</p>
+  <button>Read Full Story</button>
+</div>
+
+<div class="story-card architecture">
+  <span class="tag">NATA / JEE B.Arch</span>
+  <h3>Blueprinting the Future</h3>
+  <p>A journey through NATA and JEE Paper 2, balancing mathematical precision with creative architectural drawing skills.</p>
+  <button>Read Full Story</button>
+</div>
+
+<div class="story-card law">
+  <span class="tag">NLSIU / CLAT</span>
+  <h3>The Law School Marathon</h3>
+  <p>Mastering Reading Comprehension and Legal Reasoning to secure a spot at the National Law School, Bangalore.</p>
+  <button>Read Full Story</button>
+</div>
+
+<div class="story-card commerce">
+  <span class="tag">CA / Finance</span>
+  <h3>Zero to CA: A 5-Year Journey</h3>
+  <p>The story of clearing the CA Finals on the first attempt while managing intensive articleship training and mental health.</p>
+  <button>Read Full Story</button>
+</div>
+  <div class="story-card">
+    <span class="tag">NEET</span>
+    <h3>NEET Topper: First Attempt</h3>
+    <p>Learn the daily routine, revision strategy, and mindset of a topper who secured a government medical seat.</p>
+    <button>Read Full Story</button>
+  </div>
+
+  <div class="story-card">
+    <span class="tag">UPSC</span>
+    <h3>Persistance Overcomes Failure</h3>
+    <p>A powerful story of self-belief and strategy that finally led to IAS selection after multiple attempts.</p>
+    <button>Read Full Story</button>
+  </div>
+</section>
+
+<section style="text-align: center; padding: 60px 20px;">
+  <h2 style="color: var(--primary-orange);">Want Your Story Featured?</h2>
+  <p>Inspire thousands of students with your journey.</p>
+  <br>
+  <a href="{{ url_for('submit_story') }}">
+    <button style="background: var(--primary-orange); color: white; border: none; padding: 16px 32px; border-radius: 50px; font-weight: 700; cursor: pointer;">
+      Submit Your Story
+    </button>
+  </a>
+</section>
+
+<footer class="footer">
+  <p>© 2026 VidyarthiMitra.org | Empowering Students</p>
+</footer>
+
+<script src="{{ url_for('static', filename='student-stories-navbar.js') }}"></script>
+<script src="{{ url_for('static', filename='student-stories.js') }}"></script>
+</body>
+</html>

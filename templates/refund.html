@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Refund and Cancellation Policy | Vidyarthi Mitra{% endblock %}
+
+{% block page_styles %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+    .policy-container {
+        font-family: 'Roboto', sans-serif;
+        padding: 40px 0;
+        background-color: #fdfdfd;
+        min-height: 70vh;
+    }
+
+    .policy-card {
+        background: #fff;
+        padding: 40px;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        border-top: 4px solid #ff6600;
+        line-height: 1.8;
+    }
+
+    .policy-card h1 {
+        font-family: 'Roboto', sans-serif;
+        color: #003d6b;
+        font-weight: 700;
+        margin-bottom: 30px;
+        font-size: 28px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 15px;
+    }
+
+    .policy-card h2 {
+        font-family: 'Roboto', sans-serif;
+        font-size: 20px;
+        color: #333;
+        margin-top: 25px;
+        font-weight: 500;
+    }
+
+    .policy-card p {
+        font-family: 'Roboto', sans-serif;
+        color: #555;
+        font-size: 15px;
+        font-weight: 400;
+        margin-bottom: 20px;
+    }
+
+    .contact-highlight {
+        background: #fff3ed;
+        padding: 15px;
+        border-left: 4px solid #ff6600;
+        display: inline-block;
+        margin-top: 10px;
+        font-weight: 500;
+    }
+
+    .highlight-text {
+        color: #ff6600;
+        font-weight: 700;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="policy-container">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-10 col-md-offset-1">
+                <div class="policy-card">
+                    <h1>Refund and Cancellation Policy</h1>
+
+                    <p>Our focus is absolute student's satisfaction. In the event of your inability to login to your mock tests or to any of our other products, because of technical faults from our end, or for any failed transactions, we will refund back the money, provided the reasons are genuine and proved after investigation.</p>
+
+                    <p>We shall also refund your money if the products or the mock exams is/are not provided to you, for any reason, even on scheduled day or on any other allotted day. Please read the fine prints of each purchase, before buying it, as it provides all the details about the services or the products you purchase.</p>
+
+                    <h2>Cancellations Policy</h2>
+                    <p>For Cancellations, please contact us via a mail to:</p>
+                    <div class="contact-highlight">
+                        <i class="fa fa-envelope"></i> <span class="highlight-text">support@vidyarthimitra.org</span>
+                    </div>
+                    <p style="margin-top:15px;">Requests for cancellations received later than <span class="highlight-text">7 business days</span> prior to the end of the validity of the product or mock exam, will be treated as cancellation of services and no refund is allowed in such cases.</p>
+
+                    <h2>Refunds Policy</h2>
+                    <p>If paid by credit card, refunds will be issued to the original credit card provided at the time of purchase and in case of payment gateway name payments refund will be made to the same account.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

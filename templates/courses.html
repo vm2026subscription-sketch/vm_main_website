@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Courses | Vidyarthi Mitra{% endblock %}
+
+{% block page_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='courses.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<header class="course-header">
+  <h1>Explore Courses</h1>
+  <p>Engineering, Medical, Management, IT, Law & More</p>
+  <div class="header-actions">
+    <a class="header-link" href="{{ url_for('cutoffs') }}">Check Cut-offs</a>
+  </div>
+</header>
+
+<section class="course-categories">
+  <div class="category-card">Engineering</div>
+  <div class="category-card">Medical</div>
+  <div class="category-card">Management</div>
+  <div class="category-card">IT & Data</div>
+  <div class="category-card">Law</div>
+  <div class="category-card">Design</div>
+</section>
+
+<section class="course-section">
+  <h2>Engineering Courses</h2>
+  <div class="course-grid">
+    <div class="course-card">
+      <h3>B.Tech</h3>
+      <p>Computer Science, Mechanical, Civil, Electrical</p>
+      <span>Duration: 4 Years</span>
+    </div>
+    <div class="course-card">
+      <h3>M.Tech</h3>
+      <p>Advanced Engineering & Research</p>
+      <span>Duration: 2 Years</span>
+    </div>
+    <div class="course-card">
+      <h3>Diploma Engineering</h3>
+      <p>Polytechnic & Skill-based Engineering</p>
+      <span>Duration: 3 Years</span>
+    </div>
+  </div>
+</section>
+
+<section class="course-section soft-bg">
+  <h2>IT & Data Science Courses</h2>
+  <div class="course-grid">
+    <div class="course-card">
+      <h3>B.Sc Data Science</h3>
+      <p>AI, ML, Big Data, Python</p>
+      <span>High Demand</span>
+    </div>
+    <div class="course-card">
+      <h3>AI & Machine Learning</h3>
+      <p>Future-ready AI technologies</p>
+      <span>Trending</span>
+    </div>
+    <div class="course-card">
+      <h3>Cyber Security</h3>
+      <p>Ethical Hacking & Security</p>
+      <span>Global Scope</span>
+    </div>
+  </div>
+</section>
+
+<section class="course-section">
+  <h2>Medical & Healthcare Courses</h2>
+  <div class="course-grid">
+    <div class="course-card">
+      <h3>MBBS</h3>
+      <p>Doctor of Medicine</p>
+      <span>Duration: 5.5 Years</span>
+    </div>
+    <div class="course-card">
+      <h3>BDS</h3>
+      <p>Dental Surgery</p>
+      <span>Duration: 5 Years</span>
+    </div>
+    <div class="course-card">
+      <h3>B.Pharmacy</h3>
+      <p>Pharmaceutical Sciences</p>
+      <span>Duration: 4 Years</span>
+    </div>
+  </div>
+</section>
+
+<section class="course-section soft-bg">
+  <h2>Management & Business</h2>
+  <div class="course-grid">
+    <div class="course-card">
+      <h3>MBA</h3>
+      <p>Marketing, Finance, HR, Operations</p>
+      <span>High Salary</span>
+    </div>
+    <div class="course-card">
+      <h3>BBA</h3>
+      <p>Business Administration</p>
+      <span>Leadership Focus</span>
+    </div>
+    <div class="course-card">
+      <h3>PGDM</h3>
+      <p>Industry-oriented Management</p>
+      <span>Corporate Ready</span>
+    </div>
+  </div>
+</section>
+
+<section class="career-support">
+  <h2>Career Support & Guidance</h2>
+  <p>Vidyarthi Mitra helps you choose the right course based on your interest, aptitude, exams & future opportunities.</p>
+  <div class="support-grid">
+    <div class="support-card">Career Counseling</div>
+    <div class="support-card">Entrance Exam Guidance</div>
+    <div class="support-card">Abroad Education Support</div>
+    <div class="support-card">Placement Preparation</div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block page_scripts %}
+<script src="{{ url_for('static', filename='courses.js') }}"></script>
+{% endblock %}
