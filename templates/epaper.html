@@ -752,7 +752,7 @@
     /* ═══════════════════════════════════════════════
        CONFIG
     ═══════════════════════════════════════════════ */
-    const BASE = "{{ api_url | default('https://vmadmin.vercel.app') }}" || 'https://vmadmin.vercel.app';
+    const BASE = '';
 
     /* ═══════════════════════════════════════════════
        STATE
@@ -768,20 +768,35 @@
        FETCH EDITIONS FROM API
     ═══════════════════════════════════════════════ */
     function normalizeEdition(e, index) {
+      const derivedStart = e.start || e.start_date || e.date || e.published_at || e.created_at || '–';
+      const derivedEnd = e.end || e.end_date || e.date || e.published_at || e.created_at || derivedStart;
+      const derivedWeek = e.week || e.week_label || e.title || e.headline || 'News Update';
+
+      const categoryTags = Array.isArray(e.categories)
+        ? e.categories
+        : (typeof e.categories === 'string' ? e.categories.split(',') : []);
+
+      const singleCategoryTag = e.category ? [e.category] : [];
+
       const rawTags = Array.isArray(e.tags)
         ? e.tags
-        : (typeof e.tags === 'string' ? e.tags.split(',') : []);
+        : (typeof e.tags === 'string' ? e.tags.split(',') : categoryTags.concat(singleCategoryTag));
+
+      const numericId = Number(e.id);
+      const stableId = Number.isFinite(numericId) ? numericId : index + 1;
 
       return {
-        id: Number(e.id ?? index + 1),
-        start: e.start || e.start_date || '–',
-        end: e.end || e.end_date || '–',
+        id: stableId,
+        start: derivedStart,
+        end: derivedEnd,
         lang: e.lang || e.language || 'Marathi',
-        week: e.week || e.week_label || '',
+        week: derivedWeek,
         tags: rawTags.map(t => String(t).trim()).filter(Boolean),
         isNew: e.is_new === true || e.is_new === 'true' || e.isNew === true,
         pdf: e.pdf || e.pdf_url || e.file_url || null,
-        url: e.url || e.pdf || e.pdf_url || null,
+        url: e.url || e.link || e.source_url || e.pdf || e.pdf_url || null,
+        displayTitle: e.display_title || e.title || e.headline || null,
+        displaySubtitle: e.display_subtitle || e.excerpt || e.summary || null,
       };
     }
 
@@ -828,8 +843,7 @@
         </div>`).join('');
 
       try {
-        const base = String(BASE).replace(/\/$/, '');
-        const endpoints = [`${base}/api/epapers`, `${base}/api/editions`];
+        const endpoints = ['/api/epaper-feed'];
 
         let res = null;
         for (const endpoint of endpoints) {
@@ -941,6 +955,7 @@
 
         const langKey  = e.lang.toLowerCase();
         const hasPdf   = !!e.pdf;
+        const isDigest = !!e.displayTitle;
 
         card.innerHTML = `
           <div class="card-cover">
@@ -954,9 +969,10 @@
           </div>
           <div class="card-body">
             <div class="card-week">${e.week}</div>
-            <div class="card-title">${e.lang} Edition<br>${e.start} – ${e.end}</div>
+            <div class="card-title">${isDigest ? e.displayTitle : `${e.lang} Edition<br>${e.start} – ${e.end}`}</div>
+            ${isDigest && e.displaySubtitle ? `<div style="font-size:12px;line-height:1.6;color:var(--muted);margin-top:10px">${e.displaySubtitle}</div>` : ''}
             <div class="card-meta">
-              <span><i class="fa fa-calendar"></i> ${e.start}</span>
+              <span><i class="fa fa-calendar"></i> ${isDigest ? 'News Digest' : e.start}</span>
               <span><i class="fa fa-tag"></i> ${e.tags.length} topics</span>
             </div>
             <div class="card-tags">
@@ -1022,8 +1038,8 @@
       const e = editions.find(x => x.id === id);
       if (!e) return;
 
-      document.getElementById('mTitle').textContent    = `${e.lang} Edition`;
-      document.getElementById('mSubtitle').textContent = `${e.week} — ${e.start} to ${e.end}`;
+      document.getElementById('mTitle').textContent    = e.displayTitle || `${e.lang} Edition`;
+      document.getElementById('mSubtitle').textContent = e.displaySubtitle || `${e.week} — ${e.start} to ${e.end}`;
       document.getElementById('mEdition').textContent  = e.lang;
       document.getElementById('mDate').textContent     = `${e.start} – ${e.end}`;
       document.getElementById('mWeek').textContent     = e.week;

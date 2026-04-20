@@ -4,124 +4,565 @@
 
 {% block page_styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='courses.css') }}">
+<style>
+/* ── Overlay backdrop ─────────────────────────── */
+#course-panel {
+  display:none; position:fixed; inset:0; z-index:2000;
+  background:rgba(15,23,42,.55); overflow-y:auto; padding:24px 12px;
+}
+#course-panel.open { display:flex; align-items:flex-start; justify-content:center; }
+
+/* ── Panel box ───────────────────────────────── */
+.panel-box {
+  background:#fff; border-radius:18px; max-width:940px; width:100%;
+  margin:auto; box-shadow:0 24px 64px rgba(0,0,0,.22);
+  overflow:hidden; animation:cpSlide .28s ease;
+}
+@keyframes cpSlide { from{transform:translateY(28px);opacity:0} to{transform:none;opacity:1} }
+
+/* ── Panel hero ──────────────────────────────── */
+.panel-hero {
+  padding:28px 32px 20px; color:#fff;
+  display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+}
+.panel-hero h2 { margin:0 0 6px; font-size:1.4rem; font-weight:800; }
+.panel-hero-meta { opacity:.88; font-size:.87rem; display:flex; gap:16px; flex-wrap:wrap; margin-top:4px; }
+.panel-close-btn {
+  background:rgba(255,255,255,.2); border:none; color:#fff;
+  width:34px; height:34px; border-radius:50%; font-size:1.1rem;
+  cursor:pointer; flex-shrink:0; line-height:34px; text-align:center; transition:.2s;
+}
+.panel-close-btn:hover { background:rgba(255,255,255,.4); }
+
+/* ── Panel search ────────────────────────────── */
+.panel-search-row {
+  padding:14px 28px 6px; background:#f8fafc; border-bottom:1px solid #e2e8f0;
+}
+.panel-search-input {
+  width:100%; padding:9px 16px 9px 36px; border-radius:50px;
+  border:1.5px solid #e2e8f0; font-size:.88rem; outline:none; box-sizing:border-box;
+  background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='M21 21l-4.35-4.35'/%3E%3C/svg%3E") no-repeat 13px center;
+  font-family:inherit;
+}
+.panel-search-input:focus { border-color:#4f46e5; }
+.panel-count-label { font-size:.8rem; color:#64748b; padding:4px 28px 10px; }
+
+/* ── Panel table ─────────────────────────────── */
+.panel-table-wrap { overflow-x:auto; max-height:58vh; overflow-y:auto; }
+.ctable { width:100%; border-collapse:collapse; font-size:.83rem; }
+.ctable thead { position:sticky; top:0; z-index:5; }
+.ctable thead th {
+  background:#1e293b; color:#fff; padding:10px 12px;
+  text-align:left; font-size:.76rem; font-weight:700;
+  letter-spacing:.04em; white-space:nowrap;
+}
+.ctable tbody tr { border-bottom:1px solid #f1f5f9; cursor:pointer; transition:.14s; }
+.ctable tbody tr:hover { background:#f8fafc; }
+.ctable td { padding:10px 12px; vertical-align:top; color:#1e293b; }
+.ctable td:first-child { color:#94a3b8; font-size:.74rem; text-align:center; width:30px; }
+.c-name { font-weight:700; font-size:.87rem; }
+.c-sub  { color:#64748b; font-size:.77rem; margin-top:2px; }
+.c-badge {
+  display:inline-block; padding:2px 8px; border-radius:20px;
+  font-size:.71rem; font-weight:700; background:#ede9fe; color:#5b21b6;
+}
+.c-fee { color:#059669; font-weight:700; }
+.c-view-btn {
+  background:#ff6600; color:#fff; border:none; padding:4px 12px;
+  border-radius:20px; font-size:.74rem; cursor:pointer; font-weight:600;
+  white-space:nowrap; font-family:inherit;
+}
+.c-view-btn:hover { background:#e65c00; }
+
+/* ── Detail modal ────────────────────────────── */
+#detail-modal {
+  display:none; position:fixed; inset:0; z-index:3000;
+  background:rgba(0,0,0,.5); overflow-y:auto; padding:20px 12px;
+}
+#detail-modal.open { display:flex; align-items:flex-start; justify-content:center; }
+.dm-box {
+  background:#fff; border-radius:18px; max-width:700px; width:100%;
+  margin:auto; box-shadow:0 20px 60px rgba(0,0,0,.24);
+  overflow:hidden; animation:cpSlide .24s ease;
+}
+.dm-hero { padding:24px 28px 18px; color:#fff; }
+.dm-hero h3 { margin:0 0 4px; font-size:1.3rem; font-weight:800; }
+.dm-hero-meta { font-size:.83rem; opacity:.88; display:flex; gap:12px; flex-wrap:wrap; }
+.dm-close-btn {
+  float:right; background:rgba(255,255,255,.2); border:none; color:#fff;
+  width:32px; height:32px; border-radius:50%; font-size:1rem; cursor:pointer;
+  line-height:32px; text-align:center; transition:.2s;
+}
+.dm-close-btn:hover { background:rgba(255,255,255,.4); }
+.dm-body { padding:22px 28px; }
+.dm-grid { display:grid; grid-template-columns:1fr 1fr; gap:13px; }
+@media(max-width:520px){ .dm-grid{ grid-template-columns:1fr; } }
+.dm-field { background:#f8fafc; border-radius:10px; padding:12px 14px; }
+.dm-field label {
+  display:block; font-size:.68rem; font-weight:800; color:#94a3b8;
+  text-transform:uppercase; letter-spacing:.07em; margin-bottom:4px;
+}
+.dm-field span { font-size:.88rem; color:#1e293b; font-weight:500; line-height:1.5; }
+.dm-field.full { grid-column:1/-1; }
+
+/* ── DB error banner ─────────────────────────── */
+.db-error-banner {
+  background:#fef2f2; border:1px solid #fecaca; color:#b91c1c;
+  padding:14px 24px; margin:16px 24px; border-radius:10px; font-size:.88rem;
+}
+
+/* ── Level-specific styles ───────────────────── */
+.exam-level { font-size:.72rem; padding:2px 10px; border-radius:20px; font-weight:700; border:none; }
+.level-undergraduate { background: #4f46e522; color: #4f46e5; }
+.level-postgraduate { background: #7c3aed22; color: #7c3aed; }
+.level-doctoral { background: #db277722; color: #db2777; }
+.level-integrated { background: #0891b222; color: #0891b2; }
+.level-diploma { background: #d9770622; color: #d97706; }
+.level-certificate { background: #05966922; color: #059669; }
+.level-vocational { background: #dc262622; color: #dc2626; }
+.level-professional { background: #9333ea22; color: #9333ea; }
+.level-online-distance { background: #0369a122; color: #0369a1; }
+
+.level-link-undergraduate { color: #4f46e5; }
+.level-link-postgraduate { color: #7c3aed; }
+.level-link-doctoral { color: #db2777; }
+.level-link-integrated { color: #0891b2; }
+.level-link-diploma { color: #d97706; }
+.level-link-certificate { color: #059669; }
+.level-link-vocational { color: #dc2626; }
+.level-link-professional { color: #9333ea; }
+.level-link-online-distance { color: #0369a1; }
+
+.hidden-card { display:none !important; }
+.section-actions { text-align:center; margin-top:18px; }
+.view-more-btn {
+  border:none; background:#1d4ed8; color:#fff;
+  padding:10px 18px; border-radius:999px; font-size:.9rem;
+  cursor:pointer; transition:.2s;
+}
+.view-more-btn:hover { background:#4338ca; }
+</style>
 {% endblock %}
 
 {% block content %}
 
-<header class="course-header">
-  <h1>Explore Courses</h1>
-  <p>Engineering, Medical, Management, IT, Law & More</p>
-  <div class="header-actions">
-    <a class="header-link" href="{{ url_for('cutoffs') }}">Check Cut-offs</a>
-  </div>
-</header>
+{# ─────────────── DB ERROR BANNER (only shown if DB failed) ─────────────── #}
+{% if error %}
+<div class="db-error-banner">
+  <strong>⚠ Database error:</strong> {{ error }}
+  — showing empty page. Check your <code>SUPABASE_POSTGRES_URL</code>.
+</div>
+{% endif %}
 
-<section class="course-categories">
-  <div class="category-card">Engineering</div>
-  <div class="category-card">Medical</div>
-  <div class="category-card">Management</div>
-  <div class="category-card">IT & Data</div>
-  <div class="category-card">Law</div>
-  <div class="category-card">Design</div>
-</section>
-
-<section class="course-section">
-  <h2>Engineering Courses</h2>
-  <div class="course-grid">
-    <div class="course-card">
-      <h3>B.Tech</h3>
-      <p>Computer Science, Mechanical, Civil, Electrical</p>
-      <span>Duration: 4 Years</span>
+{# ─────────────── SEARCH ─────────────── #}
+<section class="search-section" id="search">
+  <div class="search-inner">
+    <h2>Find Your Course</h2>
+    <p>Search across {{ total_courses }} courses by name, level, stream or specialisation</p>
+    <div class="search-bar">
+      <input type="text" id="courseInput"
+             placeholder="e.g. BA, BTech, MBA, MBBS, ITI, PhD, Data Science...">
+      <button onclick="globalSearch()">
+        <i class="fas fa-search"></i> Search
+      </button>
     </div>
-    <div class="course-card">
-      <h3>M.Tech</h3>
-      <p>Advanced Engineering & Research</p>
-      <span>Duration: 2 Years</span>
-    </div>
-    <div class="course-card">
-      <h3>Diploma Engineering</h3>
-      <p>Polytechnic & Skill-based Engineering</p>
-      <span>Duration: 3 Years</span>
-    </div>
+    <div id="searchResults"></div>
   </div>
 </section>
 
-<section class="course-section soft-bg">
-  <h2>IT & Data Science Courses</h2>
-  <div class="course-grid">
-    <div class="course-card">
-      <h3>B.Sc Data Science</h3>
-      <p>AI, ML, Big Data, Python</p>
-      <span>High Demand</span>
-    </div>
-    <div class="course-card">
-      <h3>AI & Machine Learning</h3>
-      <p>Future-ready AI technologies</p>
-      <span>Trending</span>
-    </div>
-    <div class="course-card">
-      <h3>Cyber Security</h3>
-      <p>Ethical Hacking & Security</p>
-      <span>Global Scope</span>
-    </div>
+{# ─────────────── FILTER TABS ─────────────── #}
+<div class="filter-bar" id="courses">
+  <div class="filter-tabs">
+    <button class="filter-tab active" data-filter="all">All Levels</button>
+    {% for lvl in level_order %}
+      {% set info = level_index.get(lvl) %}
+      {% if info %}
+        <button class="filter-tab" data-filter="{{ lvl }}">
+          {{ info.meta.icon }} {{ info.meta.label }} ({{ info.count }})
+        </button>
+      {% endif %}
+    {% endfor %}
   </div>
-</section>
+</div>
 
-<section class="course-section">
-  <h2>Medical & Healthcare Courses</h2>
-  <div class="course-grid">
-    <div class="course-card">
-      <h3>MBBS</h3>
-      <p>Doctor of Medicine</p>
-      <span>Duration: 5.5 Years</span>
-    </div>
-    <div class="course-card">
-      <h3>BDS</h3>
-      <p>Dental Surgery</p>
-      <span>Duration: 5 Years</span>
-    </div>
-    <div class="course-card">
-      <h3>B.Pharmacy</h3>
-      <p>Pharmaceutical Sciences</p>
-      <span>Duration: 4 Years</span>
-    </div>
-  </div>
-</section>
+{# ─────────────── COURSE SECTIONS ─────────────── #}
+<div class="exam-sections">
 
-<section class="course-section soft-bg">
-  <h2>Management & Business</h2>
-  <div class="course-grid">
-    <div class="course-card">
-      <h3>MBA</h3>
-      <p>Marketing, Finance, HR, Operations</p>
-      <span>High Salary</span>
-    </div>
-    <div class="course-card">
-      <h3>BBA</h3>
-      <p>Business Administration</p>
-      <span>Leadership Focus</span>
-    </div>
-    <div class="course-card">
-      <h3>PGDM</h3>
-      <p>Industry-oriented Management</p>
-      <span>Corporate Ready</span>
-    </div>
-  </div>
-</section>
+  {% for lvl in level_order %}
+    {% set info = level_index.get(lvl) %}
+    {% if info and info.shorts %}
 
-<section class="career-support">
-  <h2>Career Support & Guidance</h2>
-  <p>Vidyarthi Mitra helps you choose the right course based on your interest, aptitude, exams & future opportunities.</p>
-  <div class="support-grid">
-    <div class="support-card">Career Counseling</div>
-    <div class="support-card">Entrance Exam Guidance</div>
-    <div class="support-card">Abroad Education Support</div>
-    <div class="support-card">Placement Preparation</div>
+    <section class="exam-section reveal"
+             data-category="{{ lvl }}"
+             id="sec-{{ lvl | replace('/', '_') }}">
+
+      <div class="section-header">
+        <div class="section-icon">{{ info.meta.icon }}</div>
+        <div class="section-meta">
+          <div class="section-label">Level {{ info.meta.num }}</div>
+          <div class="section-title">
+            {{ info.meta.label }} Courses
+            <span class="section-count">{{ info.count }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="exam-grid">
+        {% for sn in info.shorts %}
+        <div class="exam-card"
+             style="cursor:pointer"
+             data-level="{{ lvl }}"
+             data-sn="{{ sn.name | e }}"
+             onclick="openShortName(this)">
+          <div class="exam-card-top">
+            <div class="exam-abbr">{{ sn.name }}</div>
+              <span class="exam-level level-{{ lvl | replace('/', '-') }}">
+                {{ sn.count }} course{{ 's' if sn.count != 1 else '' }}
+              </span>
+            </div>
+          <div class="exam-body">{{ sn.stream }}</div>
+          <div class="exam-name">Click to view all specialisations</div>
+          <div class="exam-footer-row">
+            <span class="exam-conducting">{{ lvl | title }}</span>
+            <span class="exam-link level-link-{{ lvl | replace('/', '-') }}">
+              Explore <i class="fas fa-arrow-right"></i>
+            </span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% if info.shorts | length > 10 %}
+      <div class="section-actions">
+        <button class="view-more-btn" type="button" data-section="sec-{{ lvl | replace('/', '_') }}">
+          View more courses
+        </button>
+      </div>
+      {% endif %}
+
+    </section>
+
+    {% endif %}
+  {% endfor %}
+
+</div>{# end .exam-sections #}
+
+{# ─────────────── SHORT-NAME PANEL ─────────────── #}
+<div id="course-panel">
+  <div class="panel-box">
+    <div class="panel-hero" id="panelHero">
+      <div>
+        <h2 id="panelTitle"></h2>
+        <div class="panel-hero-meta">
+          <span id="panelLevel"></span>
+          <span id="panelStream"></span>
+        </div>
+      </div>
+      <button class="panel-close-btn" id="panelClose" title="Close">✕</button>
+    </div>
+    <div class="panel-search-row">
+      <input class="panel-search-input" id="panelSearch" type="text"
+             placeholder="Filter courses within this group…">
+    </div>
+    <div class="panel-count-label" id="panelCount"></div>
+    <div class="panel-table-wrap">
+      <table class="ctable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Course Name</th>
+            <th>Sub-Stream / Specialisation</th>
+            <th>Duration</th>
+            <th>Eligibility</th>
+            <th>Entrance Exams</th>
+            <th>Top Institutes</th>
+            <th>Avg Fee / yr</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="panelBody"></tbody>
+      </table>
+    </div>
   </div>
-</section>
+</div>
+
+{# ─────────────── DETAIL MODAL ─────────────── #}
+<div id="detail-modal">
+  <div class="dm-box">
+    <div class="dm-hero" id="dmHero">
+      <button class="dm-close-btn" id="dmClose" title="Close">✕</button>
+      <h3 id="dm-name"></h3>
+      <div class="dm-hero-meta">
+        <span id="dm-short"></span>
+        <span id="dm-level"></span>
+        <span id="dm-stream"></span>
+      </div>
+    </div>
+    <div class="dm-body">
+      <div class="dm-grid">
+        <div class="dm-field">
+          <label>Course ID</label><span id="dm-id"></span>
+        </div>
+        <div class="dm-field">
+          <label>Sub-Stream / Specialisation</label><span id="dm-sub"></span>
+        </div>
+        <div class="dm-field">
+          <label>Duration</label><span id="dm-dur"></span>
+        </div>
+        <div class="dm-field">
+          <label>Avg Fee / Year</label><span id="dm-fee"></span>
+        </div>
+        <div class="dm-field full">
+          <label>Eligibility</label><span id="dm-elig"></span>
+        </div>
+        <div class="dm-field full">
+          <label>Entrance Exams</label><span id="dm-entrance"></span>
+        </div>
+        <div class="dm-field full">
+          <label>Top Institutes</label><span id="dm-institutes"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 {% endblock %}
 
 {% block page_scripts %}
-<script src="{{ url_for('static', filename='courses.js') }}"></script>
+<script type="application/json" id="courses-data">{{ courses_json | safe }}</script>
+<script>
+/* ─── All course data injected by Flask ─────────────────────────────────── */
+const ALL_COURSES = JSON.parse(document.getElementById('courses-data').textContent);
+
+const LEVEL_COLORS = {
+  'undergraduate' :'#4f46e5','postgraduate':'#7c3aed','doctoral'    :'#db2777',
+  'integrated'    :'#0891b2','diploma'     :'#d97706','certificate' :'#059669',
+  'vocational'    :'#dc2626','professional':'#9333ea','online/distance':'#0369a1'
+};
+
+/* ─── Filter tabs ────────────────────────────────────────────────────────── */
+document.querySelectorAll('.filter-tab').forEach(btn => {
+  btn.addEventListener('click', function () {
+    document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    const f = this.dataset.filter;
+    document.querySelectorAll('.exam-section').forEach(sec => {
+      sec.style.display = (f === 'all' || sec.dataset.category === f) ? '' : 'none';
+    });
+  });
+});
+
+initSectionCardLimits();
+document.querySelectorAll('.view-more-btn').forEach(btn => {
+  btn.addEventListener('click', () => expandSection(btn.dataset.section));
+});
+
+function initSectionCardLimits() {
+  const LIMIT = 10;
+  document.querySelectorAll('.exam-section').forEach(section => {
+    const cards = section.querySelectorAll('.exam-card');
+    if (cards.length <= LIMIT) return;
+    cards.forEach((card, idx) => {
+      if (idx >= LIMIT) card.classList.add('hidden-card');
+    });
+  });
+}
+
+function expandSection(sectionId) {
+  const section = document.getElementById(sectionId);
+  if (!section) return;
+  section.querySelectorAll('.exam-card.hidden-card').forEach(card => card.classList.remove('hidden-card'));
+  const btn = section.querySelector('.view-more-btn');
+  if (btn) btn.style.display = 'none';
+}
+
+/* ─── Global search ──────────────────────────────────────────────────────── */
+function globalSearch() {
+  const q   = document.getElementById('courseInput').value.trim().toLowerCase();
+  const out = document.getElementById('searchResults');
+  if (!q) { out.innerHTML = ''; return; }
+
+  const hits = ALL_COURSES.filter(c =>
+    c.course_name.toLowerCase().includes(q)      ||
+    c.short_name.toLowerCase().includes(q)       ||
+    c.sub_stream.toLowerCase().includes(q)       ||
+    c.stream.toLowerCase().includes(q)           ||
+    c.level.toLowerCase().includes(q)            ||
+    c.entrance_exams.toLowerCase().includes(q)
+  ).slice(0, 30);
+
+  if (!hits.length) {
+    out.innerHTML = '<p style="color:#ef4444;margin-top:14px">No courses found. Try different keywords.</p>';
+    return;
+  }
+
+  let html = '<div style="margin-top:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">';
+  hits.forEach(c => {
+    const col = LEVEL_COLORS[c.level] || '#ff6600';
+    html += `<div class="exam-card" style="cursor:pointer"
+                  onclick='openDetail(${JSON.stringify(c)})'>
+      <div class="exam-card-top">
+        <div class="exam-abbr">${c.short_name}</div>
+        <span class="exam-level"
+              style="background:${col}22;color:${col};
+                     font-size:.7rem;padding:2px 10px;
+                     border-radius:20px;font-weight:700">
+          ${c.level}
+        </span>
+      </div>
+      <div class="exam-body">${c.course_name}</div>
+      <div class="exam-name">${c.sub_stream || c.stream}</div>
+      <div class="exam-footer-row">
+        <span class="exam-conducting">${c.duration_years ? c.duration_years + ' yr' : '–'}</span>
+        <span class="exam-link" style="color:${col}">
+          Details <i class="fas fa-arrow-right"></i>
+        </span>
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  if (hits.length === 30) {
+    html += '<p style="color:#94a3b8;font-size:.8rem;margin-top:8px">Showing first 30 results — refine your search for more.</p>';
+  }
+  out.innerHTML = html;
+}
+
+document.getElementById('courseInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') globalSearch();
+});
+
+/* ─── Short-name panel ───────────────────────────────────────────────────── */
+let panelCourses = [];
+
+function openShortName(el) {
+  const level = el.dataset.level;
+  const shortName = el.dataset.sn;
+  panelCourses = ALL_COURSES.filter(
+    c => c.level === level && c.short_name === shortName
+  );
+
+  const col = LEVEL_COLORS[level] || '#ff6600';
+
+  document.getElementById('panelHero').style.background =
+    `linear-gradient(135deg,${col},${col}cc)`;
+
+  document.getElementById('panelTitle').textContent =
+    shortName + ' — ' + level.charAt(0).toUpperCase() + level.slice(1);
+
+  document.getElementById('panelLevel').textContent  = '🎓 ' + level;
+
+  const streams = [...new Set(panelCourses.map(c => c.stream))].join(', ');
+  document.getElementById('panelStream').textContent = '📂 ' + streams;
+
+  document.getElementById('panelSearch').value = '';
+
+  renderPanelRows(panelCourses);
+
+  document.getElementById('course-panel').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function renderPanelRows(courses) {
+  document.getElementById('panelCount').textContent =
+    `Showing ${courses.length} course${courses.length !== 1 ? 's' : ''}`;
+
+  const tbody = document.getElementById('panelBody');
+  if (!courses.length) {
+    tbody.innerHTML =
+      '<tr><td colspan="9" style="text-align:center;padding:32px;color:#94a3b8">' +
+      'No courses match your filter.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = courses.map((c, i) => {
+    const fee  = c.avg_fee_inr_per_year ? '₹' + c.avg_fee_inr_per_year : '—';
+    const elig = c.eligibility.length > 42
+                   ? c.eligibility.slice(0, 42) + '…' : (c.eligibility || '—');
+    const entr = c.entrance_exams.length > 36
+                   ? c.entrance_exams.slice(0, 36) + '…' : (c.entrance_exams || '—');
+    const inst = c.top_institutes.length > 42
+                   ? c.top_institutes.slice(0, 42) + '…' : (c.top_institutes || '—');
+    const cj   = JSON.stringify(c).replace(/'/g, "&#39;");
+    return `<tr onclick="openDetail(${cj})">
+      <td>${i + 1}</td>
+      <td>
+        <div class="c-name">${c.course_name}</div>
+        <div class="c-sub">${c.sub_stream || ''}</div>
+      </td>
+      <td>${c.sub_stream ? '<span class="c-badge">' + c.sub_stream + '</span>' : '—'}</td>
+      <td style="white-space:nowrap">${c.duration_years ? c.duration_years + ' yr' : '—'}</td>
+      <td style="font-size:.77rem;color:#475569;max-width:150px">${elig}</td>
+      <td style="font-size:.77rem;color:#475569;max-width:130px">${entr}</td>
+      <td style="font-size:.77rem;color:#475569;max-width:150px">${inst}</td>
+      <td class="c-fee" style="white-space:nowrap">${fee}</td>
+      <td>
+        <button class="c-view-btn"
+                onclick="event.stopPropagation();openDetail(${cj})">
+          View
+        </button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+document.getElementById('panelSearch').addEventListener('input', function () {
+  const q = this.value.trim().toLowerCase();
+  if (!q) { renderPanelRows(panelCourses); return; }
+  renderPanelRows(panelCourses.filter(c =>
+    c.course_name.toLowerCase().includes(q)  ||
+    c.sub_stream.toLowerCase().includes(q)   ||
+    c.entrance_exams.toLowerCase().includes(q) ||
+    c.top_institutes.toLowerCase().includes(q)
+  ));
+});
+
+function closePanel() {
+  document.getElementById('course-panel').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.getElementById('panelClose').onclick = closePanel;
+document.getElementById('course-panel').addEventListener('click', function (e) {
+  if (e.target === this) closePanel();
+});
+
+/* ─── Detail modal ───────────────────────────────────────────────────────── */
+function openDetail(c) {
+  if (typeof c === 'string') c = JSON.parse(c);
+  const col = LEVEL_COLORS[c.level] || '#ff6600';
+
+  document.getElementById('dmHero').style.background =
+    `linear-gradient(135deg,${col},${col}bb)`;
+  document.getElementById('dm-name').textContent       = c.course_name;
+  document.getElementById('dm-short').textContent      = '📌 ' + c.short_name;
+  document.getElementById('dm-level').textContent      = '🎓 ' + c.level;
+  document.getElementById('dm-stream').textContent     = '📂 ' + c.stream;
+  document.getElementById('dm-id').textContent         = c.course_id   || '—';
+  document.getElementById('dm-sub').textContent        = c.sub_stream  || '—';
+  document.getElementById('dm-dur').textContent        =
+    c.duration_years ? c.duration_years + ' years' : '—';
+  document.getElementById('dm-fee').textContent        =
+    c.avg_fee_inr_per_year ? '₹' + c.avg_fee_inr_per_year + ' per year' : '—';
+  document.getElementById('dm-elig').textContent       = c.eligibility     || '—';
+  document.getElementById('dm-entrance').textContent   = c.entrance_exams  || '—';
+  document.getElementById('dm-institutes').textContent = c.top_institutes   || '—';
+  document.getElementById('detail-modal').classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('detail-modal').classList.remove('open');
+}
+document.getElementById('dmClose').onclick = closeDetail;
+document.getElementById('detail-modal').addEventListener('click', function (e) {
+  if (e.target === this) closeDetail();
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeDetail(); closePanel(); }
+});
+
+/* ─── Scroll reveal ──────────────────────────────────────────────────────── */
+const revealObs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.07 });
+document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+</script>
 {% endblock %}

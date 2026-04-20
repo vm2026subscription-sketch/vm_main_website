@@ -1,16 +1,107 @@
 import io
 import os
 import re
+import json
+from urllib.error import HTTPError, URLError
+from urllib.parse import urljoin
+from urllib.request import Request, urlopen
 
-import pandas as pd
+try:
+    import pandas as pd
+except ImportError:
+    pd = None
+
 from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
-from psycopg2 import connect
-from psycopg2.extras import Json, execute_values
+from dotenv import load_dotenv
+try:
+    from psycopg2 import connect
+    from psycopg2.extras import Json, execute_values
+except ImportError:
+    connect = None
+    Json = None
+    execute_values = None
+
 from supabase import create_client
+
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = "vidyarthi-mitra-dev-key"
 app.config["MAX_CONTENT_LENGTH"] = 15 * 1024 * 1024  # 15 MB upload limit
+
+COURSES_DB_URL = (
+    os.getenv("SUPABASE_POSTGRES_URL", "").strip()
+    or os.getenv("DATABASE_URL", "").strip()
+)
+if COURSES_DB_URL:
+    try:
+        from courses_routes import courses_bp
+
+        app.register_blueprint(courses_bp)
+    except Exception as exc:
+        app.logger.warning("Skipping courses blueprint registration: %s", exc)
+
+VMADMIN_BASE_URL = (
+    os.getenv("VMADMIN_BASE_URL", "").strip().rstrip("/")
+)
+
+
+def fetch_remote_json(url, timeout=12):
+    request = Request(
+        url,
+        headers={
+            "Accept": "application/json",
+            "User-Agent": "vm-main-website/1.0",
+        },
+    )
+    try:
+        with urlopen(request, timeout=timeout) as response:
+            body = response.read()
+            if not body:
+                return []
+            return json.loads(body.decode("utf-8"))
+    except (HTTPError, URLError, TimeoutError, ValueError, UnicodeDecodeError):
+        return None
+
+
+def extract_items(payload):
+    if isinstance(payload, list):
+        return payload
+    if not isinstance(payload, dict):
+        return []
+
+    for key in ("results", "items", "news", "editions", "articles"):
+        value = payload.get(key)
+        if isinstance(value, list):
+            return value
+
+    data_value = payload.get("data")
+    if isinstance(data_value, list):
+        return data_value
+
+    if isinstance(data_value, dict):
+        for key in ("results", "items", "news", "editions", "articles"):
+            value = data_value.get(key)
+            if isinstance(value, list):
+                return value
+
+    return []
+
+
+def extract_next_url(payload, current_url):
+    if not isinstance(payload, dict):
+        return None
+
+    candidate = payload.get("next")
+    if not candidate and isinstance(payload.get("pagination"), dict):
+        candidate = payload["pagination"].get("next")
+    if not candidate and isinstance(payload.get("data"), dict):
+        candidate = payload["data"].get("next")
+
+    if not isinstance(candidate, str) or not candidate.strip():
+        return None
+
+    return urljoin(current_url, candidate.strip())
 
 UPLOAD_TARGET_TABLES = [
     {"value": "universities", "label": "Universities"},
@@ -35,6 +126,9 @@ def get_postgres_connection_url():
 
 
 def convert_excel_to_records(uploaded_file):
+    if pd is None:
+        raise RuntimeError("pandas is not installed. Install requirements to process Excel uploads.")
+
     excel_bytes = uploaded_file.read()
     if not excel_bytes:
         raise ValueError("The uploaded file is empty.")
@@ -82,6 +176,9 @@ def insert_records_in_batches(supabase_client, table_name, records, batch_size=5
 
 
 def insert_records_via_postgres(connection_url, table_name, records):
+    if connect is None or Json is None or execute_values is None:
+        raise RuntimeError("psycopg2-binary is not installed. Install requirements to use Postgres upload.")
+
     if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", table_name):
         raise ValueError("Invalid table name. Use letters, numbers, and underscore only.")
 
@@ -107,6 +204,9 @@ def insert_records_via_postgres(connection_url, table_name, records):
 
 
 def ensure_upload_table_exists(connection_url, table_name):
+    if connect is None:
+        raise RuntimeError("psycopg2-binary is not installed. Install requirements to use Postgres upload.")
+
     if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", table_name):
         raise ValueError("Invalid table name. Use letters, numbers, and underscore only.")
 
@@ -455,12 +555,87 @@ def blog():
 
 @app.route("/epaper")
 def epaper():
-    # We now fetch data from the remote API instead of just local JSON
-    return render_template("epaper.html", api_url="https://vmadmin.vercel.app")
+    return render_template("epaper.html")
+
+
+@app.route("/api/epaper-feed")
+def epaper_feed():
+    base = VMADMIN_BASE_URL
+    if not base:
+        return jsonify([])
+
+    source_paths = ["/api/news", "/news", "/api/epapers", "/api/editions"]
+
+    for path in source_paths:
+        current_url = f"{base}{path}"
+        combined_items = []
+        page_guard = 0
+
+        while current_url and page_guard < 25:
+            payload = fetch_remote_json(current_url)
+            if payload is None:
+                combined_items = []
+                break
+
+            items = extract_items(payload)
+            if items:
+                combined_items.extend(items)
+                current_url = extract_next_url(payload, current_url)
+            else:
+                if isinstance(payload, list):
+                    combined_items.extend(payload)
+                current_url = None
+
+            page_guard += 1
+
+        if combined_items:
+            return jsonify(combined_items)
+
+    return jsonify([])
 
 @app.route("/admin")
 def admin():
-    return render_template("epaperadmin.html", api_url="https://vmadmin.vercel.app")
+    return render_template("epaperadmin.html")
+
+
+@app.route("/api/vmadmin/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+def vmadmin_proxy(subpath):
+    if not VMADMIN_BASE_URL:
+        return jsonify({"error": "VMADMIN_BASE_URL is not configured."}), 500
+
+    upstream_url = f"{VMADMIN_BASE_URL}/{subpath.lstrip('/')}"
+    if request.query_string:
+        upstream_url = f"{upstream_url}?{request.query_string.decode('utf-8', errors='ignore')}"
+
+    passthrough_headers = {
+        "Accept": request.headers.get("Accept", "application/json"),
+        "User-Agent": "vm-main-website/1.0",
+    }
+    if request.headers.get("Authorization"):
+        passthrough_headers["Authorization"] = request.headers["Authorization"]
+    if request.headers.get("Content-Type"):
+        passthrough_headers["Content-Type"] = request.headers["Content-Type"]
+
+    body = request.get_data() if request.method in {"POST", "PUT", "PATCH"} else None
+    proxy_request = Request(
+        upstream_url,
+        data=body,
+        headers=passthrough_headers,
+        method=request.method,
+    )
+
+    try:
+        with urlopen(proxy_request, timeout=20) as response:
+            payload = response.read()
+            status_code = response.getcode()
+            content_type = response.headers.get("Content-Type", "application/json")
+            return payload, status_code, {"Content-Type": content_type}
+    except HTTPError as exc:
+        error_payload = exc.read()
+        content_type = exc.headers.get("Content-Type", "application/json") if exc.headers else "application/json"
+        return error_payload, exc.code, {"Content-Type": content_type}
+    except URLError:
+        return jsonify({"error": "Unable to reach VM admin service."}), 502
 
 
 

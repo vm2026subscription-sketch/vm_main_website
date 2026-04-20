@@ -137,7 +137,7 @@
 <!-- ── Header ── -->
 <header>
   <h1>📋 E-Paper Admin</h1>
-  <div class="api-badge"><div class="dot"></div>vmadmin.vercel.app</div>
+  <div class="api-badge"><div class="dot"></div>Connected via secure proxy</div>
   <div id="userChip">
     <span id="userLabel"></span>
     <button id="logoutBtn"><i class="fa fa-sign-out-alt"></i> Logout</button>
@@ -224,7 +224,7 @@
 
 <script>
   // ── Config ──────────────────────────────────────
-  const BASE = 'https://vmadmin.vercel.app';
+  const BASE = '/api/vmadmin';
 
   // ── Auth ────────────────────────────────────────
   let authToken = sessionStorage.getItem('vm_token') || null;
@@ -448,7 +448,7 @@
   async function handleUpload(event) {
     event.preventDefault();
     const formData = new FormData(event.target);
-    const UPLOAD_URL = "https://vmadmin.vercel.app";
+    const UPLOAD_URL = `${BASE}/api/upload`;
 
     try {
         const response = await fetch(UPLOAD_URL, {
