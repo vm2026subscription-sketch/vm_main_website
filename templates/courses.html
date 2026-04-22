@@ -141,6 +141,55 @@
   cursor:pointer; transition:.2s;
 }
 .view-more-btn:hover { background:#4338ca; }
+
+.clear-search-btn {
+  background: #f1f5f9 !important;
+  color: #334155 !important;
+  border-left: 1px solid #e2e8f0 !important;
+  border-right: 1px solid #e2e8f0 !important;
+}
+
+.clear-search-btn:hover { background: #e2e8f0 !important; }
+
+.search-suggestions {
+  margin-top: 8px;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  text-align: left;
+  display: none;
+}
+
+.search-suggestion-item {
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: #fff;
+  padding: 10px 14px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: .88rem;
+  color: #0f172a;
+}
+
+.search-suggestion-item:hover,
+.search-suggestion-item.active {
+  background: #fff3e8;
+}
+
+.search-suggestion-type {
+  color: #64748b;
+  font-size: .74rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
 </style>
 {% endblock %}
 
@@ -161,11 +210,16 @@
     <p>Search across {{ total_courses }} courses by name, level, stream or specialisation</p>
     <div class="search-bar">
       <input type="text" id="courseInput"
+             autocomplete="off"
              placeholder="e.g. BA, BTech, MBA, MBBS, ITI, PhD, Data Science...">
-      <button onclick="globalSearch()">
-        <i class="fas fa-search"></i> Search
+      <button type="button" class="clear-search-btn" id="clearSearchBtn">
+        <i class="fa fa-times"></i> Clear
+      </button>
+      <button type="button" onclick="globalSearch()">
+        <i class="fa fa-search"></i> Search
       </button>
     </div>
+    <div id="searchSuggestions" class="search-suggestions"></div>
     <div id="searchResults"></div>
   </div>
 </section>
@@ -225,7 +279,7 @@
           <div class="exam-footer-row">
             <span class="exam-conducting">{{ lvl | title }}</span>
             <span class="exam-link level-link-{{ lvl | replace('/', '-') }}">
-              Explore <i class="fas fa-arrow-right"></i>
+              Explore <i class="fa fa-arrow-right"></i>
             </span>
           </div>
         </div>
@@ -339,6 +393,101 @@ const LEVEL_COLORS = {
   'vocational'    :'#dc2626','professional':'#9333ea','online/distance':'#0369a1'
 };
 
+const courseInputEl = document.getElementById('courseInput');
+const clearSearchBtnEl = document.getElementById('clearSearchBtn');
+const searchSuggestionsEl = document.getElementById('searchSuggestions');
+const searchResultsEl = document.getElementById('searchResults');
+let activeSuggestionIndex = -1;
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function getSuggestions(query) {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+
+  const starts = [];
+  const contains = [];
+  const seen = new Set();
+
+  function consider(label, type) {
+    const text = String(label || '').trim();
+    if (!text) return;
+    const lower = text.toLowerCase();
+    if (!lower.includes(q)) return;
+    const key = `${type}:${lower}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    const payload = { label: text, type };
+    if (lower.startsWith(q)) starts.push(payload);
+    else contains.push(payload);
+  }
+
+  ALL_COURSES.forEach(c => {
+    consider(c.course_name, 'Course');
+    consider(c.short_name, 'Short Name');
+    consider(c.sub_stream, 'Specialisation');
+    consider(c.stream, 'Stream');
+  });
+
+  return starts.concat(contains).slice(0, 8);
+}
+
+function hideSuggestions() {
+  searchSuggestionsEl.style.display = 'none';
+  searchSuggestionsEl.innerHTML = '';
+  activeSuggestionIndex = -1;
+}
+
+function renderSuggestions(list) {
+  if (!list.length) {
+    hideSuggestions();
+    return;
+  }
+
+  searchSuggestionsEl.innerHTML = list.map((item, idx) => `
+    <button type="button" class="search-suggestion-item" data-idx="${idx}" data-value="${escapeHtml(item.label)}">
+      <span>${escapeHtml(item.label)}</span>
+      <span class="search-suggestion-type">${escapeHtml(item.type)}</span>
+    </button>
+  `).join('');
+  searchSuggestionsEl.style.display = 'block';
+
+  searchSuggestionsEl.querySelectorAll('.search-suggestion-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+      courseInputEl.value = btn.dataset.value || '';
+      hideSuggestions();
+      globalSearch();
+    });
+  });
+}
+
+function setActiveSuggestion(index) {
+  const rows = searchSuggestionsEl.querySelectorAll('.search-suggestion-item');
+  rows.forEach(el => el.classList.remove('active'));
+  if (!rows.length || index < 0 || index >= rows.length) return;
+  rows[index].classList.add('active');
+  rows[index].scrollIntoView({ block: 'nearest' });
+}
+
+function toggleClearButton() {
+  clearSearchBtnEl.style.display = courseInputEl.value.trim() ? '' : 'none';
+}
+
+function clearSearchInput() {
+  courseInputEl.value = '';
+  searchResultsEl.innerHTML = '';
+  hideSuggestions();
+  toggleClearButton();
+  courseInputEl.focus();
+}
+
 /* ─── Filter tabs ────────────────────────────────────────────────────────── */
 document.querySelectorAll('.filter-tab').forEach(btn => {
   btn.addEventListener('click', function () {
@@ -377,9 +526,15 @@ function expandSection(sectionId) {
 
 /* ─── Global search ──────────────────────────────────────────────────────── */
 function globalSearch() {
-  const q   = document.getElementById('courseInput').value.trim().toLowerCase();
-  const out = document.getElementById('searchResults');
-  if (!q) { out.innerHTML = ''; return; }
+  const q = courseInputEl.value.trim().toLowerCase();
+  if (!q) {
+    searchResultsEl.innerHTML = '';
+    hideSuggestions();
+    return;
+  }
+
+  hideSuggestions();
+  toggleClearButton();
 
   const hits = ALL_COURSES.filter(c =>
     c.course_name.toLowerCase().includes(q)      ||
@@ -391,7 +546,7 @@ function globalSearch() {
   ).slice(0, 30);
 
   if (!hits.length) {
-    out.innerHTML = '<p style="color:#ef4444;margin-top:14px">No courses found. Try different keywords.</p>';
+    searchResultsEl.innerHTML = '<p style="color:#ef4444;margin-top:14px">No courses found. Try different keywords.</p>';
     return;
   }
 
@@ -414,7 +569,7 @@ function globalSearch() {
       <div class="exam-footer-row">
         <span class="exam-conducting">${c.duration_years ? c.duration_years + ' yr' : '–'}</span>
         <span class="exam-link" style="color:${col}">
-          Details <i class="fas fa-arrow-right"></i>
+          Details <i class="fa fa-arrow-right"></i>
         </span>
       </div>
     </div>`;
@@ -423,11 +578,62 @@ function globalSearch() {
   if (hits.length === 30) {
     html += '<p style="color:#94a3b8;font-size:.8rem;margin-top:8px">Showing first 30 results — refine your search for more.</p>';
   }
-  out.innerHTML = html;
+  searchResultsEl.innerHTML = html;
 }
 
-document.getElementById('courseInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') globalSearch();
+courseInputEl.addEventListener('input', () => {
+  toggleClearButton();
+
+  const q = courseInputEl.value.trim();
+  if (!q) {
+    hideSuggestions();
+    searchResultsEl.innerHTML = '';
+    return;
+  }
+
+  activeSuggestionIndex = -1;
+  renderSuggestions(getSuggestions(q));
+});
+
+courseInputEl.addEventListener('keydown', e => {
+  const rows = searchSuggestionsEl.querySelectorAll('.search-suggestion-item');
+
+  if (e.key === 'ArrowDown' && rows.length) {
+    e.preventDefault();
+    activeSuggestionIndex = Math.min(activeSuggestionIndex + 1, rows.length - 1);
+    setActiveSuggestion(activeSuggestionIndex);
+    return;
+  }
+
+  if (e.key === 'ArrowUp' && rows.length) {
+    e.preventDefault();
+    activeSuggestionIndex = Math.max(activeSuggestionIndex - 1, 0);
+    setActiveSuggestion(activeSuggestionIndex);
+    return;
+  }
+
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if (activeSuggestionIndex >= 0 && rows[activeSuggestionIndex]) {
+      rows[activeSuggestionIndex].click();
+    } else {
+      globalSearch();
+    }
+    return;
+  }
+
+  if (e.key === 'Escape') {
+    hideSuggestions();
+  }
+});
+
+clearSearchBtnEl.addEventListener('click', clearSearchInput);
+toggleClearButton();
+
+document.addEventListener('click', e => {
+  if (!searchSuggestionsEl.contains(e.target) && e.target !== courseInputEl) {
+    hideSuggestions();
+  }
 });
 
 /* ─── Short-name panel ───────────────────────────────────────────────────── */
