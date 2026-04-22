@@ -60,9 +60,9 @@
     <nav class="cat-nav">
       <div class="cat-nav-inner">
         <button class="cat-btn active" data-cat="all">All News</button>
-        <button class="cat-btn" data-cat="exams">Entrance Exams</button>
+        <button class="cat-btn" data-cat="entrance">Entrance Exams</button>
         <button class="cat-btn" data-cat="results">Results</button>
-        <button class="cat-btn" data-cat="admission">Admissions</button>
+        <button class="cat-btn" data-cat="admissions">Admissions</button>
         <button class="cat-btn" data-cat="govt">Govt Jobs</button>
         <button class="cat-btn" data-cat="scholar">Scholarships</button>
       </div>
@@ -99,7 +99,41 @@
       </div>
 
       <!-- Cards populated by JS -->
-      <div class="news-grid" id="newsGrid"></div>
+      <div class="news-grid" id="newsGrid">
+        {% if initial_articles %}
+          {% for article in initial_articles %}
+            {% set badge_label = category_labels.get(article.category, article.category|title) %}
+            {% set stripe_class = 'admission' if article.category == 'admissions' else 'results' if article.category == 'results' else 'govt' if article.category == 'govtjobs' else 'scholar' if article.category == 'scholarship' else 'exams' %}
+            {% set thumb_class = 'bg-admission' if article.category == 'admissions' else 'bg-result' if article.category == 'results' else 'bg-govt' if article.category == 'govtjobs' else 'bg-scholar' if article.category == 'scholarship' else 'bg-exam' %}
+            {% set emoji = '🏛️' if article.category == 'admissions' else '📊' if article.category == 'results' else '👮' if article.category == 'govtjobs' else '💰' if article.category == 'scholarship' else '📝' %}
+            <div class="news-card" data-fallback="true">
+              <div class="card-stripe {{ stripe_class }}"></div>
+              <div class="card-thumb {{ thumb_class }}">
+                {{ emoji }}
+                <div class="card-thumb-badge {{ article.category if article.category != 'admissions' else 'admission' }}">{{ badge_label }}</div>
+              </div>
+              <div class="card-body">
+                <div class="card-source" style="font-size: 11px; color: #888; margin-bottom: 6px;">
+                  <i class="fa fa-globe"></i> {{ article.source }}
+                </div>
+                <div class="card-headline">{{ article.title }}</div>
+                <div class="card-excerpt">{{ article.desc }}</div>
+              </div>
+              <div class="card-footer">
+                <div class="card-meta-info">
+                  <div class="card-time"><i class="fa fa-clock"></i> {{ article.date[:10] }}</div>
+                  <div class="card-read">Latest</div>
+                </div>
+                <div class="card-actions">
+                  <a class="btn-action" href="{{ article.link }}" target="_blank" rel="noopener" title="Open source">
+                    <i class="fa fa-external-link-alt"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        {% endif %}
+      </div>
 
       <!-- Empty state -->
       <div class="empty-state" id="emptyState">
@@ -266,3 +300,5 @@
 
 </body>
 </html>
+
+

@@ -16,9 +16,9 @@ let pageCount    = PAGE_SIZE;
 
 /* Category mapping: API -> UI */
 const categoryMap = {
-  "entrance": { ui: "entrance", label: "Entrance Exams", emoji: "📝", bgCls: "bg-exam" },
+  "entrance": { ui: "exams", label: "Entrance Exams", emoji: "📝", bgCls: "bg-exam" },
   "results": { ui: "results", label: "Results", emoji: "📊", bgCls: "bg-exam" },
-  "admissions": { ui: "admissions", label: "Admissions", emoji: "🏛️", bgCls: "bg-admission" },
+  "admissions": { ui: "admission", label: "Admissions", emoji: "🏛️", bgCls: "bg-admission" },
   "govtjobs": { ui: "govt", label: "Govt Jobs", emoji: "👮", bgCls: "bg-govt" },
   "scholarship": { ui: "scholar", label: "Scholarships", emoji: "💰", bgCls: "bg-scholar" }
 };
@@ -46,7 +46,7 @@ async function fetchNews() {
     
     // Transform API articles to UI format
     allArticles = data.articles.map((article, idx) => {
-      const catInfo = categoryMap[article.category] || categoryMap.admissions;
+      const catInfo = categoryMap[article.category] || categoryMap.entrance;
       console.log(`Article ${idx}: category=${article.category}, mapped=${catInfo.ui}`);
       
       // Format date
@@ -331,10 +331,13 @@ document.addEventListener('DOMContentLoaded', function () {
     if (e.key === 'Escape') closeModal();
   });
 
-
-
-
-
+  /* Set current date in masthead */
+  const dateEl = document.getElementById('currentDate');
+  if (dateEl) {
+    dateEl.textContent = new Date().toLocaleDateString('en-IN', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+  }
 
   /* Fetch and display news */
   fetchNews();
@@ -360,4 +363,33 @@ function validateSubscription() {
   emailInput.value = "";
 }
 
+  /* Set current date in masthead */
+  document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-IN', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+  });
 
+  /* Initial render */
+  renderGrid();
+});
+function validateSubscription() {
+  const emailInput = document.getElementById('nlEmail');
+  const emailValue = emailInput.value.trim();
+
+  // Basic validation: Check if empty
+  if (emailValue === "") {
+    showToast("Please enter your email address.");
+    emailInput.focus();
+    return;
+  }
+
+  // Optional: Check for valid email format
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailPattern.test(emailValue)) {
+    showToast("Please enter a valid email.");
+    return;
+  }
+
+  // If valid, show the success message
+  showToast('Subscribed! Check your inbox.');
+  emailInput.value = ""; // Clear the field
+}

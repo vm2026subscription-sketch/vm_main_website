@@ -41,6 +41,14 @@ if COURSES_DB_URL:
     except Exception as exc:
         app.logger.warning("Skipping courses blueprint registration: %s", exc)
 
+# Register news blueprint
+try:
+    from news_routes import news_bp
+
+    app.register_blueprint(news_bp)
+except Exception as exc:
+    app.logger.warning("Skipping news blueprint registration: %s", exc)
+
 VMADMIN_BASE_URL = (
     os.getenv("VMADMIN_BASE_URL", "").strip().rstrip("/")
 )
@@ -718,7 +726,31 @@ def admissions():
 
 @app.route("/news")
 def news():
-    return render_template("news.html")
+    initial_articles = []
+    category_labels = {
+        "entrance": "Entrance Exams",
+        "results": "Results",
+        "admissions": "Admissions",
+        "govtjobs": "Govt Jobs",
+        "scholarship": "Scholarships",
+    }
+
+    try:
+        from news_routes import _get_all_news
+
+        initial_articles = _get_all_news()[:9]
+    except Exception as exc:
+        app.logger.warning("Unable to preload news cards: %s", exc)
+
+    return render_template(
+        "news.html",
+        initial_articles=initial_articles,
+        category_labels=category_labels,
+    )
+@app.route("/news-test")
+def news_test():
+    return render_template("news_test.html")
+
 @app.route('/exam-updates')
 def home():
     # This looks inside the 'templates' folder automatically
