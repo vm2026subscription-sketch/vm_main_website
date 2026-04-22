@@ -747,9 +747,6 @@ def news():
         initial_articles=initial_articles,
         category_labels=category_labels,
     )
-@app.route("/news-test")
-def news_test():
-    return render_template("news_test.html")
 
 @app.route('/exam-updates')
 def home():
