@@ -19,6 +19,8 @@ from __future__ import annotations
 
 import os
 import json
+import time
+import threading
 from collections import defaultdict
 
 import psycopg2
@@ -56,6 +58,16 @@ LEVEL_ORDER = [
     "undergraduate", "postgraduate", "doctoral", "integrated",
     "diploma", "certificate", "vocational", "professional", "online/distance",
 ]
+
+COURSES_CACHE_TTL_SECONDS = int(os.environ.get("COURSES_CACHE_TTL_SECONDS", "300") or 300)
+_COURSES_CACHE_LOCK = threading.Lock()
+_COURSES_CACHE = {
+    "expires_at": 0.0,
+    "all_courses": [],
+    "level_index": {},
+    "courses_json": "[]",
+    "total_courses": 0,
+}
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -149,26 +161,8 @@ def _build_level_index(courses: list[dict]) -> dict:
     return index
 
 
-# ── Route ──────────────────────────────────────────────────────────────────────
-
-@courses_bp.route("/courses")
-def courses():
-    """Main courses page — fetches live data from Supabase Postgres."""
-    try:
-        all_courses = _fetch_courses()
-        error = None
-    except Exception as exc:
-        current_app.logger.error("courses DB error: %s", exc)
-        all_courses = []
-        error = str(exc)
-
-    level_index  = _build_level_index(all_courses)
-    level_order  = LEVEL_ORDER
-    level_meta   = LEVEL_META
-    total_courses = len(all_courses)
-
-    # Serialise for inline JS (the JS search + panel use this)
-    courses_json = json.dumps(
+def _build_courses_json(all_courses: list[dict]) -> str:
+    return json.dumps(
         [
             {
                 "course_id":           r.get("course_id", ""),
@@ -187,6 +181,64 @@ def courses():
         ],
         ensure_ascii=False,
     )
+
+
+def _get_courses_bundle() -> dict:
+    now = time.time()
+    with _COURSES_CACHE_LOCK:
+        if _COURSES_CACHE["expires_at"] > now:
+            return {
+                "all_courses": _COURSES_CACHE["all_courses"],
+                "level_index": _COURSES_CACHE["level_index"],
+                "courses_json": _COURSES_CACHE["courses_json"],
+                "total_courses": _COURSES_CACHE["total_courses"],
+            }
+
+    fresh_courses = _fetch_courses()
+    fresh_bundle = {
+        "all_courses": fresh_courses,
+        "level_index": _build_level_index(fresh_courses),
+        "courses_json": _build_courses_json(fresh_courses),
+        "total_courses": len(fresh_courses),
+    }
+
+    with _COURSES_CACHE_LOCK:
+        _COURSES_CACHE.update(
+            {
+                "expires_at": now + max(10, COURSES_CACHE_TTL_SECONDS),
+                "all_courses": fresh_bundle["all_courses"],
+                "level_index": fresh_bundle["level_index"],
+                "courses_json": fresh_bundle["courses_json"],
+                "total_courses": fresh_bundle["total_courses"],
+            }
+        )
+
+    return fresh_bundle
+
+
+# ── Route ──────────────────────────────────────────────────────────────────────
+
+@courses_bp.route("/courses")
+def courses():
+    """Main courses page — fetches live data from Supabase Postgres."""
+    try:
+        bundle = _get_courses_bundle()
+        error = None
+    except Exception as exc:
+        current_app.logger.error("courses DB error: %s", exc)
+        bundle = {
+            "all_courses": [],
+            "level_index": {},
+            "courses_json": "[]",
+            "total_courses": 0,
+        }
+        error = str(exc)
+
+    level_index  = bundle["level_index"]
+    level_order  = LEVEL_ORDER
+    level_meta   = LEVEL_META
+    total_courses = bundle["total_courses"]
+    courses_json = bundle["courses_json"]
 
     return render_template(
         "courses.html",
