@@ -555,6 +555,182 @@
     .modal-btn.secondary { background: transparent; border: 1.5px solid var(--border); color: var(--ink); }
     .modal-btn.secondary:hover { border-color: var(--orange); color: var(--orange); }
 
+    .modal-box.viewer-active {
+      max-width: min(1240px, 96vw);
+      width: 96vw;
+      max-height: 94vh;
+      overflow: hidden;
+    }
+
+    .modal-box.viewer-active .modal-info-grid {
+      display: none;
+    }
+
+    .modal-box.viewer-active .modal-body {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow: hidden;
+    }
+
+    .pdf-viewer-wrap {
+      display: none;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: linear-gradient(180deg, #f7f3ec 0%, #fdfaf5 100%);
+      padding: 12px;
+      overflow: hidden;
+    }
+
+    .pdf-viewer-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .viewer-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .viewer-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .viewer-btn {
+      font-size: 12px;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 8px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 600;
+    }
+
+    .viewer-btn:hover {
+      border-color: var(--orange);
+      color: var(--orange);
+    }
+
+    #flipbookWrap {
+      width: 100%;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    #flipbookHost {
+      width: 100%;
+      height: min(62vh, 760px);
+      margin: 0 auto;
+      overflow: hidden;
+      cursor: grab;
+      background: #ece3d7;
+      border-radius: 8px;
+      box-shadow: inset 0 0 16px rgba(0,0,0,0.1);
+      user-select: none;
+      position: relative;
+    }
+
+    /* Simple CSS page-flip animation (UI-only) */
+    #flipbookHost {
+      perspective: 1200px;
+      transform-style: preserve-3d;
+      transition: transform 0.35s ease;
+    }
+
+    .flip-anim-next {
+      transform: rotateY(-14deg) translateX(-10px);
+    }
+
+    .flip-anim-prev {
+      transform: rotateY(14deg) translateX(10px);
+    }
+
+    /* overlay to block iframe scrolling while viewer is open */
+    #flipOverlay {
+      position: absolute;
+      inset: 0;
+      z-index: 99999;
+      background: transparent;
+      touch-action: none;
+      cursor: grab;
+      pointer-events: auto;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .flip-page {
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .flip-page img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-drag: none;
+      background: #fff;
+    }
+
+    #flipbookPager {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .flip-nav-btn {
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink);
+      cursor: pointer;
+    }
+
+    .flip-nav-btn:hover {
+      border-color: var(--orange);
+      color: var(--orange);
+    }
+
+    .pdf-viewer-wrap.pdf-viewer-fullscreen {
+      position: fixed;
+      inset: 0;
+      z-index: 2200;
+      border-radius: 0;
+      border: none;
+      margin: 0;
+      padding: 12px;
+      background: linear-gradient(180deg, #efe4d6 0%, #fdfaf5 100%);
+    }
+
+    .pdf-viewer-wrap.pdf-viewer-fullscreen #flipbookHost {
+      height: calc(100vh - 120px);
+      max-width: 1400px;
+    }
+
     /* ── EMPTY STATE ───────────────────────────────── */
     .empty-state {
       text-align: center;
@@ -611,6 +787,9 @@
       .sort-select { margin-left: 0; }
       .modal-info-grid { grid-template-columns: 1fr; }
       .modal-actions { flex-direction: column; }
+      .pdf-viewer-wrap.pdf-viewer-fullscreen #flipbookHost {
+        height: calc(100vh - 150px);
+      }
     }
   </style>
 </head>
@@ -714,31 +893,26 @@
           <button class="modal-btn secondary" id="mDownBtn"><i class="fa fa-download"></i> Download PDF</button>
         </div>
 
-        <!-- Inline PDF Viewer -->
-        <div id="pdfViewerWrap" style="display:none;margin-top:20px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-            <span style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px">
-              <i class="fa fa-file-pdf" style="color:var(--orange)"></i>&nbsp; PDF Viewer
-            </span>
-            <div style="display:flex;gap:8px">
-              <a id="pdfDirectLink" href="#" target="_blank"
-                style="font-size:12px;color:var(--orange);text-decoration:none;font-weight:600;
-                       padding:4px 12px;border:1px solid var(--orange);border-radius:6px">
-                <i class="fa fa-external-link-alt"></i> Open Full
-              </a>
-              <button onclick="closePdfViewer()"
-                style="font-size:12px;color:var(--muted);border:1px solid var(--border);
-                       background:transparent;border-radius:6px;padding:4px 12px;cursor:pointer;font-family:inherit">
-                <i class="fa fa-times"></i> Close
-              </button>
+        <div class="pdf-viewer-wrap" id="pdfViewerWrap">
+          <div class="pdf-viewer-toolbar">
+            <span class="viewer-title"><i class="fa fa-book"></i>&nbsp; Flipbook Reader</span>
+            <div class="viewer-actions">
+              <button class="viewer-btn" id="pdfExpandBtn"><i class="fa fa-expand"></i> Full Screen</button>
+              <button class="viewer-btn" onclick="closePdfViewer()"><i class="fa fa-times"></i> Close</button>
             </div>
           </div>
-          <iframe id="pdfIframe" src="" width="100%" height="520"
-            style="border:1px solid var(--border);border-radius:10px;display:block"
-            allowfullscreen loading="lazy">
-          </iframe>
+
+          <div id="flipbookWrap">
+            <div id="flipbookHost"></div>
+            <div id="flipbookPager">
+              <button id="flipPrevBtn" class="flip-nav-btn"><i class="fa fa-chevron-left"></i> Prev</button>
+              <span id="flipPageCount">0 / 0</span>
+              <button id="flipNextBtn" class="flip-nav-btn">Next <i class="fa fa-chevron-right"></i></button>
+            </div>
+          </div>
+
           <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px">
-            If the viewer doesn't load, click <strong>Open Full</strong> to view in a new tab.
+            Scroll disabled. Drag page corner to flip.
           </p>
         </div>
       </div>
@@ -763,10 +937,33 @@
     let sortOrder    = 'newest';
     const PAGE_SIZE  = 8;
     let visibleCount = PAGE_SIZE;
+    let flipbookInstance = null;
+    let flipbookTotalPages = 0;
+    let currentFlipPage = 1;
 
     /* ═══════════════════════════════════════════════
        FETCH EDITIONS FROM API
     ═══════════════════════════════════════════════ */
+    function extractGoogleDriveFileId(url) {
+      if (!url) return null;
+      const matches = url.match(/\/file\/d\/([^/]+)/);
+      if (matches && matches[1]) return matches[1];
+      
+      const idMatch = url.match(/[?&]id=([^&]+)/);
+      if (idMatch && idMatch[1]) return idMatch[1];
+      
+      return null;
+    }
+
+    function toGoogleDrivePreviewUrl(rawUrl) {
+      if (!rawUrl) return null;
+      const fileId = extractGoogleDriveFileId(rawUrl);
+      if (fileId) {
+        return `https://drive.google.com/file/d/${fileId}/preview`;
+      }
+      return rawUrl;
+    }
+
     function normalizeEdition(e, index) {
       const derivedStart = e.start || e.start_date || e.date || e.published_at || e.created_at || '–';
       const derivedEnd = e.end || e.end_date || e.date || e.published_at || e.created_at || derivedStart;
@@ -793,8 +990,9 @@
         week: derivedWeek,
         tags: rawTags.map(t => String(t).trim()).filter(Boolean),
         isNew: e.is_new === true || e.is_new === 'true' || e.isNew === true,
-        pdf: e.pdf || e.pdf_url || e.file_url || null,
-        url: e.url || e.link || e.source_url || e.pdf || e.pdf_url || null,
+        // Accept a variety of keys returned by different backends (camelCase, snake_case, link)
+        pdf: e.pdf || e.pdf_url || e.file_url || e.fileUrl || e.pdfUrl || e.document_url || e.link || null,
+        url: e.url || e.link || e.source_url || e.pdf || e.pdf_url || e.fileUrl || null,
         displayTitle: e.display_title || e.title || e.headline || null,
         displaySubtitle: e.display_subtitle || e.excerpt || e.summary || null,
       };
@@ -954,7 +1152,7 @@
         card.style.animationDelay = (i * 0.06) + 's';
 
         const langKey  = e.lang.toLowerCase();
-        const hasPdf   = !!e.pdf;
+        const hasPdf   = !!(e.pdf || e.url);
         const isDigest = !!e.displayTitle;
 
         card.innerHTML = `
@@ -1000,36 +1198,237 @@
     /* ═══════════════════════════════════════════════
        PDF HELPERS
     ═══════════════════════════════════════════════ */
-    function downloadPdf(id) {
+    async function downloadPdf(id) {
       const e = editions.find(x => x.id === id);
-      if (!e || !e.pdf) { showToast('PDF not available.'); return; }
-      const a = document.createElement('a');
-      a.href     = e.pdf;
-      a.download = `VidyarthiMitra-${e.lang}-${e.week.replace(/\s+/g,'-')}.pdf`;
-      a.target   = '_blank';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      showToast('Downloading PDF…');
+      if (!e) { showToast('PDF available nahi hai.'); return; }
+
+      const target = e.pdf || e.url;
+      if (!target) { showToast('PDF available nahi hai.'); return; }
+
+      showToast('Preparing download…');
+
+      const proxyUrl = `/api/epaper-pdf-proxy?url=${encodeURIComponent(target)}`;
+
+      try {
+        const resp = await fetch(proxyUrl);
+        if (!resp.ok) throw new Error('Server returned ' + resp.status);
+
+        const ctype = (resp.headers.get('Content-Type') || '').toLowerCase();
+        if (!ctype.includes('pdf')) {
+          // If proxy returned HTML or an error page, fallback to opening the original link
+          const sample = await resp.text();
+          console.warn('Proxy did not return PDF. Sample:', sample.slice(0,200));
+          showToast('Download failed (not a PDF). Opening in new tab...');
+          window.open(target, '_blank');
+          return;
+        }
+
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `VidyarthiMitra-${e.lang || 'EPAPER'}-${(e.week||'').replace(/\s+/g,'-')}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+        showToast('Download started');
+      } catch (err) {
+        console.error('Download error', err);
+        showToast('Download failed, opening in new tab...');
+        window.open(target, '_blank');
+      }
     }
 
-    function openPdfViewer(pdfUrl) {
-      const viewer = document.getElementById('pdfViewerWrap');
-      const iframe = document.getElementById('pdfIframe');
-      // Use Google Docs viewer as cross-origin fallback
-      const src = `https://docs.google.com/viewer?url=${encodeURIComponent(pdfUrl)}&embedded=true`;
-      iframe.src = src;
-      viewer.style.display = 'block';
-      // Also show a direct link in case iframe is blocked
-      document.getElementById('pdfDirectLink').href = pdfUrl;
+    function destroyFlipbook() {
+      if (flipbookInstance && typeof flipbookInstance.destroy === 'function') {
+        flipbookInstance.destroy();
+      }
+      flipbookInstance = null;
+      flipbookTotalPages = 0;
+      currentFlipPage = 1;
+      const host = document.getElementById('flipbookHost');
+      const pageCount = document.getElementById('flipPageCount');
+      if (host) host.innerHTML = '';
+      if (pageCount) pageCount.textContent = '0 / 0';
+    }
+
+    function extractGoogleDriveFileId(url) {
+      if (!url) return null;
+      const matches = url.match(/\/file\/d\/([^/]+)/);
+      if (matches && matches[1]) return matches[1];
+      
+      const idMatch = url.match(/[?&]id=([^&]+)/);
+      if (idMatch && idMatch[1]) return idMatch[1];
+      
+      return null;
+    }
+
+    function toGoogleDrivePreviewUrl(rawUrl) {
+      if (!rawUrl) return null;
+      const fileId = extractGoogleDriveFileId(rawUrl);
+      if (fileId) {
+        return `https://drive.google.com/file/d/${fileId}/preview`;
+      }
+      return rawUrl;
+    }
+
+    function destroyFlipbook() {
+      flipbookInstance = null;
+      flipbookTotalPages = 0;
+      const host = document.getElementById('flipbookHost');
+      const pageCount = document.getElementById('flipPageCount');
+      if (host) host.innerHTML = '';
+      if (pageCount) pageCount.textContent = '0 / 0';
+      removeFlipOverlay();
     }
 
     function closePdfViewer() {
       const viewer = document.getElementById('pdfViewerWrap');
-      const iframe = document.getElementById('pdfIframe');
+      const modalBox = document.querySelector('.modal-box');
+      viewer.classList.remove('pdf-viewer-fullscreen');
+      if (modalBox) modalBox.classList.remove('viewer-active');
+      destroyFlipbook();
+      // restore body scroll
+      document.body.style.overflow = '';
       viewer.style.display = 'none';
-      iframe.src = '';
     }
+
+    async function openPdfViewer(pdfUrl) {
+      const viewer = document.getElementById('pdfViewerWrap');
+      const modalBox = document.querySelector('.modal-box');
+      viewer.style.display = 'block';
+      viewer.classList.remove('pdf-viewer-fullscreen');
+      if (modalBox) modalBox.classList.add('viewer-active');
+      // prevent body scroll while viewer is open
+      document.body.style.overflow = 'hidden';
+
+      const expandBtn = document.getElementById('pdfExpandBtn');
+      if (expandBtn) expandBtn.innerHTML = '<i class="fa fa-compress"></i> Exit Full';
+
+      try {
+        const previewUrl = toGoogleDrivePreviewUrl(pdfUrl);
+        if (!previewUrl) {
+          throw new Error('Invalid PDF URL');
+        }
+
+        const host = document.getElementById('flipbookHost');
+        host.innerHTML = '';
+        
+        const iframe = document.createElement('iframe');
+        iframe.src = previewUrl;
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
+        iframe.style.border = 'none';
+        iframe.style.borderRadius = '8px';
+        iframe.allow = 'fullscreen';
+        host.appendChild(iframe);
+        // Initialize flip pager state
+        flipbookTotalPages = 1; // unknown for Drive preview; assume 1
+        currentFlipPage = 1;
+        const pageCountEl = document.getElementById('flipPageCount');
+        if (pageCountEl) pageCountEl.textContent = `${currentFlipPage} / ${flipbookTotalPages}`;
+
+        showToast('PDF viewer ready!');
+      } catch (err) {
+        console.warn('PDF viewer error:', err);
+        const host = document.getElementById('flipbookHost');
+        host.innerHTML = '';
+        viewer.style.display = 'none';
+        if (modalBox) modalBox.classList.remove('viewer-active');
+        showToast('PDF load nahi ho paya. Link check karein.');
+      }
+    }
+
+    // Simple flip controls (UI-only). Provides visual flip animation and page counter
+
+    function initFlipControls() {
+      const prev = document.getElementById('flipPrevBtn');
+      const next = document.getElementById('flipNextBtn');
+      const host = document.getElementById('flipbookHost');
+      const pageCountEl = document.getElementById('flipPageCount');
+
+      if (!prev || !next || !host || !pageCountEl) return;
+
+      // create overlay to block iframe scroll/drag interactions
+      let overlay = document.getElementById('flipOverlay');
+      if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'flipOverlay';
+        // block wheel and touchmove
+        overlay.addEventListener('wheel', (e) => { e.preventDefault(); }, { passive: false });
+        overlay.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
+        // make focusable so it can capture keyboard events
+        overlay.tabIndex = 0;
+        overlay.style.zIndex = '99999';
+        overlay.style.pointerEvents = 'auto';
+        // keyboard guard: prevent arrow/page/space default scrolling
+        const keyHandler = (e) => {
+          const blocked = ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','PageUp','PageDown','Home','End',' '];
+          if (blocked.includes(e.key)) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        };
+        overlay.addEventListener('keydown', keyHandler);
+        // also attach a document-level handler while overlay exists (for non-focused cases)
+        window._epaperKeydownHandler = (e) => { keyHandler(e); };
+        document.addEventListener('keydown', window._epaperKeydownHandler, { capture: true });
+        host.appendChild(overlay);
+        // focus overlay so it receives key events immediately
+        setTimeout(() => { try { overlay.focus(); } catch(_){} }, 50);
+      }
+
+      prev.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (currentFlipPage <= 1) { showToast('पहिला पान आहे'); return; }
+        const y = window.scrollY || window.pageYOffset;
+        performFlip('prev');
+        setTimeout(() => window.scrollTo(0, y), 350);
+      });
+
+      next.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (currentFlipPage >= flipbookTotalPages) { showToast('शेवटचे पान आहे'); return; }
+        const y = window.scrollY || window.pageYOffset;
+        performFlip('next');
+        setTimeout(() => window.scrollTo(0, y), 350);
+      });
+    }
+
+    function performFlip(dir) {
+      const host = document.getElementById('flipbookHost');
+      if (!host) return;
+      const cls = dir === 'next' ? 'flip-anim-next' : 'flip-anim-prev';
+      host.classList.add(cls);
+      setTimeout(() => {
+        host.classList.remove(cls);
+        if (dir === 'next' && currentFlipPage < flipbookTotalPages) currentFlipPage++;
+        if (dir === 'prev' && currentFlipPage > 1) currentFlipPage--;
+        const pageCountEl = document.getElementById('flipPageCount');
+        if (pageCountEl) pageCountEl.textContent = `${currentFlipPage} / ${flipbookTotalPages}`;
+      }, 360);
+    }
+
+    // cleanup overlay when destroying viewer
+    function removeFlipOverlay() {
+      const host = document.getElementById('flipbookHost');
+      if (!host) return;
+      const overlay = document.getElementById('flipOverlay');
+      if (overlay) {
+        // remove document-level key handler if set
+        if (window._epaperKeydownHandler) {
+          document.removeEventListener('keydown', window._epaperKeydownHandler, { capture: true });
+          window._epaperKeydownHandler = null;
+        }
+        overlay.remove();
+      }
+    }
+
+    // initialize controls now
+    setTimeout(initFlipControls, 200);
 
     /* ═══════════════════════════════════════════════
        MODAL
@@ -1049,23 +1448,26 @@
 
       const readBtn = document.getElementById('mReadBtn');
       const downBtn = document.getElementById('mDownBtn');
+      const readUrl = e.pdf || e.url;
 
-      if (e.pdf) {
+      if (readUrl) {
         readBtn.disabled = false;
         readBtn.style.opacity = '1';
-        readBtn.onclick = () => openPdfViewer(e.pdf);
+        readBtn.onclick = () => openPdfViewer(readUrl);
 
+        // Enable download if we have any readable URL (pdf, fileUrl or link). The download routine
+        // will use the proxy to fetch bytes and force a browser download.
         downBtn.disabled = false;
         downBtn.style.opacity = '1';
         downBtn.onclick = () => downloadPdf(e.id);
       } else {
         readBtn.disabled = true;
         readBtn.style.opacity = '.5';
-        readBtn.onclick = () => showToast('PDF not yet available.');
+        readBtn.onclick = () => showToast('Read link available nahi hai');
 
         downBtn.disabled = true;
         downBtn.style.opacity = '.5';
-        downBtn.onclick = () => showToast('PDF not yet available.');
+        downBtn.onclick = () => showToast('PDF available nahi hai');
       }
 
       document.getElementById('modalOverlay').classList.add('active');
@@ -1079,6 +1481,13 @@
     }
 
     document.getElementById('modalClose').addEventListener('click', closeModal);
+    document.getElementById('pdfExpandBtn').addEventListener('click', function() {
+      const viewer = document.getElementById('pdfViewerWrap');
+      const expanded = viewer.classList.toggle('pdf-viewer-fullscreen');
+      this.innerHTML = expanded
+        ? '<i class="fa fa-compress"></i> Exit Full'
+        : '<i class="fa fa-expand"></i> Full Screen';
+    });
     document.getElementById('modalOverlay').addEventListener('click', function(ev) {
       if (ev.target === this) closeModal();
     });

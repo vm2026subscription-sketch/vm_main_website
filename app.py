@@ -2,8 +2,9 @@ import io
 import os
 import re
 import json
+import html
 from urllib.error import HTTPError, URLError
-from urllib.parse import urljoin
+from urllib.parse import parse_qs, unquote, urljoin, urlparse
 from urllib.request import Request, urlopen
 
 try:
@@ -572,7 +573,8 @@ def epaper_feed():
     if not base:
         return jsonify([])
 
-    source_paths = ["/api/news", "/news", "/api/epapers", "/api/editions"]
+    # Prefer dedicated e-paper sources first so frontend gets PDF-enabled editions.
+    source_paths = ["/api/epapers", "/api/editions", "/api/news", "/news"]
 
     for path in source_paths:
         current_url = f"{base}{path}"
@@ -600,6 +602,97 @@ def epaper_feed():
             return jsonify(combined_items)
 
     return jsonify([])
+
+
+@app.route("/api/epaper-pdf-proxy")
+def epaper_pdf_proxy():
+    raw_url = (request.args.get("url") or "").strip()
+    if not raw_url:
+        return jsonify({"error": "Missing url parameter."}), 400
+
+    try:
+        parsed = urlparse(raw_url)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            return jsonify({"error": "Invalid URL."}), 400
+    except Exception:
+        return jsonify({"error": "Invalid URL."}), 400
+
+    def fetch_bytes(target_url):
+        req = Request(
+            target_url,
+            headers={
+                "Accept": "application/pdf,*/*",
+                "User-Agent": "vm-main-website/1.0",
+            },
+        )
+        with urlopen(req, timeout=25) as response:
+            payload = response.read()
+            ctype = (response.headers.get("Content-Type", "") or "").lower()
+            return payload, ctype
+
+    def extract_drive_file_id(url_value):
+        parsed_url = urlparse(url_value)
+        host = parsed_url.netloc.lower()
+        if "drive.google.com" not in host and "docs.google.com" not in host:
+            return None
+
+        match = re.search(r"/file/d/([^/]+)", parsed_url.path)
+        if match:
+            return match.group(1)
+
+        query_id = parse_qs(parsed_url.query).get("id", [None])[0]
+        if query_id:
+            return query_id
+
+        return None
+
+    candidate_urls = [raw_url]
+    drive_file_id = extract_drive_file_id(raw_url)
+    if drive_file_id:
+        candidate_urls.append(f"https://drive.usercontent.google.com/uc?id={drive_file_id}&export=download")
+        candidate_urls.append(f"https://drive.google.com/uc?export=download&id={drive_file_id}")
+
+    tried = set()
+    try:
+        for candidate in candidate_urls:
+            if candidate in tried:
+                continue
+            tried.add(candidate)
+            payload, ctype = fetch_bytes(candidate)
+
+            if payload.startswith(b"%PDF"):
+                return payload, 200, {
+                    "Content-Type": "application/pdf",
+                    "Cache-Control": "no-store",
+                    "Content-Disposition": "inline; filename=epaper.pdf",
+                    "X-Frame-Options": "SAMEORIGIN",
+                }
+
+            if "text/html" in ctype and drive_file_id:
+                html_text = html.unescape(unquote(payload.decode("utf-8", errors="ignore")))
+                embedded = re.search(
+                    r"https://drive\.usercontent\.google\.com/uc\?id=[^\"'\s&]+(?:&amp;|&)export=download",
+                    html_text,
+                )
+                if embedded:
+                    embedded_url = embedded.group(0).replace("&amp;", "&")
+                    if embedded_url not in tried:
+                        tried.add(embedded_url)
+                        embedded_payload, embedded_ctype = fetch_bytes(embedded_url)
+                        if embedded_payload.startswith(b"%PDF") or "application/pdf" in embedded_ctype:
+                            return embedded_payload, 200, {
+                                "Content-Type": "application/pdf",
+                                "Cache-Control": "no-store",
+                                "Content-Disposition": "inline; filename=epaper.pdf",
+                                "X-Frame-Options": "SAMEORIGIN",
+                            }
+
+        return jsonify({
+            "error": "Could not resolve a direct PDF stream from the provided link.",
+            "hint": "Ensure the source file is public (Anyone with the link can view).",
+        }), 502
+    except (HTTPError, URLError, TimeoutError, ValueError):
+        return jsonify({"error": "Unable to fetch PDF from source URL."}), 502
 
 @app.route("/admin")
 def admin():
