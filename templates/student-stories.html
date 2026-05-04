@@ -9,6 +9,8 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='student-stories.css') }}">
 </head>
 <body>
+{% include '_shared_index_navbar.html' %}
+<style>.stories-navbar{display:none !important;}</style>
 <header class="stories-navbar">
   <div class="stories-navbar-inner">
 <img src="{{ url_for('static', filename='logo.png') }}" alt="Vidyarthi Mitra">

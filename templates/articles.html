@@ -9,23 +9,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Lora:ital,wght@0,600;0,700;1,500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='articles.css') }}">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <style>
+    .top-nav { display: none; }
+  </style>
 </head>
 <body>
-
-  <nav class="top-nav">
-    <a class="nav-logo" href="{{ url_for('index') }}" aria-label="Vidyarthi Mitra Home">
-      <img src="{{ url_for('static', filename='logo.png') }}" alt="Vidyarthi Mitra">
-    </a>
-    <div class="nav-links">
-      <a href="{{ url_for('index') }}">Home</a>
-        <a class="nav-link active" href="{{ url_for('universities') }}">Universities</a>
-      <a class="nav-link" href="{{ url_for('colleges') }}">Colleges</a>
-      <a class="nav-link" href="{{ url_for('courses') }}">Courses</a>
-      <a class="nav-link" href="{{ url_for('exams') }}">Entrance Exams</a>
-      <a class="nav-link" href="{{ url_for('mock_exams') }}">Mock Exams</a>
-      <a class="nav-link" href="{{ url_for('news') }}">News</a>
-    </div>
-  </nav>
+  {% include '_shared_index_navbar.html' %}
 
   <!-- ── HEADER ─────────────────────────────────────── -->
   <header class="header">
