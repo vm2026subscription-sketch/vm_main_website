@@ -1,19 +1,26 @@
 import io
+import base64
 import os
 import re
 import json
 import html
+import sqlite3
+import secrets
+import smtplib
+import time
 from urllib.error import HTTPError, URLError
-from urllib.parse import parse_qs, unquote, urljoin, urlparse
+from urllib.parse import parse_qs, unquote, urljoin, urlparse, urlencode
 from urllib.request import Request, urlopen
+from email.message import EmailMessage
 
 try:
     import pandas as pd
 except ImportError:
     pd = None
 
-from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
+from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
 from dotenv import load_dotenv
+from werkzeug.security import check_password_hash, generate_password_hash
 try:
     from psycopg2 import connect
     from psycopg2.extras import Json, execute_values
@@ -29,6 +36,7 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = "vidyarthi-mitra-dev-key"
 app.config["MAX_CONTENT_LENGTH"] = 15 * 1024 * 1024  # 15 MB upload limit
+AUTH_DB_PATH = os.path.join(app.root_path, "auth_users.db")
 
 COURSES_DB_URL = (
     os.getenv("SUPABASE_POSTGRES_URL", "").strip()
@@ -140,6 +148,181 @@ def get_supabase_client():
 
 def get_postgres_connection_url():
     return os.getenv("SUPABASE_POSTGRES_URL", "").strip() or os.getenv("DATABASE_URL", "").strip()
+
+
+def get_auth_db_connection():
+    connection = sqlite3.connect(AUTH_DB_PATH)
+    connection.row_factory = sqlite3.Row
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+    connection.commit()
+    return connection
+
+
+def get_logged_in_user():
+    user = session.get("auth_user")
+    if isinstance(user, dict) and user.get("email"):
+        return user
+    return None
+
+
+def generate_login_otp():
+    return f"{secrets.randbelow(1_000_000):06d}"
+
+
+def store_pending_login_otp(user):
+    otp_code = generate_login_otp()
+    session["pending_otp"] = {
+        "name": user["name"],
+        "email": user["email"],
+        "provider": "local_email",
+        "otp_hash": generate_password_hash(otp_code),
+        "expires_at": int(time.time()) + 300,
+        "attempts": 0,
+    }
+    return otp_code
+
+
+def get_pending_login_otp():
+    pending_otp = session.get("pending_otp")
+    if not isinstance(pending_otp, dict):
+        return None
+
+    expires_at = pending_otp.get("expires_at")
+    if not isinstance(expires_at, int) or expires_at < int(time.time()):
+        session.pop("pending_otp", None)
+        return None
+
+    return pending_otp
+
+
+def get_env_value(*names, default=""):
+    for name in names:
+        value = os.getenv(name, "").strip()
+        if value:
+            return value
+    return default
+
+
+def get_otp_provider():
+    return get_env_value("OTP_PROVIDER", default="email_smtp").lower()
+
+
+def get_twilio_verify_config():
+    account_sid = get_env_value("TWILIO_ACCOUNT_SID")
+    auth_token = get_env_value("TWILIO_AUTH_TOKEN")
+    service_sid = get_env_value("TWILIO_VERIFY_SERVICE_SID")
+
+    if not account_sid or not auth_token or not service_sid:
+        return None
+
+    return {
+        "account_sid": account_sid,
+        "auth_token": auth_token,
+        "service_sid": service_sid,
+    }
+
+
+def send_twilio_verify_code(to_email):
+    config = get_twilio_verify_config()
+    if config is None:
+        return False
+
+    endpoint = f"https://verify.twilio.com/v2/Services/{config['service_sid']}/Verifications"
+    body = urlencode({"To": to_email, "Channel": "email"}).encode("utf-8")
+    credentials = base64.b64encode(f"{config['account_sid']}:{config['auth_token']}".encode("utf-8")).decode("ascii")
+    request = Request(
+        endpoint,
+        data=body,
+        headers={
+            "Authorization": f"Basic {credentials}",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "application/json",
+        },
+        method="POST",
+    )
+
+    with urlopen(request, timeout=15) as response:
+        response.read()
+
+    return True
+
+
+def verify_twilio_code(to_email, code):
+    config = get_twilio_verify_config()
+    if config is None:
+        return False
+
+    endpoint = f"https://verify.twilio.com/v2/Services/{config['service_sid']}/VerificationCheck"
+    body = urlencode({"To": to_email, "Code": code}).encode("utf-8")
+    credentials = base64.b64encode(f"{config['account_sid']}:{config['auth_token']}".encode("utf-8")).decode("ascii")
+    request = Request(
+        endpoint,
+        data=body,
+        headers={
+            "Authorization": f"Basic {credentials}",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "application/json",
+        },
+        method="POST",
+    )
+
+    with urlopen(request, timeout=15) as response:
+        payload = json.loads(response.read().decode("utf-8"))
+
+    return str(payload.get("status", "")).lower() == "approved"
+
+
+def send_login_otp_email(to_email, user_name, otp_code):
+    smtp_host = get_env_value("OTP_SMTP_HOST", "SMTP_HOST")
+    smtp_port_raw = get_env_value("OTP_SMTP_PORT", "SMTP_PORT", default="587")
+    smtp_username = get_env_value("OTP_SMTP_USERNAME", "SMTP_USER")
+    smtp_password = get_env_value("OTP_SMTP_PASSWORD", "SMTP_PASS")
+    from_email = get_env_value("OTP_FROM_EMAIL", "SMTP_FROM_EMAIL", default=smtp_username)
+    use_tls_raw = get_env_value("OTP_SMTP_USE_TLS", "SMTP_USE_TLS", default="1").lower()
+
+    try:
+        smtp_port = int(smtp_port_raw)
+    except ValueError:
+        smtp_port = 587
+
+    use_tls = use_tls_raw not in {"0", "false", "no"}
+
+    if not smtp_host or not from_email:
+        return False
+
+    message = EmailMessage()
+    message["Subject"] = "Your Vidyarthi Mitra login OTP"
+    message["From"] = from_email
+    message["To"] = to_email
+    message.set_content(
+        f"""Hello {user_name or 'Student'},
+
+Your Vidyarthi Mitra login OTP is: {otp_code}
+
+This code expires in 5 minutes.
+
+If you did not request this, ignore this email.
+"""
+    )
+
+    with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as smtp:
+        if use_tls:
+            smtp.starttls()
+        if smtp_username:
+            smtp.login(smtp_username, smtp_password)
+        smtp.send_message(message)
+
+    return True
 
 
 def convert_excel_to_records(uploaded_file):
@@ -987,6 +1170,240 @@ def guide_me():
 @app.route('/refund-policy')
 def refund_policy():
     return render_template('refund.html')
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "")
+        confirm_password = request.form.get("confirm_password", "")
+
+        if not name or not email or not password or not confirm_password:
+            flash("Please fill in all registration fields.", "error")
+            return render_template("auth.html", mode="register", page_title="Register")
+
+        if password != confirm_password:
+            flash("Passwords do not match.", "error")
+            return render_template("auth.html", mode="register", page_title="Register")
+
+        if len(password) < 6:
+            flash("Password must be at least 6 characters long.", "error")
+            return render_template("auth.html", mode="register", page_title="Register")
+
+        with get_auth_db_connection() as connection:
+            existing_user = connection.execute(
+                "SELECT id FROM users WHERE email = ?",
+                (email,),
+            ).fetchone()
+
+            if existing_user is not None:
+                flash("An account with this email already exists.", "error")
+                return render_template("auth.html", mode="register", page_title="Register")
+
+            connection.execute(
+                "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
+                (name, email, generate_password_hash(password)),
+            )
+            connection.commit()
+
+        session["auth_user"] = {"name": name, "email": email}
+        session.pop("pending_otp", None)
+        return redirect(url_for("index"))
+
+    return render_template("auth.html", mode="register", page_title="Register")
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "")
+
+        if not email or not password:
+            flash("Please enter your email and password.", "error")
+            return render_template("auth.html", mode="login", page_title="Login")
+
+        with get_auth_db_connection() as connection:
+            user = connection.execute(
+                "SELECT name, email, password_hash FROM users WHERE email = ?",
+                (email,),
+            ).fetchone()
+
+        if user is None or not check_password_hash(user["password_hash"], password):
+            flash("Invalid email or password.", "error")
+            return render_template("auth.html", mode="login", page_title="Login")
+
+        provider = get_otp_provider()
+        otp_sent = False
+
+        if provider == "twilio_verify" and get_twilio_verify_config() is not None:
+            try:
+                otp_sent = send_twilio_verify_code(user["email"])
+            except Exception as exc:
+                app.logger.warning("Twilio Verify delivery failed: %s", exc)
+                otp_sent = False
+
+            if otp_sent:
+                session["pending_otp"] = {
+                    "name": user["name"],
+                    "email": user["email"],
+                    "provider": "twilio_verify",
+                    "expires_at": int(time.time()) + 600,
+                    "attempts": 0,
+                }
+                session["otp_delivery_mode"] = "email"
+                session.pop("pending_otp_preview", None)
+                flash("OTP sent to your email. Enter it on the next screen.", "success")
+                return redirect(url_for("verify_otp"))
+
+        otp_code = store_pending_login_otp({"name": user["name"], "email": user["email"]})
+        try:
+            otp_sent = send_login_otp_email(user["email"], user["name"], otp_code)
+        except Exception as exc:
+            app.logger.warning("OTP email delivery failed: %s", exc)
+
+        session["otp_delivery_mode"] = "email" if otp_sent else "screen"
+        if not otp_sent:
+            session["pending_otp_preview"] = otp_code
+        else:
+            session.pop("pending_otp_preview", None)
+        flash(
+            "OTP sent to your email. Enter it on the next screen." if otp_sent else "OTP is ready. Enter the code shown on the next screen.",
+            "success",
+        )
+        return redirect(url_for("verify_otp"))
+
+    return render_template("auth.html", mode="login", page_title="Login")
+
+
+@app.route("/verify-otp", methods=["GET", "POST"])
+def verify_otp():
+    pending_otp = get_pending_login_otp()
+    if pending_otp is None:
+        flash("Please login again to request a fresh OTP.", "error")
+        return redirect(url_for("login"))
+
+    otp_preview = None
+    if session.get("otp_delivery_mode") == "screen":
+        otp_preview = session.get("pending_otp_preview")
+
+    if request.method == "POST":
+        otp_code = request.form.get("otp_code", "").strip()
+
+        if not re.fullmatch(r"\d{6}", otp_code):
+            flash("Enter the 6-digit OTP.", "error")
+            return render_template(
+                "auth.html",
+                mode="otp",
+                page_title="Verify OTP",
+                otp_email=pending_otp["email"],
+                otp_preview=otp_preview,
+                otp_expires_at=pending_otp["expires_at"],
+            )
+
+        if pending_otp.get("attempts", 0) >= 5:
+            session.pop("pending_otp", None)
+            session.pop("otp_delivery_mode", None)
+            session.pop("pending_otp_preview", None)
+            flash("Too many invalid attempts. Please login again.", "error")
+            return redirect(url_for("login"))
+
+        if pending_otp.get("provider") == "twilio_verify":
+            try:
+                if verify_twilio_code(pending_otp["email"], otp_code):
+                    session["auth_user"] = {
+                        "name": pending_otp["name"],
+                        "email": pending_otp["email"],
+                    }
+                    session.pop("pending_otp", None)
+                    session.pop("otp_delivery_mode", None)
+                    session.pop("pending_otp_preview", None)
+                    flash("Login successful.", "success")
+                    return redirect(url_for("index"))
+            except Exception as exc:
+                app.logger.warning("Twilio Verify validation failed: %s", exc)
+
+        elif check_password_hash(pending_otp["otp_hash"], otp_code):
+            session["auth_user"] = {
+                "name": pending_otp["name"],
+                "email": pending_otp["email"],
+            }
+            session.pop("pending_otp", None)
+            session.pop("otp_delivery_mode", None)
+            session.pop("pending_otp_preview", None)
+            flash("Login successful.", "success")
+            return redirect(url_for("index"))
+
+        pending_otp["attempts"] = pending_otp.get("attempts", 0) + 1
+        session["pending_otp"] = pending_otp
+        flash("Invalid OTP. Please try again.", "error")
+
+    return render_template(
+        "auth.html",
+        mode="otp",
+        page_title="Verify OTP",
+        otp_email=pending_otp["email"],
+        otp_preview=otp_preview,
+        otp_expires_at=pending_otp["expires_at"],
+    )
+
+
+@app.route("/resend-otp", methods=["POST"])
+def resend_otp():
+    pending_otp = get_pending_login_otp()
+    if pending_otp is None:
+        flash("Please login again to request a new OTP.", "error")
+        return redirect(url_for("login"))
+
+    otp_sent = False
+    if pending_otp.get("provider") == "twilio_verify" and get_twilio_verify_config() is not None:
+        try:
+            otp_sent = send_twilio_verify_code(pending_otp["email"])
+        except Exception as exc:
+            app.logger.warning("Twilio Verify resend failed: %s", exc)
+            otp_sent = False
+
+        if otp_sent:
+            session["pending_otp"] = {
+                "name": pending_otp["name"],
+                "email": pending_otp["email"],
+                "provider": "twilio_verify",
+                "expires_at": int(time.time()) + 600,
+                "attempts": 0,
+            }
+            session["otp_delivery_mode"] = "email"
+            session.pop("pending_otp_preview", None)
+            flash("A new OTP has been sent to your email.", "success")
+            return redirect(url_for("verify_otp"))
+
+    otp_code = store_pending_login_otp({"name": pending_otp["name"], "email": pending_otp["email"]})
+    try:
+        otp_sent = send_login_otp_email(pending_otp["email"], pending_otp["name"], otp_code)
+    except Exception as exc:
+        app.logger.warning("OTP resend failed: %s", exc)
+
+    session["otp_delivery_mode"] = "email" if otp_sent else "screen"
+    if not otp_sent:
+        session["pending_otp_preview"] = otp_code
+    else:
+        session.pop("pending_otp_preview", None)
+
+    flash(
+        "A new OTP has been sent to your email." if otp_sent else f"New OTP generated: {otp_code}",
+        "success",
+    )
+    return redirect(url_for("verify_otp"))
+
+
+@app.route("/logout")
+def logout():
+    session.pop("auth_user", None)
+    session.pop("pending_otp", None)
+    session.pop("otp_delivery_mode", None)
+    session.pop("pending_otp_preview", None)
+    return redirect(url_for("index"))
 
 
 @app.route("/excel-upload", methods=["GET", "POST"])
