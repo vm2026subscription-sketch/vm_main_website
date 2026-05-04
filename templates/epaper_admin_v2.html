@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>E-Paper Admin — Page Builder</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+  <style>
+    :root{--r:#e41e26;--bg:#f5f5f5;--white:#fff;--border:#e0e0e0;--text:#1f2937;--muted:#6b7280;--radius:10px;}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);}
+
+    .epa-header{background:linear-gradient(135deg,#1a1a2e,#16213e);padding:16px 24px;display:flex;align-items:center;gap:16px;}
+    .epa-header h1{color:#fff;font-size:20px;font-weight:700;}
+    .epa-header h1 span{color:var(--r);}
+    .epa-header a{color:rgba(255,255,255,.6);font-size:13px;text-decoration:none;margin-left:auto;transition:color .2s;}
+    .epa-header a:hover{color:#fff;}
+    .epa-header a+a{margin-left:16px;}
+
+    .epa-wrap{max-width:1300px;margin:20px auto;padding:0 20px;}
+    .epa-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.04);}
+    .epa-card h2{font-size:16px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+    .epa-card h2 i{color:var(--r);font-size:14px;}
+
+    .epa-form-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;}
+    .epa-form-group{display:flex;flex-direction:column;gap:4px;}
+    .epa-form-group label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+    .epa-form-group input,.epa-form-group select,.epa-form-group textarea{padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;outline:none;transition:border-color .2s;}
+    .epa-form-group input:focus,.epa-form-group select:focus{border-color:var(--r);}
+
+    .epa-btn{padding:8px 16px;border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .2s;}
+    .epa-btn-primary{background:var(--r);color:#fff;}.epa-btn-primary:hover{background:#c0171e;}
+    .epa-btn-danger{background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;}.epa-btn-danger:hover{background:#dc2626;color:#fff;}
+    .epa-btn-success{background:#059669;color:#fff;}.epa-btn-success:hover{background:#047857;}
+    .epa-btn-sm{padding:6px 12px;font-size:11px;}
+
+    .epa-edition-card{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;transition:all .15s;}
+    .epa-edition-card:hover{border-color:var(--r);}
+    .epa-edition-info{display:flex;align-items:center;gap:12px;font-size:13px;}
+    .epa-badge{padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;background:#fee2e2;color:var(--r);}
+    .epa-empty{text-align:center;padding:30px;color:var(--muted);font-size:14px;}
+
+    .epa-page-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+    .epa-page-tab{padding:6px 14px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;transition:all .2s;}
+    .epa-page-tab:hover{border-color:var(--r);}
+    .epa-page-tab.active{border-color:var(--r);background:var(--r);color:#fff;}
+    .epa-page-add{padding:6px 12px;border:1.5px dashed var(--border);border-radius:8px;cursor:pointer;font-size:12px;color:var(--muted);}
+    .epa-page-add:hover{border-color:var(--r);color:var(--r);}
+
+    /* ══ CANVAS ══ */
+    .epc-layout{display:grid;grid-template-columns:1fr 360px;gap:16px;}
+    .epc-canvas-wrap{background:#e5e7eb;border-radius:12px;padding:12px;overflow:hidden;}
+    .epc-canvas{position:relative;width:800px;height:1000px;background:#fff;margin:0 auto;box-shadow:0 4px 24px rgba(0,0,0,.12);transform-origin:top center;border:1px solid #d1d5db;}
+
+    .epc-block{position:absolute;cursor:move;overflow:hidden;border:2px solid rgba(0,0,0,.12);transition:box-shadow .15s;background:#f9fafb;}
+    .epc-block:hover{box-shadow:0 4px 20px rgba(0,0,0,.15);}
+    .epc-block.active{border-color:var(--r)!important;box-shadow:0 0 0 3px rgba(228,30,38,.25);}
+    .epc-block img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;user-select:none;}
+    .epc-empty{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#d1d5db;font-size:28px;}
+    .epc-label{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.8));padding:8px 10px 6px;color:#fff;pointer-events:none;}
+    .epc-cat{font-size:8px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.7);display:block;}
+    .epc-title{font-size:11px;font-weight:700;line-height:1.2;display:block;}
+    .epc-num{position:absolute;top:4px;left:4px;width:20px;height:20px;border-radius:50%;background:var(--r);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+    .epc-del{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(220,38,38,.9);color:#fff;border:none;cursor:pointer;font-size:9px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;z-index:5;}
+    .epc-block:hover .epc-del{opacity:1;}
+    .epc-resize{position:absolute;bottom:0;right:0;width:14px;height:14px;cursor:nwse-resize;background:var(--r);border-radius:2px 0 0 0;z-index:5;}
+    .epc-resize::after{content:'';position:absolute;bottom:2px;right:2px;width:6px;height:6px;border-right:2px solid #fff;border-bottom:2px solid #fff;}
+    .epc-dims{position:absolute;top:4px;right:28px;background:rgba(0,0,0,.5);color:#fff;font-size:8px;padding:2px 5px;border-radius:3px;pointer-events:none;}
+    .epc-add-btn{position:absolute;bottom:16px;right:16px;padding:10px 18px;background:var(--r);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;display:flex;align-items:center;gap:6px;box-shadow:0 4px 12px rgba(228,30,38,.3);transition:all .2s;}
+    .epc-add-btn:hover{background:#c0171e;transform:translateY(-2px);}
+
+    /* ══ EDITOR PANEL ══ */
+    .epb-editor{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:16px;max-height:calc(100vh - 100px);overflow-y:auto;}
+    .epb-editor h3{font-size:14px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+    .epb-editor h3 i{color:var(--r);}
+    .epb-section{background:#f9fafb;border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;}
+    .epb-section-title{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:5px;}
+    .epb-section-title i{color:var(--r);}
+
+    .epb-img-upload{border:2px dashed var(--border);border-radius:8px;padding:12px;text-align:center;cursor:pointer;transition:all .2s;min-height:60px;}
+    .epb-img-upload:hover{border-color:var(--r);}
+    .epb-img-upload img{max-width:100%;max-height:100px;border-radius:6px;}
+    .epb-img-upload input[type=file]{display:none;}
+    .epb-img-upload .epb-upload-label{color:var(--muted);font-size:11px;}
+    .epb-img-upload .epb-upload-label i{font-size:16px;display:block;margin-bottom:2px;}
+
+    .epb-gallery{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;}
+    .epb-gallery-item{width:50px;height:50px;border-radius:6px;overflow:hidden;border:2px solid var(--border);position:relative;}
+    .epb-gallery-item img{width:100%;height:100%;object-fit:cover;}
+    .epb-gallery-item .epb-gal-del{position:absolute;top:1px;right:1px;width:14px;height:14px;border-radius:50%;background:rgba(220,38,38,.9);color:#fff;border:none;cursor:pointer;font-size:7px;display:flex;align-items:center;justify-content:center;opacity:0;}
+    .epb-gallery-item:hover .epb-gal-del{opacity:1;}
+    .epb-gal-add{width:50px;height:50px;border:2px dashed var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);font-size:14px;}
+    .epb-gal-add:hover{border-color:var(--r);color:var(--r);}
+
+    .ql-toolbar.ql-snow{border-radius:8px 8px 0 0;border-color:var(--border);}
+    .ql-container.ql-snow{border-radius:0 0 8px 8px;border-color:var(--border);min-height:120px;font-family:'Inter';font-size:12px;}
+    .ql-editor{min-height:120px;}
+
+    input[type=range]{width:100%;accent-color:var(--r);}
+    .epa-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:500;z-index:999;opacity:0;transition:all .3s;pointer-events:none;}
+    .epa-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+    @media(max-width:900px){.epc-layout{grid-template-columns:1fr;}.epc-canvas{width:100%;height:auto;aspect-ratio:4/5;}}
+  </style>
+</head>
+<body>
+
+  <div class="epa-header">
+    <h1><span>📋</span> E-Paper <span>Page Builder</span></h1>
+    <a href="/epaper-viewer"><i class="fa fa-eye"></i> View</a>
+    <a href="/"><i class="fa fa-arrow-left"></i> Site</a>
+  </div>
+
+  <div class="epa-wrap">
+
+    <!-- Edition Details -->
+    <div class="epa-card">
+      <h2><i class="fa fa-plus-circle"></i> Edition Details</h2>
+      <form id="editionForm">
+        <div class="epa-form-row">
+          <div class="epa-form-group"><label>Date</label><input type="date" id="edDate" required></div>
+          <div class="epa-form-group"><label>Name</label><input type="text" id="edName" placeholder="दैनिक संस्करण"></div>
+          <div class="epa-form-group"><label>Language</label>
+            <select id="edLang"><option value="Hindi">Hindi</option><option value="English">English</option><option value="Marathi">Marathi</option></select>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button type="submit" class="epa-btn epa-btn-primary"><i class="fa fa-save"></i> Save Edition</button>
+          <button type="button" class="epa-btn epa-btn-danger" id="deleteEditionBtn" style="display:none"><i class="fa fa-trash"></i> Delete</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Page Builder -->
+    <div class="epa-card" id="builderSection" style="display:none">
+      <h2><i class="fa fa-th-large"></i> Page Builder — Drag & Drop</h2>
+      <div class="epa-page-tabs" id="pageTabs"></div>
+
+      <div class="epc-layout">
+        <!-- Left: Canvas -->
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px">
+            <i class="fa fa-info-circle" style="color:var(--r)"></i>
+            <strong>Drag</strong> to move • <strong>Corner handle</strong> to resize • Click block to edit
+          </div>
+          <div class="epc-canvas-wrap" style="overflow:auto;max-height:75vh">
+            <div class="epc-canvas" id="pageCanvas"></div>
+          </div>
+          <div style="margin-top:10px">
+            <button class="epa-btn epa-btn-success" onclick="EPAdmin.saveEdition()"><i class="fa fa-check-circle"></i> Save All Changes</button>
+          </div>
+        </div>
+
+        <!-- Right: Editor -->
+        <div>
+          <div class="epb-editor" id="blockEditor" style="display:none">
+            <h3><i class="fa fa-edit"></i> Edit Block</h3>
+
+            <!-- Image -->
+            <div class="epb-section">
+              <div class="epb-section-title"><i class="fa fa-image"></i> Image</div>
+              <div class="epb-img-upload" id="blockImageUpload">
+                <input type="file" id="blockImageInput" accept="image/*">
+                <div class="epb-upload-label" id="blockImageLabel"><i class="fa fa-cloud-upload-alt"></i>Upload image</div>
+              </div>
+            </div>
+
+            <!-- Position & Size -->
+            <div class="epb-section">
+              <div class="epb-section-title"><i class="fa fa-arrows-alt"></i> Position & Size (px)</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px">
+                <div class="epa-form-group"><label>X</label><input type="number" id="blkX" value="0" min="0" onchange="EPAdmin.applySizeInputs()"></div>
+                <div class="epa-form-group"><label>Y</label><input type="number" id="blkY" value="0" min="0" onchange="EPAdmin.applySizeInputs()"></div>
+                <div class="epa-form-group"><label>W</label><input type="number" id="blkW" value="200" min="60" onchange="EPAdmin.applySizeInputs()"></div>
+                <div class="epa-form-group"><label>H</label><input type="number" id="blkH" value="150" min="40" onchange="EPAdmin.applySizeInputs()"></div>
+              </div>
+            </div>
+
+            <!-- Border -->
+            <div class="epb-section">
+              <div class="epb-section-title"><i class="fa fa-border-all"></i> Border</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px">
+                <div class="epa-form-group"><label>Width</label>
+                  <input type="range" id="blkBorderWidth" min="0" max="10" value="0" oninput="document.getElementById('bwVal').textContent=this.value+'px'; EPAdmin.updateBorderPreview()">
+                  <span id="bwVal" style="font-size:10px;color:var(--muted)">0px</span>
+                </div>
+                <div class="epa-form-group"><label>Radius</label>
+                  <input type="range" id="blkBorderRadius" min="0" max="30" value="10" oninput="document.getElementById('brVal').textContent=this.value+'px'; EPAdmin.updateBorderPreview()">
+                  <span id="brVal" style="font-size:10px;color:var(--muted)">10px</span>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+                <div class="epa-form-group"><label>Color</label><input type="color" id="blkBorderColor" value="#e41e26" style="height:28px;padding:2px" onchange="EPAdmin.updateBorderPreview()"></div>
+                <div class="epa-form-group"><label>Style</label>
+                  <select id="blkBorderStyle" onchange="EPAdmin.updateBorderPreview()"><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option><option value="double">Double</option><option value="none">None</option></select>
+                </div>
+              </div>
+              <div id="borderPreview" style="margin-top:4px;height:24px;background:#f3f4f6;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--muted)">Preview</div>
+            </div>
+
+            <!-- Article Details -->
+            <div class="epb-section">
+              <div class="epb-section-title"><i class="fa fa-pen-fancy"></i> Article</div>
+              <form id="blockForm">
+                <div class="epa-form-group" style="margin-bottom:6px"><label>Headline</label><input type="text" id="blkHeadline" placeholder="Article headline" required></div>
+                <div class="epa-form-group" style="margin-bottom:6px"><label>Sub-headline</label><input type="text" id="blkSubheadline" placeholder="Optional"></div>
+                <div class="epa-form-group" style="margin-bottom:6px"><label>Category</label><input type="text" id="blkCategory" placeholder="e.g. परीक्षा"></div>
+                <div class="epa-form-group" style="margin-bottom:6px"><label>Content (Rich Text)</label><div id="quillEditor"></div></div>
+                <div class="epa-form-group" style="margin-bottom:8px"><label>Gallery Images</label>
+                  <div class="epb-gallery" id="articleGallery"></div>
+                  <input type="file" id="galleryInput" accept="image/*" multiple style="display:none">
+                </div>
+                <div style="display:flex;gap:6px">
+                  <button type="submit" class="epa-btn epa-btn-primary epa-btn-sm"><i class="fa fa-check"></i> Save Block</button>
+                  <button type="button" class="epa-btn epa-btn-danger epa-btn-sm" onclick="EPAdmin.deleteBlock()"><i class="fa fa-trash"></i> Delete</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div id="noBlockMsg" style="text-align:center;padding:40px;color:var(--muted);font-size:12px">
+            <i class="fa fa-hand-pointer" style="font-size:28px;display:block;margin-bottom:6px;opacity:.3"></i>
+            Click a block to edit,<br>or click "Add Article" on the canvas.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Existing Editions -->
+    <div class="epa-card">
+      <h2><i class="fa fa-newspaper"></i> Existing Editions</h2>
+      <div id="editionsList"><div class="epa-empty">Loading...</div></div>
+    </div>
+
+  </div>
+
+  <div class="epa-toast" id="adminToast"></div>
+  <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+  <script src="{{ url_for('static', filename='epaper-admin.js') }}"></script>
+</body>
+</html>

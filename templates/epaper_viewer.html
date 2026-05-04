@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Vidyarthi Mitra — E-Paper Reader</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="Vidyarthi Mitra E-Paper: Read today's latest education news, exam updates, career guidance and more."/>
+  <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='epaper-viewer.css') }}">
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="{{ url_for('static', filename='epaper-manifest.json') }}">
+  <meta name="theme-color" content="#e41e26">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='title.png') }}">
+
+  <!-- GA4 Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX');
+  </script>
+
+  <!-- Schema.org -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Vidyarthi Mitra ePaper",
+    "url": "{{ request.url_root }}epaper-viewer",
+    "publisher": {
+      "@type": "Organization",
+      "name": "Vidyarthi Mitra",
+      "logo": { "@type": "ImageObject", "url": "{{ url_for('static', filename='logo.png', _external=True) }}" }
+    }
+  }
+  </script>
+</head>
+<body class="epaper-body">
+
+  <!-- ── HEADER ── -->
+  <header class="ep-header" id="epHeader">
+    <a href="/" class="ep-logo">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="VM" class="ep-logo-img">
+      <div class="ep-logo-text">
+        <strong>e-Paper</strong>
+        Vidyarthi Mitra
+      </div>
+    </a>
+
+    <button class="ep-date-btn" id="epDateBtn">
+      <i class="fa fa-calendar-alt"></i>
+      <span id="epDateText">Loading...</span>
+      <i class="fa fa-chevron-down" style="font-size:10px"></i>
+    </button>
+
+    <div class="ep-header-spacer"></div>
+
+    <a href="/" class="ep-site-link">
+      <i class="fa fa-external-link-alt"></i>
+      <span>vidyarthimitra.in</span>
+    </a>
+  </header>
+
+  <!-- Header collapse button -->
+  <button class="ep-collapse-btn" id="epCollapseBtn">
+    <i class="fa fa-chevron-up"></i>
+  </button>
+
+  <!-- ── CATEGORY NAV ── -->
+  <nav class="ep-nav" id="epNav">
+    <button class="ep-nav-scroll-btn" id="epNavLeft"><i class="fa fa-chevron-left"></i></button>
+    <div class="ep-nav-list" id="epNavList">
+      <a class="ep-nav-item active" data-cat="front" data-page="1">मुख पृष्ठ</a>
+      <a class="ep-nav-item" data-cat="education">शिक्षा</a>
+      <a class="ep-nav-item" data-cat="exams">परीक्षा</a>
+      <a class="ep-nav-item" data-cat="career">करियर</a>
+      <a class="ep-nav-item" data-cat="technology">टेक्नोलॉजी</a>
+      <a class="ep-nav-item" data-cat="sports">खेल</a>
+      <a class="ep-nav-item" data-cat="editorial">संपादकीय</a>
+      <a class="ep-nav-item" data-cat="state">राज्य</a>
+      <a class="ep-nav-item" data-cat="national">देश</a>
+      <a class="ep-nav-item" data-cat="international">अंतरराष्ट्रीय</a>
+      <a class="ep-nav-item" data-cat="trending">ट्रेंडिंग</a>
+    </div>
+    <button class="ep-nav-scroll-btn" id="epNavRight"><i class="fa fa-chevron-right"></i></button>
+  </nav>
+
+  <!-- ── MAIN CONTENT ── -->
+  <div class="ep-main" id="epMain">
+    <!-- Page Viewer -->
+    <div class="ep-viewer" id="epViewer">
+      <div class="ep-page-container" id="epPageContainer">
+        <img class="ep-page-img" id="epPageImg" src="" alt="E-Paper Page" draggable="false">
+        <div id="epHotspots" style="position:absolute;inset:0;"></div>
+      </div>
+
+      <!-- Empty state -->
+      <div id="epEmptyState" style="display:none; text-align:center; padding:60px 24px;">
+        <i class="fa fa-newspaper" style="font-size:64px;color:#d1d5db;display:block;margin-bottom:16px"></i>
+        <h2 style="font-size:22px;color:#374151;margin-bottom:8px">कोई संस्करण उपलब्ध नहीं</h2>
+        <p style="color:#6b7280;font-size:14px">इस तारीख के लिए E-Paper उपलब्ध नहीं है।<br>कैलेंडर से कोई अन्य तारीख चुनें।</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── FLOATING TOOLBAR ── -->
+  <div class="ep-toolbar">
+    <button class="ep-tool-btn" id="epZoomIn" title="Zoom In"><i class="fa fa-plus"></i></button>
+    <button class="ep-tool-btn" id="epZoomOut" title="Zoom Out"><i class="fa fa-minus"></i></button>
+    <div class="ep-tool-divider"></div>
+    <button class="ep-tool-btn" id="epFitPage" title="Fit Page"><i class="fa fa-expand-arrows-alt"></i></button>
+    <button class="ep-tool-btn" id="epFullscreen" title="Fullscreen"><i class="fa fa-expand"></i></button>
+    <div class="ep-tool-divider"></div>
+    <button class="ep-tool-btn" id="epScrollUp" title="Scroll Up"><i class="fa fa-arrow-up"></i></button>
+    <button class="ep-tool-btn" id="epScrollDown" title="Scroll Down"><i class="fa fa-arrow-down"></i></button>
+    <div class="ep-tool-divider"></div>
+    <button class="ep-tool-btn" onclick="EP.shareArticle('copy')" title="Share"><i class="fa fa-share-alt"></i></button>
+  </div>
+
+  <!-- ── PAGE NAVIGATION ── -->
+  <div class="ep-pager">
+    <button class="ep-pager-btn" id="epPrevPage" title="Previous Page"><i class="fa fa-chevron-left"></i></button>
+    <span class="ep-pager-info" id="epPageInfo">1 / 1</span>
+    <button class="ep-pager-btn" id="epNextPage" title="Next Page"><i class="fa fa-chevron-right"></i></button>
+  </div>
+
+  <!-- ── DATE PICKER ── -->
+  <div class="ep-calendar-overlay" id="epCalendarOverlay">
+    <div class="ep-calendar">
+      <div class="ep-cal-header">
+        <button class="ep-cal-nav-btn" id="epCalPrev"><i class="fa fa-chevron-left"></i></button>
+        <h3 id="epCalTitle">April 2026</h3>
+        <button class="ep-cal-nav-btn" id="epCalNext"><i class="fa fa-chevron-right"></i></button>
+      </div>
+      <div class="ep-cal-grid" id="epCalGrid"></div>
+    </div>
+  </div>
+
+  <!-- ── ARTICLE DETAIL PANEL ── -->
+  <div class="ep-article-panel" id="epArticlePanel">
+    <!-- Article Header -->
+    <div class="ep-article-header">
+      <button class="ep-article-back" id="epArtBack">
+        <i class="fa fa-chevron-left"></i> Back
+      </button>
+
+      <!-- AI Assist Toolbar -->
+      <div class="ep-ai-bar">
+        <button class="ep-ai-tab active" data-tab="assist">
+          <i class="fa fa-wand-magic-sparkles"></i>
+          <span>AIssist</span>
+        </button>
+        <button class="ep-ai-tab" data-tab="translate">
+          <i class="fa fa-language"></i>
+          <span>Translate</span>
+        </button>
+        <button class="ep-ai-tab" data-tab="listen">
+          <i class="fa fa-headphones"></i>
+          <span>Listen</span>
+        </button>
+        <button class="ep-ai-tab" data-tab="summarize">
+          <i class="fa fa-file-lines"></i>
+          <span>Summarize</span>
+        </button>
+        <button class="ep-ai-tab" data-tab="share">
+          <i class="fa fa-share-nodes"></i>
+          <span>Share</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- AI Content Panels -->
+    <div class="ep-ai-content" data-tab="listen">
+      <div class="ep-tts-player">
+        <button class="ep-tts-play" id="epTtsPlay"><i class="fa fa-play"></i></button>
+        <div class="ep-tts-bar">
+          <input type="range" class="ep-tts-progress" id="epTtsProgress" min="0" max="100" value="0">
+          <div class="ep-tts-meta">
+            <span>Hindi • Auto</span>
+            <button class="ep-tts-speed" id="epTtsSpeed">1x</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ep-ai-content" data-tab="translate">
+      <div class="ep-translate-panel">
+        <select class="ep-translate-select" id="epTranslateSelect">
+          <option value="en">English</option>
+          <option value="hi">हिंदी (Hindi)</option>
+          <option value="mr">मराठी (Marathi)</option>
+          <option value="bn">বাংলা (Bengali)</option>
+          <option value="ta">தமிழ் (Tamil)</option>
+        </select>
+        <div class="ep-translate-output" id="epTranslateOutput">Select a language to translate.</div>
+      </div>
+    </div>
+
+    <div class="ep-ai-content" data-tab="summarize">
+      <div class="ep-summary-box" id="epSummaryOutput">
+        <p>Click to generate AI summary.</p>
+      </div>
+    </div>
+
+    <div class="ep-ai-content" data-tab="share">
+      <div class="ep-share-menu">
+        <button class="ep-share-item" onclick="EP.shareArticle('whatsapp')"><i class="fab fa-whatsapp" style="color:#25d366"></i> WhatsApp</button>
+        <button class="ep-share-item" onclick="EP.shareArticle('twitter')"><i class="fab fa-x-twitter"></i> Twitter / X</button>
+        <button class="ep-share-item" onclick="EP.shareArticle('facebook')"><i class="fab fa-facebook" style="color:#1877f2"></i> Facebook</button>
+        <button class="ep-share-item" onclick="EP.shareArticle('copy')"><i class="fa fa-link"></i> Copy Link</button>
+      </div>
+    </div>
+
+    <!-- Article Body -->
+    <div class="ep-article-body">
+      <div class="ep-article-category" id="epArtCategory">News</div>
+      <h1 class="ep-article-title" id="epArtTitle"></h1>
+      <div class="ep-article-date" id="epArtDate"></div>
+      <img class="ep-article-img" id="epArtImg" src="" alt="" style="display:none">
+      <div class="ep-article-text" id="epArtText"></div>
+    </div>
+  </div>
+
+  <!-- ── Video Overlay ── -->
+  <div class="ep-video-overlay" id="epVideoOverlay">
+    <div class="ep-video-wrap">
+      <button class="ep-video-close" onclick="EP.closeVideo()"><i class="fa fa-times"></i></button>
+      <video id="epVideoPlayer" controls playsinline class="ep-video-player"></video>
+    </div>
+  </div>
+
+  <!-- ── WhatsApp FAB ── -->
+  <a class="ep-whatsapp-btn" id="epWhatsappBtn" href="https://wa.me/?text=Check%20out%20Vidyarthi%20Mitra%20E-Paper" target="_blank" rel="noopener">
+    <i class="fab fa-whatsapp"></i>
+  </a>
+
+  <!-- ── Toast ── -->
+  <div class="ep-toast" id="epToast"></div>
+
+  <script src="{{ url_for('static', filename='epaper-viewer.js') }}"></script>
+
+  <!-- PWA Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/static/epaper-sw.js')
+        .then(reg => console.log('SW registered:', reg.scope))
+        .catch(err => console.warn('SW registration failed:', err));
+    }
+  </script>
+</body>
+</html>
