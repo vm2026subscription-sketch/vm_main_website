@@ -7,16 +7,21 @@
   <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('static', filename='admissions.css') }}"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <style>
+    .topbar, .navbar { display: none; }
+  </style>
 </head>
 <body>
+  {% include '_shared_index_navbar.html' %}
 
   <!-- Feedback Tab -->
   <div class="feedback-tab">FEEDBACK</div>
   <!-- Scroll To Top -->
   <div class="scroll-top" id="scrollTop">&#9650;</div>
 
-  <!-- Top Black Bar -->
-  <div class="topbar">
+  <!-- Top Black Bar (Hidden) -->
+  <div class="topbar" style="display: none;">
     <div class="topbar-left">
       <a href="#">Blog</a>
       <a href="#">Epaper</a>

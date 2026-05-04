@@ -1171,6 +1171,45 @@ def guide_me():
 def refund_policy():
     return render_template('refund.html')
 
+@app.route("/joinus")
+@app.route("/join-us")
+def join_us():
+    return render_template("joinus VM.html")
+
+@app.route("/contact")
+@app.route("/contact-us")
+def contact():
+    return render_template("contact-us.html")
+
+@app.route('/send-message', methods=['POST'])
+def send_message():
+    data = request.get_json()
+    name    = data.get('name', '').strip()
+    phone   = data.get('phone', '').strip()
+    email   = data.get('email', '').strip()
+    subject = data.get('subject', '').strip()
+    message = data.get('message', '').strip()
+ 
+    # Basic validation
+    if not name or not email or not message:
+        return jsonify({'success': False, 'error': 'Name, email, and message are required.'}), 400
+ 
+    # ----------------------------------------------------------------
+    # TODO: Add your email sending logic here, e.g. Flask-Mail / SMTP
+    # Example:
+    #   send_email(to='contact@vidyarthimitra.org',
+    #              subject=f"[{subject}] from {name}",
+    #              body=message)
+    # ----------------------------------------------------------------
+ 
+    print(f"\n📩 New Contact Form Submission")
+    print(f"   Name   : {name}")
+    print(f"   Phone  : {phone}")
+    print(f"   Email  : {email}")
+    print(f"   Subject: {subject}")
+    print(f"   Message: {message}\n")
+ 
+    return jsonify({'success': True, 'message': 'Your message has been received. We will get back to you shortly.'}), 200
 
 @app.route("/register", methods=["GET", "POST"])
 def register():

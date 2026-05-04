@@ -16,7 +16,8 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='news.css') }}">
 </head>
 <body>
-
+{% include '_shared_index_navbar.html' %}
+<style>.masthead-logo, .cat-nav{display:none !important;}</style>
   <!-- BREAKING NEWS TICKER -->
   <div class="ticker-bar">
     <div class="ticker-label">

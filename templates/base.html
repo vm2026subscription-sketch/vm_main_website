@@ -19,92 +19,6 @@
         a:visited {
             text-decoration: none !important;
         }
-        .site-header {
-            position: sticky;
-            top: 0;
-            z-index: 1200;
-            background: #fff;
-            border-bottom: 1px solid #ececec;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.08);
-        }
-        .site-nav-wrap {
-            max-width: 1320px;
-            margin: 0 auto;
-            min-height: 78px;
-            padding: 0 20px;
-            display: flex;
-            align-items: center;
-            gap: 18px;
-        }
-        .brand {
-            display: inline-flex;
-            align-items: center;
-            text-decoration: none;
-        }
-        .brand img { height: 46px; width: auto; display: block; }
-        .site-nav {
-            margin-left: auto;
-            display: flex;
-            align-items: center;
-            flex-wrap: nowrap;
-            gap: 0;
-        }
-        .site-nav a {
-            text-decoration: none;
-            color: #3f3f3f;
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-            padding: 28px 12px 24px;
-            border-radius: 0;
-            transition: color 0.22s ease;
-            position: relative;
-            white-space: nowrap;
-            line-height: 1;
-        }
-        .site-nav a::after {
-            content: "";
-            position: absolute;
-            left: 50%;
-            bottom: 0;
-            width: 0;
-            height: 3px;
-            border-radius: 99px;
-            background: var(--orange);
-            transform: translateX(-50%);
-            transition: width 0.22s ease;
-        }
-        .site-nav a:hover,
-        .site-nav a.active {
-            color: var(--orange);
-            background: transparent;
-        }
-        .site-nav a:hover::after,
-        .site-nav a.active::after {
-            width: 100%;
-        }
-        .site-nav a.nav-home {
-            font-size: 20px;
-            padding-left: 14px;
-            padding-right: 14px;
-        }
-        .site-nav a.nav-search {
-            font-size: 16px;
-            padding-left: 10px;
-            padding-right: 4px;
-            margin-left: 4px;
-        }
-        .badge-new {
-            background: #ffcc4d;
-            color: #111;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 9px;
-            font-weight: 700;
-            margin-left: 6px;
-            vertical-align: middle;
-        }
         .site-main { min-height: calc(100vh - 140px); }
         .site-footer {
             background: #1f2738;
@@ -123,42 +37,11 @@
         }
         .site-footer a { color: #ff8a33; text-decoration: none; }
         .site-footer a:hover { color: #fff; }
-        @media (max-width: 900px) {
-            .site-nav-wrap { align-items: flex-start; flex-direction: column; padding: 10px 14px 14px; }
-            .site-nav { margin-left: 0; width: 100%; flex-wrap: wrap; }
-            .site-nav a { padding: 10px 10px; font-size: 12px; }
-            .site-nav a::after { display: none; }
-            .site-nav a.nav-home,
-            .site-nav a.nav-search { font-size: 12px; padding: 10px; margin-left: 0; }
-            .brand img { height: 40px; }
-        }
     </style>
     {% block page_styles %}{% endblock %}
 </head>
 <body>
-    <header class="site-header">
-        <div class="site-nav-wrap">
-            <a class="brand" href="{{ url_for('index') }}">
-                <img src="{{ url_for('static', filename='logo.png') }}" alt="Vidyarthi Mitra">
-            </a>
-            <nav class="site-nav">
-                <a href="{{ url_for('index') }}" class="nav-home {% if request.endpoint == 'index' %}active{% endif %}"><i class="fa fa-home"></i></a>
-                <a href="{{ url_for('universities') }}" class="{% if request.endpoint == 'universities' %}active{% endif %}">Universities</a>
-                <a href="{{ url_for('colleges') }}" class="{% if request.endpoint == 'colleges' %}active{% endif %}">Colleges</a>
-                <a href="{{ url_for('courses') }}" class="{% if request.endpoint == 'courses' %}active{% endif %}">Courses</a>
-                <a href="{{ url_for('exams') }}" class="{% if request.endpoint == 'exams' %}active{% endif %}">Entrance Exams</a>
-                <a href="{{ url_for('mock_exams') }}" class="{% if request.endpoint == 'mock_exams' %}active{% endif %}">Mock Exams</a>
-                <a href="{{ url_for('cutoffs') }}" class="{% if request.endpoint == 'cutoffs' %}active{% endif %}">Cut-Offs</a>
-                <a href="{{ url_for('fyjc_rank') }}" class="{% if request.endpoint == 'fyjc_rank' %}active{% endif %}">FYJC Rank</a>
-                <a href="{{ url_for('admissions') }}" class="{% if request.endpoint == 'admissions' %}active{% endif %}">Admissions</a>
-                <a href="{{ url_for('news') }}" class="{% if request.endpoint == 'news' %}active{% endif %}">News</a>
-                <a href="{{ url_for('epaper') }}" class="{% if request.endpoint == 'epaper' %}active{% endif %}">Epaper<span class="badge-new">New</span></a>
-                <a href="{{ url_for('excel_upload') }}" class="{% if request.endpoint == 'excel_upload' %}active{% endif %}">Excel Upload</a>
-                <a href="{{ url_for('guide_me') }}" class="{% if request.endpoint == 'guide_me' %}active{% endif %}">Guide Me</a>
-                <a href="javascript:void(0)" class="nav-search"><i class="fa fa-search"></i></a>
-            </nav>
-        </div>
-    </header>
+    {% include '_shared_index_navbar.html' %}
 
     <main class="site-main">
         {% block content %}{% endblock %}
@@ -167,7 +50,11 @@
     <footer class="site-footer">
         <div class="footer-inner">
             <div>© 2026 VidyarthiMitra.org - All Rights Reserved</div>
-            <div><a href="{{ url_for('refund_policy') }}">Refund & Cancellation</a></div>
+            <div>
+                <a href="{{ url_for('refund_policy') }}">Refund & Cancellation</a>
+                <span> | </span>
+                <a href="{{ url_for('contact') }}">Contact Us</a>
+            </div>
         </div>
     </footer>
 

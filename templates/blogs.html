@@ -29,7 +29,8 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='blog.css') }}">
 </head>
 <body>
-
+{% include '_shared_index_navbar.html' %}
+<style>.navbar{display:none !important;}</style>
 <!-- HEADER -->
 <header class="blog-header">
   <h1>Educational Blogs &amp; Updates</h1>

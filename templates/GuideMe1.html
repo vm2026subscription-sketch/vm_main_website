@@ -1,11 +1,14 @@
-{% extends "base.html" %}
-
-{% block title %}Guide Me - Admission Guidance Form | Vidyarthi Mitra{% endblock %}
-
-{% block page_styles %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guide Me - Admission Guidance Form | Vidyarthi Mitra</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='GuideMe1.css') }}" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
     body { font-family: 'Poppins', sans-serif; background: #f5f5f5; }
     .back-btn { color: #f97316; text-decoration: none; font-weight: bold; display: inline-block; margin-bottom: 20px; }
     .form-section { max-width: 800px; margin: 40px auto; padding: 20px; background: #fff; border-radius: 8px; }
@@ -25,9 +28,10 @@
     .flash-success { background: #e7f8ee; color: #1f7a47; border-color: #bfe8cf; }
     .flash-error { background: #fdeceb; color: #b42318; border-color: #f7c5c2; }
   </style>
-{% endblock %}
+</head>
+<body>
 
-{% block content %}
+{% include '_shared_index_navbar.html' %}
 
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
@@ -112,9 +116,7 @@
     <button type="submit" class="btn">SUBMIT FORM</button>
   </form>
 </section>
-{% endblock %}
 
-{% block page_scripts %}
 <script>
   function toggleSections() {
     const val = document.getElementById('requirementSelect').value;
@@ -123,4 +125,6 @@
     document.getElementById('otherSection').style.display = (val === 'other') ? 'block' : 'none';
   }
 </script>
-{% endblock %}
+
+</body>
+</html>

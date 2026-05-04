@@ -10,10 +10,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <link rel="stylesheet" href="{{ url_for('static', filename='mock-exams.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+      .header { display: none; }
+    </style>
 </head>
 <body>
-
-    <header class="header">
+    {% include '_shared_index_navbar.html' %}
+    <header class="header" style="display: none;">
         <div class="nav-container">
             <h2 class="logo">विद्यार्थी <span>मित्र.org</span></h2>
             <nav>

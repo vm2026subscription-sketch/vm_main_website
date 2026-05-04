@@ -9,8 +9,10 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
 
     <style>
+        .main-nav { display: none; }
         :root {
             --primary: #ff6600;
             --secondary: #e65c00;
@@ -213,28 +215,7 @@
 </head>
 <body>
 
-    <header class="main-nav">
-        <div class="container">
-            <nav class="navbar navbar-expand-lg">
-                <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="{{ url_for('index') }}">
-                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Vidyarthi Mitra">
-                </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="mainNav">
-                    <ul class="navbar-nav ms-auto">
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Home</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('universities') }}">Universities</a></li>
-                        <li class="nav-item"><a class="nav-link active" href="{{ url_for('colleges') }}">Colleges</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('courses') }}">Courses</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('exams') }}">Entrance Exams</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('mock_exams') }}">Mock Exams</a></li>
-                    </ul>
-                </div>
-            </nav>
-        </div>
-    </header>
+    {% include '_shared_index_navbar.html' %}
 
     <section class="hero">
         <div class="container">
