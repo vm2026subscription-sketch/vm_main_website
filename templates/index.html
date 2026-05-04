@@ -191,6 +191,37 @@
 
         .navbar-default .navbar-nav > li > a i {
             font-size: 14px;
+        .navbar-default .navbar-nav > li.nav-auth > a {
+            padding: 10px 16px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            border-radius: 999px;
+            border: 1px solid transparent;
+            line-height: 1.2;
+        }
+        .navbar-default .navbar-nav > li.nav-auth > a::before {
+            display: none;
+        }
+        .navbar-default .navbar-nav > li.nav-auth.nav-register > a {
+            background: var(--orange);
+            color: #fff;
+            border-color: var(--orange);
+        }
+        .navbar-default .navbar-nav > li.nav-auth.nav-register > a:hover,
+        .navbar-default .navbar-nav > li.nav-auth.nav-register > a:focus {
+            background: #e55a00;
+            color: #fff;
+        }
+        .navbar-default .navbar-nav > li.nav-auth.nav-login > a {
+            background: #fff;
+            color: var(--orange);
+            border-color: rgba(255, 102, 0, 0.35);
+        }
+        .navbar-default .navbar-nav > li.nav-auth.nav-login > a:hover,
+        .navbar-default .navbar-nav > li.nav-auth.nav-login > a:focus {
+            background: rgba(255, 102, 0, 0.08);
+            color: #e55a00;
+        }
         }
         
         .navbar-brand {
@@ -1026,6 +1057,12 @@
                 padding: 18px 15px;
             }
 
+            .navbar-default .navbar-nav > li.nav-auth > a {
+                margin: 6px 12px 0;
+                padding: 10px 14px;
+                display: inline-block;
+            }
+
             footer .row {
                 display: block;
             }
@@ -1681,6 +1718,12 @@ footer .row > [class*='col-'] {
                         <li><a href="{{ url_for('news') }}">News</a></li>
                         <li><a href="{{ url_for('epaper') }}">Epaper<span class="badge-new">New</span></a></li>
                         <li><a href="{{ url_for('guide_me') }}">Guide Me</a></li>
+                        {% if session.get('auth_user') %}
+                        <li class="nav-auth nav-login"><a href="{{ url_for('logout') }}">Logout</a></li>
+                        {% else %}
+                        <li class="nav-auth nav-login"><a href="{{ url_for('login') }}">Login</a></li>
+                        <li class="nav-auth nav-register"><a href="{{ url_for('register') }}">Register</a></li>
+                        {% endif %}
                         <li><a href="javascript:void(0)" class="search-trigger">🔍</a></li>
 <link rel="stylesheet" href="news.css">
 <link rel="stylesheet" href="{{ url_for('static', filename='news.css') }}">
