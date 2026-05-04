@@ -50,6 +50,14 @@ try:
 except Exception as exc:
     app.logger.warning("Skipping news blueprint registration: %s", exc)
 
+# Register e-paper viewer blueprint
+try:
+    from epaper_routes import epaper_bp
+
+    app.register_blueprint(epaper_bp)
+except Exception as exc:
+    app.logger.warning("Skipping epaper blueprint registration: %s", exc)
+
 VMADMIN_BASE_URL = (
     os.getenv("VMADMIN_BASE_URL", "").strip().rstrip("/")
 )
