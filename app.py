@@ -1,5 +1,7 @@
 import io
 import base64
+import hashlib
+import hmac
 import os
 import re
 import json
@@ -140,6 +142,349 @@ UPLOAD_TARGET_TABLES = [
     {"value": "entrance_exams", "label": "Entrance Exams"},
 ]
 
+BTECH_CUTOFF_DIR = os.path.join(app.root_path, "data", "btech")
+_btech_cutoff_cache = None
+_btech_cutoff_error = None
+_college_website_cache = None
+FULL_CUTOFF_PRICE_RUPEES = 100
+FULL_CUTOFF_PRICE_PAISE = FULL_CUTOFF_PRICE_RUPEES * 100
+
+CUTOFF_GENDER_LABELS = {
+    "G": "General",
+    "L": "Ladies",
+    "M": "Male",
+    "F": "Female",
+    "T": "TFWS",
+    "E": "EWS",
+    "D": "Defense",
+    "O": "Orphan",
+    "P": "PWD",
+}
+
+
+def normalize_cutoff_columns(dataframe):
+    dataframe = dataframe.copy()
+    dataframe.columns = (
+        dataframe.columns.str.strip()
+        .str.lower()
+        .str.replace(" ", "_", regex=False)
+        .str.replace("(", "", regex=False)
+        .str.replace(")", "", regex=False)
+    )
+    return dataframe
+
+
+def load_btech_cutoff_data():
+    global _btech_cutoff_cache, _btech_cutoff_error
+
+    if _btech_cutoff_cache is not None or _btech_cutoff_error is not None:
+        return _btech_cutoff_cache, _btech_cutoff_error
+
+    if pd is None:
+        _btech_cutoff_error = "pandas is not installed. Install requirements to read cutoff data."
+        return None, _btech_cutoff_error
+
+    if not os.path.isdir(BTECH_CUTOFF_DIR):
+        _btech_cutoff_error = "B.Tech cutoff data folder is missing."
+        return None, _btech_cutoff_error
+
+    frames = []
+    for cap_round in (1, 2, 3, 4):
+        file_path = os.path.join(BTECH_CUTOFF_DIR, f"BTECH_OUTPUT_CAP{cap_round}.csv")
+        if not os.path.exists(file_path):
+            continue
+        try:
+            frame = pd.read_csv(file_path)
+        except Exception as exc:
+            _btech_cutoff_error = f"Unable to read {os.path.basename(file_path)}: {exc}"
+            return None, _btech_cutoff_error
+
+        frame = normalize_cutoff_columns(frame)
+        frame["cap_round_source"] = cap_round
+        frames.append(frame)
+
+    if not frames:
+        _btech_cutoff_error = "No B.Tech cutoff CSV files were found."
+        return None, _btech_cutoff_error
+
+    data = pd.concat(frames, ignore_index=True)
+    data["percentile"] = pd.to_numeric(data.get("percentile"), errors="coerce")
+    data["rank"] = pd.to_numeric(data.get("rank"), errors="coerce")
+
+    required = ["institute_name", "course_name", "category1", "gender", "percentile"]
+    missing = [column for column in required if column not in data.columns]
+    if missing:
+        _btech_cutoff_error = f"Cutoff data is missing required columns: {', '.join(missing)}"
+        return None, _btech_cutoff_error
+
+    group_columns = [
+        "institute_code",
+        "institute_name",
+        "course_name",
+        "category1",
+        "gender",
+        "status",
+        "university",
+    ]
+    group_columns = [column for column in group_columns if column in data.columns]
+    final_cutoffs = (
+        data.dropna(subset=["percentile"])
+        .groupby(group_columns, as_index=False)
+        .agg(
+            final_cutoff=("percentile", "max"),
+            best_round_cutoff=("percentile", "min"),
+            average_cutoff=("percentile", "mean"),
+            volatility=("percentile", "std"),
+            best_rank=("rank", "min"),
+            cap_rounds=("cap_round_source", lambda values: ", ".join(str(int(value)) for value in sorted(set(values)))),
+        )
+    )
+    round_cutoffs = (
+        data.dropna(subset=["percentile"])
+        .groupby(group_columns + ["cap_round_source"], as_index=False)["percentile"]
+        .max()
+        .pivot(index=group_columns, columns="cap_round_source", values="percentile")
+        .reset_index()
+    )
+    round_cutoffs.columns = [
+        f"cap_{int(column)}_cutoff" if isinstance(column, (int, float)) else column
+        for column in round_cutoffs.columns
+    ]
+    final_cutoffs = final_cutoffs.merge(round_cutoffs, on=group_columns, how="left")
+    final_cutoffs["volatility"] = final_cutoffs["volatility"].fillna(0)
+    final_cutoffs["college_key"] = final_cutoffs["institute_name"].astype(str).str.lower()
+    final_cutoffs = final_cutoffs.sort_values(["final_cutoff", "institute_name"], ascending=[False, True])
+
+    _btech_cutoff_cache = final_cutoffs
+    return _btech_cutoff_cache, None
+
+
+def get_cutoff_options():
+    data, error = load_btech_cutoff_data()
+    if error or data is None:
+        gender_options = [{"value": value, "label": CUTOFF_GENDER_LABELS.get(value, value)} for value in ["G", "L"]]
+        return [], ["OPEN", "OBC", "SC", "ST", "EWS", "SEBC"], gender_options, error
+
+    branches = sorted(data["course_name"].dropna().astype(str).unique().tolist())
+    categories = sorted(data["category1"].dropna().astype(str).unique().tolist())
+    genders = sorted(data["gender"].dropna().astype(str).unique().tolist())
+    gender_options = [
+        {"value": gender, "label": CUTOFF_GENDER_LABELS.get(gender, gender)}
+        for gender in genders
+    ]
+    return branches, categories, gender_options, None
+
+
+def risk_label_for_gap(gap):
+    if gap >= 1:
+        return "Safe"
+    if gap >= -1:
+        return "Borderline"
+    if gap >= -3:
+        return "Risky"
+    return "Reach"
+
+
+def cutoff_gender_label(value):
+    cleaned = clean_college_text(value).upper()
+    return CUTOFF_GENDER_LABELS.get(cleaned, cleaned)
+
+
+def normalize_college_match_key(value):
+    text = clean_college_text(value).lower()
+    text = re.sub(r"\b(college|institute|engineering|technology|of|and|the)\b", " ", text)
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def get_college_website_lookup():
+    global _college_website_cache
+
+    if _college_website_cache is not None:
+        return _college_website_cache
+
+    _college_website_cache = {}
+
+    if psycopg2 is None:
+        return _college_website_cache
+
+    db_url = get_postgres_connection_url()
+    if not db_url:
+        return _college_website_cache
+
+    try:
+        conn = psycopg2.connect(db_url, cursor_factory=psycopg2.extras.RealDictCursor)
+    except Exception:
+        return _college_website_cache
+
+    try:
+        col_map = resolve_colleges_columns(conn)
+        if not col_map.get("name") or not col_map.get("source_url"):
+            return _college_website_cache
+
+        sql = (
+            f"SELECT \"{col_map['name']}\" AS name, \"{col_map['source_url']}\" AS source_url "
+            f"FROM colleges WHERE \"{col_map['source_url']}\" IS NOT NULL "
+            f"AND \"{col_map['source_url']}\" <> ''"
+        )
+        with conn.cursor() as cur:
+            cur.execute(sql)
+            for row in cur.fetchall():
+                key = normalize_college_match_key(row.get("name"))
+                url = normalize_external_url(row.get("source_url"))
+                if key and url:
+                    _college_website_cache.setdefault(key, url)
+    except Exception:
+        return _college_website_cache
+    finally:
+        conn.close()
+
+    return _college_website_cache
+
+
+def find_college_website(college_name, website_lookup):
+    key = normalize_college_match_key(college_name)
+    if not key:
+        return ""
+    if key in website_lookup:
+        return website_lookup[key]
+
+    key_parts = set(key.split())
+    if len(key_parts) < 3:
+        return ""
+
+    best_url = ""
+    best_score = 0
+    for candidate_key, url in website_lookup.items():
+        candidate_parts = set(candidate_key.split())
+        if not candidate_parts:
+            continue
+        score = len(key_parts & candidate_parts) / max(len(key_parts), len(candidate_parts))
+        if score > best_score:
+            best_score = score
+            best_url = url
+
+    return best_url if best_score >= 0.68 else ""
+
+
+def format_cutoff_recommendations(rows, student_percentile=None, include_websites=True):
+    website_lookup = get_college_website_lookup() if include_websites else {}
+    recommendations = []
+    for _, row in rows.iterrows():
+        final_cutoff = float(row.get("final_cutoff") or 0)
+        gap = None if student_percentile is None else float(student_percentile) - final_cutoff
+        college_name = clean_college_text(row.get("institute_name"))
+        recommendations.append(
+            {
+                "college": college_name,
+                "college_code": clean_college_text(row.get("institute_code")),
+                "branch": clean_college_text(row.get("course_name")),
+                "category": clean_college_text(row.get("category1")),
+                "gender": clean_college_text(row.get("gender")),
+                "gender_label": cutoff_gender_label(row.get("gender")),
+                "status": clean_college_text(row.get("status")),
+                "university": clean_college_text(row.get("university")),
+                "website": find_college_website(college_name, website_lookup),
+                "final_cutoff": round(final_cutoff, 4),
+                "cap_1_cutoff": round(float(row.get("cap_1_cutoff")), 4) if not pd.isna(row.get("cap_1_cutoff")) else None,
+                "cap_2_cutoff": round(float(row.get("cap_2_cutoff")), 4) if not pd.isna(row.get("cap_2_cutoff")) else None,
+                "cap_3_cutoff": round(float(row.get("cap_3_cutoff")), 4) if not pd.isna(row.get("cap_3_cutoff")) else None,
+                "cap_4_cutoff": round(float(row.get("cap_4_cutoff")), 4) if not pd.isna(row.get("cap_4_cutoff")) else None,
+                "best_round_cutoff": round(float(row.get("best_round_cutoff") or 0), 4),
+                "average_cutoff": round(float(row.get("average_cutoff") or 0), 4),
+                "best_rank": int(row.get("best_rank")) if not pd.isna(row.get("best_rank")) else None,
+                "cap_rounds": clean_college_text(row.get("cap_rounds")),
+                "gap": round(gap, 4) if gap is not None else None,
+                "risk_label": risk_label_for_gap(gap) if gap is not None else "Top Cutoff",
+            }
+        )
+    return recommendations
+
+
+def get_top_cutoff_colleges(limit=20, branch=None, category=None, gender=None):
+    data, error = load_btech_cutoff_data()
+    if error or data is None:
+        return [], error
+
+    filtered = data.copy()
+    if branch:
+        filtered = filtered[filtered["course_name"].astype(str) == branch]
+    if category:
+        filtered = filtered[filtered["category1"].astype(str).str.upper() == category.upper()]
+    if gender:
+        filtered = filtered[filtered["gender"].astype(str).str.upper() == gender.upper()]
+
+    if filtered.empty:
+        return [], "No cutoff rows matched those filters."
+
+    top_rows = (
+        filtered.sort_values(["final_cutoff", "institute_name"], ascending=[False, True])
+        .drop_duplicates(subset=["college_key"])
+        .head(limit)
+    )
+    return format_cutoff_recommendations(top_rows), None
+
+
+def get_full_cutoff_colleges(branch=None, category=None, gender=None, page=1, per_page=100):
+    data, error = load_btech_cutoff_data()
+    if error or data is None:
+        return [], 0, error
+
+    filtered = data.copy()
+    if branch:
+        filtered = filtered[filtered["course_name"].astype(str) == branch]
+    if category:
+        filtered = filtered[filtered["category1"].astype(str).str.upper() == category.upper()]
+    if gender:
+        filtered = filtered[filtered["gender"].astype(str).str.upper() == gender.upper()]
+
+    if filtered.empty:
+        return [], 0, "No cutoff rows matched those filters."
+
+    ranked = filtered.sort_values(["final_cutoff", "institute_name"], ascending=[False, True])
+    total = len(ranked)
+    page = max(1, int(page or 1))
+    per_page = int(per_page or 100)
+    start = (page - 1) * per_page
+    end = start + per_page
+
+    return format_cutoff_recommendations(ranked.iloc[start:end]), total, None
+
+
+def predict_colleges_from_cutoffs(percentile, category, gender, branch, page=1, per_page=20):
+    data, error = load_btech_cutoff_data()
+    if error or data is None:
+        return [], 0, error
+
+    filtered = data.copy()
+    if branch:
+        filtered = filtered[filtered["course_name"].astype(str) == branch]
+    if category:
+        filtered = filtered[filtered["category1"].astype(str).str.upper() == category.upper()]
+    if gender:
+        filtered = filtered[filtered["gender"].astype(str).str.upper() == gender.upper()]
+
+    if filtered.empty:
+        return [], 0, "No cutoff rows matched those filters."
+
+    filtered = filtered.copy()
+    filtered["gap"] = float(percentile) - filtered["final_cutoff"]
+    filtered["sort_bucket"] = filtered["gap"].apply(lambda value: 0 if value >= 0 else 1)
+    filtered["below_gap"] = filtered["gap"].apply(lambda value: value if value < 0 else 0)
+    ranked = filtered.sort_values(
+        ["sort_bucket", "final_cutoff", "below_gap"],
+        ascending=[True, False, False],
+    ).drop_duplicates(subset=["college_key"])
+
+    total = len(ranked)
+    page = max(1, int(page or 1))
+    per_page = int(per_page or 20)
+    start = (page - 1) * per_page
+    end = start + per_page
+    page_rows = ranked.iloc[start:end]
+
+    return format_cutoff_recommendations(page_rows, student_percentile=percentile), total, None
+
 
 def get_supabase_client():
     url = os.getenv("SUPABASE_URL", "").strip()
@@ -149,6 +494,59 @@ def get_supabase_client():
         return None
 
     return create_client(url, key)
+
+
+def get_razorpay_config():
+    load_dotenv(override=True)
+    key_id = os.getenv("RAZORPAY_KEY_ID", "").strip()
+    key_secret = os.getenv("RAZORPAY_KEY_SECRET", "").strip()
+    if not key_id or not key_secret:
+        return None
+    return {"key_id": key_id, "key_secret": key_secret}
+
+
+def create_razorpay_order(amount_paise, receipt, notes=None):
+    config = get_razorpay_config()
+    if config is None:
+        raise RuntimeError("Razorpay test keys are not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in .env.")
+
+    payload = json.dumps(
+        {
+            "amount": int(amount_paise),
+            "currency": "INR",
+            "receipt": receipt,
+            "notes": notes or {},
+        }
+    ).encode("utf-8")
+    credentials = base64.b64encode(
+        f"{config['key_id']}:{config['key_secret']}".encode("utf-8")
+    ).decode("ascii")
+    req = Request(
+        "https://api.razorpay.com/v1/orders",
+        data=payload,
+        headers={
+            "Authorization": f"Basic {credentials}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        },
+        method="POST",
+    )
+    with urlopen(req, timeout=20) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def verify_razorpay_payment_signature(order_id, payment_id, signature):
+    config = get_razorpay_config()
+    if config is None:
+        return False
+
+    message = f"{order_id}|{payment_id}".encode("utf-8")
+    expected = hmac.new(
+        config["key_secret"].encode("utf-8"),
+        message,
+        hashlib.sha256,
+    ).hexdigest()
+    return hmac.compare_digest(expected, str(signature or ""))
 
 
 def get_postgres_connection_url():
@@ -227,7 +625,9 @@ def clean_college_text(value):
     # Some imported Excel/database values contain control characters where
     # apostrophes were expected, which browsers render as square boxes.
     text = re.sub(r"(?<=\w)[\x00-\x1f\x7f]+(?=s\b)", "'", text)
+    text = re.sub(r"(?<=\w)[\uFFFD\u25A0\u25A1\u25AA\u25AB]+(?=s\b)", "'", text)
     text = re.sub(r"[\x00-\x1f\x7f]+", " ", text)
+    text = re.sub(r"[\uFFFD\u25A0\u25A1\u25AA\u25AB]+", " ", text)
     return re.sub(r"\s+", " ", text).strip()
 
 
@@ -1369,7 +1769,234 @@ def mock_exams():
 
 @app.route("/cutoffs")
 def cutoffs():
-    return render_template("cutoffs.html")
+    branches, categories, genders, options_error = get_cutoff_options()
+    top_colleges, top_error = get_top_cutoff_colleges(limit=20)
+    return render_template(
+        "cutoffs.html",
+        branches=branches,
+        categories=categories,
+        genders=genders,
+        top_colleges=top_colleges,
+        error=options_error or top_error,
+    )
+
+
+@app.route("/api/college-predictor", methods=["POST"])
+def api_college_predictor():
+    payload = request.get_json(silent=True) or {}
+
+    try:
+        percentile = float(payload.get("percentile", 0))
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "error": "Enter a valid percentile."}), 400
+
+    if percentile < 0 or percentile > 100:
+        return jsonify({"success": False, "error": "Percentile must be between 0 and 100."}), 400
+
+    branch = str(payload.get("branch", "")).strip()
+    category = str(payload.get("category", "OPEN")).strip().upper() or "OPEN"
+    gender = str(payload.get("gender", "G")).strip().upper() or "G"
+    try:
+        page = int(payload.get("page", 1))
+    except (TypeError, ValueError):
+        page = 1
+    page = max(1, page)
+
+    try:
+        per_page = int(payload.get("per_page", 20))
+    except (TypeError, ValueError):
+        per_page = 20
+    per_page = per_page if per_page in {20, 50, 100} else 20
+
+    recommendations, total_matches, error = predict_colleges_from_cutoffs(
+        percentile=percentile,
+        category=category,
+        gender=gender,
+        branch=branch,
+        page=page,
+        per_page=per_page,
+    )
+
+    if error:
+        return jsonify({"success": False, "error": error, "recommendations": []}), 200
+
+    total_pages = max(1, (total_matches + per_page - 1) // per_page) if total_matches else 1
+    return jsonify(
+        {
+            "success": True,
+            "student_input": {
+                "percentile": percentile,
+                "category": category,
+                "gender": gender,
+                "gender_label": cutoff_gender_label(gender),
+                "branch": branch,
+            },
+            "total_matches": total_matches,
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total_pages": total_pages,
+                "has_prev": page > 1,
+                "has_next": page < total_pages,
+            },
+            "recommendations": recommendations,
+        }
+    )
+
+
+@app.route("/api/top-cutoff-colleges", methods=["POST"])
+def api_top_cutoff_colleges():
+    payload = request.get_json(silent=True) or {}
+    branch = str(payload.get("branch", "")).strip()
+    category = str(payload.get("category", "")).strip().upper()
+    gender = str(payload.get("gender", "")).strip().upper()
+
+    recommendations, error = get_top_cutoff_colleges(
+        limit=20,
+        branch=branch or None,
+        category=category or None,
+        gender=gender or None,
+    )
+
+    if error:
+        return jsonify({"success": False, "error": error, "recommendations": []}), 200
+
+    return jsonify(
+        {
+            "success": True,
+            "filters": {
+                "branch": branch,
+                "category": category,
+                "gender": gender,
+                "gender_label": cutoff_gender_label(gender) if gender else "",
+            },
+            "locked_full_list": True,
+            "recommendations": recommendations,
+        }
+    )
+
+
+@app.route("/api/cutoff-payment/order", methods=["POST"])
+def api_cutoff_payment_order():
+    payload = request.get_json(silent=True) or {}
+    filters = {
+        "branch": str(payload.get("branch", "")).strip(),
+        "category": str(payload.get("category", "")).strip().upper(),
+        "gender": str(payload.get("gender", "")).strip().upper(),
+    }
+    receipt = f"cutoff_{secrets.token_hex(8)}"
+    notes = {
+        "product": "full_cutoff_list",
+        "branch": filters["branch"][:200],
+        "category": filters["category"][:50],
+        "gender": filters["gender"][:20],
+    }
+
+    try:
+        order = create_razorpay_order(FULL_CUTOFF_PRICE_PAISE, receipt, notes=notes)
+    except HTTPError as exc:
+        try:
+            details = exc.read().decode("utf-8")
+        except Exception:
+            details = str(exc)
+        return jsonify({"success": False, "error": f"Razorpay order failed: {details}"}), 200
+    except (URLError, TimeoutError) as exc:
+        return jsonify({"success": False, "error": f"Could not connect to Razorpay: {exc}"}), 200
+    except (RuntimeError, ValueError) as exc:
+        return jsonify({"success": False, "error": str(exc)}), 200
+
+    session["pending_cutoff_order"] = {
+        "order_id": order.get("id"),
+        "amount": FULL_CUTOFF_PRICE_PAISE,
+        "filters": filters,
+        "created_at": int(time.time()),
+    }
+    config = get_razorpay_config()
+    return jsonify(
+        {
+            "success": True,
+            "key_id": config["key_id"] if config else "",
+            "order": order,
+            "amount_rupees": FULL_CUTOFF_PRICE_RUPEES,
+            "filters": filters,
+        }
+    )
+
+
+@app.route("/api/cutoff-payment/verify", methods=["POST"])
+def api_cutoff_payment_verify():
+    payload = request.get_json(silent=True) or {}
+    order_id = str(payload.get("razorpay_order_id", "")).strip()
+    payment_id = str(payload.get("razorpay_payment_id", "")).strip()
+    signature = str(payload.get("razorpay_signature", "")).strip()
+    pending_order = session.get("pending_cutoff_order") or {}
+
+    if not order_id or not payment_id or not signature:
+        return jsonify({"success": False, "error": "Missing Razorpay payment details."}), 400
+
+    if pending_order.get("order_id") != order_id:
+        return jsonify({"success": False, "error": "Payment order mismatch. Please try again."}), 400
+
+    if not verify_razorpay_payment_signature(order_id, payment_id, signature):
+        return jsonify({"success": False, "error": "Payment verification failed."}), 400
+
+    session["full_cutoff_unlocked"] = {
+        "payment_id": payment_id,
+        "order_id": order_id,
+        "filters": pending_order.get("filters", {}),
+        "unlocked_at": int(time.time()),
+    }
+    session.pop("pending_cutoff_order", None)
+    return jsonify({"success": True, "message": "Full cutoff list unlocked."})
+
+
+@app.route("/api/full-cutoff-colleges", methods=["POST"])
+def api_full_cutoff_colleges():
+    unlocked = session.get("full_cutoff_unlocked")
+    if not unlocked:
+        return jsonify({"success": False, "payment_required": True, "error": "Please complete payment to unlock the full cutoff list."}), 402
+
+    payload = request.get_json(silent=True) or {}
+    branch = str(payload.get("branch", "")).strip()
+    category = str(payload.get("category", "")).strip().upper()
+    gender = str(payload.get("gender", "")).strip().upper()
+    try:
+        page = int(payload.get("page", 1))
+    except (TypeError, ValueError):
+        page = 1
+    try:
+        per_page = int(payload.get("per_page", 100))
+    except (TypeError, ValueError):
+        per_page = 100
+    per_page = per_page if per_page in {100, 250, 500} else 100
+
+    recommendations, total_matches, error = get_full_cutoff_colleges(
+        branch=branch or None,
+        category=category or None,
+        gender=gender or None,
+        page=page,
+        per_page=per_page,
+    )
+
+    if error:
+        return jsonify({"success": False, "error": error, "recommendations": []}), 200
+
+    total_pages = max(1, (total_matches + per_page - 1) // per_page) if total_matches else 1
+    return jsonify(
+        {
+            "success": True,
+            "unlocked": True,
+            "total_matches": total_matches,
+            "pagination": {
+                "page": max(1, page),
+                "per_page": per_page,
+                "total_pages": total_pages,
+                "has_prev": page > 1,
+                "has_next": page < total_pages,
+            },
+            "recommendations": recommendations,
+        }
+    )
 
 
 @app.route("/fyjc_rank")
