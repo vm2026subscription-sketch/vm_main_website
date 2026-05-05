@@ -28,6 +28,11 @@ except ImportError:
     connect = None
     Json = None
     execute_values = None
+try:
+    import psycopg2
+    import psycopg2.extras
+except ImportError:
+    psycopg2 = None
 
 from supabase import create_client
 
@@ -148,6 +153,269 @@ def get_supabase_client():
 
 def get_postgres_connection_url():
     return os.getenv("SUPABASE_POSTGRES_URL", "").strip() or os.getenv("DATABASE_URL", "").strip()
+
+
+def resolve_colleges_columns(conn):
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'public' AND table_name = 'colleges'
+            """
+        )
+        available = {row["column_name"] for row in cur.fetchall()}
+
+    def pick_column(candidates):
+        for candidate in candidates:
+            if candidate in available:
+                return candidate
+        return None
+
+    return {
+        "name": pick_column(["name", "Name", "college_name", "college", "title"]),
+        "state": pick_column(["state", "State", "state_name", "province"]),
+        "city": pick_column(["district", "District", "city", "city_name", "location", "Location"]),
+        "type": pick_column(["college type", "College Type", "college_type", "institution_type", "type"]),
+        "management": pick_column(["manegement", "Manegement", "management", "Management", "ownership"]),
+        "nirf": pick_column(["nirf", "nirf_rank", "rank", "nirf_ranking"]),
+        "year": pick_column(["year of establishment", "Year Of Establishment", "established", "established_year"]),
+        "university_name": pick_column(["university name", "University Name", "university_name", "university"]),
+        "logo_url": pick_column(["logo_url", "logo", "logo_link", "logo_path"]),
+        "source_url": pick_column(["website", "Website", "website_url", "source_url", "url"]),
+    }
+
+
+def build_college_select(col_map):
+    select_parts = []
+    for alias in (
+        "name",
+        "state",
+        "city",
+        "type",
+        "management",
+        "nirf",
+        "year",
+        "university_name",
+        "logo_url",
+        "source_url",
+    ):
+        column = col_map.get(alias)
+        if column:
+            select_parts.append(f'"{column}" AS {alias}')
+        else:
+            select_parts.append(f"NULL AS {alias}")
+    return ", ".join(select_parts)
+
+
+def normalize_external_url(value):
+    url = str(value or "").strip()
+    if not url:
+        return ""
+    if re.match(r"^[a-z][a-z0-9+.-]*://", url, flags=re.IGNORECASE):
+        return url
+    if url.startswith("//"):
+        return f"https:{url}"
+    return f"https://{url.lstrip('/')}"
+
+
+def clean_college_text(value):
+    text = str(value or "").strip()
+    if not text:
+        return ""
+
+    # Some imported Excel/database values contain control characters where
+    # apostrophes were expected, which browsers render as square boxes.
+    text = re.sub(r"(?<=\w)[\x00-\x1f\x7f]+(?=s\b)", "'", text)
+    text = re.sub(r"[\x00-\x1f\x7f]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def fetch_colleges_search(page, per_page, q=None, alpha=None, state=None):
+    if psycopg2 is None:
+        return [], 0, "psycopg2-binary is not installed."
+
+    db_url = get_postgres_connection_url()
+    if not db_url:
+        return [], 0, "SUPABASE_POSTGRES_URL or DATABASE_URL is not configured."
+
+    offset = (page - 1) * per_page if per_page else 0
+
+    try:
+        conn = psycopg2.connect(db_url, cursor_factory=psycopg2.extras.RealDictCursor)
+    except Exception as exc:
+        return [], 0, f"Database connection failed: {exc}"
+
+    try:
+        col_map = resolve_colleges_columns(conn)
+        if not col_map.get("name"):
+            return [], 0, "Could not find a college name column in the colleges table."
+
+        select_sql = build_college_select(col_map)
+
+        filters = []
+        params = []
+        if state and col_map.get("state"):
+            filters.append(f'"{col_map["state"]}" = %s')
+            params.append(state)
+
+        if alpha:
+            filters.append(f'"{col_map["name"]}" ILIKE %s')
+            params.append(f"{alpha}%")
+
+        if q:
+            like = f"%{q}%"
+            parts = [f'"{col_map["name"]}" ILIKE %s']
+            params.append(like)
+            for key in ("state", "city", "type", "management"):
+                if col_map.get(key):
+                    parts.append(f'"{col_map[key]}" ILIKE %s')
+                    params.append(like)
+            if col_map.get("university_name"):
+                parts.append(f'"{col_map["university_name"]}" ILIKE %s')
+                params.append(like)
+            filters.append("(" + " OR ".join(parts) + ")")
+
+        where_clause = f"WHERE {' AND '.join(filters)}" if filters else ""
+
+        count_sql = f"SELECT COUNT(*) FROM colleges {where_clause}"
+        data_sql = f"SELECT {select_sql} FROM colleges {where_clause} ORDER BY name"
+        data_params = list(params)
+        if per_page:
+            data_sql += " LIMIT %s OFFSET %s"
+            data_params.extend([per_page, offset])
+
+        with conn.cursor() as cur:
+            cur.execute(count_sql, params)
+            total = cur.fetchone()["count"]
+
+            cur.execute(data_sql, data_params)
+            rows = cur.fetchall()
+    except Exception as exc:
+        return [], 0, f"Database query failed: {exc}"
+    finally:
+        conn.close()
+
+    colleges = [
+        {
+            "name": clean_college_text(row.get("name")),
+            "state": clean_college_text(row.get("state")),
+            "city": clean_college_text(row.get("city")),
+            "type": clean_college_text(row.get("type")),
+            "management": clean_college_text(row.get("management")),
+            "nirf": clean_college_text(row.get("nirf")),
+            "year": clean_college_text(row.get("year")),
+            "university_name": clean_college_text(row.get("university_name")),
+            "logo_url": row.get("logo_url") or "",
+            "source_url": normalize_external_url(row.get("source_url")),
+        }
+        for row in rows
+    ]
+
+    return colleges, total, None
+
+
+def fetch_college_state_counts():
+    if psycopg2 is None:
+        return [], 0, "psycopg2-binary is not installed."
+
+    db_url = get_postgres_connection_url()
+    if not db_url:
+        return [], 0, "SUPABASE_POSTGRES_URL or DATABASE_URL is not configured."
+
+    try:
+        conn = psycopg2.connect(db_url, cursor_factory=psycopg2.extras.RealDictCursor)
+    except Exception as exc:
+        return [], 0, f"Database connection failed: {exc}"
+
+    try:
+        col_map = resolve_colleges_columns(conn)
+        if not col_map.get("state"):
+            return [], 0, "Could not find a state column in the colleges table."
+
+        sql = (
+            f"SELECT \"{col_map['state']}\" AS state, COUNT(*) AS count "
+            f"FROM colleges WHERE \"{col_map['state']}\" IS NOT NULL "
+            f"AND \"{col_map['state']}\" <> '' "
+            f"GROUP BY \"{col_map['state']}\" ORDER BY \"{col_map['state']}\""
+        )
+        with conn.cursor() as cur:
+            cur.execute(sql)
+            rows = cur.fetchall()
+    except Exception as exc:
+        return [], 0, f"Database query failed: {exc}"
+    finally:
+        conn.close()
+
+    total = sum(row.get("count", 0) or 0 for row in rows)
+    return rows, total, None
+
+
+def fetch_colleges_by_states(states, limit_per_state=None):
+    if psycopg2 is None:
+        return [], "psycopg2-binary is not installed."
+
+    db_url = get_postgres_connection_url()
+    if not db_url:
+        return [], "SUPABASE_POSTGRES_URL or DATABASE_URL is not configured."
+
+    if not states:
+        return [], None
+
+    try:
+        conn = psycopg2.connect(db_url, cursor_factory=psycopg2.extras.RealDictCursor)
+    except Exception as exc:
+        return [], f"Database connection failed: {exc}"
+
+    try:
+        col_map = resolve_colleges_columns(conn)
+        if not col_map.get("state") or not col_map.get("name"):
+            return [], "Could not resolve required columns for colleges."
+
+        select_sql = build_college_select(col_map)
+        if limit_per_state:
+            sql = (
+                "SELECT * FROM ("
+                f"SELECT {select_sql}, "
+                f"ROW_NUMBER() OVER (PARTITION BY \"{col_map['state']}\" "
+                f"ORDER BY \"{col_map['name']}\") AS row_num "
+                f"FROM colleges WHERE \"{col_map['state']}\" = ANY(%s)"
+                ") ranked WHERE row_num <= %s "
+                "ORDER BY state, name"
+            )
+            query_params = (states, limit_per_state)
+        else:
+            sql = (
+                f"SELECT {select_sql} FROM colleges "
+                f"WHERE \"{col_map['state']}\" = ANY(%s) "
+                f"ORDER BY name"
+            )
+            query_params = (states,)
+        with conn.cursor() as cur:
+            cur.execute(sql, query_params)
+            rows = cur.fetchall()
+    except Exception as exc:
+        return [], f"Database query failed: {exc}"
+    finally:
+        conn.close()
+
+    colleges = [
+        {
+            "name": clean_college_text(row.get("name")),
+            "state": clean_college_text(row.get("state")),
+            "city": clean_college_text(row.get("city")),
+            "type": clean_college_text(row.get("type")),
+            "management": clean_college_text(row.get("management")),
+            "nirf": clean_college_text(row.get("nirf")),
+            "year": clean_college_text(row.get("year")),
+            "university_name": clean_college_text(row.get("university_name")),
+            "logo_url": row.get("logo_url") or "",
+            "source_url": normalize_external_url(row.get("source_url")),
+        }
+        for row in rows
+    ]
+
+    return colleges, None
 
 
 def get_auth_db_connection():
@@ -957,17 +1225,122 @@ def university_detail(slug):
 
 @app.route("/colleges")
 def colleges():
-    states = sorted({item["state"] for item in COLLEGES_DATA})
-    cities = sorted({item["city"] for item in COLLEGES_DATA})
-    types = sorted({item["type"] for item in COLLEGES_DATA})
-    streams = sorted({item["stream"] for item in COLLEGES_DATA})
+    q = (request.args.get("q") or "").strip()
+    alpha = (request.args.get("alpha") or "").strip().upper()
+    if alpha and not re.fullmatch(r"[A-Z]", alpha):
+        alpha = ""
+    state_filter = (request.args.get("state") or "").strip()
+    per_page_options = [25, 50, 100]
+    try:
+        requested_per_page = int(request.args.get("per_page", "25"))
+    except ValueError:
+        requested_per_page = 25
+    per_page = requested_per_page if requested_per_page in per_page_options else 25
+
+    try:
+        page = int(request.args.get("page", "1"))
+    except ValueError:
+        page = 1
+    page = max(1, page)
+
+    state_counts, total_colleges, state_err = fetch_college_state_counts()
+    if state_err:
+        app.logger.warning("colleges DB error: %s", state_err)
+
+    error = state_err
+    grouped_states = []
+    colleges_rows = []
+    search_mode = bool(q or alpha or state_filter)
+    total_pages = 1
+    paginate_results = bool(state_filter)
+
+    if search_mode:
+        query_page = page if paginate_results else 1
+        query_per_page = per_page if paginate_results else None
+        colleges_rows, total, db_error = fetch_colleges_search(
+            query_page,
+            query_per_page,
+            q=q or None,
+            alpha=alpha or None,
+            state=state_filter or None,
+        )
+        if db_error:
+            app.logger.warning("colleges DB error: %s", db_error)
+            error = db_error
+        if paginate_results:
+            total_pages = max(1, (total + per_page - 1) // per_page) if total else 1
+            if page > total_pages:
+                page = total_pages
+                colleges_rows, total, db_error = fetch_colleges_search(
+                    page,
+                    per_page,
+                    q=q or None,
+                    alpha=alpha or None,
+                    state=state_filter or None,
+                )
+                if db_error:
+                    app.logger.warning("colleges DB error: %s", db_error)
+                    error = db_error
+        pagination_label = "colleges"
+        pagination_start = ((page - 1) * per_page + 1) if total and paginate_results else (1 if total else 0)
+        pagination_end = min(page * per_page, total) if paginate_results else total
+    else:
+        page = 1
+        per_page = None
+        page_states = state_counts
+        state_names = [row.get("state") for row in page_states if row.get("state")]
+
+        colleges_rows, db_error = fetch_colleges_by_states(state_names, limit_per_state=12)
+        if db_error:
+            app.logger.warning("colleges DB error: %s", db_error)
+            error = db_error
+
+        buckets = {name: [] for name in state_names}
+        for college in colleges_rows:
+            buckets.setdefault(college.get("state") or "", []).append(college)
+
+        grouped_states = [
+            {
+                "state": row.get("state"),
+                "count": row.get("count", 0),
+                "colleges": buckets.get(row.get("state"), []),
+            }
+            for row in page_states
+        ]
+
+        pagination_label = "states"
+        pagination_start = 1 if state_counts else 0
+        pagination_end = len(state_counts)
+        total = len(state_counts)
+
+    has_prev = page > 1
+    has_next = page < total_pages
+
     return render_template(
         "colleges.html",
-        colleges=COLLEGES_DATA,
-        states=states,
-        cities=cities,
-        types=types,
-        streams=streams,
+        colleges=colleges_rows,
+        grouped_states=grouped_states,
+        state_counts=state_counts,
+        total_colleges=total_colleges,
+        total=total,
+        page=page,
+        per_page=per_page,
+        total_pages=total_pages,
+        has_prev=has_prev,
+        has_next=has_next,
+        prev_page=page - 1,
+        next_page=page + 1,
+        pagination_label=pagination_label,
+        pagination_start=pagination_start,
+        pagination_end=pagination_end,
+        search_mode=search_mode,
+        query=q,
+        alpha=alpha,
+        alphabet=list("ABCDEFGHIJKLMNOPQRSTUVWXYZ"),
+        state_filter=state_filter,
+        per_page_options=per_page_options,
+        paginate_results=paginate_results,
+        error=error,
     )
 
 
