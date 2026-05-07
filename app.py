@@ -10,6 +10,7 @@ import sqlite3
 import secrets
 import smtplib
 import time
+from functools import wraps
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, unquote, urljoin, urlparse, urlencode
 from urllib.request import Request, urlopen
@@ -41,8 +42,14 @@ from supabase import create_client
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = "vidyarthi-mitra-dev-key"
+app.secret_key = (
+    os.getenv("FLASK_SECRET_KEY", "").strip()
+    or os.getenv("SECRET_KEY", "").strip()
+    or "vidyarthi-mitra-dev-key"
+)
 app.config["MAX_CONTENT_LENGTH"] = 15 * 1024 * 1024  # 15 MB upload limit
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 AUTH_DB_PATH = os.path.join(app.root_path, "auth_users.db")
 
 COURSES_DB_URL = (
@@ -832,15 +839,44 @@ def get_auth_db_connection():
         )
         """
     )
+    columns = {
+        row["name"]
+        for row in connection.execute("PRAGMA table_info(users)").fetchall()
+    }
+    if "role" not in columns:
+        connection.execute(
+            "ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'"
+        )
     connection.commit()
     return connection
+
+
+def normalize_auth_role(value):
+    return "admin" if str(value or "").strip().lower() == "admin" else "user"
+
+
+def create_auth_session_user(name, email, role="user"):
+    return {
+        "name": str(name or "").strip(),
+        "email": str(email or "").strip().lower(),
+        "role": normalize_auth_role(role),
+    }
 
 
 def get_logged_in_user():
     user = session.get("auth_user")
     if isinstance(user, dict) and user.get("email"):
-        return user
+        return create_auth_session_user(
+            user.get("name", ""),
+            user.get("email", ""),
+            user.get("role", "user"),
+        )
     return None
+
+
+def is_admin_user(user=None):
+    current_user = user or get_logged_in_user()
+    return bool(current_user and normalize_auth_role(current_user.get("role")) == "admin")
 
 
 def generate_login_otp():
@@ -852,6 +888,7 @@ def store_pending_login_otp(user):
     session["pending_otp"] = {
         "name": user["name"],
         "email": user["email"],
+        "role": normalize_auth_role(user.get("role")),
         "provider": "local_email",
         "otp_hash": generate_password_hash(otp_code),
         "expires_at": int(time.time()) + 300,
@@ -879,6 +916,137 @@ def get_env_value(*names, default=""):
         if value:
             return value
     return default
+
+
+def get_admin_registration_code():
+    return get_env_value("ADMIN_REGISTRATION_CODE", "ADMIN_SIGNUP_CODE")
+
+
+def allow_first_admin_bootstrap():
+    value = get_env_value(
+        "ALLOW_FIRST_ADMIN_BOOTSTRAP",
+        "ALLOW_ADMIN_BOOTSTRAP",
+        default="1",
+    ).lower()
+    return value not in {"0", "false", "no", "off"}
+
+
+def count_admin_users(connection):
+    row = connection.execute(
+        "SELECT COUNT(*) AS admin_count FROM users WHERE role = 'admin'"
+    ).fetchone()
+    if row is None:
+        return 0
+    return int(row["admin_count"])
+
+
+def get_admin_registration_context():
+    with get_auth_db_connection() as connection:
+        admin_count = count_admin_users(connection)
+
+    admin_code_configured = bool(get_admin_registration_code())
+    bootstrap_available = admin_count == 0 and allow_first_admin_bootstrap()
+    return {
+        "admin_registration_code_configured": admin_code_configured,
+        "admin_bootstrap_available": bootstrap_available,
+    }
+
+
+def resolve_registration_role(connection, requested_role, admin_access_code):
+    normalized_role = normalize_auth_role(requested_role)
+    if normalized_role != "admin":
+        return "user", None
+
+    admin_code = get_admin_registration_code()
+    if admin_code:
+        if admin_access_code and hmac.compare_digest(admin_access_code, admin_code):
+            return "admin", None
+        return None, "Enter a valid admin access code to create an admin account."
+
+    if count_admin_users(connection) == 0 and allow_first_admin_bootstrap():
+        return "admin", None
+
+    return None, "Admin registration is locked. Add ADMIN_REGISTRATION_CODE to your .env to create another admin account."
+
+
+def sanitize_next_url(candidate):
+    if not isinstance(candidate, str):
+        return ""
+    candidate = candidate.strip()
+    if not candidate or not candidate.startswith("/") or candidate.startswith("//"):
+        return ""
+
+    parsed = urlparse(candidate)
+    if parsed.scheme or parsed.netloc:
+        return ""
+
+    return candidate
+
+
+def get_requested_next_url():
+    return sanitize_next_url(request.form.get("next") or request.args.get("next"))
+
+
+def remember_post_auth_redirect():
+    next_url = get_requested_next_url()
+    if next_url:
+        session["post_auth_redirect"] = next_url
+    else:
+        session.pop("post_auth_redirect", None)
+
+
+def resolve_post_auth_redirect(default_endpoint="index"):
+    next_url = get_requested_next_url()
+    if next_url:
+        session.pop("post_auth_redirect", None)
+        return next_url
+
+    stored_next = sanitize_next_url(session.pop("post_auth_redirect", ""))
+    if stored_next:
+        return stored_next
+
+    return url_for(default_endpoint)
+
+
+def render_auth_page(mode, page_title, **context):
+    payload = {
+        "mode": mode,
+        "page_title": page_title,
+        "next_url": get_requested_next_url() or sanitize_next_url(session.get("post_auth_redirect", "")),
+    }
+    if mode == "register":
+        payload.update(get_admin_registration_context())
+    payload.update(context)
+    return render_template("auth.html", **payload)
+
+
+def is_api_request():
+    return (
+        request.path.startswith("/api/")
+        or request.is_json
+        or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    )
+
+
+def admin_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        current_user = get_logged_in_user()
+        if current_user is None:
+            if is_api_request():
+                return jsonify({"error": "Login required."}), 401
+
+            next_url = request.full_path.rstrip("?") if request.query_string else request.path
+            return redirect(url_for("login", next=next_url))
+
+        if not is_admin_user(current_user):
+            if is_api_request():
+                return jsonify({"error": "Admin access required."}), 403
+            return "Admin access required.", 403
+
+        return view(*args, **kwargs)
+
+    return wrapped
 
 
 def get_otp_provider():
@@ -1554,11 +1722,52 @@ def epaper_pdf_proxy():
         return jsonify({"error": "Unable to fetch PDF from source URL."}), 502
 
 @app.route("/admin")
+@admin_required
 def admin():
     return render_template("epaperadmin.html")
 
 
+@app.route("/admin-panel")
+@admin_required
+def admin_panel():
+    auth_user = get_logged_in_user()
+    admin_tools = [
+        {
+            "title": "E-Paper Studio",
+            "description": "Create editions, position article blocks, and publish the visual e-paper layout.",
+            "href": url_for("epaper.epaper_admin_v2"),
+            "status": "Ready",
+        },
+        {
+            "title": "Legacy VM Admin",
+            "description": "Open the upstream VM admin interface proxied through this website.",
+            "href": url_for("admin"),
+            "status": "Configured" if VMADMIN_BASE_URL else "Needs VMADMIN_BASE_URL",
+        },
+        {
+            "title": "Excel Upload",
+            "description": "Import colleges, universities, courses, and entrance exam data from spreadsheets.",
+            "href": url_for("excel_upload"),
+            "status": "Ready",
+        },
+        {
+            "title": "Public E-Paper Preview",
+            "description": "Jump into the live reader to verify the final public experience after publishing.",
+            "href": url_for("epaper"),
+            "status": "Public",
+        },
+    ]
+    return render_template(
+        "admin_panel.html",
+        auth_user=auth_user,
+        admin_tools=admin_tools,
+        vmadmin_configured=bool(VMADMIN_BASE_URL),
+        otp_provider=get_otp_provider(),
+    )
+
+
 @app.route("/api/vmadmin/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+@admin_required
 def vmadmin_proxy(subpath):
     if not VMADMIN_BASE_URL:
         return jsonify({"error": "VMADMIN_BASE_URL is not configured."}), 500
@@ -2218,18 +2427,20 @@ def register():
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
         confirm_password = request.form.get("confirm_password", "")
+        requested_role = request.form.get("account_type", "user")
+        admin_access_code = request.form.get("admin_access_code", "").strip()
 
         if not name or not email or not password or not confirm_password:
             flash("Please fill in all registration fields.", "error")
-            return render_template("auth.html", mode="register", page_title="Register")
+            return render_auth_page("register", "Register")
 
         if password != confirm_password:
             flash("Passwords do not match.", "error")
-            return render_template("auth.html", mode="register", page_title="Register")
+            return render_auth_page("register", "Register")
 
         if len(password) < 6:
             flash("Password must be at least 6 characters long.", "error")
-            return render_template("auth.html", mode="register", page_title="Register")
+            return render_auth_page("register", "Register")
 
         with get_auth_db_connection() as connection:
             existing_user = connection.execute(
@@ -2239,40 +2450,51 @@ def register():
 
             if existing_user is not None:
                 flash("An account with this email already exists.", "error")
-                return render_template("auth.html", mode="register", page_title="Register")
+                return render_auth_page("register", "Register")
+
+            role, role_error = resolve_registration_role(
+                connection,
+                requested_role,
+                admin_access_code,
+            )
+            if role_error:
+                flash(role_error, "error")
+                return render_auth_page("register", "Register")
 
             connection.execute(
-                "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
-                (name, email, generate_password_hash(password)),
+                "INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)",
+                (name, email, generate_password_hash(password), role),
             )
             connection.commit()
 
-        session["auth_user"] = {"name": name, "email": email}
+        session["auth_user"] = create_auth_session_user(name, email, role)
         session.pop("pending_otp", None)
-        return redirect(url_for("index"))
+        default_endpoint = "admin_panel" if role == "admin" else "index"
+        return redirect(resolve_post_auth_redirect(default_endpoint=default_endpoint))
 
-    return render_template("auth.html", mode="register", page_title="Register")
+    return render_auth_page("register", "Register")
 
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
+        remember_post_auth_redirect()
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
 
         if not email or not password:
             flash("Please enter your email and password.", "error")
-            return render_template("auth.html", mode="login", page_title="Login")
+            return render_auth_page("login", "Login")
 
         with get_auth_db_connection() as connection:
             user = connection.execute(
-                "SELECT name, email, password_hash FROM users WHERE email = ?",
+                "SELECT name, email, password_hash, role FROM users WHERE email = ?",
                 (email,),
             ).fetchone()
 
         if user is None or not check_password_hash(user["password_hash"], password):
             flash("Invalid email or password.", "error")
-            return render_template("auth.html", mode="login", page_title="Login")
+            return render_auth_page("login", "Login")
 
         provider = get_otp_provider()
         otp_sent = False
@@ -2288,6 +2510,7 @@ def login():
                 session["pending_otp"] = {
                     "name": user["name"],
                     "email": user["email"],
+                    "role": normalize_auth_role(user["role"]),
                     "provider": "twilio_verify",
                     "expires_at": int(time.time()) + 600,
                     "attempts": 0,
@@ -2297,7 +2520,9 @@ def login():
                 flash("OTP sent to your email. Enter it on the next screen.", "success")
                 return redirect(url_for("verify_otp"))
 
-        otp_code = store_pending_login_otp({"name": user["name"], "email": user["email"]})
+        otp_code = store_pending_login_otp(
+            {"name": user["name"], "email": user["email"], "role": user["role"]}
+        )
         try:
             otp_sent = send_login_otp_email(user["email"], user["name"], otp_code)
         except Exception as exc:
@@ -2314,7 +2539,7 @@ def login():
         )
         return redirect(url_for("verify_otp"))
 
-    return render_template("auth.html", mode="login", page_title="Login")
+    return render_auth_page("login", "Login")
 
 
 @app.route("/verify-otp", methods=["GET", "POST"])
@@ -2333,10 +2558,9 @@ def verify_otp():
 
         if not re.fullmatch(r"\d{6}", otp_code):
             flash("Enter the 6-digit OTP.", "error")
-            return render_template(
-                "auth.html",
-                mode="otp",
-                page_title="Verify OTP",
+            return render_auth_page(
+                "otp",
+                "Verify OTP",
                 otp_email=pending_otp["email"],
                 otp_preview=otp_preview,
                 otp_expires_at=pending_otp["expires_at"],
@@ -2352,37 +2576,40 @@ def verify_otp():
         if pending_otp.get("provider") == "twilio_verify":
             try:
                 if verify_twilio_code(pending_otp["email"], otp_code):
-                    session["auth_user"] = {
-                        "name": pending_otp["name"],
-                        "email": pending_otp["email"],
-                    }
+                    session["auth_user"] = create_auth_session_user(
+                        pending_otp["name"],
+                        pending_otp["email"],
+                        pending_otp.get("role"),
+                    )
                     session.pop("pending_otp", None)
                     session.pop("otp_delivery_mode", None)
                     session.pop("pending_otp_preview", None)
                     flash("Login successful.", "success")
-                    return redirect(url_for("index"))
+                    default_endpoint = "admin_panel" if is_admin_user(session["auth_user"]) else "index"
+                    return redirect(resolve_post_auth_redirect(default_endpoint=default_endpoint))
             except Exception as exc:
                 app.logger.warning("Twilio Verify validation failed: %s", exc)
 
         elif check_password_hash(pending_otp["otp_hash"], otp_code):
-            session["auth_user"] = {
-                "name": pending_otp["name"],
-                "email": pending_otp["email"],
-            }
+            session["auth_user"] = create_auth_session_user(
+                pending_otp["name"],
+                pending_otp["email"],
+                pending_otp.get("role"),
+            )
             session.pop("pending_otp", None)
             session.pop("otp_delivery_mode", None)
             session.pop("pending_otp_preview", None)
             flash("Login successful.", "success")
-            return redirect(url_for("index"))
+            default_endpoint = "admin_panel" if is_admin_user(session["auth_user"]) else "index"
+            return redirect(resolve_post_auth_redirect(default_endpoint=default_endpoint))
 
         pending_otp["attempts"] = pending_otp.get("attempts", 0) + 1
         session["pending_otp"] = pending_otp
         flash("Invalid OTP. Please try again.", "error")
 
-    return render_template(
-        "auth.html",
-        mode="otp",
-        page_title="Verify OTP",
+    return render_auth_page(
+        "otp",
+        "Verify OTP",
         otp_email=pending_otp["email"],
         otp_preview=otp_preview,
         otp_expires_at=pending_otp["expires_at"],
@@ -2442,10 +2669,12 @@ def logout():
     session.pop("pending_otp", None)
     session.pop("otp_delivery_mode", None)
     session.pop("pending_otp_preview", None)
+    session.pop("post_auth_redirect", None)
     return redirect(url_for("index"))
 
 
 @app.route("/excel-upload", methods=["GET", "POST"])
+@admin_required
 def excel_upload():
     allowed_tables = {item["value"] for item in UPLOAD_TARGET_TABLES}
     default_table = os.getenv("SUPABASE_EXCEL_TABLE", "universities").strip() or "universities"

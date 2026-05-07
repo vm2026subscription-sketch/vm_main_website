@@ -330,6 +330,60 @@
         margin-bottom: 16px;
     }
 
+    .auth-role-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+
+    .auth-role-option {
+        position: relative;
+    }
+
+    .auth-role-option input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .auth-role-card {
+        display: block;
+        min-height: 100%;
+        padding: 14px 14px 13px;
+        border: 1px solid #dbe4f0;
+        border-radius: 12px;
+        background: #fff;
+        cursor: pointer;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .auth-role-card strong {
+        display: block;
+        margin-bottom: 5px;
+        color: var(--auth-ink);
+        font-size: 14px;
+        font-weight: 800;
+    }
+
+    .auth-role-card span {
+        display: block;
+        color: var(--auth-muted);
+        font-size: 12px;
+        line-height: 1.55;
+    }
+
+    .auth-role-option input:checked + .auth-role-card {
+        border-color: rgba(255, 102, 0, 0.55);
+        background: #fff7ed;
+        box-shadow: 0 12px 22px rgba(255, 102, 0, 0.12);
+        transform: translateY(-1px);
+    }
+
+    .auth-role-card:hover {
+        border-color: rgba(255, 102, 0, 0.35);
+    }
+
     .auth-form label {
         display: block;
         margin-bottom: 7px;
@@ -468,6 +522,39 @@
         text-align: center;
     }
 
+    .auth-admin-panel {
+        display: none;
+        margin: -2px 0 16px;
+        padding: 14px;
+        border-radius: 12px;
+        border: 1px solid #dbe4f0;
+        background: linear-gradient(135deg, #fff9f2 0%, #ffffff 100%);
+    }
+
+    .auth-admin-panel.is-visible {
+        display: block;
+    }
+
+    .auth-admin-panel strong {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--auth-ink);
+        font-size: 13px;
+    }
+
+    .auth-admin-panel p {
+        margin: 0 0 10px;
+        color: var(--auth-muted);
+        font-size: 12px;
+        line-height: 1.55;
+    }
+
+    .auth-admin-panel .auth-note {
+        margin-top: 10px;
+        text-align: left;
+        font-size: 11px;
+    }
+
     .auth-switch {
         margin-top: 20px;
         padding-top: 18px;
@@ -499,6 +586,10 @@
         .auth-shell {
             grid-template-columns: 1fr;
             max-width: 680px;
+        }
+
+        .auth-role-grid {
+            grid-template-columns: 1fr;
         }
 
         .auth-visual {
@@ -629,11 +720,11 @@
 
             {% if mode != 'otp' %}
             <div class="auth-mode-switch" role="tablist" aria-label="Choose login or register">
-                <a href="{{ url_for('login') }}" class="{% if mode == 'login' %}is-active{% endif %}" role="tab" aria-selected="{% if mode == 'login' %}true{% else %}false{% endif %}">
+                <a href="{{ url_for('login', next=next_url) if next_url else url_for('login') }}" class="{% if mode == 'login' %}is-active{% endif %}" role="tab" aria-selected="{% if mode == 'login' %}true{% else %}false{% endif %}">
                     <i class="fa fa-sign-in" aria-hidden="true"></i>
                     <span>Login</span>
                 </a>
-                <a href="{{ url_for('register') }}" class="{% if mode == 'register' %}is-active{% endif %}" role="tab" aria-selected="{% if mode == 'register' %}true{% else %}false{% endif %}">
+                <a href="{{ url_for('register', next=next_url) if next_url else url_for('register') }}" class="{% if mode == 'register' %}is-active{% endif %}" role="tab" aria-selected="{% if mode == 'register' %}true{% else %}false{% endif %}">
                     <i class="fa fa-user-plus" aria-hidden="true"></i>
                     <span>Register</span>
                 </a>
@@ -654,6 +745,7 @@
             </div>
 
             <form class="auth-form" method="post" data-auth-form>
+                <input type="hidden" name="next" value="{{ next_url or '' }}">
                 {% if mode == 'otp' %}
                 <div class="otp-panel">
                     <strong>We sent a one-time code to {{ otp_email }}.</strong>
@@ -740,6 +832,67 @@
                             required
                         >
                     </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Account type</label>
+                    <div class="auth-role-grid" role="radiogroup" aria-label="Choose account type">
+                        <label class="auth-role-option">
+                            <input
+                                type="radio"
+                                name="account_type"
+                                value="user"
+                                {% if request.form.get('account_type', 'user') != 'admin' %}checked{% endif %}
+                                data-role-option
+                            >
+                            <span class="auth-role-card">
+                                <strong>Student account</strong>
+                                <span>Standard access for guidance, news, cutoffs, and the public student-facing tools.</span>
+                            </span>
+                        </label>
+                        <label class="auth-role-option">
+                            <input
+                                type="radio"
+                                name="account_type"
+                                value="admin"
+                                {% if request.form.get('account_type') == 'admin' %}checked{% endif %}
+                                data-role-option
+                            >
+                            <span class="auth-role-card">
+                                <strong>Admin account</strong>
+                                <span>Unlock the admin panel, e-paper editor, uploads, and protected operational tools.</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="auth-admin-panel{% if request.form.get('account_type') == 'admin' %} is-visible{% endif %}" id="adminAccessPanel">
+                    <strong>Admin access</strong>
+                    <p>
+                        {% if admin_registration_code_configured %}
+                            Enter the admin access code to create an admin account.
+                        {% elif admin_bootstrap_available %}
+                            No admin exists yet, so the first admin signup can bootstrap admin access even without a code.
+                        {% else %}
+                            Admin signups are currently locked until an admin access code is configured in the environment.
+                        {% endif %}
+                    </p>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="admin_access_code">Admin access code</label>
+                        <div class="auth-input-wrap">
+                            <i class="fa fa-shield auth-input-icon" aria-hidden="true"></i>
+                            <input
+                                type="password"
+                                class="form-control"
+                                id="admin_access_code"
+                                name="admin_access_code"
+                                value="{{ request.form.get('admin_access_code', '') }}"
+                                placeholder="Enter admin access code if required"
+                                autocomplete="one-time-code"
+                            >
+                        </div>
+                    </div>
+                    <p class="auth-note">If there is already an admin on this system, the admin access code is required for any additional admin registration.</p>
                 </div>
 
                 <div class="form-group">
@@ -847,11 +1000,11 @@
 
             <div class="auth-switch">
                 {% if mode == 'otp' %}
-                    Wrong email or need a fresh start? <a href="{{ url_for('login') }}">Go back to login</a>
+                    Wrong email or need a fresh start? <a href="{{ url_for('login', next=next_url) if next_url else url_for('login') }}">Go back to login</a>
                 {% elif mode == 'register' %}
-                    Already have an account? <a href="{{ url_for('login') }}">Login instead</a>
+                    Already have an account? <a href="{{ url_for('login', next=next_url) if next_url else url_for('login') }}">Login instead</a>
                 {% else %}
-                    New to Vidyarthi Mitra? <a href="{{ url_for('register') }}">Create an account</a>
+                    New to Vidyarthi Mitra? <a href="{{ url_for('register', next=next_url) if next_url else url_for('register') }}">Create an account</a>
                 {% endif %}
             </div>
         </section>
@@ -897,6 +1050,15 @@
             confirmPassword.setCustomValidity(mismatch ? 'Passwords do not match.' : '');
         }
 
+        function updateAdminAccessPanel() {
+            var panel = document.getElementById('adminAccessPanel');
+            if (!panel) return;
+
+            var selectedRole = document.querySelector('[data-role-option]:checked');
+            var showAdminPanel = selectedRole && selectedRole.value === 'admin';
+            panel.classList.toggle('is-visible', !!showAdminPanel);
+        }
+
         document.querySelectorAll('[data-password-toggle]').forEach(function(button) {
             button.addEventListener('click', function() {
                 var input = document.getElementById(button.getAttribute('data-password-toggle'));
@@ -921,6 +1083,10 @@
             confirmPassword.addEventListener('input', validateConfirmPassword);
         }
 
+        document.querySelectorAll('[data-role-option]').forEach(function(option) {
+            option.addEventListener('change', updateAdminAccessPanel);
+        });
+
         form.addEventListener('submit', function() {
             validateConfirmPassword();
             if (!form.checkValidity()) return;
@@ -933,6 +1099,7 @@
         });
 
         updatePasswordStrength();
+        updateAdminAccessPanel();
     })();
 </script>
 {% endblock %}

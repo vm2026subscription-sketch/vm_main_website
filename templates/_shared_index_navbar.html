@@ -215,6 +215,17 @@
     color: #e55a00;
   }
 
+  .vm-main-links a.nav-admin {
+    background: #17324d;
+    color: #fff;
+    border-color: #17324d;
+  }
+
+  .vm-main-links a.nav-admin:hover {
+    background: #10263c;
+    color: #fff;
+  }
+
   @media (max-width: 768px) {
     .vm-main-links a.nav-auth { padding: 6px 8px; font-size: 12px; }
     .vm-main-links a { padding: 12px 8px; font-size: 11px; }
@@ -359,6 +370,9 @@
       <a href="{{ url_for('guide_me') }}" class="{% if request.endpoint == 'guide_me' %}vm-active{% endif %}">Guide Me</a>
       <a href="javascript:void(0)" class="vm-search vm-search-trigger"><i class="fa fa-search"></i></a>
       {% if session.get('auth_user') %}
+      {% if session.get('auth_user', {}).get('role') == 'admin' %}
+      <a href="{{ url_for('admin_panel') }}" class="nav-auth nav-admin">Admin Panel</a>
+      {% endif %}
       <a href="{{ url_for('logout') }}" class="nav-auth nav-login">Logout</a>
       {% else %}
       <a href="{{ url_for('login') }}" class="nav-auth nav-login">Login</a>

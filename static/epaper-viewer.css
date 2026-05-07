@@ -48,7 +48,23 @@ body.epaper-body {
 .ep-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
 .ep-logo-img { height: 36px; }
 .ep-logo-text { font-size: 11px; color: var(--ep-muted); font-weight: 500; line-height: 1.3; }
-.ep-logo-text strong { display: block; font-size: 14px; color: var(--ep-red); font-weight: 800; }
+.ep-logo-text strong {
+  display: block;
+  font-size: 14px;
+  color: var(--ep-red);
+  font-weight: 800;
+  max-width: 240px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ep-logo-text span {
+  display: block;
+  max-width: 260px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .ep-date-btn {
   display: flex; align-items: center; gap: 8px;
@@ -186,6 +202,29 @@ body.epaper-body {
 .ep-block-card:hover {
   transform: translateY(-3px);
   box-shadow: 0 8px 24px rgba(0,0,0,.15);
+}
+.ep-block-divider-card {
+  position: absolute;
+  border-radius: 10px;
+  overflow: hidden;
+  background: repeating-linear-gradient(45deg, #ffffff, #ffffff 12px, #f8fafc 12px, #f8fafc 24px);
+}
+.ep-block-divider {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+.ep-block-divider.vertical {
+  padding: 12px 0;
+}
+.ep-divider-line-preview.horizontal {
+  width: 100%;
+}
+.ep-divider-line-preview.vertical {
+  height: 100%;
 }
 .ep-block-img {
   width: 100%; height: 100%;
@@ -615,7 +654,12 @@ body.epaper-body {
 }
 
 @media (max-width: 480px) {
-  .ep-logo-text { display: none; }
+  .ep-logo-text {
+    display: block;
+    max-width: 118px;
+  }
+  .ep-logo-text strong { font-size: 12px; }
+  .ep-logo-text span { font-size: 10px; }
   .ep-date-btn span { display: none; }
   .ep-nav-item { padding: 0 12px; font-size: 12px; }
 }

@@ -5,8 +5,9 @@ import json
 import os
 import re
 from datetime import datetime
+from functools import wraps
 
-from flask import Blueprint, jsonify, render_template, request
+from flask import Blueprint, jsonify, redirect, render_template, request, session, url_for
 
 epaper_bp = Blueprint("epaper", __name__)
 
@@ -37,6 +38,47 @@ def _save_editions(data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
+def _get_logged_in_user():
+    user = session.get("auth_user")
+    if isinstance(user, dict) and user.get("email"):
+        return user
+    return None
+
+
+def _is_admin_user():
+    user = _get_logged_in_user()
+    return bool(user and str(user.get("role", "")).strip().lower() == "admin")
+
+
+def _is_api_request():
+    return (
+        request.path.startswith("/api/")
+        or request.is_json
+        or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    )
+
+
+def admin_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        user = _get_logged_in_user()
+        if user is None:
+            if _is_api_request():
+                return jsonify({"error": "Login required."}), 401
+
+            next_url = request.full_path.rstrip("?") if request.query_string else request.path
+            return redirect(url_for("login", next=next_url))
+
+        if not _is_admin_user():
+            if _is_api_request():
+                return jsonify({"error": "Admin access required."}), 403
+            return "Admin access required.", 403
+
+        return view(*args, **kwargs)
+
+    return wrapped
+
+
 # ── Viewer Page ────────────────────────────────────
 @epaper_bp.route("/epaper-viewer")
 @epaper_bp.route("/epaper-viewer/<date>")
@@ -47,6 +89,7 @@ def epaper_viewer(date=None, page=1):
 
 # ── Admin Page (Region Mapper) ─────────────────────
 @epaper_bp.route("/epaper-admin")
+@admin_required
 def epaper_admin_v2():
     return render_template("epaper_admin_v2.html")
 
@@ -96,6 +139,7 @@ def api_article(article_id):
 
 # ── API: Create / Update edition (Admin) ───────────
 @epaper_bp.route("/api/epaper/admin/edition", methods=["POST"])
+@admin_required
 def api_create_edition():
     data = request.get_json(silent=True) or {}
     date_str = data.get("date", "")
@@ -125,6 +169,7 @@ def api_create_edition():
 
 # ── API: Delete edition ───────────────────────────
 @epaper_bp.route("/api/epaper/admin/edition/<date>", methods=["DELETE"])
+@admin_required
 def api_delete_edition(date):
     editions = _load_editions()
     editions = [e for e in editions if e["date"] != date]

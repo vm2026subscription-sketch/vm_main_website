@@ -1,0 +1,277 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Panel - Vidyarthi Mitra{% endblock %}
+
+{% block page_styles %}
+<style>
+    .admin-page {
+        min-height: calc(100vh - 140px);
+        padding: 36px 16px 48px;
+        background:
+            radial-gradient(circle at top left, rgba(255, 102, 0, 0.12), transparent 24%),
+            linear-gradient(180deg, #f8fafc 0%, #eef4fb 100%);
+    }
+
+    .admin-shell {
+        width: min(1180px, 100%);
+        margin: 0 auto;
+        display: grid;
+        gap: 20px;
+    }
+
+    .admin-hero {
+        padding: 28px;
+        border-radius: 22px;
+        background: linear-gradient(135deg, #17324d 0%, #1f4f75 58%, #ff6600 100%);
+        color: #fff;
+        box-shadow: 0 26px 54px rgba(23, 50, 77, 0.2);
+    }
+
+    .admin-hero .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+        padding: 7px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.14);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .admin-hero h1 {
+        margin: 0 0 12px;
+        font-size: 36px;
+        line-height: 1.1;
+        font-weight: 800;
+    }
+
+    .admin-hero p {
+        max-width: 740px;
+        margin: 0;
+        font-size: 15px;
+        line-height: 1.7;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .admin-meta {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .admin-meta-card,
+    .admin-card {
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid rgba(219, 228, 240, 0.95);
+        box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
+    }
+
+    .admin-meta-card {
+        padding: 18px;
+    }
+
+    .admin-meta-card span {
+        display: block;
+        margin-bottom: 8px;
+        color: #667085;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .admin-meta-card strong {
+        display: block;
+        color: #172033;
+        font-size: 18px;
+        line-height: 1.4;
+        font-weight: 800;
+    }
+
+    .admin-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+    }
+
+    .admin-card {
+        padding: 22px;
+    }
+
+    .admin-card-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 14px;
+    }
+
+    .admin-card-title {
+        margin: 0;
+        color: #172033;
+        font-size: 22px;
+        line-height: 1.2;
+        font-weight: 800;
+    }
+
+    .admin-card-status {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 32px;
+        padding: 7px 12px;
+        border-radius: 999px;
+        background: #eff6ff;
+        color: #1d4ed8;
+        font-size: 12px;
+        font-weight: 800;
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    .admin-card p {
+        margin: 0 0 18px;
+        color: #667085;
+        font-size: 14px;
+        line-height: 1.7;
+    }
+
+    .admin-card-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .admin-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 44px;
+        padding: 11px 15px;
+        border-radius: 12px;
+        background: #ff6600;
+        color: #fff;
+        font-size: 13px;
+        font-weight: 800;
+        box-shadow: 0 14px 28px rgba(255, 102, 0, 0.18);
+        transition: transform 0.2s ease, background-color 0.2s ease;
+    }
+
+    .admin-link:hover,
+    .admin-link:focus {
+        color: #fff;
+        background: #e85c00;
+        transform: translateY(-1px);
+        outline: none;
+    }
+
+    .admin-link.admin-link-soft {
+        background: #fff;
+        color: #17324d;
+        border: 1px solid rgba(23, 50, 77, 0.14);
+        box-shadow: none;
+    }
+
+    .admin-link.admin-link-soft:hover,
+    .admin-link.admin-link-soft:focus {
+        background: #f8fafc;
+        color: #10263c;
+    }
+
+    .admin-notes {
+        padding: 22px;
+    }
+
+    .admin-notes h2 {
+        margin: 0 0 10px;
+        color: #172033;
+        font-size: 22px;
+        font-weight: 800;
+    }
+
+    .admin-notes p {
+        margin: 0;
+        color: #667085;
+        font-size: 14px;
+        line-height: 1.75;
+    }
+
+    @media (max-width: 900px) {
+        .admin-meta,
+        .admin-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .admin-hero {
+            padding: 22px;
+        }
+
+        .admin-hero h1 {
+            font-size: 30px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="admin-page">
+    <div class="admin-shell">
+        <section class="admin-hero">
+            <div class="eyebrow">
+                <i class="fa fa-shield" aria-hidden="true"></i>
+                <span>Admin Access</span>
+            </div>
+            <h1>Operate the website from one clean admin hub.</h1>
+            <p>Your account is now recognized as an admin account, so protected management tools can stay hidden from regular visitors and obvious for you.</p>
+        </section>
+
+        <section class="admin-meta">
+            <article class="admin-meta-card">
+                <span>Signed In As</span>
+                <strong>{{ auth_user.name or 'Admin User' }}</strong>
+            </article>
+            <article class="admin-meta-card">
+                <span>Admin Email</span>
+                <strong>{{ auth_user.email }}</strong>
+            </article>
+            <article class="admin-meta-card">
+                <span>OTP Provider</span>
+                <strong>{{ otp_provider|replace('_', ' ')|title }}</strong>
+            </article>
+        </section>
+
+        <section class="admin-grid">
+            {% for tool in admin_tools %}
+            <article class="admin-card">
+                <div class="admin-card-top">
+                    <h2 class="admin-card-title">{{ tool.title }}</h2>
+                    <span class="admin-card-status">{{ tool.status }}</span>
+                </div>
+                <p>{{ tool.description }}</p>
+                <div class="admin-card-actions">
+                    <a class="admin-link" href="{{ tool.href }}">
+                        <i class="fa fa-arrow-right" aria-hidden="true"></i>
+                        <span>Open tool</span>
+                    </a>
+                </div>
+            </article>
+            {% endfor %}
+        </section>
+
+        <section class="admin-card admin-notes">
+            <h2>Setup Notes</h2>
+            <p>
+                {% if vmadmin_configured %}
+                    The upstream VM admin proxy is configured. For production, keep using a real secret key and set an admin registration code in your final `.env` so future admin signups stay intentional.
+                {% else %}
+                    The upstream VM admin proxy is not configured yet. Once you share the final `.env`, we can wire `VMADMIN_BASE_URL` and `ADMIN_REGISTRATION_CODE` to lock the admin flow down for production.
+                {% endif %}
+            </p>
+        </section>
+    </div>
+</section>
+{% endblock %}

@@ -16,6 +16,7 @@ const EP = {
   editions: [],
   pages: [],
   articles: [],
+  currentEdition: null,
   ttsUtterance: null,
   ttsPlaying: false,
 
@@ -40,6 +41,8 @@ const EP = {
       pageContainer: document.getElementById('epPageContainer'),
       pageImg: document.getElementById('epPageImg'),
       hotspotsLayer: document.getElementById('epHotspots'),
+      editionName: document.getElementById('epEditionName'),
+      editionMeta: document.getElementById('epEditionMeta'),
       dateBtn: document.getElementById('epDateBtn'),
       dateBtnText: document.getElementById('epDateText'),
       calendarOverlay: document.getElementById('epCalendarOverlay'),
@@ -163,6 +166,20 @@ const EP = {
     this.loadEditionForDate(d);
   },
 
+  updateEditionBrand(edition = null) {
+    const name = edition?.name?.trim() || 'e-Paper';
+    const language = edition?.language?.trim() || 'Vidyarthi Mitra';
+    const dateText = edition?.date ? edition.date : '';
+
+    if (this.el.editionName) this.el.editionName.textContent = name;
+    if (this.el.editionMeta) {
+      this.el.editionMeta.textContent = dateText ? `${language} • ${dateText}` : language;
+    }
+    document.title = edition?.name?.trim()
+      ? `${edition.name} | Vidyarthi Mitra E-Paper`
+      : 'Vidyarthi Mitra — E-Paper Reader';
+  },
+
   formatDateISO(d) {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -264,8 +281,11 @@ const EP = {
         return;
       }
       const data = await res.json();
+      this.currentEdition = data;
       this.pages = data.pages || [];
       this.totalPages = this.pages.length || 1;
+      this.updateEditionBrand(data);
+      document.getElementById('epEmptyState')?.style.setProperty('display', 'none');
       this.renderCategories(this.pages);
       this.showPage(1);
     } catch (e) {
@@ -276,13 +296,19 @@ const EP = {
 
   showDemoPage() {
     // Show a placeholder when no real data
+    this.currentEdition = null;
     this.totalPages = 1;
     this.pages = [];
+    this.updateEditionBrand(null);
     if (this.el.pageImg) {
       this.el.pageImg.src = '';
       this.el.pageImg.alt = 'No edition available';
     }
     if (this.el.hotspotsLayer) this.el.hotspotsLayer.innerHTML = '';
+    const grid = document.getElementById('epBlockGrid');
+    if (grid) grid.style.display = 'none';
+    if (this.el.pageContainer) this.el.pageContainer.style.display = 'none';
+    document.getElementById('epEmptyState')?.style.setProperty('display', 'block');
     this.updatePager();
     this.showToast('इस तारीख का संस्करण उपलब्ध नहीं है');
   },
@@ -322,6 +348,7 @@ const EP = {
     if (!page) return;
 
     const viewer = this.el.viewer || document.getElementById('epViewer');
+    document.getElementById('epEmptyState')?.style.setProperty('display', 'none');
 
     // Check if page uses new block format
     if (page.blocks && page.blocks.length > 0) {
@@ -352,6 +379,27 @@ const EP = {
     if (this.el.nextPage) this.el.nextPage.disabled = this.currentPage >= this.totalPages;
   },
 
+  getBlockType(block) {
+    return block?.type === 'divider' ? 'divider' : 'article';
+  },
+
+  buildDividerMarkup(block) {
+    const orientation = block?.divider_orientation === 'vertical' ? 'vertical' : 'horizontal';
+    const thickness = Math.max(1, parseInt(block?.divider_thickness, 10) || 6);
+    const color = block?.divider_color || '#e41e26';
+    const style = block?.divider_style || 'solid';
+
+    const lineStyle = orientation === 'vertical'
+      ? `height:100%;border-left:${thickness}px ${style} ${color};`
+      : `width:100%;border-top:${thickness}px ${style} ${color};`;
+
+    return `
+      <div class="ep-block-divider ${orientation}">
+        <div class="ep-divider-line-preview ${orientation}" style="${lineStyle}"></div>
+      </div>
+    `;
+  },
+
   // ── Block Grid (NEW) ──
   renderBlockGrid(blocks, viewer) {
     let grid = document.getElementById('epBlockGrid');
@@ -362,23 +410,15 @@ const EP = {
       (viewer || document.getElementById('epViewer'))?.appendChild(grid);
     }
     grid.style.display = 'block';
+    if (this.el.hotspotsLayer) this.el.hotspotsLayer.style.display = 'none';
 
-    this.articles = blocks.map(b => ({
-      ...b,
-      headline: b.headline,
-      sub_headline: b.sub_headline,
-      body_text: b.body_text,
-      body_html: b.body_html || '',
-      category_label: b.category_label,
-      article_image_url: b.image_url,
-      gallery: b.gallery || [],
-    }));
+    this.articles = [];
 
     // Canvas is 800x1000 in admin — use percentage-based positioning
     const CANVAS_W = 800;
     let maxY = 400;
-    blocks.forEach(b => {
-      const bottom = (b.y || 0) + (b.h || 150);
+    blocks.forEach((block) => {
+      const bottom = (block.y || 0) + (block.h || 150);
       if (bottom > maxY) maxY = bottom;
     });
     const canvasH = Math.max(maxY + 20, 500);
@@ -386,29 +426,50 @@ const EP = {
 
     grid.innerHTML = `
       <div class="ep-canvas-viewer" style="position:relative;width:100%;padding-bottom:${aspectRatio}%;background:#fff;border-radius:10px;box-shadow:0 4px 30px rgba(0,0,0,.12);">
-        ${blocks.map((b, i) => {
-          const hasImg = b.image_url && b.image_url.length > 10;
-          const x = ((b.x || 0) / CANVAS_W * 100).toFixed(2);
-          const y = ((b.y || 0) / canvasH * 100).toFixed(2);
-          const w = ((b.w || 200) / CANVAS_W * 100).toFixed(2);
-          const h = ((b.h || 150) / canvasH * 100).toFixed(2);
-          const bw = b.border_width ?? 0;
-          const br = b.border_radius ?? 10;
-          const bc = b.border_color || '#e41e26';
-          const bs = b.border_style || 'solid';
-          const borderCSS = bw > 0 ? `border:${bw}px ${bs} ${bc};` : '';
-          const style = `position:absolute;left:${x}%;top:${y}%;width:${w}%;height:${h}%;border-radius:${br}px;${borderCSS}overflow:hidden;cursor:pointer;`;
+        ${blocks.map((block) => {
+          const type = this.getBlockType(block);
+          const hasImg = block.image_url && block.image_url.length > 10;
+          const x = ((block.x || 0) / CANVAS_W * 100).toFixed(2);
+          const y = ((block.y || 0) / canvasH * 100).toFixed(2);
+          const w = ((block.w || 200) / CANVAS_W * 100).toFixed(2);
+          const h = ((block.h || 150) / canvasH * 100).toFixed(2);
+          const bw = block.border_width ?? 0;
+          const br = block.border_radius ?? 10;
+          const bc = block.border_color || '#e41e26';
+          const bs = block.border_style || 'solid';
+          const borderCSS = type === 'article' && bw > 0 ? `border:${bw}px ${bs} ${bc};` : '';
+          const baseStyle = `position:absolute;left:${x}%;top:${y}%;width:${w}%;height:${h}%;border-radius:${br}px;${borderCSS}overflow:hidden;`;
+
+          if (type === 'divider') {
+            return `
+              <div class="ep-block-divider-card" style="${baseStyle}">
+                ${this.buildDividerMarkup(block)}
+              </div>
+            `;
+          }
+
+          const articleIndex = this.articles.push({
+            ...block,
+            headline: block.headline,
+            sub_headline: block.sub_headline,
+            body_text: block.body_text,
+            body_html: block.body_html || '',
+            category_label: block.category_label,
+            article_image_url: block.image_url,
+            gallery: block.gallery || [],
+          }) - 1;
+
           return `
-            <div class="ep-block-card" onclick="EP.openArticle(${i})" title="${b.headline || ''}" style="${style}">
-              ${hasImg ? `<img class="ep-block-img" src="${b.image_url}" alt="${b.headline || ''}" draggable="false" style="width:100%;height:100%;object-fit:cover;display:block;">` : `
+            <div class="ep-block-card" onclick="EP.openArticle(${articleIndex})" title="${block.headline || ''}" style="${baseStyle}cursor:pointer;">
+              ${hasImg ? `<img class="ep-block-img" src="${block.image_url}" alt="${block.headline || ''}" draggable="false" style="width:100%;height:100%;object-fit:cover;display:block;">` : `
                 <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f3f4f6,#e5e7eb);color:#d1d5db;font-size:28px;">
                   <i class="fa fa-newspaper"></i>
                 </div>
               `}
               <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.85));padding:12px 10px 8px;color:#fff;">
-                ${b.category_label ? `<span style="font-size:9px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.7);display:block;margin-bottom:2px;">${b.category_label}</span>` : ''}
-                <strong style="font-size:13px;line-height:1.3;display:block;">${b.headline || 'Untitled'}</strong>
-                ${b.sub_headline ? `<span style="font-size:10px;color:rgba(255,255,255,.6);display:block;margin-top:2px;">${b.sub_headline}</span>` : ''}
+                ${block.category_label ? `<span style="font-size:9px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.7);display:block;margin-bottom:2px;">${block.category_label}</span>` : ''}
+                <strong style="font-size:13px;line-height:1.3;display:block;">${block.headline || 'Untitled'}</strong>
+                ${block.sub_headline ? `<span style="font-size:10px;color:rgba(255,255,255,.6);display:block;margin-top:2px;">${block.sub_headline}</span>` : ''}
               </div>
             </div>
           `;
