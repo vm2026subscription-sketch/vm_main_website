@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Vidyarthi Mitra{% endblock %}</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/title.png') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --orange: #ff6600; --text: #2f2f2f; --muted: #6b7280; }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: 'Roboto', sans-serif; color: var(--text); background: #fff; }
+        a,
+        a:hover,
+        a:focus,
+        a:active,
+        a:visited {
+            text-decoration: none !important;
+        }
+        .site-main { min-height: calc(100vh - 140px); }
+        .site-footer {
+            background: #1f2738;
+            color: #c9d4e2;
+            margin-top: 30px;
+        }
+        .site-footer .footer-inner {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 18px 16px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            font-size: 13px;
+        }
+        .site-footer a { color: #ff8a33; text-decoration: none; }
+        .site-footer a:hover { color: #fff; }
+    </style>
+    {% block page_styles %}{% endblock %}
+</head>
+<body>
+    {% include 'partials/_shared_index_navbar.html' %}
+
+    <main class="site-main">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-inner">
+            <div>© 2026 VidyarthiMitra.org - All Rights Reserved</div>
+            <div>
+                <a href="{{ url_for('main.refund_policy') }}">Refund & Cancellation</a>
+                <span> | </span>
+                <a href="{{ url_for('main.contact') }}">Contact Us</a>
+            </div>
+        </div>
+    </footer>
+
+    {% block page_scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,241 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}College Predictor | Cut-Offs 2024-25{% endblock %}
+
+{% block page_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/courses.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/cutoffs.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="search-section cutoff-hero">
+  <div class="search-inner cutoff-hero-content">
+    <span class="hero-kicker">MHT-CET Engineering</span>
+    <h2>College Predictor & Cut-Offs</h2>
+    <p>
+      Enter your percentile and preferences to shortlist colleges using recent CAP cutoff data.
+    </p>
+
+    <div class="cutoff-buttons">
+      <a href="#college-predictor" class="btn-primary" data-tab-trigger="predictor">Predict Colleges</a>
+      <a href="#top-colleges" class="btn-outline" data-tab-trigger="top20">View Top 20</a>
+      <a href="{{ url_for('courses.courses') }}" class="btn-outline">Explore Courses</a>
+    </div>
+  </div>
+</section>
+
+<div class="filter-bar cutoff-filter-bar">
+  <div class="filter-tabs">
+    <a class="filter-tab active" href="#college-predictor" data-tab-trigger="predictor">College Predictor</a>
+    <a class="filter-tab" href="#top-colleges" data-tab-trigger="top20">Top 20 Colleges</a>
+    <span class="filter-tab muted">MHT-CET Engineering</span>
+    <span class="filter-tab muted">Full List: Locked</span>
+  </div>
+</div>
+
+<section id="college-predictor" class="predictor-section cutoff-tab-panel active" data-tab-panel="predictor">
+  <div class="section-header cutoff-section-header">
+    <div class="section-icon">01</div>
+    <div>
+      <div class="section-label">Predictor</div>
+      <h2 class="section-title">Find colleges that match your score</h2>
+    </div>
+  </div>
+  <div class="predictor-shell">
+    <div class="predictor-copy">
+      <p>
+        We compare your percentile with historical branch, category, and seat-type cutoffs, then show matching colleges with the strongest options first.
+      </p>
+      {% if error %}
+      <div class="predictor-error">{{ error }}</div>
+      {% endif %}
+    </div>
+
+    <form class="predictor-form" id="collegePredictorForm">
+      <label>
+        CET Percentile
+        <input type="number" name="percentile" min="0" max="100" step="0.0001" placeholder="e.g. 92.5" required>
+      </label>
+
+      <label>
+        Branch
+        <select name="branch" required>
+          <option value="">Select branch</option>
+          {% for branch in branches %}
+          <option value="{{ branch }}">{{ branch }}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <div class="form-pair">
+        <label>
+          Category
+          <select name="category" required>
+            {% for category in categories %}
+            <option value="{{ category }}" {% if category == 'OPEN' %}selected{% endif %}>{{ category }}</option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <label>
+          Seat type
+          <select name="gender" required>
+            {% for gender in genders %}
+            <option value="{{ gender.value }}" {% if gender.value == 'G' %}selected{% endif %}>{{ gender.label }}</option>
+            {% endfor %}
+          </select>
+        </label>
+      </div>
+
+      <label>
+        Results per page
+        <select name="per_page">
+          <option value="20">20</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+      </label>
+
+      <button type="submit">Show Predicted Colleges</button>
+      <p class="form-note">This is a cutoff-based predictor, not an admission guarantee.</p>
+    </form>
+  </div>
+</section>
+
+<section id="top20-cutoffs" class="predictor-section cutoff-tab-panel" data-tab-panel="top20" hidden>
+  <div class="section-header cutoff-section-header">
+    <div class="section-icon">20</div>
+    <div>
+      <div class="section-label">Top 20</div>
+      <h2 class="section-title">Top colleges by cutoff</h2>
+    </div>
+  </div>
+  <div class="top20-shell">
+    <div class="predictor-copy top20-copy">
+      <p>
+        Filter by branch, category, and seat type. Results are sorted from highest cutoff to lowest cutoff using the same CAP cutoff data.
+      </p>
+    </div>
+
+    <form class="top20-filter-bar" id="top20FilterForm">
+      <label>
+        Branch
+        <select name="branch">
+          <option value="">All branches</option>
+          {% for branch in branches %}
+          <option value="{{ branch }}">{{ branch }}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <div class="form-pair">
+        <label>
+          Category
+          <select name="category">
+            <option value="">All categories</option>
+            {% for category in categories %}
+            <option value="{{ category }}">{{ category }}</option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <label>
+          Seat type
+          <select name="gender">
+            <option value="">All seat types</option>
+            {% for gender in genders %}
+            <option value="{{ gender.value }}">{{ gender.label }}</option>
+            {% endfor %}
+          </select>
+        </label>
+      </div>
+
+      <button type="submit">Show Top 20</button>
+    </form>
+
+    <div class="locked-full-list">
+      <strong>Need the full list?</strong>
+      Unlock the full branch-wise cutoff list from all available CAP rounds for &#8377;100.
+    </div>
+  </div>
+</section>
+
+<section id="top-colleges" class="results-section">
+  <div class="results-header">
+    <div>
+      <div class="section-label">Results</div>
+      <h2 class="section-title" id="resultsTitle">Top 20 Colleges</h2>
+    </div>
+    <p id="resultsMeta">Showing the highest cutoff colleges across available B.Tech CAP data.</p>
+  </div>
+
+  <div class="results-alert" id="predictorAlert" hidden></div>
+
+  <div class="top20-table-wrap" id="resultsTableWrap">
+    <table class="top20-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>College</th>
+          <th>Branch</th>
+          <th>Category</th>
+          <th>Seat Type</th>
+          <th>Cutoff</th>
+          <th>CAP 1</th>
+          <th>CAP 2</th>
+          <th>CAP 3</th>
+          <th>CAP 4</th>
+          <th>Gap</th>
+          <th>Rank</th>
+          <th>Website</th>
+        </tr>
+      </thead>
+      <tbody id="resultsTableBody">
+    {% for college in top_colleges %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>
+            <strong>{{ college.college }}</strong>
+            <span>{{ college.college_code }}</span>
+          </td>
+          <td>{{ college.branch }}</td>
+          <td>{{ college.category }}</td>
+          <td>{{ college.gender_label }}</td>
+          <td>{{ "%.2f"|format(college.final_cutoff) }}</td>
+          <td>{{ "%.2f"|format(college.cap_1_cutoff) if college.cap_1_cutoff is not none else "-" }}</td>
+          <td>{{ "%.2f"|format(college.cap_2_cutoff) if college.cap_2_cutoff is not none else "-" }}</td>
+          <td>{{ "%.2f"|format(college.cap_3_cutoff) if college.cap_3_cutoff is not none else "-" }}</td>
+          <td>{{ "%.2f"|format(college.cap_4_cutoff) if college.cap_4_cutoff is not none else "-" }}</td>
+          <td>{{ college.gap if college.gap is not none else "-" }}</td>
+          <td>{{ college.best_rank or "N/A" }}</td>
+          <td>
+            {% if college.website %}
+            <a href="{{ college.website }}" target="_blank" rel="noopener">Visit</a>
+            {% else %}
+            <span class="muted-cell">N/A</span>
+            {% endif %}
+          </td>
+        </tr>
+    {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <nav class="predictor-pagination" id="predictorPagination" hidden></nav>
+  <div class="payment-cta" id="paymentCta" hidden>
+    <div>
+      <strong>Unlock complete cutoff list</strong>
+      <p>Pay &#8377;100 in Razorpay test mode to show every matching cutoff row beyond the free top 20.</p>
+    </div>
+    <div class="payment-action">
+      <button type="button" id="unlockFullListBtn">Unlock for &#8377;100</button>
+      <span class="payment-status" id="paymentStatus" role="status" aria-live="polite"></span>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block page_scripts %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script src="{{ url_for('static', filename='js/cutoffs.js') }}?v=5"></script>
+{% endblock %}

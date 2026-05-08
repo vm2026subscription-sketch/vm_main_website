@@ -24,3 +24,9 @@ Thumbs.db
 
 # VS Code
 .vscode/
+
+# Database
+*.db
+
+# Backup of old monolith
+*.bak

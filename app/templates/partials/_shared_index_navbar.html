@@ -1,0 +1,549 @@
+<style>
+  .vm-nav-topbar {
+    background: #3a3a3a;
+    color: #fff;
+    font-size: 13px;
+    padding: 8px 0;
+  }
+
+  /* Hide legacy per-page navbars that follow the shared navbar to avoid duplicates */
+  .vm-main-header ~ .main-nav,
+  .vm-main-header ~ header.main-nav,
+  .vm-main-header ~ .navbar-default,
+  .vm-main-header ~ .header {
+    display: none !important;
+  }
+
+  .vm-nav-topbar .vm-nav-inner,
+  .vm-main-header .vm-nav-inner {
+    max-width: 100%;
+    margin: 0;
+    padding: 0 24px;
+    box-sizing: border-box;
+  }
+
+  .vm-nav-topbar .vm-nav-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .vm-nav-topbar a {
+    color: #fff;
+    text-decoration: none;
+    margin-right: 15px;
+    font-weight: 500;
+  }
+
+  .vm-nav-topbar a:hover {
+    color: #ffd28a;
+  }
+
+  .vm-nav-right {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    padding-right: 20px;
+  }
+
+  .vm-main-header {
+    background: #fff;
+    border-bottom: 1px solid #e6e6e6;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+  }
+
+  .vm-main-header .vm-nav-inner {
+    min-height: 62px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: space-between;
+    flex-wrap: nowrap; /* keep brand + links on a single line */
+  }
+
+  .vm-brand {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    margin-right: 8px;
+  }
+
+  .vm-brand img {
+    height: 40px;
+    width: auto;
+    display: block;
+  }
+
+  .vm-main-links {
+    margin-left: 0; /* allow it to flow under brand when wrapped */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1 1 auto;
+    flex-wrap: nowrap; /* default: keep single row and allow horizontal scroll on wide screens */
+    flex-basis: auto;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    justify-content: flex-start;
+  }
+
+  /* On narrower viewports, let links wrap to a second row below the brand */
+  @media (max-width: 992px) {
+    .vm-main-links {
+      flex-wrap: wrap;
+      flex-basis: 100%;
+      overflow-x: visible;
+      justify-content: center;
+      gap: 6px;
+    }
+    .vm-main-links a { padding: 10px 8px; }
+    .vm-nav-toggle { display: inline-flex; }
+    /* hide links initially on medium screens, show when toggled */
+    .vm-main-header.vm-collapsed .vm-main-links { display: none; }
+    .vm-main-header .vm-main-links { transition: max-height 0.25s ease; }
+  }
+
+  .vm-main-links a {
+    color: #3b3b3b;
+    font-weight: 700;
+    padding: 10px 8px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    text-decoration: none;
+    position: relative;
+    white-space: nowrap;
+  }
+
+  .vm-main-links a::before {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: #ff6600;
+    transform: translateX(-50%);
+    transition: width 0.25s ease;
+  }
+
+  .vm-main-links a:hover,
+  .vm-main-links a.vm-active {
+    color: #ff6600;
+  }
+
+  .vm-main-links a:hover::before,
+  .vm-main-links a.vm-active::before {
+    width: 100%;
+  }
+
+  .vm-badge-new {
+    background: #ffcc4d;
+    color: #111;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 9px;
+    font-weight: 700;
+    margin-left: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: none;
+    animation: none;
+  }
+
+  .vm-main-links a i {
+    font-size: 14px;
+  }
+
+  .vm-main-links a.vm-search {
+    margin-left: 2px;
+    padding-right: 4px;
+  }
+
+  /* nav toggle (hamburger) */
+  .vm-nav-toggle {
+    display: none;
+    background: transparent;
+    border: 1px solid rgba(0,0,0,0.06);
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 18px;
+    margin-left: 8px;
+  }
+
+  /* Auth button styles */
+  .vm-main-links a.nav-auth {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 12px;
+    margin-left: 8px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font-weight: 700;
+    font-size: 13px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .vm-main-links a.nav-register {
+    background: #ff6600;
+    color: #fff;
+    border-color: #ff6600;
+  }
+
+  .vm-main-links a.nav-register:hover {
+    background: #e55a00;
+    color: #fff;
+  }
+
+  .vm-main-links a.nav-login {
+    background: #fff;
+    color: #ff6600;
+    border-color: rgba(255,102,0,0.25);
+    margin-left: auto; /* push auth buttons to the far right */
+  }
+
+  .vm-main-links a.nav-login:hover {
+    background: rgba(255,102,0,0.06);
+    color: #e55a00;
+  }
+
+  .vm-main-links a.nav-admin {
+    background: #17324d;
+    color: #fff;
+    border-color: #17324d;
+  }
+
+  .vm-main-links a.nav-admin:hover {
+    background: #10263c;
+    color: #fff;
+  }
+
+  @media (max-width: 768px) {
+    .vm-main-links a.nav-auth { padding: 6px 8px; font-size: 12px; }
+    .vm-main-links a { padding: 12px 8px; font-size: 11px; }
+  }
+
+  .vm-search-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.75);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 2000;
+    backdrop-filter: blur(4px);
+  }
+
+  .vm-search-overlay.vm-active {
+    display: flex;
+  }
+
+  .vm-search-modal {
+    width: 90%;
+    max-width: 600px;
+    background: #fff;
+    border-radius: 10px;
+    padding: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+    position: relative;
+  }
+
+  .vm-search-modal input {
+    flex: 1;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-size: 14px;
+    outline: none;
+  }
+
+  .vm-search-modal button {
+    background: #ff6600;
+    border: none;
+    color: #fff;
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+
+  .vm-search-modal button:hover {
+    background: #e55a00;
+  }
+
+  .vm-search-close {
+    position: absolute;
+    top: -42px;
+    right: 0;
+    color: #fff;
+    font-size: 28px;
+    cursor: pointer;
+    line-height: 1;
+  }
+
+  .vm-search-hint {
+    display: block;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #d1d5db;
+  }
+
+  @media (max-width: 768px) {
+    .vm-nav-topbar .vm-nav-inner {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .vm-main-header .vm-nav-inner {
+      flex-direction: column;
+      align-items: center;
+      padding-top: 8px;
+    }
+
+    .vm-main-links {
+      width: 100%;
+      margin-left: 0;
+      padding-bottom: 4px;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .vm-main-links a {
+      padding: 10px 8px;
+      font-size: 12px;
+    }
+
+    .vm-nav-right {
+      text-align: center;
+      margin-top: 6px;
+      padding-right: 0;
+    }
+  }
+</style>
+
+<div class="vm-nav-topbar">
+  <div class="vm-nav-inner">
+    <div>
+      <a href="{{ url_for('main.blog') }}">Blog</a>
+      <a href="{{ url_for('main.epaper') }}">Epaper</a>
+    </div>
+    <div class="vm-nav-right">विद्यार्थी मित्र<span style="color:#ffd28a;">.org</span></div>
+  </div>
+</div>
+
+<header class="vm-main-header">
+  <div class="vm-nav-inner">
+    <a class="vm-brand" href="{{ url_for('main.index') }}">
+      <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Vidyarthi Mitra">
+    </a>
+    <button id="vmNavToggle" class="vm-nav-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+    <nav class="vm-main-links" aria-label="Main navigation">
+      <a href="{{ url_for('main.index') }}" class="{% if request.endpoint == 'index' %}vm-active{% endif %}"><i class="fa fa-home"></i></a>
+      <a href="{{ url_for('colleges.universities') }}" class="{% if request.endpoint == 'universities' %}vm-active{% endif %}">Universities</a>
+      <a href="{{ url_for('colleges.colleges') }}" class="{% if request.endpoint == 'colleges' %}vm-active{% endif %}">Colleges</a>
+      <a href="{{ url_for('courses.courses') }}" class="{% if request.endpoint == 'courses' %}vm-active{% endif %}">Courses</a>
+      <a href="{{ url_for('main.entrance_exams') }}" class="{% if request.endpoint == 'exams' %}vm-active{% endif %}">Entrance Exams</a>
+      <a href="{{ url_for('main.mock_exams') }}" class="{% if request.endpoint == 'mock_exams' %}vm-active{% endif %}">Mock Exams</a>
+      <a href="{{ url_for('cutoffs.cutoffs') }}" class="{% if request.endpoint == 'cutoffs' %}vm-active{% endif %}">Cut-offs</a>
+      <a href="{{ url_for('main.fyjc_rank') }}" class="{% if request.endpoint == 'fyjc_rank' %}vm-active{% endif %}">FYJC Rank</a>
+      <a href="{{ url_for('main.admissions') }}" class="{% if request.endpoint == 'admissions' %}vm-active{% endif %}">Admissions</a>
+      <a href="{{ url_for('main.news') }}" class="{% if request.endpoint == 'news' %}vm-active{% endif %}">News</a>
+      <a href="{{ url_for('main.epaper') }}" class="{% if request.endpoint == 'epaper' %}vm-active{% endif %}">Epaper<span class="vm-badge-new">New</span></a>
+      <a href="{{ url_for('main.guide_me') }}" class="{% if request.endpoint == 'guide_me' %}vm-active{% endif %}">Guide Me</a>
+      <a href="javascript:void(0)" class="vm-search vm-search-trigger"><i class="fa fa-search"></i></a>
+      {% if session.get('auth_user') %}
+      {% if session.get('auth_user', {}).get('role') == 'admin' %}
+      <a href="{{ url_for('admin.admin_panel') }}" class="nav-auth nav-admin">Admin Panel</a>
+      {% endif %}
+      <a href="{{ url_for('auth.profile') }}" class="nav-auth nav-login" title="My Profile"><i class="fa fa-user-circle"></i> Profile</a>
+      <a href="{{ url_for('auth.logout') }}" class="nav-auth nav-login">Logout</a>
+      {% else %}
+      <a href="{{ url_for('auth.login') }}" class="nav-auth nav-login">Login</a>
+      <a href="{{ url_for('auth.register') }}" class="nav-auth nav-register">Register</a>
+      {% endif %}
+    </nav>
+  </div>
+</header>
+
+<div class="vm-search-overlay" id="vmSearchOverlay">
+  <div class="vm-search-modal">
+    <input type="text" id="vmSearchInput" placeholder="Search: FYJC rank, cutoff, courses, exams...">
+    <button type="button" id="vmSearchSubmit">🔍</button>
+    <span class="vm-search-close" id="vmSearchClose">&times;</span>
+  </div>
+  <small class="vm-search-hint" id="vmSearchHint"></small>
+</div>
+
+<script>
+  (function () {
+    var overlay = document.getElementById('vmSearchOverlay');
+    var trigger = document.querySelector('.vm-search-trigger');
+    var closeBtn = document.getElementById('vmSearchClose');
+    var input = document.getElementById('vmSearchInput');
+    var submit = document.getElementById('vmSearchSubmit');
+    var hint = document.getElementById('vmSearchHint');
+
+    if (!overlay || !trigger || !input || !submit || !closeBtn || !hint) {
+      return;
+    }
+
+    var searchItems = [
+      { keywords: ['fyjc', 'rank', 'predictor', 'fyjc rank', 'rank predictor'], url: '{{ url_for("main.fyjc_rank") }}', label: 'FYJC Rank Predictor' },
+      { keywords: ['cutoff', 'cut-off', 'cut off', 'cutoffs'], url: '{{ url_for("cutoffs.cutoffs") }}', label: 'Cut-offs' },
+      { keywords: ['admission', 'admissions', 'dte'], url: '{{ url_for("main.admissions") }}', label: 'Admissions' },
+      { keywords: ['university', 'universities'], url: '{{ url_for("colleges.universities") }}', label: 'Universities' },
+      { keywords: ['college', 'colleges'], url: '{{ url_for("colleges.colleges") }}', label: 'Colleges' },
+      { keywords: ['course', 'courses'], url: '{{ url_for("courses.courses") }}', label: 'Courses' },
+      { keywords: ['exam', 'exams', 'entrance', 'jee', 'neet', 'cet', 'mht-cet'], url: '{{ url_for("main.entrance_exams") }}', label: 'Entrance Exams' },
+      { keywords: ['mock', 'mock exam', 'mock test'], url: '{{ url_for("main.mock_exams") }}', label: 'Mock Exams' },
+      { keywords: ['news', 'update', 'updates'], url: '{{ url_for("main.news") }}', label: 'News' },
+      { keywords: ['article', 'articles', 'career'], url: '{{ url_for("articles.articles") }}', label: 'Career Articles' },
+      { keywords: ['story', 'stories', 'student'], url: '{{ url_for("main.student_stories") }}', label: 'Student Stories' },
+      { keywords: ['guide', 'guide me', 'guideme'], url: '{{ url_for("main.guide_me") }}', label: 'Guide Me' },
+      { keywords: ['epaper', 'e-paper'], url: '{{ url_for("main.epaper") }}', label: 'Epaper' }
+    ];
+
+    function openSearch() {
+      overlay.classList.add('vm-active');
+      hint.textContent = '';
+      setTimeout(function () { input.focus(); }, 50);
+    }
+
+    function closeSearch() {
+      overlay.classList.remove('vm-active');
+      input.value = '';
+      hint.textContent = '';
+    }
+
+    function submitSearch() {
+      var query = input.value.trim().toLowerCase();
+      if (!query) return;
+
+      var bestMatch = null;
+      var bestScore = 0;
+
+      for (var i = 0; i < searchItems.length; i++) {
+        var item = searchItems[i];
+        for (var j = 0; j < item.keywords.length; j++) {
+          var keyword = item.keywords[j];
+          if (query === keyword) {
+            bestMatch = item;
+            bestScore = 100;
+            break;
+          }
+          if (keyword.indexOf(query) === 0 || query.indexOf(keyword) === 0) {
+            var currentScore = Math.max(keyword.indexOf(query) === 0 ? 50 : 30);
+            if (currentScore > bestScore) {
+              bestMatch = item;
+              bestScore = currentScore;
+            }
+          }
+        }
+        if (bestScore === 100) break;
+      }
+
+      if (bestMatch) {
+        window.location.href = bestMatch.url;
+      } else {
+        hint.textContent = 'No results found for "' + query + '"';
+      }
+    }
+
+    trigger.addEventListener('click', function (e) {
+      e.preventDefault();
+      openSearch();
+    });
+
+    closeBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      closeSearch();
+    });
+
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) {
+        closeSearch();
+      }
+    });
+
+    submit.addEventListener('click', function (e) {
+      e.preventDefault();
+      submitSearch();
+    });
+
+    input.addEventListener('keyup', function (e) {
+      if (e.key === 'Enter') {
+        submitSearch();
+      }
+      if (e.key === 'Escape') {
+        closeSearch();
+      }
+    });
+  })();
+</script>
+
+<script>
+  // Hide legacy page headers that contain navigation to avoid duplicate navbars
+  (function(){
+    try {
+      var header = document.querySelector('.vm-main-header');
+      if (!header) return;
+      // find sibling headers that come after the shared header
+      var siblings = document.querySelectorAll('.vm-main-header ~ header');
+      siblings.forEach(function(h){
+        if (!h) return;
+        var nav = h.querySelector('nav');
+        if (!nav) return;
+        // if the header's nav looks like a full site nav (several links or bootstrap navbar), hide it
+        var links = nav.querySelectorAll('a');
+        if (links.length >= 4 || nav.classList.contains('navbar') ) {
+          h.style.display = 'none';
+        }
+      });
+    } catch (e) {
+      console.error('Nav dedupe script error', e);
+    }
+  })();
+</script>
+
+<script>
+  (function(){
+    var toggle = document.getElementById('vmNavToggle');
+    var header = document.querySelector('.vm-main-header');
+    var links = document.querySelector('.vm-main-links');
+    if (!toggle || !header || !links) return;
+
+    toggle.addEventListener('click', function(e){
+      e.preventDefault();
+      var expanded = this.getAttribute('aria-expanded') === 'true';
+      this.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+      header.classList.toggle('vm-collapsed');
+    });
+
+    // ensure collapsed state is reset when resizing to large screens
+    window.addEventListener('resize', function(){
+      if (window.innerWidth > 992) {
+        header.classList.remove('vm-collapsed');
+        if (toggle) toggle.setAttribute('aria-expanded','false');
+        links.style.display = '';
+      }
+    });
+  })();
+</script>

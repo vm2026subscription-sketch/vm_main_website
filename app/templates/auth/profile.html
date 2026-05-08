@@ -1,0 +1,277 @@
+{% extends 'layouts/base.html' %}
+{% block title %}{{ page_title }} - Vidyarthi Mitra{% endblock %}
+{% block page_styles %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+<style>
+.profile-page{--orange:#ff6600;--navy:#17324d;--ink:#172033;--muted:#667085;--border:#e5e7eb;--green:#14b87a;min-height:calc(100vh - 140px);padding:32px 16px;background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(247,249,252,.98));color:var(--ink)}
+.profile-container{max-width:860px;margin:0 auto}
+.profile-header{display:flex;align-items:center;gap:20px;padding:28px 32px;background:#fff;border-radius:12px;border:1px solid var(--border);box-shadow:0 8px 30px rgba(0,0,0,.06);margin-bottom:24px}
+.profile-avatar{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--orange),#e55a00);display:flex;align-items:center;justify-content:center;color:#fff;font-size:28px;font-weight:800;flex-shrink:0;overflow:hidden;position:relative;cursor:pointer;border:3px solid #fff;box-shadow:0 4px 14px rgba(255,102,0,.2)}
+.profile-avatar img{width:100%;height:100%;object-fit:cover}
+.profile-avatar:hover .avatar-overlay{opacity:1}
+.avatar-overlay{position:absolute;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;border-radius:50%}
+.avatar-overlay i{color:#fff;font-size:18px}
+.profile-header-info h1{margin:0 0 4px;font-size:24px;font-weight:800;color:var(--ink)}
+.profile-header-info p{margin:0;color:var(--muted);font-size:14px}
+.role-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.role-badge.admin{background:#fff7ed;color:#c2410c;border:1px solid #fed7aa}
+.role-badge.user{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
+.profile-section{background:#fff;border-radius:12px;border:1px solid var(--border);box-shadow:0 4px 20px rgba(0,0,0,.04);margin-bottom:20px;overflow:hidden}
+.section-header{padding:20px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.section-header h2{margin:0;font-size:17px;font-weight:800;color:var(--ink)}
+.section-header i{color:var(--orange);font-size:16px}
+.section-body{padding:24px 28px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;margin-bottom:6px;font-size:13px;font-weight:700;color:#344054}
+.form-group input,.form-group select{width:100%;height:44px;border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:14px;color:var(--ink);font-family:inherit;transition:border-color .2s,box-shadow .2s;background:#fff}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,102,0,.12)}
+.btn-save{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;background:var(--orange);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;font-family:inherit}
+.btn-save:hover{background:#e55a00;transform:translateY(-1px);box-shadow:0 8px 20px rgba(255,102,0,.25)}
+.danger-zone{border-color:#fecaca}
+.danger-zone .section-header{border-bottom-color:#fecaca}
+.danger-zone .section-header h2{color:#dc2626}
+.danger-zone .section-header i{color:#dc2626}
+.btn-danger{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;background:#fff;color:#dc2626;border:1px solid #fecaca;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;font-family:inherit}
+.btn-danger:hover{background:#fef2f2;border-color:#dc2626}
+.delete-confirm{display:none;margin-top:16px;padding:16px;border-radius:10px;background:#fef2f2;border:1px solid #fecaca}
+.delete-confirm.show{display:block}
+.alert{padding:12px 16px;border-radius:8px;font-size:14px;margin-bottom:16px}
+.alert-danger{background:#fef2f2;color:#b42318}
+.alert-success{background:#ecfdf3;color:#067647}
+.member-since{font-size:12px;color:var(--muted);margin-top:4px}
+/* Photo section */
+.photo-section{display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+.photo-actions{display:flex;gap:8px;flex-wrap:wrap}
+.photo-actions button,.photo-actions label{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;font-family:inherit;border:1px solid var(--border);background:#fff;color:var(--ink)}
+.photo-actions label:hover,.photo-actions button:hover{border-color:var(--orange);color:var(--orange)}
+.photo-actions label.primary{background:var(--orange);color:#fff;border-color:var(--orange)}
+.photo-actions label.primary:hover{background:#e55a00}
+/* Crop modal */
+.crop-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.8);align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.crop-modal.show{display:flex}
+.crop-container{width:90%;max-width:500px;max-height:70vh;background:#000;border-radius:12px;overflow:hidden}
+.crop-container img{display:block;max-width:100%}
+.crop-actions{display:flex;gap:10px}
+.crop-actions button{padding:10px 24px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:all .2s}
+.crop-btn-save{background:var(--orange);color:#fff}
+.crop-btn-save:hover{background:#e55a00}
+.crop-btn-cancel{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3)}
+.crop-btn-cancel:hover{background:rgba(255,255,255,.25)}
+@media(max-width:640px){.form-row{grid-template-columns:1fr}.profile-header{flex-direction:column;text-align:center}.photo-section{justify-content:center}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="profile-page">
+<div class="profile-container">
+
+<div class="auth-alerts" aria-live="polite">
+{% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}
+<div class="alert alert-{% if category == 'error' %}danger{% else %}success{% endif %}"><i class="fa fa-{% if category == 'error' %}exclamation-circle{% else %}check-circle{% endif %}"></i> {{ message }}</div>
+{% endfor %}{% endif %}{% endwith %}
+</div>
+
+<div class="profile-header">
+<div class="profile-avatar" id="avatarTrigger" title="Change photo">
+{% if user_doc.get('profile_photo_url') %}
+<img src="{{ user_doc.profile_photo_url }}" alt="Profile photo">
+{% else %}
+{{ auth_user.name[0]|upper if auth_user.name else 'U' }}
+{% endif %}
+<div class="avatar-overlay"><i class="fa fa-camera"></i></div>
+</div>
+<div class="profile-header-info">
+<h1>{{ user_doc.name or auth_user.name or 'Student' }}</h1>
+<p>{{ auth_user.email }} &nbsp;<span class="role-badge {{ auth_user.role }}">{{ auth_user.role }}</span></p>
+{% if user_doc.created_at %}<p class="member-since">Member since {{ user_doc.created_at.strftime('%B %Y') }}</p>{% endif %}
+</div>
+</div>
+
+<!-- Education Profile -->
+<form method="post" action="{{ url_for('auth.profile') }}">
+<div class="profile-section">
+<div class="section-header"><i class="fa fa-graduation-cap"></i><h2>Education Details</h2></div>
+<div class="section-body">
+<div class="form-row">
+<div class="form-group"><label>Full Name</label><input type="text" name="name" value="{{ user_doc.name or '' }}" placeholder="Your full name" required></div>
+<div class="form-group"><label>Phone / WhatsApp</label><input type="tel" name="phone" value="{{ user_doc.get('phone','') }}" placeholder="+91 9876543210"></div>
+</div>
+<div class="form-row">
+<div class="form-group"><label>Education Level</label>
+<select name="education_level"><option value="">Select...</option>
+{% for val,lbl in [('10th','10th Standard'),('12th','12th Standard / HSC'),('ug','Undergraduate (B.Tech/B.Sc/BA)'),('pg','Postgraduate (M.Tech/MBA/MA)'),('diploma','Diploma'),('other','Other')] %}
+<option value="{{ val }}" {% if user_profile.education_level==val %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
+</select></div>
+<div class="form-group"><label>Stream</label>
+<select name="stream"><option value="">Select...</option>
+{% for val in ['Science','Commerce','Arts','Engineering','Medical','Management','Law','Other'] %}
+<option value="{{ val }}" {% if user_profile.stream==val %}selected{% endif %}>{{ val }}</option>{% endfor %}
+</select></div>
+</div>
+<div class="form-row">
+<div class="form-group"><label>Target Year</label>
+<select name="target_year"><option value="">Select...</option>
+{% for y in [2025,2026,2027,2028,2029,2030] %}
+<option value="{{ y }}" {% if user_profile.target_year==y %}selected{% endif %}>{{ y }}</option>{% endfor %}
+</select></div>
+<div class="form-group"><label>State</label><input type="text" name="state" value="{{ user_profile.state or '' }}" placeholder="e.g. Maharashtra"></div>
+</div>
+<div class="form-row">
+<div class="form-group"><label>City</label><input type="text" name="city" value="{{ user_profile.city or '' }}" placeholder="e.g. Pune"></div>
+<div class="form-group"><label>College / School</label><input type="text" name="college" value="{{ user_profile.college or '' }}" placeholder="Current or target institution"></div>
+</div>
+
+<div class="form-row">
+<div class="form-group"><label>Target Exam</label>
+<select name="target_exams">
+<option value="">Select...</option>
+{% for exam in ['JEE Main','JEE Advanced','NEET','MHT-CET','CAT','GATE','CLAT','CUET','NIFT','NDA','SSC','Banking'] %}
+<option value="{{ exam }}" {% if exam in (user_profile.target_exams or []) %}selected{% endif %}>{{ exam }}</option>
+{% endfor %}
+</select></div>
+<div class="form-group"><label>Interest Area</label>
+<select name="interests">
+<option value="">Select...</option>
+{% for interest in ['Engineering','Medical','Law','Management','Design','Defence','Government Jobs','Scholarships','Study Abroad'] %}
+<option value="{{ interest }}" {% if interest in (user_profile.interests or []) %}selected{% endif %}>{{ interest }}</option>
+{% endfor %}
+</select></div>
+</div>
+
+<button type="submit" class="btn-save"><i class="fa fa-check"></i> Save Profile</button>
+</div></div>
+</form>
+
+<!-- Danger Zone -->
+<div class="profile-section danger-zone">
+<div class="section-header"><i class="fa fa-exclamation-triangle"></i><h2>Danger Zone</h2></div>
+<div class="section-body">
+<p style="color:var(--muted);font-size:14px;margin:0 0 12px">Once you delete your account, there is no going back. All your data will be permanently removed.</p>
+<button type="button" class="btn-danger" onclick="document.getElementById('deleteConfirm').classList.toggle('show')"><i class="fa fa-trash"></i> Delete My Account</button>
+<div class="delete-confirm" id="deleteConfirm">
+<form method="post" action="{{ url_for('auth.delete_account') }}">
+<p style="font-size:13px;font-weight:700;color:#dc2626;margin:0 0 12px">Type your password to confirm permanent deletion:</p>
+<div class="form-group" style="margin-bottom:12px"><input type="password" name="confirm_password" placeholder="Enter your password" required></div>
+<button type="submit" class="btn-danger"><i class="fa fa-trash"></i> Permanently Delete Account</button>
+</form>
+</div>
+</div></div>
+
+</div></div>
+
+<!-- Crop Modal -->
+<div class="crop-modal" id="cropModal">
+<div class="crop-container"><img id="cropImage" src="" alt="Crop preview"></div>
+<div class="crop-actions">
+<button class="crop-btn-cancel" id="cropCancel"><i class="fa fa-times"></i> Cancel</button>
+<button class="crop-btn-save" id="cropSave"><i class="fa fa-check"></i> Save Photo</button>
+</div>
+</div>
+
+<!-- Hidden upload form -->
+<form id="photoUploadForm" method="post" action="{{ url_for('auth.upload_photo') }}" enctype="multipart/form-data" style="display:none">
+<input type="file" name="photo" id="photoFormInput">
+</form>
+
+<!-- Remove photo form -->
+<form id="removePhotoForm" method="post" action="{{ url_for('auth.remove_photo') }}" style="display:none"></form>
+
+{% endblock %}
+
+{% block page_scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+<script>
+(function(){
+    var photoInput = document.getElementById('photoInput');
+    var cropModal = document.getElementById('cropModal');
+    var cropImage = document.getElementById('cropImage');
+    var cropSave = document.getElementById('cropSave');
+    var cropCancel = document.getElementById('cropCancel');
+    var photoUploadForm = document.getElementById('photoUploadForm');
+    var photoFormInput = document.getElementById('photoFormInput');
+    var avatarTrigger = document.getElementById('avatarTrigger');
+    var removeBtn = document.getElementById('removePhotoBtn');
+    var cropper = null;
+
+    if (avatarTrigger) {
+        avatarTrigger.addEventListener('click', function(){ photoInput.click(); });
+    }
+
+    if (removeBtn) {
+        removeBtn.addEventListener('click', function(e){
+            e.preventDefault();
+            if (confirm('Remove your profile photo?')) {
+                document.getElementById('removePhotoForm').submit();
+            }
+        });
+    }
+
+    photoInput.addEventListener('change', function(e){
+        var file = e.target.files[0];
+        if (!file) return;
+
+        // Validate
+        var validTypes = ['image/png','image/jpeg','image/webp'];
+        if (validTypes.indexOf(file.type) === -1) {
+            alert('Please select a PNG, JPG, or WebP image.');
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Image must be under 5MB.');
+            return;
+        }
+
+        var reader = new FileReader();
+        reader.onload = function(ev){
+            cropImage.src = ev.target.result;
+            cropModal.classList.add('show');
+
+            if (cropper) cropper.destroy();
+            cropper = new Cropper(cropImage, {
+                aspectRatio: 1,
+                viewMode: 1,
+                dragMode: 'move',
+                autoCropArea: 0.9,
+                responsive: true,
+                background: false,
+                guides: true,
+                center: true,
+                highlight: false,
+                cropBoxMovable: true,
+                cropBoxResizable: true,
+                toggleDragModeOnDblclick: false,
+            });
+        };
+        reader.readAsDataURL(file);
+    });
+
+    cropCancel.addEventListener('click', function(){
+        cropModal.classList.remove('show');
+        if (cropper) { cropper.destroy(); cropper = null; }
+        photoInput.value = '';
+    });
+
+    cropSave.addEventListener('click', function(){
+        if (!cropper) return;
+
+        cropSave.disabled = true;
+        cropSave.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Uploading...';
+
+        var canvas = cropper.getCroppedCanvas({
+            width: 400,
+            height: 400,
+            imageSmoothingEnabled: true,
+            imageSmoothingQuality: 'high',
+        });
+
+        canvas.toBlob(function(blob){
+            var dt = new DataTransfer();
+            var file = new File([blob], 'profile.jpg', { type: 'image/jpeg' });
+            dt.items.add(file);
+            photoFormInput.files = dt.files;
+            photoUploadForm.submit();
+        }, 'image/jpeg', 0.92);
+    });
+})();
+</script>
+{% endblock %}
