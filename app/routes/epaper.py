@@ -288,40 +288,65 @@ def api_tts_script():
         from groq import Groq
         client = Groq(api_key=api_key)
         
-        system_prompt = """You are an expert news script editor for Indian TV news. Your task is to take a raw news article and output an optimized script for a Text-to-Speech (TTS) engine.
-Follow these rules strictly:
-- Sound like a professional Indian TV news anchor.
-- Support Hindi, Marathi, and English based on the input text.
-- Preserve factual meaning exactly.
-- Improve flow for speech listening. Break long sentences naturally.
-- Add emotional pacing where appropriate (e.g. serious news = calm, breaking news = urgent).
-- Add punctuation and pauses (like commas, periods, or ellipses) for narration.
-- Convert symbols, abbreviations, dates, and numbers into spoken language (e.g., "$10" to "ten dollars", "UP" to "Uttar Pradesh").
-- Keep tone formal, trustworthy, and engaging. Avoid robotic phrasing.
-- Hindi pronunciation should feel native Indian. Marathi should feel authentic Marathi. English should use Indian news-anchor style.
-- Add short pauses after important statements.
+        system_prompt = """You are a senior broadcast script writer for India's top news channels (Aaj Tak, NDTV India, Zee 24 Taas, ABP Maza, Times Now). Transform raw news text into a broadcast-ready narration script that sounds exactly like a real live news anchor — not a robot.
 
-Return ONLY a valid JSON object matching this schema exactly:
+LANGUAGE DETECTION:
+Detect the primary language: Hindi (हिंदी), Marathi (मराठी), or English.
+Return "language" as: "hi" for Hindi, "mr" for Marathi, "en" for English.
+Mixed scripts are normal — keep natural code-switching (e.g. English proper nouns in Hindi article).
+
+MANDATORY TRANSFORMATIONS:
+
+1. SENTENCE RHYTHM — Break long sentences at natural breath points. Each sentence max 15 words. Short punchy sentences for impact.
+
+2. PAUSE INJECTION (critical for realistic delivery):
+   - After headline: add "..." (anchor pause before story)
+   - After key facts, numbers, names: add ", " (short beat)
+   - Between topic shifts in Hindi/Marathi: add " | "
+   - After dramatic statements: add " — "
+   - End of important section: add full stop + new line
+
+3. NUMBER & SYMBOL CONVERSION:
+   Hindi/Marathi: ₹50,000 → पचास हजार रुपये | ₹2 crore → दो करोड़ रुपये | 50% → पचास प्रतिशत | 10 lakh → दस लाख
+   English: $1M → one million dollars | 10% → ten percent | 2025 → twenty twenty-five
+
+4. ABBREVIATION EXPANSION:
+   Hindi: JEE→जे ई ई | NEET→नीट | IIT→आई आई टी | UP→उत्तर प्रदेश | CM→मुख्यमंत्री | PM→प्रधानमंत्री | BJP→बी जे पी | MH→महाराष्ट्र
+   Marathi: JEE→जे ई ई | CM→मुख्यमंत्री | PM→पंतप्रधान | MH→महाराष्ट्र
+   English: JEE→J-E-E | IIT→I-I-T | CM→Chief Minister | PM→Prime Minister
+
+5. ANCHOR TONE BY LANGUAGE:
+   Hindi (Aaj Tak style): आदरपूर्ण, स्पष्ट उच्चारण, थोड़ी urgency। वाक्य छोटे और प्रभावशाली। 'है' and 'हैं' pronounced clearly.
+   Marathi (Zee 24 Taas style): स्पष्ट मराठी उच्चारण, Mumbaiya नाही। 'आहे' not 'आये', 'होते' clearly. Standard Pune-style Marathi diction.
+   English (NDTV style): Crisp neutral Indian English. Measured pace. Proper stress on key words.
+
+6. OPENING FORMAT (mandatory):
+   Hindi: Start with "एक बड़ी खबर... " or "ताज़ा जानकारी के मुताबिक... "
+   Marathi: Start with "महत्त्वाची बातमी... " or "ताज्या माहितीनुसार... "
+   English: Start with "Breaking news — " or "In a major development, "
+
+7. VOICE STYLE (choose based on story tone):
+   Breaking/urgent: speed=1.0, pitch="+2Hz"
+   Education/results: speed=0.95, pitch="+0Hz"
+   Government/policy: speed=0.92, pitch="-2Hz"
+   Positive/achievement: speed=1.0, pitch="+3Hz"
+
+Return ONLY valid JSON — no markdown, no extra text:
 {
-  "language": "en/hi/mr",
-  "title_script": "Optimized headline script here...",
-  "body_script": "Optimized body script here...",
-  "voice_style": {
-    "speed": "A number representing speed multiplier (e.g., 1.0, 1.1, 0.95)",
-    "pitch": "A string like '+0Hz', '+5Hz', '-5Hz'",
-    "emotion": "A short description of the emotion",
-    "pause_style": "Description of pauses"
-  }
+  "language": "hi|mr|en",
+  "title_script": "...",
+  "body_script": "...",
+  "voice_style": { "speed": 0.95, "pitch": "+0Hz", "emotion": "calm-authoritative", "pause_style": "short after facts" }
 }"""
         
         response = client.chat.completions.create(
             messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"Raw News Text:\n{text[:3000]}"}
+               {"role": "user", "content": f"Raw News Article:\n\n{text[:4000]}"}
             ],
             model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
             response_format={"type": "json_object"},
-            temperature=0.3,
+            temperature=0.2,
+            max_tokens=2000,
         )
         
         import json
@@ -356,17 +381,47 @@ def api_tts():
     # Limit text length to prevent abuse (max ~5000 chars)
     text = text[:5000]
 
-    # Auto-detect language and pick the best Indian news anchor voice
-    hindi_chars = len(re.findall(r'[\u0900-\u097F]', text))
-    is_hindi = hindi_chars / max(len(text), 1) > 0.3
+# ── Language detection ───────────────────────────────────────────────────
+    devanagari_chars = len(re.findall(r'[\u0900-\u097F]', text))
+    devanagari_ratio = devanagari_chars / max(len(text), 1)
+
+    MARATHI_WORDS = [
+        'आहे', 'नाही', 'आणि', 'मला', 'आपण', 'होते', 'केले', 'झाले',
+        'त्यांनी', 'म्हणाले', 'यावर', 'यामुळे', 'सांगितले', 'महाराष्ट्र',
+        'पुणे', 'मुंबई', 'नागपूर', 'ठाणे', 'सरकार', 'विद्यार्थी'
+    ]
+    HINDI_WORDS = [
+        'है', 'नहीं', 'और', 'था', 'हैं', 'यह', 'हो', 'उन्होंने',
+        'कहा', 'इससे', 'इसलिए', 'बताया', 'राज्य', 'सरकार'
+    ]
+    marathi_hits = sum(1 for w in MARATHI_WORDS if w in text)
+    hindi_hits = sum(1 for w in HINDI_WORDS if w in text)
 
     if not voice:
-        if is_hindi:
-            # Male Hindi news anchor — deep, authoritative, natural
-            voice = "hi-IN-MadhurNeural"
+        if devanagari_ratio > 0.3:
+            if marathi_hits > hindi_hits:
+                voice = "mr-IN-ManoharNeural"
+                if rate == "+0%": rate = "-5%"
+                if pitch == "+0Hz": pitch = "-2Hz"
+            else:
+                voice = "hi-IN-MadhurNeural"
+                if rate == "+0%": rate = "-5%"
+                if pitch == "+0Hz": pitch = "-3Hz"
         else:
-            # Male Indian English news anchor — crisp, professional
             voice = "en-IN-PrabhatNeural"
+            if rate == "+0%": rate = "-5%"
+            if pitch == "+0Hz": pitch = "-2Hz"
+    else:
+        _voice_defaults = {
+            "hi-IN-MadhurNeural":  ("-5%", "-3Hz"),
+            "hi-IN-SwaraNeural":   ("-3%", "+0Hz"),
+            "mr-IN-ManoharNeural": ("-5%", "-2Hz"),
+            "mr-IN-AarohiNeural":  ("-3%", "+0Hz"),
+            "en-IN-PrabhatNeural": ("-5%", "-2Hz"),
+            "en-IN-NeerjaNeural":  ("-3%", "+0Hz"),
+        }
+        if voice in _voice_defaults and rate == "+0%" and pitch == "+0Hz":
+            rate, pitch = _voice_defaults[voice]
 
     # Convert rate from number to Edge TTS format
     if isinstance(rate, (int, float)):
@@ -408,8 +463,10 @@ def api_tts():
 def api_tts_voices():
     """Return available Indian voice options for the frontend voice selector."""
     return jsonify({"voices": [
-        {"id": "hi-IN-MadhurNeural", "name": "माधुर (Hindi Male)", "lang": "hi", "gender": "male", "style": "News Anchor"},
-        {"id": "hi-IN-SwaraNeural", "name": "स्वरा (Hindi Female)", "lang": "hi", "gender": "female", "style": "News Anchor"},
-        {"id": "en-IN-PrabhatNeural", "name": "Prabhat (English Male)", "lang": "en", "gender": "male", "style": "Professional"},
-        {"id": "en-IN-NeerjaNeural", "name": "Neerja (English Female)", "lang": "en", "gender": "female", "style": "Professional"},
+        {"id": "hi-IN-MadhurNeural",  "name": "माधुर (Hindi Male)",     "lang": "hi", "gender": "male",   "style": "News Anchor"},
+        {"id": "hi-IN-SwaraNeural",   "name": "स्वरा (Hindi Female)",   "lang": "hi", "gender": "female", "style": "News Anchor"},
+        {"id": "mr-IN-ManoharNeural", "name": "मनोहर (Marathi Male)",   "lang": "mr", "gender": "male",   "style": "News Anchor"},
+        {"id": "mr-IN-AarohiNeural",  "name": "आरोही (Marathi Female)", "lang": "mr", "gender": "female", "style": "Professional"},
+        {"id": "en-IN-PrabhatNeural", "name": "Prabhat (English Male)",  "lang": "en", "gender": "male",   "style": "News Anchor"},
+        {"id": "en-IN-NeerjaNeural",  "name": "Neerja (English Female)", "lang": "en", "gender": "female", "style": "Professional"},
     ]})

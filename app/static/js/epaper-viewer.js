@@ -79,6 +79,7 @@ const EP = {
       voiceBar: document.getElementById('epVoiceBar'),
       voicePlayBtn: document.getElementById('epVoicePlayBtn'),
       voicePlayIcon: document.getElementById('epVoicePlayIcon'),
+      voiceProgressBg: document.getElementById('epVoiceProgressBg'),
       voiceProgressFill: document.getElementById('epVoiceProgressFill'),
       voiceElapsed: document.getElementById('epVoiceElapsed'),
       voiceRemaining: document.getElementById('epVoiceRemaining'),
@@ -87,8 +88,10 @@ const EP = {
       voiceCloseBtn: document.getElementById('epVoiceCloseBtn'),
       voiceBack: document.getElementById('epVoiceBack'),
       voiceForward: document.getElementById('epVoiceForward'),
+      voiceSelect: document.getElementById('epVoiceSelect'),
       ttsStartBtn: document.getElementById('epTtsStartBtn'),
       ttsEstimate: document.getElementById('epTtsEstimate'),
+      ttsPrompt: document.getElementById('epTtsPrompt'),
       readingTime: document.getElementById('epReadingTime'),
       readTimeText: document.getElementById('epReadTimeText'),
       translateSelect: document.getElementById('epTranslateSelect'),
@@ -139,13 +142,28 @@ const EP = {
       tab.addEventListener('click', () => this.switchAiTab(tab.dataset.tab));
     });
 
-    // TTS / Voice Bar
+ // TTS / Voice Player
     this.el.ttsStartBtn?.addEventListener('click', () => this.voicePlay());
     this.el.voicePlayBtn?.addEventListener('click', () => this.voiceToggle());
     this.el.voiceSpeedBtn?.addEventListener('click', () => this.voiceCycleSpeed());
     this.el.voiceCloseBtn?.addEventListener('click', () => this.voiceStop());
     this.el.voiceBack?.addEventListener('click', () => this.voiceSkip(-10));
     this.el.voiceForward?.addEventListener('click', () => this.voiceSkip(10));
+
+    // Seekable progress bar — click to jump
+    this.el.voiceProgressBg?.addEventListener('click', (e) => {
+      const audio = this._voice.audio;
+      if (!audio || !audio.duration) return;
+      const rect = this.el.voiceProgressBg.getBoundingClientRect();
+      const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      audio.currentTime = pct * audio.duration;
+      this._voiceUpdateUI();
+    });
+
+    // Voice selector
+    this.el.voiceSelect?.addEventListener('change', () => {
+      this._voice.selectedVoice = this.el.voiceSelect.value;
+    });
 
     // Translate
     this.el.translateSelect?.addEventListener('change', () => this.translateArticle());
@@ -782,8 +800,9 @@ const EP = {
     this.voiceStop();
     this._voice.loading = true;
 
-    // Show loading state on voice bar
-    if (this.el.voiceBar) this.el.voiceBar.classList.add('active');
+    // Show inline player, hide prompt
+    if (this.el.ttsPrompt) this.el.ttsPrompt.style.display = 'none';
+    if (this.el.voiceBar) this.el.voiceBar.classList.add('active', 'loading');
     if (this.el.voiceTitle) this.el.voiceTitle.textContent = this.currentArticle.headline || 'Article';
     this._voiceUpdatePlayIcon();
     
@@ -885,6 +904,7 @@ const EP = {
       this._voice.playing = true;
       this._voice.paused = false;
       this._voice.loading = false;
+      if (this.el.voiceBar) this.el.voiceBar.classList.remove('loading');
       this._voiceUpdatePlayIcon();
 
       this.showToast('🔊 Now playing — AI News Voice');
@@ -898,7 +918,8 @@ const EP = {
       console.error('TTS Error:', err);
       this._voice.loading = false;
       this.showToast('Voice generation failed. Try again.');
-      if (this.el.voiceBar) this.el.voiceBar.classList.remove('active');
+      if (this.el.voiceBar) this.el.voiceBar.classList.remove('active', 'loading');
+      if (this.el.ttsPrompt) this.el.ttsPrompt.style.display = '';
       this._voiceUpdatePlayIcon();
     }
   },
@@ -914,7 +935,11 @@ const EP = {
     }
     if (this.el.voiceRemaining) this.el.voiceRemaining.textContent = '0:00';
     this._voiceUpdatePlayIcon();
-    if (this.el.voiceBar) this.el.voiceBar.classList.remove('playing');
+   if (this.el.voiceBar) this.el.voiceBar.classList.remove('playing', 'loading');
+    setTimeout(() => {
+      if (this.el.voiceBar) this.el.voiceBar.classList.remove('active');
+      if (this.el.ttsPrompt) this.el.ttsPrompt.style.display = '';
+    }, 1800);
     this.showToast('✅ Finished reading');
   },
 
@@ -960,8 +985,9 @@ const EP = {
     this._voice.paused = false;
     this._voice.loading = false;
     if (this.el.voiceBar) {
-      this.el.voiceBar.classList.remove('active', 'playing');
+      this.el.voiceBar.classList.remove('active', 'playing', 'loading');
     }
+    if (this.el.ttsPrompt) this.el.ttsPrompt.style.display = '';
     if (this.el.voiceProgressFill) this.el.voiceProgressFill.style.width = '0%';
     this._voiceUpdatePlayIcon();
   },

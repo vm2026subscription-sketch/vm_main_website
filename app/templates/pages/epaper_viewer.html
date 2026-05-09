@@ -178,7 +178,7 @@
     </div>
 
     <!-- AI Content Panels -->
-    <div class="ep-ai-content" data-tab="listen">
+    {% comment %} <div class="ep-ai-content" data-tab="listen">
       <div class="ep-tts-inline-prompt" id="epTtsPrompt">
         <div class="ep-tts-prompt-icon"><i class="fa fa-headphones"></i></div>
         <div class="ep-tts-prompt-text">
@@ -189,6 +189,79 @@
           <i class="fa fa-play"></i> Play
         </button>
       </div>
+    </div> {% endcomment %}
+    <div class="ep-ai-content" data-tab="listen">
+
+      <!-- ── Play prompt (shown before playback) ── -->
+      <div class="ep-tts-inline-prompt" id="epTtsPrompt">
+        <div class="ep-tts-prompt-icon"><i class="fa fa-headphones"></i></div>
+        <div class="ep-tts-prompt-text">
+          <strong>Listen to this article</strong>
+          <span id="epTtsEstimate">Calculating...</span>
+        </div>
+        <div class="ep-tts-voice-wrap">
+          <select class="ep-tts-voice-select" id="epVoiceSelect" title="Select voice">
+            <option value="">🎙️ Auto detect</option>
+            <optgroup label="हिंदी">
+              <option value="hi-IN-MadhurNeural">माधुर ♂ (Hindi)</option>
+              <option value="hi-IN-SwaraNeural">स्वरा ♀ (Hindi)</option>
+            </optgroup>
+            <optgroup label="मराठी">
+              <option value="mr-IN-ManoharNeural">मनोहर ♂ (Marathi)</option>
+              <option value="mr-IN-AarohiNeural">आरोही ♀ (Marathi)</option>
+            </optgroup>
+            <optgroup label="English">
+              <option value="en-IN-PrabhatNeural">Prabhat ♂ (English)</option>
+              <option value="en-IN-NeerjaNeural">Neerja ♀ (English)</option>
+            </optgroup>
+          </select>
+        </div>
+        <button class="ep-tts-prompt-btn" id="epTtsStartBtn">
+          <i class="fa fa-play"></i> Play
+        </button>
+      </div>
+
+      <!-- ── Compact Inline Player (shown during playback) ── -->
+      <div class="ep-inline-player" id="epVoiceBar">
+        <!-- Seekable progress bar -->
+        <div class="ep-inpl-progress" id="epVoiceProgressBg">
+          <div class="ep-inpl-fill" id="epVoiceProgressFill">
+            <div class="ep-inpl-dot"></div>
+          </div>
+        </div>
+        <!-- Controls row -->
+        <div class="ep-inpl-controls">
+          <div class="ep-inpl-left">
+            <button class="ep-inpl-skip" id="epVoiceBack" title="Back 10s">
+              <i class="fa fa-rotate-left"></i><b>10</b>
+            </button>
+            <button class="ep-inpl-play" id="epVoicePlayBtn">
+              <i class="fa fa-play" id="epVoicePlayIcon"></i>
+            </button>
+            <button class="ep-inpl-skip" id="epVoiceForward" title="Forward 10s">
+              <i class="fa fa-rotate-right"></i><b>10</b>
+            </button>
+          </div>
+          <div class="ep-inpl-center">
+            <div class="ep-inpl-waveform" id="epVoiceWaveform">
+              <span></span><span></span><span></span><span></span><span></span>
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <div class="ep-inpl-times">
+              <span class="ep-inpl-time" id="epVoiceElapsed">0:00</span>
+              <span class="ep-inpl-title" id="epVoiceTitle">Article</span>
+              <span class="ep-inpl-time" id="epVoiceRemaining">-0:00</span>
+            </div>
+          </div>
+          <div class="ep-inpl-right">
+            <button class="ep-inpl-speed" id="epVoiceSpeedBtn">1×</button>
+            <button class="ep-inpl-close" id="epVoiceCloseBtn" title="Stop">
+              <i class="fa fa-stop"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <div class="ep-ai-content" data-tab="translate">
@@ -235,7 +308,7 @@
   </div>
 
   <!-- ── STICKY VOICE PLAYER BAR (Aaj Tak Style) ── -->
-  <div class="ep-voice-bar" id="epVoiceBar">
+  {% comment %} <div class="ep-voice-bar" id="epVoiceBar">
     <div class="ep-voice-progress-wrap">
       <div class="ep-voice-progress-bg">
         <div class="ep-voice-progress-fill" id="epVoiceProgressFill"></div>
@@ -274,7 +347,7 @@
         </button>
       </div>
     </div>
-  </div>
+  </div> {% endcomment %}
 
   <!-- ── Video Overlay ── -->
   <div class="ep-video-overlay" id="epVideoOverlay">
