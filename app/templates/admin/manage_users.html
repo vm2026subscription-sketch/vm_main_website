@@ -1,0 +1,179 @@
+{% extends 'layouts/base.html' %}
+{% block title %}Manage Users - Admin - Vidyarthi Mitra{% endblock %}
+{% block page_styles %}
+<style>
+.mu{--orange:#ff6600;--ink:#172033;--muted:#667085;--border:#e5e7eb;--green:#14b87a;--red:#dc2626;min-height:calc(100vh - 140px);padding:28px 16px;background:#f9fafb}
+.mu-wrap{max-width:1060px;margin:0 auto}
+.mu-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.mu-head h1{margin:0;font-size:22px;font-weight:800;color:var(--ink)}
+.mu-head-meta{display:flex;align-items:center;gap:12px}
+.mu-count{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
+.mu-back{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;color:var(--ink);border:1px solid var(--border);background:#fff;text-decoration:none;transition:all .15s}
+.mu-back:hover{border-color:var(--orange);color:var(--orange)}
+.mu-search{width:100%;max-width:360px;margin-bottom:16px}
+.mu-search input{width:100%;height:40px;border:1px solid var(--border);border-radius:8px;padding:8px 14px 8px 36px;font-size:13px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23667085'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 10-1.397 1.398h-.001l3.85 3.85a1 1 0 001.415-1.414l-3.85-3.85zm-5.242.156a5 5 0 110-10 5 5 0 010 10z'/%3E%3C/svg%3E") 12px center/14px no-repeat;font-family:inherit}
+.mu-search input:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,102,0,.1)}
+.mu-table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.mu-table thead{background:#f9fafb}
+.mu-table th{padding:12px 16px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);text-align:left;border-bottom:1px solid var(--border)}
+.mu-table td{padding:14px 16px;font-size:13px;color:var(--ink);border-bottom:1px solid var(--border);vertical-align:middle}
+.mu-table tr:last-child td{border-bottom:none}
+.mu-table tr:hover td{background:#fafbfc}
+.mu-user-info{display:flex;align-items:center;gap:10px}
+.mu-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--orange),#e55a00);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:800;flex-shrink:0;overflow:hidden}
+.mu-avatar img{width:100%;height:100%;object-fit:cover}
+.mu-name{font-weight:700}
+.mu-email{font-size:12px;color:var(--muted)}
+.mu-role{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px}
+.mu-role.admin{background:#fff7ed;color:#c2410c;border:1px solid #fed7aa}
+.mu-role.user{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
+.mu-actions{display:flex;gap:6px;flex-wrap:wrap}
+.mu-btn{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:700;border:1px solid var(--border);background:#fff;color:var(--ink);cursor:pointer;transition:all .15s;font-family:inherit;text-decoration:none}
+.mu-btn:hover{border-color:var(--orange);color:var(--orange)}
+.mu-btn-danger{color:var(--red);border-color:#fecaca}
+.mu-btn-danger:hover{background:#fef2f2;border-color:var(--red);color:var(--red)}
+.mu-btn-promote{color:#059669;border-color:#a7f3d0}
+.mu-btn-promote:hover{background:#ecfdf5;border-color:#059669}
+.mu-btn-demote{color:#d97706;border-color:#fde68a}
+.mu-btn-demote:hover{background:#fffbeb;border-color:#d97706}
+.mu-detail{display:none;background:#f9fafb;border-top:1px solid var(--border)}
+.mu-detail.show{display:table-row}
+.mu-detail td{padding:16px;font-size:12px;color:var(--muted)}
+.mu-detail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.mu-detail-item strong{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:2px}
+.mu-detail-item span{color:var(--ink);font-weight:600}
+.mu-empty{text-align:center;padding:40px;color:var(--muted);font-size:14px}
+.alert{padding:12px 16px;border-radius:8px;font-size:14px;margin-bottom:16px}
+.alert-danger{background:#fef2f2;color:#b42318}
+.alert-success{background:#ecfdf3;color:#067647}
+@media(max-width:768px){.mu-table{font-size:12px}.mu-table th,.mu-table td{padding:10px 8px}.mu-actions{flex-direction:column}.mu-head{flex-direction:column;align-items:flex-start}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="mu">
+<div class="mu-wrap">
+
+<div class="auth-alerts" aria-live="polite">
+{% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}
+<div class="alert alert-{% if category == 'error' %}danger{% else %}success{% endif %}"><i class="fa fa-{% if category == 'error' %}exclamation-circle{% else %}check-circle{% endif %}"></i> {{ message }}</div>
+{% endfor %}{% endif %}{% endwith %}
+</div>
+
+<div class="mu-head">
+<div>
+<h1><i class="fa fa-users" style="color:var(--orange);margin-right:6px"></i> Manage Users</h1>
+</div>
+<div class="mu-head-meta">
+<span class="mu-count">{{ total_users }} user{{ 's' if total_users != 1 }}</span>
+<a href="{{ url_for('admin.admin_panel') }}" class="mu-back"><i class="fa fa-arrow-left"></i> Back to Panel</a>
+</div>
+</div>
+
+<div class="mu-search">
+<input type="text" id="userSearch" placeholder="Search by name or email..." autocomplete="off">
+</div>
+
+{% if users %}
+<table class="mu-table" id="usersTable">
+<thead>
+<tr>
+<th>User</th>
+<th>Role</th>
+<th>Joined</th>
+<th>Verified</th>
+<th style="text-align:right">Actions</th>
+</tr>
+</thead>
+<tbody>
+{% for u in users %}
+<tr class="mu-row" data-name="{{ u.name|lower }}" data-email="{{ u.email|lower }}">
+<td>
+<div class="mu-user-info">
+<div class="mu-avatar">
+{% if u.get('profile_photo_url') %}
+<img src="{{ u.profile_photo_url }}" alt="">
+{% else %}
+{{ u.name[0]|upper if u.name else '?' }}
+{% endif %}
+</div>
+<div>
+<div class="mu-name">{{ u.name or 'Unnamed' }}</div>
+<div class="mu-email">{{ u.email }}</div>
+</div>
+</div>
+</td>
+<td><span class="mu-role {{ u.get('role','user') }}">{{ u.get('role','user') }}</span></td>
+<td>{{ u.created_at.strftime('%d %b %Y') if u.get('created_at') else '—' }}</td>
+<td>{% if u.get('email_verified') %}<i class="fa fa-check-circle" style="color:var(--green)"></i>{% else %}<i class="fa fa-times-circle" style="color:var(--red)"></i>{% endif %}</td>
+<td style="text-align:right">
+<div class="mu-actions" style="justify-content:flex-end">
+<button type="button" class="mu-btn" onclick="toggleDetail('detail-{{ loop.index }}')"><i class="fa fa-eye"></i> Details</button>
+{% if u.email != auth_user.email %}
+<form method="post" action="{{ url_for('admin.toggle_admin', user_email=u.email) }}" style="display:inline">
+{% if u.get('role') == 'admin' %}
+<button type="submit" class="mu-btn mu-btn-demote" onclick="return confirm('Remove admin access for {{ u.name }}?')"><i class="fa fa-arrow-down"></i> Demote</button>
+{% else %}
+<button type="submit" class="mu-btn mu-btn-promote" onclick="return confirm('Make {{ u.name }} an admin?')"><i class="fa fa-arrow-up"></i> Make Admin</button>
+{% endif %}
+</form>
+<form method="post" action="{{ url_for('admin.admin_delete_user', user_email=u.email) }}" style="display:inline">
+<button type="submit" class="mu-btn mu-btn-danger" onclick="return confirm('Permanently delete {{ u.name }}\'s account? This cannot be undone.')"><i class="fa fa-trash"></i> Delete</button>
+</form>
+{% else %}
+<span style="font-size:11px;color:var(--muted);padding:6px 0">You</span>
+{% endif %}
+</div>
+</td>
+</tr>
+<tr class="mu-detail" id="detail-{{ loop.index }}">
+<td colspan="5">
+<div class="mu-detail-grid">
+<div class="mu-detail-item"><strong>Phone</strong><span>{{ u.get('phone') or '—' }}</span></div>
+<div class="mu-detail-item"><strong>Education</strong><span>{{ u.get('profile',{}).get('education_level') or '—' }}</span></div>
+<div class="mu-detail-item"><strong>Stream</strong><span>{{ u.get('profile',{}).get('stream') or '—' }}</span></div>
+<div class="mu-detail-item"><strong>Target Exam</strong><span>{{ (u.get('profile',{}).get('target_exams') or ['—'])|join(', ') }}</span></div>
+<div class="mu-detail-item"><strong>Target Year</strong><span>{{ u.get('profile',{}).get('target_year') or '—' }}</span></div>
+<div class="mu-detail-item"><strong>State</strong><span>{{ u.get('profile',{}).get('state') or '—' }}</span></div>
+<div class="mu-detail-item"><strong>City</strong><span>{{ u.get('profile',{}).get('city') or '—' }}</span></div>
+<div class="mu-detail-item"><strong>College</strong><span>{{ u.get('profile',{}).get('college') or '—' }}</span></div>
+<div class="mu-detail-item"><strong>Interest</strong><span>{{ (u.get('profile',{}).get('interests') or ['—'])|join(', ') }}</span></div>
+<div class="mu-detail-item"><strong>Last Login</strong><span>{{ u.get('last_login_at','—') }}</span></div>
+</div>
+</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+{% else %}
+<div class="mu-empty"><i class="fa fa-users" style="font-size:24px;margin-bottom:8px;display:block"></i>No users found.</div>
+{% endif %}
+
+</div>
+</div>
+
+<script>
+function toggleDetail(id){
+    var el = document.getElementById(id);
+    if(el) el.classList.toggle('show');
+}
+(function(){
+    var input = document.getElementById('userSearch');
+    if(!input) return;
+    input.addEventListener('input', function(){
+        var q = this.value.toLowerCase();
+        var rows = document.querySelectorAll('.mu-row');
+        rows.forEach(function(r){
+            var name = r.getAttribute('data-name') || '';
+            var email = r.getAttribute('data-email') || '';
+            var match = !q || name.indexOf(q) !== -1 || email.indexOf(q) !== -1;
+            r.style.display = match ? '' : 'none';
+            // Also hide detail row if user row is hidden
+            var next = r.nextElementSibling;
+            if(next && next.classList.contains('mu-detail') && !match){
+                next.classList.remove('show');
+            }
+        });
+    });
+})();
+</script>
+{% endblock %}

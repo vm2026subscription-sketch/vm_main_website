@@ -1,0 +1,272 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Top Colleges | Vidyarthi Mitra{% endblock %}
+
+{% block page_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/courses.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/colleges.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+{% endblock %}
+
+{% macro college_card(college) %}
+<div class="exam-card college-card">
+  <div class="exam-card-top">
+    <div class="exam-abbr" title="{{ college.name or 'College name unavailable' }}">{{ college.name or 'College name unavailable' }}</div>
+    {% if college.type %}<span class="exam-level level-general">{{ college.type }}</span>{% endif %}
+  </div>
+
+  <div class="exam-name">
+    {% if college.city or college.state %}
+      <i class="fa-solid fa-location-dot"></i>
+      {{ college.city }}{% if college.city and college.state %}, {% endif %}{{ college.state }}
+    {% else %}
+      Location details unavailable
+    {% endif %}
+  </div>
+
+  <div class="exam-body">
+    {% if college.university_name %}
+      <span title="{{ college.university_name }}">{{ college.university_name }}</span>
+    {% elif college.management %}
+      <span>{{ college.management }}</span>
+    {% else %}
+      <span>College details will be updated soon.</span>
+    {% endif %}
+  </div>
+
+  <div class="college-tags">
+    {% if college.management %}<span>{{ college.management }}</span>{% endif %}
+    {% if college.year %}<span>Est. {{ college.year }}</span>{% endif %}
+    {% if college.nirf %}<span>NIRF {{ college.nirf }}</span>{% endif %}
+  </div>
+
+  <div class="exam-footer-row">
+    <div class="exam-conducting">District: {{ college.city or 'N/A' }}</div>
+    {% if college.source_url %}
+    <a class="exam-link" href="{{ college.source_url }}" target="_blank" rel="noopener">
+      Website <i class="fa fa-arrow-right"></i>
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endmacro %}
+
+{% block content %}
+<section class="search-section" id="college-search">
+  <div class="search-inner">
+    {% if error %}
+    <div class="db-error-banner">
+      <strong>Database error:</strong> {{ error }}
+    </div>
+    {% endif %}
+
+    <h2>Find Your College</h2>
+    <p>
+      Search {{ total_colleges if total_colleges is defined else total }} colleges by name, State, District, college type, management, or university.
+    </p>
+
+    <form class="college-search-form" method="get" action="{{ url_for('colleges.colleges') }}">
+      <div class="search-bar college-search-bar">
+        <input type="text" id="collegeInput" name="q" value="{{ query }}" autocomplete="off"
+               placeholder="e.g. COEP, VJTI, Mumbai, Maharashtra...">
+        <button type="submit" id="collegeSearchBtn">
+          <i class="fa fa-search"></i> Search
+        </button>
+      </div>
+
+      {% if alpha or state_filter %}
+        {% if alpha %}<input type="hidden" name="alpha" value="{{ alpha }}">{% endif %}
+        {% if state_filter %}<input type="hidden" name="state" value="{{ state_filter }}">{% endif %}
+      {% endif %}
+      {% if paginate_results and per_page %}<input type="hidden" name="per_page" value="{{ per_page }}">{% endif %}
+      {% if query or alpha or state_filter %}
+      <div class="college-select-row">
+        <a class="clear-search-btn clear-link" href="{{ url_for('colleges.colleges') }}">
+          <i class="fa fa-times"></i> Clear filters
+        </a>
+      </div>
+      {% endif %}
+    </form>
+  </div>
+</section>
+
+<div class="filter-bar college-filter-bar" id="college-filters">
+  <div class="filter-tabs alpha-tabs" aria-label="Filter colleges by first letter">
+    <a class="filter-tab {% if not alpha %}active{% endif %}"
+       href="{{ url_for('colleges.colleges', q=query, state=state_filter, per_page=per_page if paginate_results else None) }}">All</a>
+    {% for letter in alphabet %}
+      <a class="filter-tab {% if alpha == letter %}active{% endif %}"
+         href="{{ url_for('colleges.colleges', q=query, alpha=letter, state=state_filter, per_page=per_page if paginate_results else None) }}">{{ letter }}</a>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="state-chip-row" aria-label="Popular state filters">
+  <a class="state-chip {% if not state_filter %}active{% endif %}"
+     href="{{ url_for('colleges.colleges', q=query, alpha=alpha) }}">All states</a>
+  {% for item in state_counts %}
+    <a class="state-chip {% if item.state == state_filter %}active{% endif %}"
+       href="{{ url_for('colleges.colleges', q=query, alpha=alpha, state=item.state, per_page=per_page if state_filter else 25) }}">
+      {{ item.state }} <span>{{ item.count }}</span>
+    </a>
+  {% endfor %}
+</div>
+
+<div class="exam-sections">
+  <section class="exam-section colleges-section">
+    <div class="container">
+      <p class="meta-note">
+        {% if search_mode %}
+          Showing server-side results{% if query %} for "{{ query }}"{% endif %}{% if alpha %} starting with {{ alpha }}{% endif %}{% if state_filter %} in {{ state_filter }}{% endif %}.
+        {% else %}
+          Browse colleges grouped by State. Each card uses District as the city/location field.
+        {% endif %}
+      </p>
+
+      {% if search_mode %}
+        {% if paginate_results %}
+        <div class="state-results-toolbar">
+          <div>
+            Showing {{ pagination_start }}-{{ pagination_end }} of {{ total }} colleges in {{ state_filter }}
+          </div>
+          <form method="get" action="{{ url_for('colleges.colleges') }}">
+            {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
+            {% if alpha %}<input type="hidden" name="alpha" value="{{ alpha }}">{% endif %}
+            <input type="hidden" name="state" value="{{ state_filter }}">
+            <label for="perPageSelect">Per page</label>
+            <select id="perPageSelect" name="per_page" onchange="this.form.submit()">
+              {% for option in per_page_options %}
+              <option value="{{ option }}" {% if option == per_page %}selected{% endif %}>{{ option }}</option>
+              {% endfor %}
+            </select>
+          </form>
+        </div>
+        {% endif %}
+
+        {% if colleges %}
+        <div class="exam-grid" id="collegeCards">
+          {% for college in colleges %}
+            {{ college_card(college) }}
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state" id="noResults">No colleges match the selected filters.</div>
+        {% endif %}
+
+        {% if paginate_results and total_pages > 1 %}
+        <nav class="state-pagination" aria-label="State college pages">
+          <a class="state-page-link {% if not has_prev %}disabled{% endif %}"
+             href="{{ url_for('colleges.colleges', page=prev_page, per_page=per_page, q=query, alpha=alpha, state=state_filter) if has_prev else '#' }}">
+            <i class="fa-solid fa-chevron-left"></i> Previous
+          </a>
+          <span>Page {{ page }} of {{ total_pages }}</span>
+          <a class="state-page-link {% if not has_next %}disabled{% endif %}"
+             href="{{ url_for('colleges.colleges', page=next_page, per_page=per_page, q=query, alpha=alpha, state=state_filter) if has_next else '#' }}">
+            Next <i class="fa-solid fa-chevron-right"></i>
+          </a>
+        </nav>
+        {% endif %}
+      {% else %}
+        {% if grouped_states %}
+          {% for group in grouped_states %}
+          <div class="state-section-block">
+            <div class="section-header college-section-header">
+              <div>
+                <div class="section-label">State</div>
+                <h3 class="section-title">{{ group.state }} <span class="section-count">{{ group.count }}</span></h3>
+              </div>
+              <a class="section-filter-link" href="{{ url_for('colleges.colleges', state=group.state) }}">View state</a>
+            </div>
+            <div class="exam-grid" id="collegeCards-{{ loop.index }}">
+              {% for college in group.colleges %}
+                {{ college_card(college) }}
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+        <div class="empty-state" id="noResults">No colleges are available yet.</div>
+        {% endif %}
+      {% endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const form = document.querySelector(".college-search-form");
+    const input = document.getElementById("collegeInput");
+    const resultsWrapSelector = ".exam-sections";
+    const stateChipsSelector = ".state-chip-row";
+    let debounceTimer = null;
+    let activeRequest = null;
+
+    if (!form || !input) {
+      return;
+    }
+
+    function buildSearchUrl() {
+      const params = new URLSearchParams(new FormData(form));
+      params.delete("page");
+
+      for (const [key, value] of Array.from(params.entries())) {
+        if (!value.trim()) {
+          params.delete(key);
+        }
+      }
+
+      const query = params.toString();
+      return form.action + (query ? "?" + query : "");
+    }
+
+    function replaceFromDocument(nextDocument, selector) {
+      const current = document.querySelector(selector);
+      const next = nextDocument.querySelector(selector);
+      if (current && next) {
+        current.replaceWith(next);
+      }
+    }
+
+    async function runLiveSearch() {
+      const url = buildSearchUrl();
+
+      if (activeRequest) {
+        activeRequest.abort();
+      }
+
+      activeRequest = new AbortController();
+      document.body.classList.add("college-search-loading");
+
+      try {
+        const response = await fetch(url, {
+          headers: { "X-Requested-With": "fetch" },
+          signal: activeRequest.signal
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const html = await response.text();
+        const nextDocument = new DOMParser().parseFromString(html, "text/html");
+        replaceFromDocument(nextDocument, resultsWrapSelector);
+        replaceFromDocument(nextDocument, stateChipsSelector);
+        window.history.replaceState({}, "", url);
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          console.warn("Live college search failed", error);
+        }
+      } finally {
+        document.body.classList.remove("college-search-loading");
+      }
+    }
+
+    input.addEventListener("input", function () {
+      window.clearTimeout(debounceTimer);
+      debounceTimer = window.setTimeout(runLiveSearch, 300);
+    });
+  });
+</script>
+{% endblock %}

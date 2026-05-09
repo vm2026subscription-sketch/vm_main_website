@@ -1,0 +1,75 @@
+{% extends 'layouts/base.html' %}
+{% block title %}Admin Panel - Vidyarthi Mitra{% endblock %}
+{% block page_styles %}
+<style>
+.ap{--orange:#ff6600;--ink:#172033;--muted:#667085;--border:#e5e7eb;min-height:calc(100vh - 140px);padding:28px 16px;background:#f9fafb}
+.ap-wrap{max-width:960px;margin:0 auto}
+.ap-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.ap-head h1{margin:0;font-size:22px;font-weight:800;color:var(--ink)}
+.ap-head p{margin:4px 0 0;font-size:13px;color:var(--muted)}
+.ap-badge{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa}
+.ap-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:24px}
+.ap-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px;transition:box-shadow .2s}
+.ap-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.06)}
+.ap-card h3{margin:0 0 6px;font-size:15px;font-weight:800;color:var(--ink)}
+.ap-card p{margin:0 0 14px;font-size:13px;color:var(--muted);line-height:1.5}
+.ap-card-status{display:inline-block;padding:3px 8px;border-radius:12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px}
+.status-ready{background:#ecfdf3;color:#067647}
+.status-config{background:#eff6ff;color:#1d4ed8}
+.status-public{background:#f0fdf4;color:#15803d}
+.ap-btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;transition:all .15s;border:none;cursor:pointer;font-family:inherit}
+.ap-btn-primary{background:var(--orange);color:#fff}
+.ap-btn-primary:hover{background:#e55a00;color:#fff}
+.ap-btn-outline{background:#fff;color:var(--ink);border:1px solid var(--border)}
+.ap-btn-outline:hover{border-color:var(--orange);color:var(--orange)}
+.ap-info{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px 20px;font-size:13px;color:var(--muted);line-height:1.6}
+.ap-info strong{color:var(--ink)}
+.alert{padding:12px 16px;border-radius:8px;font-size:14px;margin-bottom:16px}
+.alert-danger{background:#fef2f2;color:#b42318}
+.alert-success{background:#ecfdf3;color:#067647}
+@media(max-width:640px){.ap-grid{grid-template-columns:1fr}.ap-head{flex-direction:column;align-items:flex-start}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="ap">
+<div class="ap-wrap">
+
+<div class="auth-alerts" aria-live="polite">
+{% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}
+<div class="alert alert-{% if category == 'error' %}danger{% else %}success{% endif %}"><i class="fa fa-{% if category == 'error' %}exclamation-circle{% else %}check-circle{% endif %}"></i> {{ message }}</div>
+{% endfor %}{% endif %}{% endwith %}
+</div>
+
+<div class="ap-head">
+<div>
+<h1><i class="fa fa-shield" style="color:var(--orange);margin-right:6px"></i> Admin Panel</h1>
+<p>Signed in as <strong>{{ auth_user.name }}</strong> ({{ auth_user.email }})</p>
+</div>
+<span class="ap-badge"><i class="fa fa-user-circle"></i> Admin</span>
+</div>
+
+<div class="ap-grid">
+<div class="ap-card">
+<span class="ap-card-status status-ready">Ready</span>
+<h3><i class="fa fa-users" style="color:var(--orange)"></i> Manage Users</h3>
+<p>View all registered users, promote or demote admins, and delete accounts.</p>
+<a href="{{ url_for('admin.manage_users') }}" class="ap-btn ap-btn-primary"><i class="fa fa-arrow-right"></i> Open</a>
+</div>
+
+{% for tool in admin_tools %}
+<div class="ap-card">
+<span class="ap-card-status {% if tool.status == 'Ready' %}status-ready{% elif tool.status == 'Public' %}status-public{% else %}status-config{% endif %}">{{ tool.status }}</span>
+<h3>{{ tool.title }}</h3>
+<p>{{ tool.description }}</p>
+<a href="{{ tool.href }}" class="ap-btn ap-btn-outline"><i class="fa fa-arrow-right"></i> Open</a>
+</div>
+{% endfor %}
+</div>
+
+<div class="ap-info">
+<strong>Tip:</strong> To make someone an admin, go to <strong>Manage Users</strong> and click the role toggle. Admin registration via access code has been removed — all role changes happen here.
+</div>
+
+</div>
+</div>
+{% endblock %}

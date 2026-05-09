@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>E-Paper Admin — Page Builder</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="shortcut icon" href="{{ url_for('static', filename='images/title.png') }}" type="image/x-icon">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+  <style>
+    :root{
+      --r:#e41e26;
+      --r-dark:#c0171e;
+      --accent:#059669;
+      --bg:#eef1f6;
+      --panel:#f8fafc;
+      --white:#fff;
+      --border:#d8e0ea;
+      --text:#16202a;
+      --muted:#667085;
+      --soft:#edf2f7;
+      --radius:16px;
+      --shadow:0 14px 34px rgba(15,23,42,.08);
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{
+      font-family:'Inter',sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(228,30,38,.08), transparent 24%),
+        linear-gradient(180deg,#f6f8fb 0%,#edf2f7 100%);
+      color:var(--text);
+    }
+
+    .epa-header{
+      background:linear-gradient(135deg,#131a2f,#1a2743);
+      padding:18px 24px;
+      display:flex;
+      align-items:center;
+      gap:16px;
+      box-shadow:0 12px 30px rgba(15,23,42,.16);
+    }
+    .epa-header h1{color:#fff;font-size:20px;font-weight:700;letter-spacing:-.02em;}
+    .epa-header h1 span{color:#ff767b;}
+    .epa-header a{
+      color:rgba(255,255,255,.7);
+      font-size:13px;
+      font-weight:600;
+      text-decoration:none;
+      margin-left:auto;
+      padding:10px 14px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.04);
+      transition:all .2s;
+    }
+    .epa-header a:hover{color:#fff;background:rgba(255,255,255,.08);}
+    .epa-header a+a{margin-left:0;}
+
+    .epa-wrap{max-width:1480px;margin:28px auto;padding:0 22px 36px;}
+    .epa-card{
+      background:rgba(255,255,255,.94);
+      border:1px solid rgba(216,224,234,.9);
+      border-radius:22px;
+      padding:24px;
+      margin-bottom:18px;
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(6px);
+    }
+    .epa-card h2{
+      font-size:18px;
+      font-weight:700;
+      margin-bottom:18px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      letter-spacing:-.02em;
+    }
+    .epa-card h2 i{color:var(--r);font-size:15px;}
+
+    .epa-form-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:16px;}
+    .epa-form-row.epa-form-row-2{grid-template-columns:repeat(2,minmax(0,1fr));}
+    .epa-form-group{display:flex;flex-direction:column;gap:6px;}
+    .epa-form-group label{
+      font-size:11px;
+      font-weight:700;
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
+    .epa-form-group input,
+    .epa-form-group select,
+    .epa-form-group textarea{
+      width:100%;
+      padding:11px 13px;
+      border:1.5px solid var(--border);
+      border-radius:12px;
+      background:#fff;
+      font-family:inherit;
+      font-size:13px;
+      outline:none;
+      transition:border-color .2s, box-shadow .2s, background .2s;
+    }
+    .epa-form-group input:focus,
+    .epa-form-group select:focus,
+    .epa-form-group textarea:focus{
+      border-color:var(--r);
+      box-shadow:0 0 0 4px rgba(228,30,38,.08);
+      background:#fffdfa;
+    }
+
+    .epa-btn{
+      padding:10px 16px;
+      border:none;
+      border-radius:12px;
+      font-family:inherit;
+      font-size:12px;
+      font-weight:700;
+      letter-spacing:.01em;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:7px;
+      transition:transform .18s, box-shadow .18s, background .18s, color .18s, border-color .18s;
+    }
+    .epa-btn:hover{transform:translateY(-1px);}
+    .epa-btn-primary{background:var(--r);color:#fff;box-shadow:0 10px 22px rgba(228,30,38,.18);}
+    .epa-btn-primary:hover{background:var(--r-dark);}
+    .epa-btn-danger{background:#fff5f5;color:#dc2626;border:1px solid #fecaca;}
+    .epa-btn-danger:hover{background:#dc2626;color:#fff;}
+    .epa-btn-success{background:var(--accent);color:#fff;box-shadow:0 10px 22px rgba(5,150,105,.16);}
+    .epa-btn-success:hover{background:#047857;}
+    .epa-btn-soft{background:#f7fafc;color:var(--text);border:1px solid var(--border);}
+    .epa-btn-soft:hover{border-color:var(--r);color:var(--r);}
+    .epa-btn-sm{padding:8px 13px;font-size:11px;border-radius:10px;}
+    .epa-actions{display:flex;gap:10px;flex-wrap:wrap;}
+
+    .epa-edition-card{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+      padding:14px 16px;
+      border:1px solid var(--border);
+      border-radius:16px;
+      margin-bottom:8px;
+      background:#fff;
+      transition:all .15s;
+    }
+    .epa-edition-card:hover{border-color:rgba(228,30,38,.45);box-shadow:0 10px 20px rgba(15,23,42,.05);}
+    .epa-edition-info{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:13px;}
+    .epa-edition-name{font-weight:700;color:var(--text);}
+    .epa-badge{
+      padding:4px 10px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:700;
+      background:#fee2e2;
+      color:var(--r);
+    }
+    .epa-empty{
+      text-align:center;
+      padding:36px 22px;
+      color:var(--muted);
+      font-size:14px;
+      border:1px dashed var(--border);
+      border-radius:18px;
+      background:var(--panel);
+    }
+
+    .epa-page-tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+    .epa-page-tab{
+      padding:8px 14px;
+      border:1.5px solid var(--border);
+      border-radius:999px;
+      cursor:pointer;
+      font-size:12px;
+      font-weight:700;
+      background:#fff;
+      transition:all .2s;
+    }
+    .epa-page-tab:hover{border-color:var(--r);}
+    .epa-page-tab.active{border-color:var(--r);background:var(--r);color:#fff;box-shadow:0 10px 20px rgba(228,30,38,.18);}
+    .epa-page-add{
+      padding:8px 13px;
+      border:1.5px dashed var(--border);
+      border-radius:999px;
+      cursor:pointer;
+      font-size:12px;
+      font-weight:700;
+      color:var(--muted);
+      background:#fff;
+    }
+    .epa-page-add:hover{border-color:var(--r);color:var(--r);}
+
+    .epc-layout{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) 470px;
+      gap:22px;
+      align-items:start;
+    }
+    .epc-stage{
+      background:linear-gradient(180deg,#ffffff,#f9fbfd);
+      border:1px solid var(--border);
+      border-radius:20px;
+      padding:18px;
+      box-shadow:0 14px 28px rgba(15,23,42,.06);
+    }
+    .epc-stage-head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:18px;
+      margin-bottom:16px;
+      flex-wrap:wrap;
+    }
+    .epc-stage-copy h3{
+      font-size:18px;
+      font-weight:700;
+      letter-spacing:-.02em;
+      margin-bottom:6px;
+    }
+    .epc-stage-copy p{
+      font-size:13px;
+      line-height:1.65;
+      color:var(--muted);
+      max-width:620px;
+    }
+    .epc-tools{display:flex;gap:10px;flex-wrap:wrap;}
+
+    .epc-canvas-wrap{
+      background:
+        linear-gradient(180deg,rgba(255,255,255,.74),rgba(255,255,255,.58)),
+        repeating-linear-gradient(0deg,rgba(148,163,184,.12),rgba(148,163,184,.12) 1px,transparent 1px,transparent 32px),
+        repeating-linear-gradient(90deg,rgba(148,163,184,.12),rgba(148,163,184,.12) 1px,transparent 1px,transparent 32px);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:16px;
+      overflow:auto;
+      max-height:76vh;
+    }
+    .epc-canvas{
+      position:relative;
+      width:800px;
+      height:1130px;
+      background:#fff;
+      margin:0 auto;
+      box-shadow:0 24px 44px rgba(15,23,42,.12);
+      transform-origin:top center;
+      border:1px solid #d6dce5;
+      border-radius:16px;
+      overflow:hidden;
+    }
+
+    .epc-block{
+      position:absolute;
+      cursor:move;
+      overflow:hidden;
+      border:2px solid rgba(0,0,0,.09);
+      transition:box-shadow .15s, transform .15s;
+      background:#f9fafb;
+    }
+    .epc-block:hover{box-shadow:0 10px 26px rgba(15,23,42,.16);}
+    .epc-block.active{border-color:var(--r)!important;box-shadow:0 0 0 4px rgba(228,30,38,.18),0 18px 30px rgba(15,23,42,.15);}
+    .epc-block img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;user-select:none;}
+    .epc-empty{
+      width:100%;
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#cbd5e1;
+      font-size:28px;
+      background:linear-gradient(135deg,#f8fafc,#eef2f7);
+    }
+    .epc-label{
+      position:absolute;
+      bottom:0;
+      left:0;
+      right:0;
+      background:linear-gradient(transparent,rgba(15,23,42,.88));
+      padding:10px 12px 8px;
+      color:#fff;
+      pointer-events:none;
+    }
+    .epc-cat{
+      font-size:9px;
+      font-weight:700;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      color:rgba(255,255,255,.68);
+      display:block;
+      margin-bottom:3px;
+    }
+    .epc-title{font-size:12px;font-weight:700;line-height:1.3;display:block;}
+    .epc-num{
+      position:absolute;
+      top:8px;
+      left:8px;
+      min-width:22px;
+      height:22px;
+      padding:0 6px;
+      border-radius:999px;
+      background:var(--r);
+      color:#fff;
+      font-size:10px;
+      font-weight:700;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      pointer-events:none;
+      box-shadow:0 6px 14px rgba(228,30,38,.25);
+    }
+    .epc-kind{
+      position:absolute;
+      top:8px;
+      left:38px;
+      padding:4px 8px;
+      border-radius:999px;
+      background:rgba(15,23,42,.72);
+      color:#fff;
+      font-size:9px;
+      font-weight:700;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      pointer-events:none;
+    }
+    .epc-del{
+      position:absolute;
+      top:8px;
+      right:8px;
+      width:24px;
+      height:24px;
+      border-radius:50%;
+      background:rgba(220,38,38,.92);
+      color:#fff;
+      border:none;
+      cursor:pointer;
+      font-size:10px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      opacity:0;
+      transition:opacity .15s;
+      z-index:5;
+    }
+    .epc-block:hover .epc-del{opacity:1;}
+    .epc-resize{
+      position:absolute;
+      bottom:0;
+      right:0;
+      width:16px;
+      height:16px;
+      cursor:nwse-resize;
+      background:var(--r);
+      border-radius:6px 0 0 0;
+      z-index:5;
+    }
+    .epc-resize::after{
+      content:'';
+      position:absolute;
+      bottom:3px;
+      right:3px;
+      width:6px;
+      height:6px;
+      border-right:2px solid #fff;
+      border-bottom:2px solid #fff;
+    }
+    .epc-dims{
+      position:absolute;
+      top:8px;
+      right:38px;
+      background:rgba(15,23,42,.58);
+      color:#fff;
+      font-size:9px;
+      padding:3px 6px;
+      border-radius:999px;
+      pointer-events:none;
+    }
+    .epc-add-btn{
+      border:none;
+      border-radius:12px;
+      padding:10px 14px;
+      background:var(--r);
+      color:#fff;
+      font-size:12px;
+      font-weight:700;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      box-shadow:0 10px 24px rgba(228,30,38,.22);
+      transition:transform .18s, box-shadow .18s, background .18s;
+    }
+    .epc-add-btn:hover{
+      transform:translateY(-1px);
+      background:var(--r-dark);
+    }
+    .epc-divider{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:repeating-linear-gradient(45deg,#fff,#fff 10px,#f8fafc 10px,#f8fafc 20px);
+    }
+    .epc-divider-line{
+      background:var(--r);
+      border-radius:999px;
+      box-shadow:0 0 0 1px rgba(255,255,255,.55),0 6px 18px rgba(15,23,42,.12);
+    }
+    .epc-divider-note{
+      position:absolute;
+      left:12px;
+      bottom:12px;
+      padding:5px 8px;
+      border-radius:999px;
+      background:rgba(255,255,255,.92);
+      color:var(--muted);
+      font-size:10px;
+      font-weight:700;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      box-shadow:0 6px 16px rgba(15,23,42,.08);
+    }
+    .epc-bottom-actions{margin-top:14px;display:flex;justify-content:flex-end;}
+
+    .epc-side{
+      position:sticky;
+      top:94px;
+      align-self:start;
+    }
+    .epb-editor{
+      background:rgba(255,255,255,.98);
+      border:1px solid var(--border);
+      border-radius:20px;
+      padding:22px;
+      max-height:calc(100vh - 120px);
+      overflow-y:auto;
+      box-shadow:0 14px 28px rgba(15,23,42,.08);
+    }
+    .epb-header{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:16px;
+    }
+    .epb-header h3{
+      font-size:18px;
+      font-weight:700;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      letter-spacing:-.02em;
+      margin-bottom:4px;
+    }
+    .epb-header h3 i{color:var(--r);}
+    .epb-header p{font-size:13px;line-height:1.6;color:var(--muted);}
+    .epb-chip{
+      padding:7px 10px;
+      border-radius:999px;
+      background:#fff5f5;
+      color:var(--r);
+      font-size:11px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      white-space:nowrap;
+    }
+    .epb-summary{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:10px;
+      margin-bottom:16px;
+    }
+    .epb-summary-card{
+      border:1px solid var(--border);
+      border-radius:16px;
+      background:var(--panel);
+      padding:12px 14px;
+    }
+    .epb-summary-card span{
+      display:block;
+      font-size:10px;
+      font-weight:700;
+      color:var(--muted);
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      margin-bottom:5px;
+    }
+    .epb-summary-card strong{font-size:14px;line-height:1.35;}
+    .epb-section{
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:16px;
+      margin-bottom:14px;
+      box-shadow:0 8px 18px rgba(15,23,42,.04);
+    }
+    .epb-section-title{
+      font-size:11px;
+      font-weight:800;
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      margin-bottom:12px;
+      display:flex;
+      align-items:center;
+      gap:7px;
+    }
+    .epb-section-title i{color:var(--r);}
+    .epb-note{
+      font-size:12px;
+      line-height:1.6;
+      color:var(--muted);
+      margin-top:8px;
+    }
+    .epb-grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+    .epb-grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;}
+    .epb-inline-actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+    .epb-img-upload{
+      border:2px dashed var(--border);
+      border-radius:16px;
+      padding:18px;
+      text-align:center;
+      cursor:pointer;
+      transition:all .2s;
+      min-height:124px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:linear-gradient(180deg,#fff,#fafcff);
+    }
+    .epb-img-upload:hover{border-color:var(--r);background:#fffdfd;}
+    .epb-img-upload img{max-width:100%;max-height:170px;border-radius:12px;display:block;margin:auto;}
+    .epb-img-upload input[type=file]{display:none;}
+    .epb-img-upload .epb-upload-label{color:var(--muted);font-size:12px;line-height:1.5;font-weight:600;}
+    .epb-img-upload .epb-upload-label i{font-size:20px;display:block;margin-bottom:8px;}
+
+    .epb-gallery{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;}
+    .epb-gallery-item{
+      width:58px;
+      height:58px;
+      border-radius:10px;
+      overflow:hidden;
+      border:2px solid var(--border);
+      position:relative;
+      background:#fff;
+    }
+    .epb-gallery-item img{width:100%;height:100%;object-fit:cover;}
+    .epb-gallery-item .epb-gal-del{
+      position:absolute;
+      top:2px;
+      right:2px;
+      width:16px;
+      height:16px;
+      border-radius:50%;
+      background:rgba(220,38,38,.94);
+      color:#fff;
+      border:none;
+      cursor:pointer;
+      font-size:8px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      opacity:0;
+    }
+    .epb-gallery-item:hover .epb-gal-del{opacity:1;}
+    .epb-gal-add{
+      width:58px;
+      height:58px;
+      border:2px dashed var(--border);
+      border-radius:10px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      color:var(--muted);
+      font-size:16px;
+      background:var(--panel);
+    }
+    .epb-gal-add:hover{border-color:var(--r);color:var(--r);}
+
+    .ql-toolbar.ql-snow{
+      border-radius:14px 14px 0 0;
+      border-color:var(--border);
+      background:#fbfcfe;
+    }
+    .ql-container.ql-snow{
+      border-radius:0 0 14px 14px;
+      border-color:var(--border);
+      min-height:240px;
+      font-family:'Inter';
+      font-size:13px;
+      background:#fff;
+    }
+    .ql-editor{min-height:240px;line-height:1.7;}
+
+    input[type=range]{width:100%;accent-color:var(--r);}
+    .epb-range-meta{font-size:11px;color:var(--muted);margin-top:4px;}
+
+    .epb-empty{
+      text-align:center;
+      padding:36px 24px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.7;
+      border:1px dashed var(--border);
+      border-radius:20px;
+      background:rgba(255,255,255,.86);
+      box-shadow:0 14px 28px rgba(15,23,42,.04);
+    }
+    .epb-empty i{font-size:34px;display:block;margin-bottom:8px;opacity:.34;}
+    .epb-mode-hidden{display:none !important;}
+
+    .epa-toast{
+      position:fixed;
+      bottom:24px;
+      left:50%;
+      transform:translateX(-50%) translateY(20px);
+      background:var(--text);
+      color:#fff;
+      padding:12px 20px;
+      border-radius:999px;
+      font-size:13px;
+      font-weight:600;
+      z-index:999;
+      opacity:0;
+      transition:all .3s;
+      pointer-events:none;
+      box-shadow:0 14px 24px rgba(15,23,42,.2);
+    }
+    .epa-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+    @media(max-width:1180px){
+      .epc-layout{grid-template-columns:1fr;}
+      .epc-side{position:static;}
+      .epb-editor{max-height:none;}
+    }
+    @media(max-width:900px){
+      .epa-form-row,
+      .epa-form-row.epa-form-row-2,
+      .epb-summary,
+      .epb-grid-2,
+      .epb-grid-4{grid-template-columns:1fr;}
+      .epc-canvas{width:100%;height:auto;aspect-ratio:4/5;}
+      .epa-wrap{padding:0 14px 30px;}
+      .epa-card{padding:18px;}
+      .epc-stage-head{flex-direction:column;}
+    }
+  </style>
+</head>
+<body>
+  {% include 'partials/_shared_index_navbar.html' %}
+  <div class="epa-header">
+    <h1><span>📋</span> E-Paper <span>Page Builder</span></h1>
+    <a href="/epaper-viewer"><i class="fa fa-eye"></i> View</a>
+    <a href="/"><i class="fa fa-arrow-left"></i> Site</a>
+  </div>
+
+  <div class="epa-wrap">
+
+    <!-- Edition Details -->
+    <div class="epa-card">
+      <h2><i class="fa fa-plus-circle"></i> Edition Details</h2>
+      <form id="editionForm">
+        <div class="epa-form-row">
+          <div class="epa-form-group"><label>Date</label><input type="date" id="edDate" required></div>
+          <div class="epa-form-group"><label>Name</label><input type="text" id="edName" placeholder="दैनिक संस्करण"></div>
+          <div class="epa-form-group"><label>Language</label>
+            <select id="edLang"><option value="Hindi">Hindi</option><option value="English">English</option><option value="Marathi">Marathi</option></select>
+          </div>
+        </div>
+        <div class="epa-form-group" style="margin-bottom:16px">
+          <label>Name Preview</label>
+          <input type="text" id="edNamePreview" value="This title will appear in the e-paper viewer header." readonly>
+        </div>
+        <div class="epa-actions">
+          <button type="submit" class="epa-btn epa-btn-primary"><i class="fa fa-save"></i> Save Edition</button>
+          <button type="button" class="epa-btn epa-btn-danger" id="deleteEditionBtn" style="display:none"><i class="fa fa-trash"></i> Delete</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Page Builder -->
+    <div class="epa-card" id="builderSection" style="display:none">
+      <h2><i class="fa fa-th-large"></i> Page Builder — Drag & Drop</h2>
+      <div class="epa-page-tabs" id="pageTabs"></div>
+
+      <div class="epc-layout">
+        <div class="epc-stage">
+          <div class="epc-stage-head">
+            <div class="epc-stage-copy">
+              <h3>Arrange your page visually</h3>
+              <p>Drag blocks anywhere, resize them from the corner, and use dividers when you need clean separation between two stories or images.</p>
+            </div>
+            <div class="epc-tools">
+              <button class="epa-btn epa-btn-soft" onclick="EPAdmin.addBlock('article')"><i class="fa fa-newspaper"></i> Add Article</button>
+              <button class="epa-btn epa-btn-soft" onclick="EPAdmin.addBlock('divider')"><i class="fa fa-grip-lines"></i> Add Divider</button>
+            </div>
+          </div>
+          <div class="epc-canvas-wrap">
+            <div class="epc-canvas" id="pageCanvas"></div>
+          </div>
+          <div class="epc-bottom-actions">
+            <button class="epa-btn epa-btn-success" onclick="EPAdmin.saveEdition()"><i class="fa fa-check-circle"></i> Save All Changes</button>
+          </div>
+        </div>
+
+        <div class="epc-side">
+          <div class="epb-editor" id="blockEditor" style="display:none">
+            <div class="epb-header">
+              <div>
+                <h3><i class="fa fa-edit"></i> Edit Block</h3>
+                <p>Only the relevant controls stay visible, so articles and dividers are both easier to manage.</p>
+              </div>
+              <div class="epb-chip" id="blkTypeChip">Article</div>
+            </div>
+
+            <div class="epb-summary">
+              <div class="epb-summary-card">
+                <span>Type</span>
+                <strong id="blkTypeLabel">Article</strong>
+              </div>
+              <div class="epb-summary-card">
+                <span>Position</span>
+                <strong id="blkPositionLabel">0, 0</strong>
+              </div>
+              <div class="epb-summary-card">
+                <span>Size</span>
+                <strong id="blkSizeLabel">200 × 150</strong>
+              </div>
+            </div>
+
+            <div class="epb-section">
+              <div class="epb-section-title"><i class="fa fa-layer-group"></i> Block Type</div>
+              <div class="epb-grid-2">
+                <div class="epa-form-group">
+                  <label>Layout Block</label>
+                  <select id="blkType">
+                    <option value="article">Article</option>
+                    <option value="divider">Divider</option>
+                  </select>
+                </div>
+                <div class="epa-form-group">
+                  <label>Quick Insert</label>
+                  <div class="epb-inline-actions">
+                    <button type="button" class="epa-btn epa-btn-soft epa-btn-sm" onclick="EPAdmin.addBlock('article')"><i class="fa fa-plus"></i> Article</button>
+                    <button type="button" class="epa-btn epa-btn-soft epa-btn-sm" onclick="EPAdmin.addBlock('divider')"><i class="fa fa-plus"></i> Divider</button>
+                  </div>
+                </div>
+              </div>
+              <p class="epb-note">Use divider blocks for vertical or horizontal separators between images, news cards, or page sections.</p>
+            </div>
+
+            <div class="epb-section epb-mode-article">
+              <div class="epb-section-title"><i class="fa fa-image"></i> Cover Image</div>
+              <div class="epb-img-upload" id="blockImageUpload">
+                <input type="file" id="blockImageInput" accept="image/*">
+                <div class="epb-upload-label" id="blockImageLabel"><i class="fa fa-cloud-upload-alt"></i>Upload image or replace the current one</div>
+              </div>
+            </div>
+
+            <div class="epb-section">
+              <div class="epb-section-title"><i class="fa fa-arrows-alt"></i> Position & Size</div>
+              <div class="epb-grid-4">
+                <div class="epa-form-group"><label>X</label><input type="number" id="blkX" value="0" min="0" onchange="EPAdmin.applySizeInputs()"></div>
+                <div class="epa-form-group"><label>Y</label><input type="number" id="blkY" value="0" min="0" onchange="EPAdmin.applySizeInputs()"></div>
+                <div class="epa-form-group"><label>W</label><input type="number" id="blkW" value="200" min="4" onchange="EPAdmin.applySizeInputs()"></div>
+                <div class="epa-form-group"><label>H</label><input type="number" id="blkH" value="150" min="4" onchange="EPAdmin.applySizeInputs()"></div>
+              </div>
+            </div>
+
+            <div class="epb-section epb-mode-article">
+              <div class="epb-section-title"><i class="fa fa-border-all"></i> Article Frame</div>
+              <div class="epb-grid-2" style="margin-bottom:10px">
+                <div class="epa-form-group">
+                  <label>Border Width</label>
+                  <input type="range" id="blkBorderWidth" min="0" max="10" value="0" oninput="document.getElementById('bwVal').textContent=this.value+'px'; EPAdmin.updateBorderPreview()">
+                  <span class="epb-range-meta" id="bwVal">0px</span>
+                </div>
+                <div class="epa-form-group">
+                  <label>Corner Radius</label>
+                  <input type="range" id="blkBorderRadius" min="0" max="30" value="10" oninput="document.getElementById('brVal').textContent=this.value+'px'; EPAdmin.updateBorderPreview()">
+                  <span class="epb-range-meta" id="brVal">10px</span>
+                </div>
+              </div>
+              <div class="epb-grid-2">
+                <div class="epa-form-group"><label>Border Color</label><input type="color" id="blkBorderColor" value="#e41e26" style="height:42px;padding:4px" onchange="EPAdmin.updateBorderPreview()"></div>
+                <div class="epa-form-group"><label>Border Style</label>
+                  <select id="blkBorderStyle" onchange="EPAdmin.updateBorderPreview()"><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option><option value="double">Double</option><option value="none">None</option></select>
+                </div>
+              </div>
+              <div id="borderPreview" style="margin-top:12px;height:42px;background:#f8fafc;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted)">Article frame preview</div>
+            </div>
+
+            <div class="epb-section epb-mode-divider epb-mode-hidden">
+              <div class="epb-section-title"><i class="fa fa-grip-lines"></i> Divider Style</div>
+              <div class="epb-grid-2" style="margin-bottom:10px">
+                <div class="epa-form-group">
+                  <label>Orientation</label>
+                  <select id="blkDividerOrientation">
+                    <option value="horizontal">Horizontal</option>
+                    <option value="vertical">Vertical</option>
+                  </select>
+                </div>
+                <div class="epa-form-group">
+                  <label>Line Style</label>
+                  <select id="blkDividerStyle">
+                    <option value="solid">Solid</option>
+                    <option value="dashed">Dashed</option>
+                    <option value="dotted">Dotted</option>
+                    <option value="double">Double</option>
+                  </select>
+                </div>
+              </div>
+              <div class="epb-grid-2" style="margin-bottom:10px">
+                <div class="epa-form-group">
+                  <label>Line Thickness</label>
+                  <input type="range" id="blkDividerThickness" min="1" max="24" value="6" oninput="document.getElementById('dividerThicknessVal').textContent=this.value+'px'; EPAdmin.updateDividerPreview()">
+                  <span class="epb-range-meta" id="dividerThicknessVal">6px</span>
+                </div>
+                <div class="epa-form-group">
+                  <label>Line Color</label>
+                  <input type="color" id="blkDividerColor" value="#e41e26" style="height:42px;padding:4px" onchange="EPAdmin.updateDividerPreview()">
+                </div>
+              </div>
+              <div id="dividerPreview" style="margin-top:12px;height:80px;background:#f8fafc;border:1px dashed var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;padding:16px"></div>
+            </div>
+
+            <form id="blockForm">
+              <div class="epb-section epb-mode-article">
+                <div class="epb-section-title"><i class="fa fa-pen-fancy"></i> Story Details</div>
+                <div class="epa-form-group" style="margin-bottom:10px"><label>Headline</label><input type="text" id="blkHeadline" placeholder="Article headline" required></div>
+                <div class="epa-form-group" style="margin-bottom:10px"><label>Sub-headline</label><input type="text" id="blkSubheadline" placeholder="Optional supporting line"></div>
+                <div class="epa-form-group"><label>Category</label><input type="text" id="blkCategory" placeholder="e.g. परीक्षा"></div>
+              </div>
+
+              <div class="epb-section epb-mode-article">
+                <div class="epb-section-title"><i class="fa fa-paragraph"></i> Content (Rich Text)</div>
+                <div class="epa-form-group"><label>Story Body</label><div id="quillEditor"></div></div>
+                <p class="epb-note">Toolbar includes headings, size, color, alignment, indent, superscript, blockquote, code block, links, images, and embedded video.</p>
+              </div>
+
+              <div class="epb-section epb-mode-article">
+                <div class="epb-section-title"><i class="fa fa-images"></i> Gallery Images</div>
+                <div class="epb-gallery" id="articleGallery"></div>
+                <input type="file" id="galleryInput" accept="image/*" multiple style="display:none">
+                <p class="epb-note">Use gallery images if the story detail view should show extra visuals after the main article body.</p>
+              </div>
+
+              <div class="epa-actions">
+                <button type="submit" class="epa-btn epa-btn-primary"><i class="fa fa-check"></i> Save Block</button>
+                <button type="button" class="epa-btn epa-btn-danger" onclick="EPAdmin.deleteBlock()"><i class="fa fa-trash"></i> Delete</button>
+              </div>
+            </form>
+          </div>
+
+          <div id="noBlockMsg" class="epb-empty">
+            <i class="fa fa-hand-pointer"></i>
+            Click any block on the canvas to edit it, or start by adding a new article or divider.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Existing Editions -->
+    <div class="epa-card">
+      <h2><i class="fa fa-newspaper"></i> Existing Editions</h2>
+      <div id="editionsList"><div class="epa-empty">Loading...</div></div>
+    </div>
+
+  </div>
+
+  <div class="epa-toast" id="adminToast"></div>
+  <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+  <script src="{{ url_for('static', filename='js/epaper-admin.js') }}"></script>
+</body>
+</html>
