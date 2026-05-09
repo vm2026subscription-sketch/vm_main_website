@@ -572,11 +572,34 @@ const EPAdmin = {
           <span class="epa-badge">${edition.language || 'Hindi'}</span>
           <span style="color:var(--muted);font-size:12px">${edition.total_pages || 0} pages</span>
         </div>
-        <button class="epa-btn epa-btn-sm epa-btn-primary" onclick="EPAdmin.editEdition('${edition.date}')">
-          <i class="fa fa-edit"></i> Edit
-        </button>
+        <div style="display:flex;gap:8px;">
+          <button class="epa-btn epa-btn-sm epa-btn-primary" onclick="EPAdmin.editEdition('${edition.date}')">
+            <i class="fa fa-edit"></i> Edit
+          </button>
+          <button class="epa-btn epa-btn-sm epa-btn-danger" onclick="EPAdmin.deleteEditionByDate('${edition.date}')">
+            <i class="fa fa-trash"></i> Delete
+          </button>
+        </div>
       </div>
     `).join('');
+  },
+
+  async deleteEditionByDate(date) {
+    if (!confirm(`Delete edition ${date}? This cannot be undone.`)) return;
+    try {
+      await fetch(`/api/epaper/admin/edition/${date}`, { method: 'DELETE' });
+      // If we're currently editing this edition, close the builder
+      if (this.currentEdition && this.currentEdition.date === date) {
+        this.currentEdition = null;
+        this.pages = [];
+        this.activeBlockIdx = null;
+        document.getElementById('builderSection').style.display = 'none';
+      }
+      this.loadEditions();
+      this.showToast('Edition deleted.');
+    } catch (error) {
+      alert('Delete failed.');
+    }
   },
 
   async editEdition(date) {

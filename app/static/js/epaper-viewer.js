@@ -271,6 +271,10 @@ const EP = {
       this.el.dateBtnText.textContent = d.toLocaleDateString('hi-IN', opts);
     }
     this.currentPage = 1;
+    // Clear API cache when switching dates so fresh data loads
+    const iso = this.formatDateISO(d);
+    delete this._apiCache[`/api/epaper/edition/${iso}`];
+    delete this._apiCache['/api/epaper/editions'];
     this.loadEditionForDate(d);
   },
 
@@ -915,6 +919,52 @@ const EP = {
     }
   },
 
+  // Fast inline text preprocessing for TTS (no LLM needed)
+  _preprocessTTSText(text) {
+    if (!text) return text;
+    let t = text;
+
+    // Expand common Hindi abbreviations
+    const hindiAbbr = {
+      'JEE': 'जे ई ई', 'NEET': 'नीट', 'IIT': 'आई आई टी',
+      'IIM': 'आई आई एम', 'NIT': 'एन आई टी',
+      'UP': 'उत्तर प्रदेश', 'MP': 'मध्य प्रदेश', 'MH': 'महाराष्ट्र',
+      'CM': 'मुख्यमंत्री', 'PM': 'प्रधानमंत्री',
+      'BJP': 'बी जे पी', 'RSS': 'आर एस एस', 'AAP': 'आम आदमी पार्टी',
+      'CBSE': 'सी बी एस ई', 'ICSE': 'आई सी एस ई',
+      'SSC': 'एस एस सी', 'HSC': 'एच एस सी',
+      'CET': 'सी ई टी', 'MHT-CET': 'एम एच टी सी ई टी',
+      'DTE': 'डी टी ई', 'NGO': 'एन जी ओ',
+    };
+
+    // Only replace standalone abbreviations (word boundaries)
+    for (const [abbr, expansion] of Object.entries(hindiAbbr)) {
+      const regex = new RegExp(`\\b${abbr}\\b`, 'g');
+      t = t.replace(regex, expansion);
+    }
+
+    // Convert ₹ amounts to Hindi words
+    t = t.replace(/₹\s?(\d[\d,]*)/g, (_, num) => {
+      const n = parseInt(num.replace(/,/g, ''));
+      if (n >= 10000000) return `${(n/10000000).toFixed(1)} करोड़ रुपये`;
+      if (n >= 100000) return `${(n/100000).toFixed(1)} लाख रुपये`;
+      if (n >= 1000) return `${(n/1000).toFixed(0)} हज़ार रुपये`;
+      return `${n} रुपये`;
+    });
+
+    // Convert percentage symbols
+    t = t.replace(/(\d+)%/g, '$1 प्रतिशत');
+
+    // Add natural pauses after sentences
+    t = t.replace(/।\s*/g, '। ... ');
+    t = t.replace(/\.\s+/g, '. ... ');
+
+    // Clean up excessive whitespace
+    t = t.replace(/\s{3,}/g, '  ');
+
+    return t.trim();
+  },
+
   // ── Start playing (fetch audio from Edge TTS API) ──
   async voicePlay() {
     if (!this.currentArticle) return;
@@ -936,43 +986,11 @@ const EP = {
     let rateStr = '+0%';
     let pitchStr = '+0Hz';
 
-    try {
-      // Step 1: LLM Script Optimization
-      this.showToast('📝 Optimizing news script...');
-      const scriptRes = await fetch('/api/epaper/tts-script', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: rawText })
-      });
+    // Inline text preprocessing (fast, no LLM needed)
+    textToRead = this._preprocessTTSText(textToRead);
 
-      if (scriptRes.ok) {
-        const scriptData = await scriptRes.json();
-        if (scriptData && (scriptData.title_script || scriptData.body_script)) {
-          textToRead = `${scriptData.title_script || ''}\n\n${scriptData.body_script || ''}`.trim();
-          
-          if (scriptData.voice_style) {
-            // Map LLM speed output to edge-tts rate format
-            if (scriptData.voice_style.speed) {
-              const parsedSpeed = parseFloat(scriptData.voice_style.speed);
-              if (!isNaN(parsedSpeed)) {
-                // Base user rate * LLM recommended rate
-                const finalRate = this._voice.rate * parsedSpeed;
-                const pct = Math.round((finalRate - 1) * 100);
-                rateStr = pct >= 0 ? `+${pct}%` : `${pct}%`;
-              }
-            }
-            if (scriptData.voice_style.pitch) {
-              pitchStr = scriptData.voice_style.pitch;
-            }
-          }
-        }
-      }
-    } catch (e) {
-      console.warn('LLM script optimization failed, falling back to raw text', e);
-    }
-
-    // Step 2: Generate TTS Audio
-    this.showToast('🎙️ Generating natural voice...');
+    // Step: Generate TTS Audio directly (skip LLM for speed)
+    this.showToast('🎙️ Generating voice...');
     
     // If rate wasn't set by LLM, set it by user default
     if (rateStr === '+0%' && this._voice.rate !== 1) {

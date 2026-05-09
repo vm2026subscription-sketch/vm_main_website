@@ -445,27 +445,56 @@ def api_tts():
         if devanagari_ratio > 0.3:
             if marathi_hits > hindi_hits:
                 voice = "mr-IN-ManoharNeural"
-                if rate == "+0%": rate = "-5%"
-                if pitch == "+0Hz": pitch = "-2Hz"
+                if rate == "+0%": rate = "-2%"    # natural pace, not sluggish
+                if pitch == "+0Hz": pitch = "+2Hz"  # slightly higher, authoritative
             else:
                 voice = "hi-IN-MadhurNeural"
-                if rate == "+0%": rate = "-5%"
-                if pitch == "+0Hz": pitch = "-3Hz"
+                if rate == "+0%": rate = "-2%"    # natural anchor pace
+                if pitch == "+0Hz": pitch = "+2Hz"  # authoritative, clear
         else:
             voice = "en-IN-PrabhatNeural"
-            if rate == "+0%": rate = "-5%"
-            if pitch == "+0Hz": pitch = "-2Hz"
+            if rate == "+0%": rate = "-2%"
+            if pitch == "+0Hz": pitch = "+1Hz"
     else:
         _voice_defaults = {
-            "hi-IN-MadhurNeural":  ("-5%", "-3Hz"),
-            "hi-IN-SwaraNeural":   ("-3%", "+0Hz"),
-            "mr-IN-ManoharNeural": ("-5%", "-2Hz"),
-            "mr-IN-AarohiNeural":  ("-3%", "+0Hz"),
-            "en-IN-PrabhatNeural": ("-5%", "-2Hz"),
-            "en-IN-NeerjaNeural":  ("-3%", "+0Hz"),
+            "hi-IN-MadhurNeural":  ("-2%", "+2Hz"),
+            "hi-IN-SwaraNeural":   ("-1%", "+1Hz"),
+            "mr-IN-ManoharNeural": ("-2%", "+2Hz"),
+            "mr-IN-AarohiNeural":  ("-1%", "+1Hz"),
+            "en-IN-PrabhatNeural": ("-2%", "+1Hz"),
+            "en-IN-NeerjaNeural":  ("-1%", "+1Hz"),
         }
         if voice in _voice_defaults and rate == "+0%" and pitch == "+0Hz":
             rate, pitch = _voice_defaults[voice]
+
+    # ── Server-side text preprocessing for natural delivery ──────────────
+    # Expand common abbreviations inline
+    _abbr_map = {
+        'JEE': 'जे ई ई', 'NEET': 'नीट', 'IIT': 'आई आई टी',
+        'IIM': 'आई आई एम', 'NIT': 'एन आई टी',
+        'CM': 'मुख्यमंत्री', 'PM': 'प्रधानमंत्री',
+        'BJP': 'बी जे पी', 'RSS': 'आर एस एस',
+        'CBSE': 'सी बी एस ई', 'SSC': 'एस एस सी', 'HSC': 'एच एस सी',
+        'CET': 'सी ई टी', 'DTE': 'डी टी ई',
+    }
+    for abbr, expansion in _abbr_map.items():
+        text = re.sub(rf'\b{abbr}\b', expansion, text)
+
+    # Convert ₹ to spoken form
+    def _rupee_to_words(m):
+        n = int(m.group(1).replace(',', ''))
+        if n >= 10000000: return f"{n/10000000:.1f} करोड़ रुपये"
+        if n >= 100000: return f"{n/100000:.1f} लाख रुपये"
+        if n >= 1000: return f"{n/1000:.0f} हज़ार रुपये"
+        return f"{n} रुपये"
+    text = re.sub(r'₹\s?(\d[\d,]*)', _rupee_to_words, text)
+
+    # Convert % to spoken
+    text = re.sub(r'(\d+)%', r'\1 प्रतिशत', text)
+
+    # Add natural pauses after purna viram and periods
+    text = re.sub(r'।\s*', '। ... ', text)
+    text = re.sub(r'\.\s+', '. ... ', text)
 
     # Convert rate from number to Edge TTS format
     if isinstance(rate, (int, float)):
