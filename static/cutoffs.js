@@ -154,6 +154,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const meta = document.getElementById("resultsMeta");
   const unlockButton = document.getElementById("unlockFullListBtn");
   const paymentStatus = document.getElementById("paymentStatus");
+  const couponInput = document.getElementById("couponCodeInput");
+  const applyCouponBtn = document.getElementById("applyCouponBtn");
+  const couponStatus = document.getElementById("couponStatus");
+  let appliedCoupon = null;
   let lastPayload = null;
   let lastTop20Filters = {};
   let top20Loaded = false;
@@ -284,10 +288,12 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error("Razorpay checkout did not load.");
       }
 
+      const orderBody = Object.assign({}, lastTop20Filters || {});
+      if (appliedCoupon) orderBody.coupon_code = appliedCoupon.code;
       const orderResponse = await fetch("/api/cutoff-payment/order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(lastTop20Filters || {}),
+        body: JSON.stringify(orderBody),
       });
       const orderResult = await orderResponse.json();
 
@@ -299,6 +305,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
       setPaymentStatus("Opening Razorpay checkout...");
       setUnlockButtonLoading(true, "Checkout open...");
+
+      // if server responded that coupon unlocked the list immediately
+      if (orderResult.unlocked) {
+        setPaymentStatus("Unlocked via coupon. Loading full list...");
+        await fetchFullCutoffList(1);
+        setPaymentStatus("");
+        return;
+      }
 
       const options = {
         key: orderResult.key_id,
@@ -345,6 +359,43 @@ document.addEventListener("DOMContentLoaded", () => {
       setUnlockButtonLoading(false);
     }
   }
+
+  async function applyCoupon() {
+    if (!couponInput) return;
+    const code = (couponInput.value || "").trim();
+    if (!code) {
+      couponStatus.textContent = "Enter a coupon code.";
+      return;
+    }
+    applyCouponBtn.disabled = true;
+    couponStatus.textContent = "Checking...";
+    try {
+      const resp = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = await resp.json();
+      if (!data.success || !data.valid) {
+        couponStatus.textContent = data.error || "Invalid coupon.";
+        appliedCoupon = null;
+        setUnlockButtonLoading(false);
+      } else {
+        appliedCoupon = { code: code, amount_rupees: data.amount_rupees || 0 };
+        couponStatus.textContent = data.message || `Applied: ₹${appliedCoupon.amount_rupees} off`;
+        // update unlock button label
+        const newAmount = Math.max(0, (100 - (appliedCoupon.amount_rupees || 0)));
+        if (unlockButton) unlockButton.textContent = newAmount > 0 ? `Unlock for ₹${newAmount}` : `Unlock (free)`;
+      }
+    } catch (err) {
+      couponStatus.textContent = "Could not validate coupon.";
+      appliedCoupon = null;
+    } finally {
+      applyCouponBtn.disabled = false;
+    }
+  }
+
+  applyCouponBtn?.addEventListener("click", applyCoupon);
 
   async function fetchPrediction(page = 1) {
     if (!form) return;

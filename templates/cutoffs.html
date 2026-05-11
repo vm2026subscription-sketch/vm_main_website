@@ -228,8 +228,13 @@
       <p>Pay &#8377;100 in Razorpay test mode to show every matching cutoff row beyond the free top 20.</p>
     </div>
     <div class="payment-action">
-      <button type="button" id="unlockFullListBtn">Unlock for &#8377;100</button>
-      <span class="payment-status" id="paymentStatus" role="status" aria-live="polite"></span>
+        <div class="coupon-row">
+          <input type="text" id="couponCodeInput" placeholder="Enter coupon code (optional)">
+          <button type="button" id="applyCouponBtn">Apply</button>
+          <span id="couponStatus" class="muted"></span>
+        </div>
+        <button type="button" id="unlockFullListBtn">Unlock for &#8377;100</button>
+        <span class="payment-status" id="paymentStatus" role="status" aria-live="polite"></span>
     </div>
   </div>
 </section>

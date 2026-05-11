@@ -142,6 +142,15 @@ const EPAdmin = {
       canvas.addEventListener('mousedown', e => this.onCanvasMouseDown(e));
       document.addEventListener('mousemove', e => this.onCanvasMouseMove(e));
       document.addEventListener('mouseup', e => this.onCanvasMouseUp(e));
+      
+      // Event delegation for Add Article button (works across all page redraws)
+      canvas.addEventListener('click', (e) => {
+        const addBtn = e.target.closest('.epc-add-btn');
+        if (addBtn && addBtn.getAttribute('data-action') === 'add-block') {
+          e.stopPropagation();
+          this.addBlock();
+        }
+      });
     }
 
     const headerCanvas = document.getElementById('headerCanvas');
@@ -467,6 +476,9 @@ const EPAdmin = {
     const my = e.clientY - rect.top;
     const scale = rect.width / this.CANVAS_W;
 
+    // Do not deselect or re-render if clicking the Add Article button
+    if (e.target.closest('.epc-add-btn')) return;
+
     // Check if clicking a resize handle
     const page = this.pages[this.currentPageIdx];
     if (!page) return;
@@ -728,7 +740,7 @@ const EPAdmin = {
         </div>
       `;
     }).join('') + `
-      <button class="epc-add-btn" onclick="EPAdmin.addBlock()"><i class="fa fa-plus"></i> Add Article</button>
+      <button class="epc-add-btn" data-action="add-block"><i class="fa fa-plus"></i> Add Article</button>
     `;
   },
 
@@ -1092,7 +1104,6 @@ const EPAdmin = {
     }
   },
 
-  // Gallery
   renderGallery() {
     const container = document.getElementById('articleGallery');
     if (!container) return;
@@ -1105,6 +1116,7 @@ const EPAdmin = {
       </div>
     `).join('') + `<div class="epb-gal-add" onclick="document.getElementById('galleryInput').click()"><i class="fa fa-plus"></i></div>`;
   },
+
   async addGalleryImage(file) {
     if (!file?.type.startsWith('image/') || this.activeBlockIdx === null) return;
     try {
@@ -1120,6 +1132,7 @@ const EPAdmin = {
       alert(e.message || 'Image upload failed');
     }
   },
+
   removeGalleryImage(idx) {
     const block = this.pages[this.currentPageIdx]?.blocks?.[this.activeBlockIdx];
     if (block?.gallery) { block.gallery.splice(idx, 1); this.renderGallery(); }

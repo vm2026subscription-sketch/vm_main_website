@@ -9,7 +9,7 @@ const EP = {
   totalPages: 1,
   zoom: 1,
   minZoom: 0.5,
-  maxZoom: 3,
+  maxZoom: 4,
   isDragging: false,
   dragStart: { x: 0, y: 0 },
   panOffset: { x: 0, y: 0 },
@@ -332,6 +332,7 @@ const EP = {
     try {
       const res = await fetch(`/api/epaper/edition/${iso}`);
       if (!res.ok) {
+        console.warn('EP: Edition not found:', iso, res.status);
         this.showDemoPage();
         return;
       }
@@ -404,7 +405,10 @@ const EP = {
     this.updatePager();
 
     const page = this.pages[this.currentPage - 1];
-    if (!page) return;
+    if (!page) {
+      console.warn('EP: Page not found at index', this.currentPage - 1);
+      return;
+    }
 
     const viewer = this.el.viewer || document.getElementById('epViewer');
 
@@ -661,6 +665,11 @@ const EP = {
 
     this.el.articlePanel?.classList.add('open');
     document.body.style.overflow = 'hidden';
+    
+    // Scroll to top of article panel for fresh reading UX
+    if (this.el.articlePanel) {
+      this.el.articlePanel.scrollTop = 0;
+    }
 
     // Show video button if article has video
     const vidBtn = document.getElementById('epVideoBtn');
@@ -709,7 +718,8 @@ const EP = {
   },
 
   closeGalleryViewer() {
-    document.getElementById('epGalleryOverlay')?.classList.remove('open');
+    const overlay = document.getElementById('epGalleryOverlay');
+    if (overlay) overlay.classList.remove('open');
   },
 
   closeArticle() {
@@ -798,7 +808,7 @@ const EP = {
       this.ttsPlaying = true;
       this.ttsPaused = false;
       this.updateTTSUI();
-      this.showToast('🔊 Reading article...');
+      this.showToast('Reading article...');
       this.trackEvent('tts_play', { article: this.currentArticle?.headline, lang: this.ttsUtterance.lang });
     } else {
       this.showToast('TTS is not supported in this browser');
@@ -879,7 +889,7 @@ const EP = {
       if (res.ok) {
         const data = await res.json();
         const points = data.summary || [];
-        this.el.summaryOutput.innerHTML = `<h4>✨ AI Summary</h4><ul>${points.map(p => `<li>${p}</li>`).join('')}</ul>`;
+        this.el.summaryOutput.innerHTML = `<h4>AI Summary</h4><ul>${points.map(p => `<li>${p}</li>`).join('')}</ul>`;
       } else {
         this.el.summaryOutput.innerHTML = '<p>Summary unavailable.</p>';
       }
@@ -906,12 +916,11 @@ const EP = {
     this.trackEvent('share', { platform, article: title });
   },
 
-  // ── GA4 Analytics ──
+  // ── Analytics ──
   trackEvent(action, params = {}) {
     if (typeof gtag === 'function') {
       gtag('event', action, { event_category: 'epaper', ...params });
     }
-    // Also log for debug
     console.debug('[EP Analytics]', action, params);
   },
 
@@ -944,5 +953,4 @@ const EP = {
   },
 };
 
-// Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', () => EP.init());

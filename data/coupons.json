@@ -1,0 +1,14 @@
+[
+  {
+    "code": "FREECUT100",
+    "amount_rupees": 100,
+    "uses_remaining": 1,
+    "message": "One-time full access coupon"
+  },
+  {
+    "code": "HALF50",
+    "amount_rupees": 50,
+    "uses_remaining": 10,
+    "message": "50 rupees off (10 uses)"
+  }
+]

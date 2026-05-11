@@ -11,7 +11,7 @@ import secrets
 import smtplib
 import time
 from urllib.error import HTTPError, URLError
-from urllib.parse import parse_qs, unquote, urljoin, urlparse, urlencode
+from urllib.parse import parse_qs, quote, unquote, urljoin, urlparse, urlencode
 from urllib.request import Request, urlopen
 from email.message import EmailMessage
 
@@ -76,6 +76,9 @@ except Exception as exc:
 VMADMIN_BASE_URL = (
     os.getenv("VMADMIN_BASE_URL", "").strip().rstrip("/")
 )
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile").strip() or "llama-3.3-70b-versatile"
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 
 def fetch_remote_json(url, timeout=12):
@@ -148,6 +151,48 @@ _btech_cutoff_error = None
 _college_website_cache = None
 FULL_CUTOFF_PRICE_RUPEES = 100
 FULL_CUTOFF_PRICE_PAISE = FULL_CUTOFF_PRICE_RUPEES * 100
+
+CHATBOT_TEMPLATE_CACHE = None
+CHATBOT_STOPWORDS = {
+    "about", "what", "when", "where", "which", "please", "give", "tell",
+    "show", "for", "with", "from", "this", "that", "have", "has", "are",
+    "the", "and", "you", "your", "into", "mein", "about", "kya", "hai",
+    "ke", "ki", "ka", "ko", "kaise", "please", "mujhe", "info", "details",
+    "regarding", "need", "want", "exam", "exams",
+}
+
+CHATBOT_GREETINGS = {
+    "hi", "hello", "hey", "hii", "hiii", "namaste", "namaskar", "salam", "good morning", "good evening"
+}
+
+CHATBOT_SMALLTALK = {
+    "how are you", "how r u", "how r you", "kaise ho", "kaisi ho", "kaisa hai", "kaisi hai",
+    "kya haal hai", "kya hal hai", "kasa ahes", "kashi ahes", "kay mhantos", "kay mhantays"
+}
+
+CHATBOT_THANKS = {
+    "thanks", "thank you", "thx", "dhanyavad", "shukriya", "thanku"
+}
+
+CHATBOT_TOPIC_KEYWORDS = {
+    "admissions": {"admission", "admissions", "eligibility", "deadline", "application", "documents", "fees", "seat"},
+    "entrance_exams": {"entrance", "exam", "jee", "neet", "mht", "cet", "clat", "gate", "syllabus", "cutoff"},
+    "colleges": {"college", "colleges", "campus", "placement", "hostel", "branch"},
+    "courses": {"course", "courses", "btech", "mba", "bca", "bba", "syllabus", "duration"},
+    "careers": {"career", "careers", "job", "scope", "salary", "future", "skills"},
+}
+
+CHATBOT_TOPIC_SOURCE_HINTS = {
+    "admissions": {"/admissions", "/entrance-exams", "/cutoffs", "/courses", "/colleges"},
+    "entrance_exams": {"/entrance-exams", "/cutoffs", "/exam-updates", "/mock-exams"},
+    "colleges": {"/colleges", "/cutoffs", "/universities"},
+    "courses": {"/courses", "/entrance-exams", "/colleges"},
+    "careers": {"/blogs", "/articles", "/guideme", "/guide-me"},
+}
+
+CHATBOT_DDG_API_URL = "https://api.duckduckgo.com/"
+CHATBOT_WIKI_SEARCH_URL = "https://en.wikipedia.org/w/api.php"
+CHATBOT_WIKI_SUMMARY_URL = "https://en.wikipedia.org/api/rest_v1/page/summary/"
 
 CUTOFF_GENDER_LABELS = {
     "G": "General",
@@ -583,6 +628,63 @@ def resolve_colleges_columns(conn):
         "source_url": pick_column(["website", "Website", "website_url", "source_url", "url"]),
     }
 
+
+## --- Simple coupon storage and helpers (file-backed) ---
+COUPONS_FILE = os.path.join(app.root_path, "data", "coupons.json")
+
+def _load_coupons_raw():
+    try:
+        if not os.path.exists(COUPONS_FILE):
+            return []
+        with open(COUPONS_FILE, "r", encoding="utf-8") as fh:
+            return json.load(fh) or []
+    except Exception:
+        return []
+
+def _save_coupons_raw(items):
+    try:
+        os.makedirs(os.path.dirname(COUPONS_FILE), exist_ok=True)
+        with open(COUPONS_FILE, "w", encoding="utf-8") as fh:
+            json.dump(items, fh, indent=2, ensure_ascii=False)
+        return True
+    except Exception:
+        return False
+
+def find_coupon(code):
+    if not code:
+        return None
+    code = str(code or "").strip()
+    if not code:
+        return None
+    items = _load_coupons_raw()
+    for it in items:
+        if str(it.get("code", "")).strip().upper() == code.upper():
+            return it
+    return None
+
+def consume_coupon(code):
+    """Consume one use of a single-use coupon. Returns True if consumed."""
+    if not code:
+        return False
+    items = _load_coupons_raw()
+    changed = False
+    for it in items:
+        if str(it.get("code", "")).strip().upper() == str(code).strip().upper():
+            uses = it.get("uses_remaining")
+            if uses is None:
+                return True
+            try:
+                uses = int(uses)
+            except Exception:
+                return True
+            if uses <= 0:
+                return False
+            it["uses_remaining"] = uses - 1
+            changed = True
+            break
+    if changed:
+        return _save_coupons_raw(items)
+    return False
 
 def build_college_select(col_map):
     select_parts = []
@@ -1751,7 +1853,30 @@ def courses():
 
 @app.route("/entrance-exams")
 def exams():
-    return render_template("entrance-exams.html")  # Placeholder
+    exams_data = {}
+    total_exams = 0
+    try:
+        connection_url = get_postgres_connection_url()
+        if connection_url and connect:
+            import psycopg2.extras
+            with connect(connection_url) as conn:
+                with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                    cur.execute("SELECT payload FROM entrance_exams LIMIT 8208")
+                    rows = cur.fetchall()
+                    for row in rows:
+                        payload = row.get("payload", {})
+                        if isinstance(payload, dict):
+                            category = payload.get("category", "general").lower()
+                            if category not in exams_data:
+                                exams_data[category] = []
+                            exams_data[category].append(payload)
+                            total_exams += 1
+    except Exception as e:
+        app.logger.warning("Failed to fetch entrance exams from Postgres: %s", e)
+        import traceback
+        app.logger.warning(traceback.format_exc())
+    
+    return render_template("entrance-exams.html", exams_data=exams_data, total_exams=total_exams)
 
 
 @app.route("/mock-exams")
@@ -1858,6 +1983,31 @@ def api_top_cutoff_colleges():
         gender=gender or None,
     )
 
+
+@app.route("/api/coupons/validate", methods=["POST"])
+def api_coupons_validate():
+    payload = request.get_json(silent=True) or {}
+    code = str(payload.get("code", "")).strip()
+    if not code:
+        return jsonify({"success": False, "error": "Coupon code is required."}), 200
+    coupon = find_coupon(code)
+    if not coupon:
+        return jsonify({"success": False, "valid": False, "error": "Invalid coupon code."}), 200
+
+    # basic response with coupon info
+    try:
+        amount = int(float(coupon.get("amount_rupees", 0)))
+    except Exception:
+        amount = 0
+
+    return jsonify({
+        "success": True,
+        "valid": True,
+        "amount_rupees": amount,
+        "uses_remaining": coupon.get("uses_remaining"),
+        "message": coupon.get("message") or "Coupon valid.",
+    }), 200
+
     if error:
         return jsonify({"success": False, "error": error, "recommendations": []}), 200
 
@@ -1884,16 +2034,53 @@ def api_cutoff_payment_order():
         "category": str(payload.get("category", "")).strip().upper(),
         "gender": str(payload.get("gender", "")).strip().upper(),
     }
+    # optional coupon code
+    coupon_code = str(payload.get("coupon_code", "")).strip()
+
+    # determine discount from coupon (if provided)
+    discount_rupees = 0
+    coupon_obj = None
+    if coupon_code:
+        coupon_obj = find_coupon(coupon_code)
+        if not coupon_obj:
+            return jsonify({"success": False, "error": "Invalid coupon code."}), 200
+        # coupon may have an explicit amount_rupees key
+        try:
+            discount_rupees = int(float(coupon_obj.get("amount_rupees", 0)))
+        except Exception:
+            discount_rupees = 0
+
+    amount_rupees = max(0, int(FULL_CUTOFF_PRICE_RUPEES - discount_rupees))
+    amount_paise = int(amount_rupees * 100)
+
+    # If the coupon makes the price zero, grant access immediately and consume coupon
+    if amount_paise <= 0:
+        if coupon_obj:
+            consumed = consume_coupon(coupon_code)
+            if not consumed:
+                return jsonify({"success": False, "error": "Coupon could not be consumed or is exhausted."}), 200
+        session["full_cutoff_unlocked"] = {
+            "payment_id": None,
+            "order_id": None,
+            "filters": filters,
+            "coupon_code": coupon_code or None,
+            "unlocked_at": int(time.time()),
+        }
+        return jsonify({"success": True, "message": "Full cutoff list unlocked via coupon.", "unlocked": True}), 200
+
+    # otherwise create a Razorpay order for the remaining amount
     receipt = f"cutoff_{secrets.token_hex(8)}"
     notes = {
         "product": "full_cutoff_list",
         "branch": filters["branch"][:200],
         "category": filters["category"][:50],
         "gender": filters["gender"][:20],
+        "coupon_code": coupon_code or "",
+        "discount_rupees": discount_rupees,
     }
 
     try:
-        order = create_razorpay_order(FULL_CUTOFF_PRICE_PAISE, receipt, notes=notes)
+        order = create_razorpay_order(amount_paise, receipt, notes=notes)
     except HTTPError as exc:
         try:
             details = exc.read().decode("utf-8")
@@ -1907,8 +2094,9 @@ def api_cutoff_payment_order():
 
     session["pending_cutoff_order"] = {
         "order_id": order.get("id"),
-        "amount": FULL_CUTOFF_PRICE_PAISE,
+        "amount": amount_paise,
         "filters": filters,
+        "coupon_code": coupon_code or None,
         "created_at": int(time.time()),
     }
     config = get_razorpay_config()
@@ -1917,7 +2105,7 @@ def api_cutoff_payment_order():
             "success": True,
             "key_id": config["key_id"] if config else "",
             "order": order,
-            "amount_rupees": FULL_CUTOFF_PRICE_RUPEES,
+            "amount_rupees": amount_rupees,
             "filters": filters,
         }
     )
@@ -1940,10 +2128,17 @@ def api_cutoff_payment_verify():
     if not verify_razorpay_payment_signature(order_id, payment_id, signature):
         return jsonify({"success": False, "error": "Payment verification failed."}), 400
 
+    # consume coupon if any (for partial-discount orders)
+    coupon_code = pending_order.get("coupon_code")
+    if coupon_code:
+        # consume only now that payment verified
+        consume_coupon(coupon_code)
+
     session["full_cutoff_unlocked"] = {
         "payment_id": payment_id,
         "order_id": order_id,
         "filters": pending_order.get("filters", {}),
+        "coupon_code": coupon_code or None,
         "unlocked_at": int(time.time()),
     }
     session.pop("pending_cutoff_order", None)
@@ -2146,9 +2341,507 @@ def feedback():
     return render_template("feedback.html")
 
 
+def _clean_html_text(raw_html):
+    text = re.sub(r"<script[\s\S]*?</script>", " ", raw_html, flags=re.IGNORECASE)
+    text = re.sub(r"<style[\s\S]*?</style>", " ", text, flags=re.IGNORECASE)
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = re.sub(r"\{[%#].*?[%#]\}", " ", text, flags=re.DOTALL)
+    text = re.sub(r"\{\{.*?\}\}", " ", text, flags=re.DOTALL)
+    text = re.sub(r"[.#][a-zA-Z0-9_-]+\s*\{[^{}]{0,300}\}", " ", text)
+    text = html.unescape(text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
+def _sanitize_snippet(value, max_len=280):
+    text = str(value or "")
+    text = re.sub(r"\{[%#].*?[%#]\}", " ", text, flags=re.DOTALL)
+    text = re.sub(r"\{\{.*?\}\}", " ", text, flags=re.DOTALL)
+    text = re.sub(r"[.#][a-zA-Z0-9_-]+\s*\{[^{}]{0,300}\}", " ", text)
+    text = re.sub(r"https?://\S+", " ", text)
+    text = re.sub(r"\s+", " ", text).strip(" .,-|")
+    return text[:max_len]
+
+
+def _chatbot_tokens(query):
+    parts = re.findall(r"[a-zA-Z0-9]{3,}", (query or "").lower())
+    return [token for token in parts if token not in CHATBOT_STOPWORDS][:8]
+
+
+def _chatbot_score(text, tokens):
+    if not text or not tokens:
+        return 0
+
+    lower_text = text.lower()
+    score = 0
+    for token in tokens:
+        occurrences = lower_text.count(token)
+        if occurrences:
+            score += min(occurrences, 6)
+    return score
+
+
+def _chatbot_template_route(filename):
+    if filename == "index.html":
+        return "/"
+    if filename.endswith(".html"):
+        return "/" + filename[:-5]
+    return "/" + filename
+
+
+def get_chatbot_template_corpus():
+    global CHATBOT_TEMPLATE_CACHE
+
+    if CHATBOT_TEMPLATE_CACHE is not None:
+        return CHATBOT_TEMPLATE_CACHE
+
+    templates_dir = os.path.join(app.root_path, "templates")
+    corpus = []
+
+    try:
+        for filename in sorted(os.listdir(templates_dir)):
+            if not filename.endswith(".html"):
+                continue
+            if filename.startswith("_"):
+                continue
+            if filename in {"base.html", "auth.html", "chatbot.html"}:
+                continue
+
+            file_path = os.path.join(templates_dir, filename)
+            try:
+                with open(file_path, "r", encoding="utf-8", errors="ignore") as handle:
+                    raw_html = handle.read()
+            except OSError:
+                continue
+
+            cleaned = _clean_html_text(raw_html)
+            if len(cleaned) < 120:
+                continue
+
+            title = filename.replace(".html", "").replace("-", " ").replace("_", " ").title()
+            corpus.append(
+                {
+                    "source": _chatbot_template_route(filename),
+                    "title": title,
+                    "text": cleaned[:5000],
+                }
+            )
+    except OSError:
+        CHATBOT_TEMPLATE_CACHE = []
+        return CHATBOT_TEMPLATE_CACHE
+
+    CHATBOT_TEMPLATE_CACHE = corpus
+    return CHATBOT_TEMPLATE_CACHE
+
+
+def _collect_entrance_exam_matches(tokens, limit=4):
+    if not tokens:
+        return []
+
+    connection_url = get_postgres_connection_url()
+    if not connection_url or not connect:
+        return []
+
+    max_tokens = tokens[:4]
+    conditions = " OR ".join(["LOWER(payload::text) LIKE %s"] * len(max_tokens))
+    params = [f"%{token}%" for token in max_tokens]
+
+    sql = (
+        "SELECT payload FROM entrance_exams "
+        f"WHERE {conditions} "
+        "LIMIT %s"
+    )
+    params.append(limit)
+
+    matches = []
+    try:
+        import psycopg2.extras
+        with connect(connection_url) as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                cur.execute(sql, params)
+                rows = cur.fetchall()
+                for row in rows:
+                    payload = row.get("payload") if isinstance(row, dict) else None
+                    if not isinstance(payload, dict):
+                        continue
+                    title = (
+                        payload.get("exam_name")
+                        or payload.get("name")
+                        or payload.get("title")
+                        or "Entrance Exam"
+                    )
+                    snippet = (
+                        payload.get("description")
+                        or payload.get("overview")
+                        or payload.get("details")
+                        or payload.get("eligibility")
+                        or "Exam details available on the entrance exams section."
+                    )
+                    snippet = _sanitize_snippet(snippet)
+                    matches.append(
+                        {
+                            "title": str(title).strip(),
+                            "snippet": snippet,
+                            "source": "/entrance-exams",
+                            "score": _chatbot_score(f"{title} {snippet}", tokens) + 2,
+                            "kind": "data",
+                        }
+                    )
+    except Exception as exc:
+        app.logger.warning("Chatbot entrance exam lookup failed: %s", exc)
+
+    return matches
+
+
+def _build_chatbot_sources(results):
+    seen_sources = set()
+    sources = []
+    for item in results:
+        source = str(item.get("source") or "").strip() or "/"
+        if source in seen_sources:
+            continue
+        seen_sources.add(source)
+        sources.append(source)
+    return sources
+
+
+def _build_context_lines(results, limit=5):
+    lines = []
+    for index, item in enumerate(results[:limit], start=1):
+        title = str(item.get("title") or "Result").strip()
+        snippet = _sanitize_snippet(item.get("snippet") or "", max_len=280)
+        source = str(item.get("source") or "").strip() or "/"
+        lines.append(f"{index}. {title}: {snippet} (Source: {source})")
+    return lines
+
+
+def _detect_info_topic(question):
+    text = (question or "").lower()
+    scores = {topic: 0 for topic in CHATBOT_TOPIC_KEYWORDS}
+    for topic, words in CHATBOT_TOPIC_KEYWORDS.items():
+        for word in words:
+            if word in text:
+                scores[topic] += 1
+
+    best_topic = max(scores, key=scores.get)
+    if scores[best_topic] <= 0:
+        return "general"
+    return best_topic
+
+
+def _topic_relevance_bonus(item, topic):
+    if topic == "general":
+        return 0
+
+    bonus = 0
+    source = str(item.get("source") or "").strip().lower()
+    text = f"{item.get('title', '')} {item.get('snippet', '')}".lower()
+
+    for hint in CHATBOT_TOPIC_SOURCE_HINTS.get(topic, set()):
+        if source.startswith(hint):
+            bonus += 4
+            break
+
+    for keyword in CHATBOT_TOPIC_KEYWORDS.get(topic, set()):
+        if keyword in text:
+            bonus += 1
+
+    return bonus
+
+
+def _get_groq_response(question, context_lines=None, language="en", topic="general"):
+    if not GROQ_API_KEY:
+        return None
+
+    context_lines = context_lines or []
+
+    if language == "hi":
+        style_line = "Answer in simple Hindi (Devanagari), short and practical."
+    elif language == "mr":
+        style_line = "Answer in simple Marathi (Devanagari), short and practical."
+    else:
+        style_line = "Answer in simple English, short and practical."
+
+    system_prompt = (
+        "You are an education assistant and friendly conversational chatbot for Vidyarthi Mitra. "
+        "Answer using your own knowledge and the user message only. Do not browse the internet or rely on retrieved context. "
+        "If the user asks about Vidyarthi Mitra, explain it as an education and career guidance platform. "
+        "Return only bullet points, no paragraphs. "
+        "Use this exact format: "
+        "- Summary: <one line> "
+        "- Key Points: "
+        "  - <point 1> "
+        "  - <point 2> "
+        "  - <point 3> "
+        "- Next Step: "
+        "  - <one actionable step>. "
+        "Do not invent facts. Keep the reply concise. "
+        f"{style_line}"
+    )
+    user_prompt = (
+        "User question:\n"
+        f"{question}\n\n"
+        f"Target topic: {topic}\n\n"
+        "No external context provided."
+        f"{'\n'.join(context_lines)}"
+    )
+
+    payload = {
+        "model": GROQ_MODEL,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        "temperature": 0.2,
+        "max_tokens": 500,
+    }
+
+    request = Request(
+        GROQ_API_URL,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {GROQ_API_KEY}",
+        },
+        method="POST",
+    )
+
+    try:
+        with urlopen(request, timeout=20) as response:
+            body = response.read()
+            result = json.loads(body.decode("utf-8"))
+            choices = result.get("choices") if isinstance(result, dict) else None
+            if not isinstance(choices, list) or not choices:
+                return None
+            message = choices[0].get("message", {})
+            content = str(message.get("content") or "").strip()
+            return content or None
+    except Exception as exc:
+        app.logger.warning("Groq API call failed: %s", exc)
+        return None
+
+
+def _detect_chat_intent(question):
+    text = (question or "").strip().lower()
+    if not text:
+        return "empty"
+
+    if text in CHATBOT_GREETINGS:
+        return "greeting"
+
+    if text in CHATBOT_SMALLTALK or any(phrase in text for phrase in CHATBOT_SMALLTALK):
+        return "smalltalk"
+
+    if text in CHATBOT_THANKS or any(phrase in text for phrase in CHATBOT_THANKS):
+        return "thanks"
+
+    if "who are you" in text or "tum kaun" in text or "tu kon" in text:
+        return "intro"
+
+    return "info"
+
+
+def _smalltalk_reply(intent, language="en"):
+    if language == "hi":
+        replies = {
+            "greeting": "नमस्ते! मैं Vidyarthi Mitra का AI assistant हूं. आप exam, college, course, admission या career के बारे में पूछ सकते हैं.",
+            "smalltalk": "मैं ठीक हूं! आप कैसे हो? अगर चाहो तो exam, course या college के बारे में पूछ सकते हो.",
+            "thanks": "खुशी हुई मदद करके. अगर चाहें तो मैं आपको exam dates, eligibility या college options भी बता सकता हूं.",
+            "intro": "मैं Vidyarthi Mitra chatbot हूं. मैं education related जानकारी और हमारी website के content के आधार पर guidance देता हूं.",
+            "empty": "नमस्ते! आप अपना सवाल लिखें, मैं मदद करता हूं.",
+        }
+    elif language == "mr":
+        replies = {
+            "greeting": "नमस्कार! मी Vidyarthi Mitra चा AI assistant आहे. तुम्ही exam, college, course, admission किंवा career बद्दल विचारू शकता.",
+            "smalltalk": "मी ठीक आहे! तुम्ही कसे आहात? हवे असल्यास exam, course किंवा college बद्दल विचारू शकता.",
+            "thanks": "मदत करून आनंद झाला. हवे असल्यास मी exam dates, eligibility किंवा college options सांगू शकतो.",
+            "intro": "मी Vidyarthi Mitra chatbot आहे. मी education संदर्भातील माहिती आणि website content वर आधारित guidance देतो.",
+            "empty": "नमस्कार! तुमचा प्रश्न लिहा, मी मदत करतो.",
+        }
+    else:
+        replies = {
+            "greeting": "Hi! I am the Vidyarthi Mitra AI assistant. You can ask me about exams, colleges, courses, admissions, or careers.",
+            "smalltalk": "I am doing well! Ask me about exams, colleges, courses, admissions, or careers.",
+            "thanks": "Glad to help. If you want, I can also share exam dates, eligibility, or college options.",
+            "intro": "I am the Vidyarthi Mitra chatbot. I help with education guidance using our website information.",
+            "empty": "Hi! Ask your education question and I will help.",
+        }
+
+    return replies.get(intent, replies["greeting"])
+
+
+def _add_internet_result(results, title, snippet, source, tokens, topic):
+    title = _sanitize_snippet(title, max_len=120)
+    snippet = _sanitize_snippet(snippet, max_len=320)
+    source = str(source or "").strip()
+    if not title or not snippet or not source:
+        return
+
+    combined = f"{title} {snippet}"
+    base_score = _chatbot_score(combined, tokens)
+    topic_bonus = 0
+    if topic != "general":
+        for keyword in CHATBOT_TOPIC_KEYWORDS.get(topic, set()):
+            if keyword in combined.lower():
+                topic_bonus += 1
+
+    results.append(
+        {
+            "title": title,
+            "snippet": snippet,
+            "source": source,
+            "score": base_score + topic_bonus,
+            "kind": "internet",
+        }
+    )
+
+
+def _collect_duckduckgo_context(question, tokens, topic):
+    params = {
+        "q": question,
+        "format": "json",
+        "no_redirect": "1",
+        "no_html": "1",
+        "skip_disambig": "1",
+    }
+    url = f"{CHATBOT_DDG_API_URL}?{urlencode(params)}"
+    payload = fetch_remote_json(url)
+    if not isinstance(payload, dict):
+        return []
+
+    results = []
+    abstract_text = payload.get("AbstractText")
+    abstract_url = payload.get("AbstractURL")
+    heading = payload.get("Heading") or "Internet result"
+    if abstract_text and abstract_url:
+        _add_internet_result(results, heading, abstract_text, abstract_url, tokens, topic)
+
+    related = payload.get("RelatedTopics")
+    if isinstance(related, list):
+        for item in related[:12]:
+            if isinstance(item, dict) and isinstance(item.get("Topics"), list):
+                for nested in item.get("Topics", [])[:6]:
+                    if not isinstance(nested, dict):
+                        continue
+                    text = nested.get("Text") or ""
+                    first_url = nested.get("FirstURL") or ""
+                    if text and first_url:
+                        label = text.split(" - ", 1)[0]
+                        _add_internet_result(results, label, text, first_url, tokens, topic)
+            elif isinstance(item, dict):
+                text = item.get("Text") or ""
+                first_url = item.get("FirstURL") or ""
+                if text and first_url:
+                    label = text.split(" - ", 1)[0]
+                    _add_internet_result(results, label, text, first_url, tokens, topic)
+
+    return results
+
+
+def _collect_wikipedia_context(question, tokens, topic):
+    params = {
+        "action": "query",
+        "list": "search",
+        "srsearch": question,
+        "utf8": "1",
+        "format": "json",
+        "srlimit": "6",
+    }
+    search_url = f"{CHATBOT_WIKI_SEARCH_URL}?{urlencode(params)}"
+    payload = fetch_remote_json(search_url)
+    if not isinstance(payload, dict):
+        return []
+
+    search_items = (((payload.get("query") or {}).get("search")) or [])
+    if not isinstance(search_items, list):
+        return []
+
+    results = []
+    for item in search_items[:6]:
+        if not isinstance(item, dict):
+            continue
+        title = str(item.get("title") or "").strip()
+        if not title:
+            continue
+        summary_url = f"{CHATBOT_WIKI_SUMMARY_URL}{quote(title.replace(' ', '_'))}"
+        summary_payload = fetch_remote_json(summary_url)
+        if isinstance(summary_payload, dict):
+            snippet = summary_payload.get("extract") or item.get("snippet") or ""
+            source = summary_payload.get("content_urls", {}).get("desktop", {}).get("page") or f"https://en.wikipedia.org/wiki/{quote(title.replace(' ', '_'))}"
+            _add_internet_result(results, title, snippet, source, tokens, topic)
+        else:
+            fallback_snippet = re.sub(r"<[^>]+>", " ", str(item.get("snippet") or ""))
+            source = f"https://en.wikipedia.org/wiki/{quote(title.replace(' ', '_'))}"
+            _add_internet_result(results, title, fallback_snippet, source, tokens, topic)
+
+    return results
+
+
+def _collect_internet_context(question, tokens, topic, limit=8):
+    results = []
+    results.extend(_collect_duckduckgo_context(question, tokens, topic))
+    results.extend(_collect_wikipedia_context(question, tokens, topic))
+
+    deduped = []
+    seen = set()
+    for item in results:
+        key = (item.get("title"), item.get("source"))
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(item)
+
+    deduped.sort(key=lambda item: item.get("score", 0), reverse=True)
+    return deduped[:limit]
+
+
+def build_chatbot_answer(question, language="en"):
+    intent = _detect_chat_intent(question)
+    if intent in {"empty", "greeting", "smalltalk", "thanks", "intro"}:
+        return _smalltalk_reply(intent, language=language), []
+
+    topic = _detect_info_topic(question)
+    groq_answer = _get_groq_response(question, [], language=language, topic=topic)
+
+    if groq_answer:
+        return groq_answer, []
+
+    lines = [
+        "- Summary: I can help with education, careers, admissions, exams, colleges, and Vidyarthi Mitra.",
+        "- Key Points:",
+    ]
+    lines.append("  - Ask me about courses, entrance exams, colleges, admissions, or career options.")
+    lines.append("  - I can also explain Vidyarthi Mitra and help you explore options.")
+    lines.append("- Next Step:")
+    lines.append("  - Tell me the exact exam, course, college, or city you want to know about.")
+    answer = "\n".join(lines)
+    return answer, sources
+
+
 @app.route("/chatbot")
 def chatbot():
     return render_template("chatbot.html")
+
+
+@app.route("/api/chatbot/query", methods=["POST"])
+def api_chatbot_query():
+    payload = request.get_json(silent=True) or {}
+    message = str(payload.get("message") or "").strip()
+    language = str(payload.get("language") or "en").strip().lower()
+    if language not in {"en", "hi", "mr"}:
+        language = "en"
+
+    if len(message) < 2:
+        return jsonify({"error": "Message is required."}), 400
+
+    answer, sources = build_chatbot_answer(message, language=language)
+    return jsonify(
+        {
+            "answer": answer,
+            "sources": sources,
+            "provider": "groq" if GROQ_API_KEY else "local-retrieval",
+        }
+    )
 
 
 @app.route("/guideme", methods=["GET", "POST"])
