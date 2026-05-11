@@ -465,6 +465,37 @@
     </div>
   </section>
 
+  <!-- ── DYNAMIC EXAMS FROM DATABASE ── -->
+  {% if exams_data %}
+  <section class="exam-section" data-category="all" id="sec-database-exams">
+    <div class="section-header">
+      <div class="section-icon">📚</div>
+      <div class="section-meta">
+        <div class="section-label">Database Entrance Exams</div>
+        <div class="section-title">Complete Exam Directory <span class="section-count">{{ total_exams }}</span></div>
+      </div>
+    </div>
+    <div class="exam-grid">
+      {% for category, exams in exams_data.items() %}
+        {% for exam in exams %}
+        <div class="exam-card">
+          <div class="exam-card-top">
+            <div class="exam-abbr">{{ exam.get('exam_id', 'N/A')[:12] }}</div>
+            <span class="exam-level level-{{ exam.get('level', 'national')|lower|replace(' ', '-') }}">{{ exam.get('level', 'National')|title }}</span>
+          </div>
+          <div class="exam-body">{{ exam.get('full_form', exam.get('exam_name', 'Entrance Exam')) }}</div>
+          <div class="exam-name">{{ exam.get('exam_name', 'Exam') }}</div>
+          <div class="exam-footer-row">
+            <span class="exam-conducting">{{ exam.get('college_name', 'N/A')|truncate(20) }}</span>
+            <a href="{{ exam.get('official_website', '#') }}" class="exam-link" target="_blank">Details <i class="fas fa-arrow-right"></i></a>
+          </div>
+        </div>
+        {% endfor %}
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
 </div><!-- end .exam-sections -->
 
 <!-- ═══════════════════ PREPARATION ═══════════════════ -->

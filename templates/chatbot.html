@@ -185,7 +185,6 @@
   </style>
 </head>
 <body>
-  {% include '_shared_index_navbar.html' %}
   <div id="chat-widget">
     <div class="chat-header">
       <div class="chat-title">
@@ -235,7 +234,7 @@
         welcome: 'Hi! I’m Unnati. Ask me about courses, colleges, or exams.',
         hello: 'Hello! How can I help you today?',
         placeholder: 'Type your question...',
-        reply: 'Thanks! Our team will respond soon.',
+          reply: 'I’m doing well! Ask me about exams, colleges, courses, admissions, or careers.',
         quick: {
           admissions: 'Admission Alerts: Deadlines, eligibility, documents, and key dates. Tell me your exam or course and your state.',
           careers: 'Career Options: Share your stream, interests, and strengths. I’ll suggest paths and next steps.',
@@ -292,21 +291,71 @@
       msg.textContent = text;
       body.appendChild(msg);
       body.scrollTop = body.scrollHeight;
+      return msg;
     }
 
-    function sendMessage() {
+    async function fetchWebsiteAnswer(question) {
+      try {
+        const response = await fetch('/api/chatbot/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: question, language: currentLang })
+        });
+
+        if (!response.ok) {
+          throw new Error('Chatbot API failed');
+        }
+
+        const data = await response.json();
+        if (data && typeof data.answer === 'string' && data.answer.trim()) {
+          return data.answer.trim();
+        }
+      } catch (error) {
+        return strings[currentLang].reply;
+      }
+
+      return strings[currentLang].reply;
+    }
+
+    async function sendMessage() {
       const text = input.value.trim();
       if (!text) return;
       addMessage(text, 'user');
       input.value = '';
-      setTimeout(() => addMessage(strings[currentLang].reply), 200);
+
+      send.disabled = true;
+      input.disabled = true;
+
+      const loading = addMessage('Thinking...');
+      const reply = await fetchWebsiteAnswer(text);
+      loading.textContent = reply;
+
+      send.disabled = false;
+      input.disabled = false;
+      input.focus();
     }
 
-    function handleQuickReply(topic) {
+    async function handleQuickReply(topic) {
       const reply = strings[currentLang].quick[topic];
       if (!reply) return;
-      addMessage(topic === 'admissions' ? 'Admission Alerts' : topic === 'careers' ? 'Career Options' : 'Entrance Exam Info', 'user');
-      setTimeout(() => addMessage(reply), 200);
+      const label = topic === 'admissions' ? 'Admission Alerts' : topic === 'careers' ? 'Career Options' : 'Entrance Exam Info';
+      const queryByTopic = {
+        admissions: 'Admission alerts, deadlines, eligibility and required documents',
+        careers: 'Career options after 10th and 12th with stream-wise guidance',
+        exams: 'Entrance exam eligibility, syllabus, dates and cutoff details'
+      };
+      addMessage(label, 'user');
+
+      send.disabled = true;
+      input.disabled = true;
+
+      const loading = addMessage('Thinking...');
+      const result = await fetchWebsiteAnswer(queryByTopic[topic] || label);
+      loading.textContent = result;
+
+      send.disabled = false;
+      input.disabled = false;
+      input.focus();
     }
 
     function setLanguage(lang, silent = false) {
