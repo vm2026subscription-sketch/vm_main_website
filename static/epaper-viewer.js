@@ -19,12 +19,20 @@ const EP = {
   ttsUtterance: null,
   ttsPlaying: false,
 
+  footerLinksDefault: [
+    { key: 'search', icon: 'fa fa-magnifying-glass', url: '/epaper' },
+    { key: 'whatsapp', icon: 'fab fa-whatsapp', url: 'https://wa.me/?text=Vidyarthi%20Mitra%20E-Paper' },
+    { key: 'facebook', icon: 'fab fa-facebook-f', url: 'https://www.facebook.com/' },
+    { key: 'x', icon: 'fab fa-x-twitter', url: 'https://x.com/' },
+  ],
+
   // DOM refs
   el: {},
 
   init() {
     this.cacheDOM();
     this.bindEvents();
+    this.renderFooterLinks(this.footerLinksDefault);
     this.setDate(new Date());
     this.loadEditions();
   },
@@ -36,6 +44,7 @@ const EP = {
       nav: document.getElementById('epNav'),
       navList: document.getElementById('epNavList'),
       main: document.getElementById('epMain'),
+      paper: document.getElementById('epPaper'),
       viewer: document.getElementById('epViewer'),
       pageContainer: document.getElementById('epPageContainer'),
       pageImg: document.getElementById('epPageImg'),
@@ -68,6 +77,8 @@ const EP = {
       translateOutput: document.getElementById('epTranslateOutput'),
       summaryOutput: document.getElementById('epSummaryOutput'),
       toast: document.getElementById('epToast'),
+      mastheadImg: document.getElementById('epMastheadImg'),
+      footerLinks: document.getElementById('epFooterLinks'),
     };
   },
 
@@ -98,9 +109,19 @@ const EP = {
       v.addEventListener('mousemove', (e) => this.onDrag(e));
       v.addEventListener('mouseup', () => this.endDrag());
       v.addEventListener('mouseleave', () => this.endDrag());
-      v.addEventListener('wheel', (e) => { e.preventDefault(); this.setZoom(this.zoom + (e.deltaY < 0 ? 0.15 : -0.15)); }, { passive: false });
+      v.addEventListener('wheel', (e) => {
+        if (e.ctrlKey || e.metaKey) {
+          e.preventDefault();
+          this.setZoom(this.zoom + (e.deltaY < 0 ? 0.15 : -0.15));
+        }
+      }, { passive: false });
       v.addEventListener('touchstart', (e) => this.startDrag(e.touches[0]), { passive: true });
-      v.addEventListener('touchmove', (e) => { e.preventDefault(); this.onDrag(e.touches[0]); }, { passive: false });
+      v.addEventListener('touchmove', (e) => {
+        if (this.zoom > 1) {
+          e.preventDefault();
+          this.onDrag(e.touches[0]);
+        }
+      }, { passive: false });
       v.addEventListener('touchend', () => this.endDrag());
     }
 
@@ -139,6 +160,57 @@ const EP = {
     // Calendar nav
     document.getElementById('epCalPrev')?.addEventListener('click', () => this.calendarNav(-1));
     document.getElementById('epCalNext')?.addEventListener('click', () => this.calendarNav(1));
+
+  },
+
+  applyMastheadImage(url) {
+    if (!this.el.mastheadImg) return;
+    const existingImg = this.el.mastheadImg.querySelector('img');
+    if (url) {
+      this.el.mastheadImg.querySelector('.ep-masthead-canvas')?.remove();
+      let img = existingImg;
+      if (!img) {
+        img = document.createElement('img');
+        img.alt = 'E-Paper Header';
+        this.el.mastheadImg.prepend(img);
+      }
+      img.src = url;
+      document.body.classList.add('has-masthead');
+    } else {
+      existingImg?.remove();
+      document.body.classList.remove('has-masthead');
+    }
+  },
+
+
+  resolveFooterLinks(rawLinks) {
+    const base = this.footerLinksDefault.map(item => ({ ...item }));
+    if (!Array.isArray(rawLinks)) return base;
+    rawLinks.forEach(item => {
+      const key = item?.key || '';
+      const target = base.find(link => link.key === key);
+      if (target) {
+        if (item.url) target.url = item.url;
+        if (item.icon) target.icon = item.icon;
+      } else if (item?.url) {
+        base.push({
+          key: key || 'link',
+          url: item.url,
+          icon: item.icon || 'fa fa-link',
+        });
+      }
+    });
+    return base;
+  },
+
+  renderFooterLinks(rawLinks) {
+    if (!this.el.footerLinks) return;
+    const links = this.resolveFooterLinks(rawLinks);
+    this.el.footerLinks.innerHTML = links.map(item => {
+      const href = item.url || '#';
+      const label = item.key || 'link';
+      return `<a class="ep-footer-link" href="${href}" target="_blank" rel="noopener" aria-label="${label}"><i class="${item.icon}"></i></a>`;
+    }).join('');
   },
 
   // ── Header ──
@@ -264,8 +336,19 @@ const EP = {
         return;
       }
       const data = await res.json();
-      this.pages = data.pages || [];
+      this.pages = (data.pages || []).slice().sort((a, b) => {
+        const ap = Number(a && (a.page_number !== undefined && a.page_number !== null
+          ? a.page_number
+          : (a.page_no !== undefined && a.page_no !== null ? a.page_no : a.page)) || 0);
+        const bp = Number(b && (b.page_number !== undefined && b.page_number !== null
+          ? b.page_number
+          : (b.page_no !== undefined && b.page_no !== null ? b.page_no : b.page)) || 0);
+        if (ap && bp) return ap - bp;
+        return 0;
+      });
       this.totalPages = this.pages.length || 1;
+      this.applyMastheadImage(data.masthead_image_url || '');
+      this.renderFooterLinks(data.footer_links || this.footerLinksDefault);
       this.renderCategories(this.pages);
       this.showPage(1);
     } catch (e) {
@@ -278,6 +361,8 @@ const EP = {
     // Show a placeholder when no real data
     this.totalPages = 1;
     this.pages = [];
+    this.applyMastheadImage('');
+    this.renderFooterLinks(this.footerLinksDefault);
     if (this.el.pageImg) {
       this.el.pageImg.src = '';
       this.el.pageImg.alt = 'No edition available';
@@ -323,27 +408,50 @@ const EP = {
 
     const viewer = this.el.viewer || document.getElementById('epViewer');
 
-    // Check if page uses new block format
-    if (page.blocks && page.blocks.length > 0) {
-      // Hide legacy elements
-      if (this.el.pageContainer) this.el.pageContainer.style.display = 'none';
-      this.renderBlockGrid(page.blocks, viewer);
-    } else if (page.page_image_url) {
-      // Legacy: single image with hotspots
+    const pageImage = page.page_image_url || page.image_path || page.page_image || '';
+    const overlayArticles = this.overlayArticlesForPage(page);
+
+    if (pageImage) {
       if (this.el.pageContainer) this.el.pageContainer.style.display = '';
       if (this.el.pageImg) {
         this.el.pageImg.style.display = 'block';
-        this.el.pageImg.src = page.page_image_url;
+        this.el.pageImg.src = pageImage;
+        this.triggerPageFlip(this.el.pageImg);
       }
       if (this.el.hotspotsLayer) this.el.hotspotsLayer.style.display = 'block';
-      this.renderHotspots(page.articles || []);
+      this.renderHotspots(overlayArticles);
       const grid = document.getElementById('epBlockGrid');
       if (grid) grid.style.display = 'none';
+    } else if (page.blocks && page.blocks.length > 0) {
+      if (this.el.pageContainer) this.el.pageContainer.style.display = 'none';
+      this.renderBlockGrid(page.blocks, viewer);
+      const grid = document.getElementById('epBlockGrid');
+      const canvas = grid?.querySelector('.ep-canvas-viewer');
+      if (canvas) this.triggerPageFlip(canvas);
     }
+  },
+
+  triggerPageFlip(el) {
+    if (!el) return;
+    el.classList.remove('ep-flip');
+    void el.offsetWidth;
+    el.classList.add('ep-flip');
   },
 
   changePage(dir) {
     this.showPage(this.currentPage + dir);
+  },
+
+  overlayArticlesForPage(page) {
+    if (page.blocks && page.blocks.length) return page.blocks;
+    if (page.layout_json && page.layout_json.length) {
+      const articlesById = new Map((page.articles || []).map(article => [String(article.article_id || article.id), article]));
+      return page.layout_json.map(region => ({
+        ...(articlesById.get(String(region.article_id)) || {}),
+        ...region,
+      }));
+    }
+    return page.articles || [];
   },
 
   updatePager() {
@@ -424,21 +532,52 @@ const EP = {
     this.articles = articles;
 
     articles.forEach((art, i) => {
+      const region = this.normalizeRegion(art);
+      if (!region) return;
       const hs = document.createElement('div');
       hs.className = 'ep-hotspot';
-      hs.style.left = (art.click_region_x || 0) + '%';
-      hs.style.top = (art.click_region_y || 0) + '%';
-      hs.style.width = (art.click_region_w || 20) + '%';
-      hs.style.height = (art.click_region_h || 15) + '%';
+      if (art.has_video && art.video_url) hs.classList.add('has-video');
+      hs.style.left = region.x + '%';
+      hs.style.top = region.y + '%';
+      hs.style.width = region.w + '%';
+      hs.style.height = region.h + '%';
       hs.title = art.headline || 'Read article';
-      hs.addEventListener('click', () => this.openArticle(i));
+      hs.addEventListener('click', (event) => {
+        event.stopPropagation();
+        this.openArticle(i);
+      });
       this.el.hotspotsLayer.appendChild(hs);
     });
+  },
+
+  normalizeRegion(art) {
+    const CANVAS_W = 800;
+    const CANVAS_H = 1000;
+    if (art.x !== undefined || art.y !== undefined) {
+      return {
+        x: Math.max(0, Math.min(100, ((Number(art.x) || 0) / CANVAS_W) * 100)).toFixed(3),
+        y: Math.max(0, Math.min(100, ((Number(art.y) || 0) / CANVAS_H) * 100)).toFixed(3),
+        w: Math.max(1, Math.min(100, ((Number(art.width ?? art.w) || 200) / CANVAS_W) * 100)).toFixed(3),
+        h: Math.max(1, Math.min(100, ((Number(art.height ?? art.h) || 150) / CANVAS_H) * 100)).toFixed(3),
+      };
+    }
+    if (art.click_region_x !== undefined) {
+      return {
+        x: Number(art.click_region_x || 0).toFixed(3),
+        y: Number(art.click_region_y || 0).toFixed(3),
+        w: Number(art.click_region_w || 20).toFixed(3),
+        h: Number(art.click_region_h || 15).toFixed(3),
+      };
+    }
+    return null;
   },
 
   // ── Zoom / Pan ──
   setZoom(level) {
     this.zoom = Math.max(this.minZoom, Math.min(this.maxZoom, level));
+    if (this.el.viewer) {
+      this.el.viewer.classList.toggle('can-pan', this.zoom > 1);
+    }
     this.applyTransform();
   },
 
@@ -463,8 +602,9 @@ const EP = {
   endDrag() { this.isDragging = false; },
 
   toggleFullscreen() {
+    const target = this.el.paper || this.el.viewer || document.body;
     if (!document.fullscreenElement) {
-      (this.el.viewer || document.body).requestFullscreen?.();
+      target.requestFullscreen?.();
     } else {
       document.exitFullscreen?.();
     }
@@ -476,6 +616,11 @@ const EP = {
   openArticle(index) {
     const art = this.articles[index];
     if (!art) return;
+    const articleId = art.article_id || art.id;
+    if (articleId !== undefined && articleId !== null && articleId !== '') {
+      window.location.href = `/article/${encodeURIComponent(articleId)}`;
+      return;
+    }
     this.currentArticle = art;
 
     if (this.el.articleCategory) this.el.articleCategory.textContent = art.category_label || 'News';

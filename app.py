@@ -42,7 +42,7 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = "vidyarthi-mitra-dev-key"
-app.config["MAX_CONTENT_LENGTH"] = 15 * 1024 * 1024  # 15 MB upload limit
+app.config["MAX_CONTENT_LENGTH"] = 60 * 1024 * 1024  # 60 MB upload limit
 AUTH_DB_PATH = os.path.join(app.root_path, "auth_users.db")
 
 COURSES_DB_URL = (
@@ -1555,7 +1555,7 @@ def epaper_pdf_proxy():
 
 @app.route("/admin")
 def admin():
-    return render_template("epaperadmin.html")
+    return render_template("epaper_admin_v2.html")
 
 
 @app.route("/api/vmadmin/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])

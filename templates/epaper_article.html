@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ article.title }} | Vidyarthi Mitra ePaper</title>
+  <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
+  <link rel="stylesheet" href="{{ url_for('static', filename='epaper-viewer.css') }}">
+  <style>
+    body{margin:0;background:#f4f1ec;color:#171717;font-family:Inter,"Noto Sans Devanagari",Arial,sans-serif}
+    .article-shell{width:min(1120px,92vw);margin:34px auto 70px;display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:28px}
+    .article-main{background:#fff;border:1px solid #e7e0d8;border-radius:8px;padding:clamp(20px,4vw,44px);box-shadow:0 18px 50px rgba(32,24,16,.08)}
+    .article-kicker{color:#b4232a;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+    .article-title{font-family:Georgia,"Times New Roman",serif;font-size:clamp(2rem,5vw,4rem);line-height:1.02;margin:12px 0 14px;letter-spacing:0}
+    .article-meta{display:flex;gap:12px;flex-wrap:wrap;color:#6b625b;font-size:14px;border-bottom:1px solid #ece6df;padding-bottom:18px;margin-bottom:24px}
+    .article-hero{width:100%;max-height:520px;object-fit:cover;border-radius:8px;margin-bottom:28px}
+    .article-copy{font-size:18px;line-height:1.85;color:#27221f}
+    .article-copy p{margin:0 0 18px}
+    .article-copy img{max-width:100%;border-radius:8px}
+    .share-row{display:flex;gap:10px;flex-wrap:wrap;margin:28px 0 4px}
+    .share-row a,.share-row button{border:1px solid #ded7cf;background:#fff;border-radius:8px;padding:10px 13px;color:#171717;text-decoration:none;font-weight:700;cursor:pointer}
+    .share-row a:hover,.share-row button:hover{border-color:#b4232a;color:#b4232a}
+    .article-side{display:flex;flex-direction:column;gap:14px}
+    .side-card{background:#fff;border:1px solid #e7e0d8;border-radius:8px;padding:18px}
+    .side-card h2{font-size:14px;margin:0 0 12px;text-transform:uppercase;letter-spacing:.08em;color:#6b625b}
+    .related-link{display:block;padding:12px 0;border-top:1px solid #eee7df;color:#171717;text-decoration:none;font-weight:800;line-height:1.35}
+    .related-link:first-of-type{border-top:0}
+    .back-link{display:inline-flex;margin-bottom:14px;color:#b4232a;text-decoration:none;font-weight:800}
+    @media(max-width:900px){.article-shell{grid-template-columns:1fr}.article-side{order:-1}.side-card{display:none}.article-main{padding:22px}.article-copy{font-size:16px}}
+  </style>
+</head>
+<body>
+  {% include '_shared_index_navbar.html' %}
+  <main class="article-shell">
+    <article class="article-main">
+      <a class="back-link" href="{{ url_for('epaper.epaper_viewer', date=article.publish_date, page=article.page_number or 1) }}">Back to ePaper</a>
+      <div class="article-kicker">{{ article.category }}</div>
+      <h1 class="article-title">{{ article.title }}</h1>
+      <div class="article-meta">
+        <span>{{ article.author }}</span>
+        <span>{{ article.publish_date }}</span>
+        {% if article.edition_name %}<span>{{ article.edition_name }}</span>{% endif %}
+        {% if article.page_number %}<span>Page {{ article.page_number }}</span>{% endif %}
+      </div>
+      {% if article.image %}<img class="article-hero" src="{{ article.image }}" alt="{{ article.title }}">{% endif %}
+      <div class="article-copy">
+        {% if article.body_html %}
+          {{ article.body_html|safe }}
+        {% else %}
+          {% for paragraph in article.content.split('\n') if paragraph.strip() %}
+            <p>{{ paragraph }}</p>
+          {% endfor %}
+        {% endif %}
+      </div>
+      <div class="share-row">
+        <a href="https://wa.me/?text={{ (article.title ~ ' - ' ~ request.url)|urlencode }}" target="_blank" rel="noopener">WhatsApp</a>
+        <a href="https://twitter.com/intent/tweet?text={{ article.title|urlencode }}&url={{ request.url|urlencode }}" target="_blank" rel="noopener">X</a>
+        <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.url|urlencode }}" target="_blank" rel="noopener">Facebook</a>
+        <button type="button" onclick="navigator.clipboard?.writeText(location.href)">Copy link</button>
+      </div>
+    </article>
+    <aside class="article-side">
+      <div class="side-card">
+        <h2>Related Articles</h2>
+        {% for item in related_articles %}
+          <a class="related-link" href="{{ url_for('epaper.epaper_article', article_id=item.id) }}">{{ item.title }}</a>
+        {% else %}
+          <p>No related articles yet.</p>
+        {% endfor %}
+      </div>
+    </aside>
+  </main>
+</body>
+</html>

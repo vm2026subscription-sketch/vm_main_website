@@ -10,6 +10,15 @@ const EPAdmin = {
   currentPageIdx: 0,
   activeBlockIdx: null,
   quill: null,
+  editionMeta: {
+    masthead_image_url: '',
+    footer_links: [],
+  },
+  headerActiveIdx: null,
+  headerDragging: false,
+  headerResizing: false,
+  headerDragOffset: { x: 0, y: 0 },
+  headerResizeStart: null,
 
   // Drag state
   dragging: false,
@@ -19,11 +28,14 @@ const EPAdmin = {
 
   CANVAS_W: 800,
   CANVAS_H: 1000,
+  HEADER_W: 1100,
+  HEADER_H: 140,
 
   init() {
     this.loadEditions();
     this.bindEvents();
     this.initQuill();
+    this.initEditionMeta();
   },
 
   initQuill() {
@@ -48,6 +60,19 @@ const EPAdmin = {
     document.getElementById('editionForm')?.addEventListener('submit', e => { e.preventDefault(); this.saveEdition(); });
     document.getElementById('blockForm')?.addEventListener('submit', e => { e.preventDefault(); this.saveBlock(); });
     document.getElementById('deleteEditionBtn')?.addEventListener('click', () => this.deleteEdition());
+    document.getElementById('pageImageInput')?.addEventListener('change', e => {
+      const file = e.target.files?.[0];
+      if (file) this.handlePageImage(file);
+      e.target.value = '';
+    });
+    document.getElementById('clearPageImageBtn')?.addEventListener('click', () => {
+      const page = this.pages[this.currentPageIdx];
+      if (!page) return;
+      page.page_image_url = '';
+      page.image_path = '';
+      this.renderCanvas();
+      this.showToast('Page image cleared');
+    });
 
     // Thumbnail upload
     const imgUpload = document.getElementById('blockImageUpload');
@@ -66,6 +91,51 @@ const EPAdmin = {
       });
     }
 
+    const mastheadUploadBtn = document.getElementById('mastheadUploadBtn');
+    const mastheadInput = document.getElementById('mastheadInput');
+    const mastheadClearBtn = document.getElementById('mastheadClearBtn');
+    if (mastheadUploadBtn && mastheadInput) {
+      mastheadUploadBtn.addEventListener('click', () => mastheadInput.click());
+      mastheadInput.addEventListener('change', () => {
+        const file = mastheadInput.files?.[0];
+        if (file) this.handleMastheadImage(file);
+        mastheadInput.value = '';
+      });
+    }
+    if (mastheadClearBtn) {
+      mastheadClearBtn.addEventListener('click', () => this.clearMastheadImage());
+    }
+
+    ['footerLinkSearch', 'footerLinkWhatsapp', 'footerLinkFacebook', 'footerLinkX'].forEach(id => {
+      const input = document.getElementById(id);
+      if (input) input.addEventListener('change', () => this.syncEditionMetaFromInputs());
+    });
+
+    const addHeaderLogoBtn = document.getElementById('addHeaderLogoBtn');
+    if (addHeaderLogoBtn) addHeaderLogoBtn.addEventListener('click', () => this.addHeaderLogo());
+    const addHeaderTextBtn = document.getElementById('addHeaderTextBtn');
+    if (addHeaderTextBtn) addHeaderTextBtn.addEventListener('click', () => this.addHeaderText());
+    const removeHeaderItemBtn = document.getElementById('removeHeaderItemBtn');
+    if (removeHeaderItemBtn) removeHeaderItemBtn.addEventListener('click', () => this.removeHeaderItem());
+
+    const hdrText = document.getElementById('hdrText');
+    if (hdrText) hdrText.addEventListener('input', () => this.applyHeaderInputs());
+    const hdrFontSize = document.getElementById('hdrFontSize');
+    if (hdrFontSize) hdrFontSize.addEventListener('input', () => this.applyHeaderInputs());
+    const hdrColor = document.getElementById('hdrColor');
+    if (hdrColor) hdrColor.addEventListener('input', () => this.applyHeaderInputs());
+
+    const hdrLogoUploadBtn = document.getElementById('hdrLogoUploadBtn');
+    const hdrLogoInput = document.getElementById('hdrLogoInput');
+    if (hdrLogoUploadBtn && hdrLogoInput) {
+      hdrLogoUploadBtn.addEventListener('click', () => hdrLogoInput.click());
+      hdrLogoInput.addEventListener('change', () => {
+        const file = hdrLogoInput.files?.[0];
+        if (file) this.handleHeaderLogoImage(file);
+        hdrLogoInput.value = '';
+      });
+    }
+
     // Canvas drag events
     const canvas = document.getElementById('pageCanvas');
     if (canvas) {
@@ -73,6 +143,318 @@ const EPAdmin = {
       document.addEventListener('mousemove', e => this.onCanvasMouseMove(e));
       document.addEventListener('mouseup', e => this.onCanvasMouseUp(e));
     }
+
+    const headerCanvas = document.getElementById('headerCanvas');
+    if (headerCanvas) {
+      headerCanvas.addEventListener('mousedown', e => this.onHeaderMouseDown(e));
+      document.addEventListener('mousemove', e => this.onHeaderMouseMove(e));
+      document.addEventListener('mouseup', () => this.onHeaderMouseUp());
+    }
+  },
+
+  defaultFooterLinks() {
+    return [
+      { key: 'search', url: '/epaper' },
+      { key: 'whatsapp', url: 'https://wa.me/?text=Vidyarthi%20Mitra%20E-Paper' },
+      { key: 'facebook', url: 'https://www.facebook.com/' },
+      { key: 'x', url: 'https://x.com/' },
+    ];
+  },
+
+  initEditionMeta() {
+    this.editionMeta = {
+      masthead_image_url: '',
+      footer_links: this.defaultFooterLinks(),
+    };
+    this.renderMastheadPreview();
+    this.populateFooterLinkInputs();
+  },
+
+  loadEditionMeta(data) {
+    const footerLinks = Array.isArray(data.footer_links) && data.footer_links.length
+      ? data.footer_links
+      : this.defaultFooterLinks();
+    this.editionMeta = {
+      masthead_image_url: data.masthead_image_url || '',
+      footer_links: footerLinks,
+    };
+    this.renderMastheadPreview();
+    this.populateFooterLinkInputs();
+  },
+
+  syncEditionMetaFromInputs() {
+    const search = document.getElementById('footerLinkSearch')?.value || '';
+    const whatsapp = document.getElementById('footerLinkWhatsapp')?.value || '';
+    const facebook = document.getElementById('footerLinkFacebook')?.value || '';
+    const x = document.getElementById('footerLinkX')?.value || '';
+    this.editionMeta.footer_links = [
+      { key: 'search', url: search },
+      { key: 'whatsapp', url: whatsapp },
+      { key: 'facebook', url: facebook },
+      { key: 'x', url: x },
+    ];
+  },
+
+  populateFooterLinkInputs() {
+    const links = new Map((this.editionMeta.footer_links || []).map(item => [item.key, item.url]));
+    const setValue = (id, key) => {
+      const input = document.getElementById(id);
+      if (input) input.value = links.get(key) || '';
+    };
+    setValue('footerLinkSearch', 'search');
+    setValue('footerLinkWhatsapp', 'whatsapp');
+    setValue('footerLinkFacebook', 'facebook');
+    setValue('footerLinkX', 'x');
+  },
+
+  renderMastheadPreview() {
+    const container = document.getElementById('mastheadPreview');
+    if (!container) return;
+    const url = this.editionMeta.masthead_image_url || '';
+    if (!url) {
+      container.innerHTML = '<span class="epa-masthead-placeholder">No header image</span>';
+      return;
+    }
+    container.innerHTML = `<img src="${url}" alt="Masthead">`;
+  },
+
+  async handleMastheadImage(file) {
+    if (!file?.type.startsWith('image/')) return;
+    try {
+      const imageUrl = await this.uploadImage(file);
+      this.editionMeta.masthead_image_url = imageUrl;
+      this.renderMastheadPreview();
+      this.showToast('Header image uploaded');
+    } catch (e) {
+      alert(e.message || 'Image upload failed');
+    }
+  },
+
+  clearMastheadImage() {
+    this.editionMeta.masthead_image_url = '';
+    this.renderMastheadPreview();
+    this.showToast('Header image cleared');
+  },
+
+  renderHeaderCanvas() {
+    const canvas = document.getElementById('headerCanvas');
+    if (!canvas) return;
+    const items = this.editionMeta.header_items || [];
+    canvas.innerHTML = items.map((item, idx) => {
+      const x = item.x ?? 10;
+      const y = item.y ?? 10;
+      const w = item.w ?? 120;
+      const h = item.h ?? 60;
+      const isActive = idx === this.headerActiveIdx;
+      const content = item.type === 'text'
+        ? `<div class="epa-header-text" style="font-size:${item.font_size || 36}px;color:${item.color || '#111827'};font-family:'Noto Serif',serif;">${item.text || 'Newspaper Title'}</div>`
+        : `<img src="${item.image_url || ''}" alt="">`;
+      return `
+        <div class="epa-header-item ${isActive ? 'active' : ''}" data-idx="${idx}" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;">
+          ${content}
+          ${isActive ? `
+            <div class="epa-header-handle" data-handle="nw"></div>
+            <div class="epa-header-handle" data-handle="ne"></div>
+            <div class="epa-header-handle" data-handle="se"></div>
+            <div class="epa-header-handle" data-handle="sw"></div>
+          ` : ''}
+        </div>
+      `;
+    }).join('');
+  },
+
+  addHeaderLogo() {
+    const items = this.editionMeta.header_items || [];
+    items.push({
+      id: Date.now(),
+      type: 'logo',
+      x: 20, y: 20, w: 140, h: 80,
+      image_url: '',
+    });
+    this.editionMeta.header_items = items;
+    this.headerActiveIdx = items.length - 1;
+    this.renderHeaderCanvas();
+    this.updateHeaderInputs();
+  },
+
+  addHeaderText() {
+    const items = this.editionMeta.header_items || [];
+    items.push({
+      id: Date.now(),
+      type: 'text',
+      x: 200, y: 20, w: 600, h: 80,
+      text: 'Vidyarthi Mitra',
+      font_size: 48,
+      color: '#111827',
+    });
+    this.editionMeta.header_items = items;
+    this.headerActiveIdx = items.length - 1;
+    this.renderHeaderCanvas();
+    this.updateHeaderInputs();
+  },
+
+  removeHeaderItem() {
+    if (this.headerActiveIdx === null) return;
+    this.editionMeta.header_items.splice(this.headerActiveIdx, 1);
+    this.headerActiveIdx = null;
+    this.renderHeaderCanvas();
+    this.updateHeaderInputs();
+  },
+
+  updateHeaderInputs() {
+    const item = this.editionMeta.header_items?.[this.headerActiveIdx];
+    const textInput = document.getElementById('hdrText');
+    const fontInput = document.getElementById('hdrFontSize');
+    const colorInput = document.getElementById('hdrColor');
+    if (!item) {
+      if (textInput) textInput.value = '';
+      if (fontInput) fontInput.value = 36;
+      if (colorInput) colorInput.value = '#111827';
+      return;
+    }
+    if (textInput) textInput.value = item.text || '';
+    if (fontInput) fontInput.value = item.font_size || 36;
+    if (colorInput) colorInput.value = item.color || '#111827';
+  },
+
+  applyHeaderInputs() {
+    const item = this.editionMeta.header_items?.[this.headerActiveIdx];
+    if (!item || item.type !== 'text') return;
+    const textInput = document.getElementById('hdrText');
+    const fontInput = document.getElementById('hdrFontSize');
+    const colorInput = document.getElementById('hdrColor');
+    item.text = textInput?.value || item.text || '';
+    item.font_size = parseInt(fontInput?.value || item.font_size || 36, 10);
+    item.color = colorInput?.value || item.color || '#111827';
+    this.renderHeaderCanvas();
+  },
+
+  async handleHeaderLogoImage(file) {
+    if (!file?.type.startsWith('image/') || this.headerActiveIdx === null) return;
+    try {
+      const imageUrl = await this.uploadImage(file);
+      const item = this.editionMeta.header_items?.[this.headerActiveIdx];
+      if (item && item.type === 'logo') {
+        item.image_url = imageUrl;
+        this.renderHeaderCanvas();
+        this.showToast('Logo uploaded');
+      }
+    } catch (e) {
+      alert(e.message || 'Image upload failed');
+    }
+  },
+
+  onHeaderMouseDown(e) {
+    const canvas = document.getElementById('headerCanvas');
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const scale = rect.width / this.HEADER_W;
+    const items = this.editionMeta.header_items || [];
+
+    const handleEl = e.target.closest('.epa-header-handle');
+    if (handleEl) {
+      const itemEl = handleEl.closest('.epa-header-item');
+      const idx = itemEl ? parseInt(itemEl.dataset.idx, 10) : NaN;
+      const item = Number.isNaN(idx) ? null : items[idx];
+      if (!item) return;
+      this.headerResizing = true;
+      this.headerActiveIdx = idx;
+      this.headerResizeStart = {
+        mx: e.clientX,
+        my: e.clientY,
+        x: item.x || 0,
+        y: item.y || 0,
+        w: item.w || 120,
+        h: item.h || 60,
+        handle: handleEl.dataset.handle || 'se',
+      };
+      this.renderHeaderCanvas();
+      this.updateHeaderInputs();
+      e.preventDefault();
+      return;
+    }
+
+    for (let i = items.length - 1; i >= 0; i--) {
+      const it = items[i];
+      const x = (it.x || 0) * scale;
+      const y = (it.y || 0) * scale;
+      const w = (it.w || 120) * scale;
+      const h = (it.h || 60) * scale;
+      if (mx >= x && mx <= x + w && my >= y && my <= y + h) {
+        this.headerDragging = true;
+        this.headerActiveIdx = i;
+        this.headerDragOffset = { x: mx / scale - (it.x || 0), y: my / scale - (it.y || 0) };
+        this.renderHeaderCanvas();
+        this.updateHeaderInputs();
+        e.preventDefault();
+        return;
+      }
+    }
+
+    this.headerActiveIdx = null;
+    this.renderHeaderCanvas();
+    this.updateHeaderInputs();
+  },
+
+  onHeaderMouseMove(e) {
+    if (!this.headerDragging && !this.headerResizing) return;
+    const canvas = document.getElementById('headerCanvas');
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const scale = rect.width / this.HEADER_W;
+    const item = this.editionMeta.header_items?.[this.headerActiveIdx];
+    if (!item) return;
+
+    if (this.headerDragging) {
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      let nx = mx / scale - this.headerDragOffset.x;
+      let ny = my / scale - this.headerDragOffset.y;
+      nx = Math.max(0, Math.min(nx, this.HEADER_W - (item.w || 120)));
+      ny = Math.max(0, Math.min(ny, this.HEADER_H - (item.h || 60)));
+      item.x = Math.round(nx);
+      item.y = Math.round(ny);
+      this.renderHeaderCanvas();
+    }
+
+    if (this.headerResizing) {
+      const dx = (e.clientX - this.headerResizeStart.mx) / scale;
+      const dy = (e.clientY - this.headerResizeStart.my) / scale;
+      let nx = this.headerResizeStart.x;
+      let ny = this.headerResizeStart.y;
+      let nw = this.headerResizeStart.w;
+      let nh = this.headerResizeStart.h;
+      const handle = this.headerResizeStart.handle || 'se';
+      const minW = 40;
+      const minH = 30;
+
+      if (handle.includes('e')) nw = this.headerResizeStart.w + dx;
+      if (handle.includes('s')) nh = this.headerResizeStart.h + dy;
+      if (handle.includes('w')) { nw = this.headerResizeStart.w - dx; nx = this.headerResizeStart.x + dx; }
+      if (handle.includes('n')) { nh = this.headerResizeStart.h - dy; ny = this.headerResizeStart.y + dy; }
+
+      if (nw < minW) { if (handle.includes('w')) nx -= (minW - nw); nw = minW; }
+      if (nh < minH) { if (handle.includes('n')) ny -= (minH - nh); nh = minH; }
+
+      nx = Math.max(0, Math.min(nx, this.HEADER_W - nw));
+      ny = Math.max(0, Math.min(ny, this.HEADER_H - nh));
+      nw = Math.min(nw, this.HEADER_W - nx);
+      nh = Math.min(nh, this.HEADER_H - ny);
+
+      item.x = Math.round(nx);
+      item.y = Math.round(ny);
+      item.w = Math.round(nw);
+      item.h = Math.round(nh);
+      this.renderHeaderCanvas();
+    }
+  },
+
+  onHeaderMouseUp() {
+    this.headerDragging = false;
+    this.headerResizing = false;
+    this.headerResizeStart = null;
   },
 
   // ══════ CANVAS DRAG & DROP ══════
@@ -90,23 +472,36 @@ const EPAdmin = {
     if (!page) return;
     const blocks = page.blocks || [];
 
+    const handleEl = e.target.closest('.epc-resize-handle');
+    if (handleEl) {
+      const blockEl = handleEl.closest('.epc-block');
+      const idx = blockEl ? parseInt(blockEl.dataset.idx, 10) : NaN;
+      const b = Number.isNaN(idx) ? null : blocks[idx];
+      if (!b) return;
+
+      this.resizing = true;
+      this.activeBlockIdx = idx;
+      this.resizeStart = {
+        mx: e.clientX,
+        my: e.clientY,
+        x: b.x || 0,
+        y: b.y || 0,
+        w: b.w || 200,
+        h: b.h || 150,
+        handle: handleEl.dataset.handle || 'se',
+      };
+      this.renderCanvas();
+      this.showBlockEditor(idx);
+      e.preventDefault();
+      return;
+    }
+
     for (let i = blocks.length - 1; i >= 0; i--) {
       const b = blocks[i];
       const bx = (b.x || 0) * scale;
       const by = (b.y || 0) * scale;
       const bw = (b.w || 200) * scale;
       const bh = (b.h || 150) * scale;
-
-      // Resize handle (bottom-right corner, 14x14)
-      if (mx >= bx + bw - 14 && mx <= bx + bw + 4 && my >= by + bh - 14 && my <= by + bh + 4) {
-        this.resizing = true;
-        this.activeBlockIdx = i;
-        this.resizeStart = { mx: e.clientX, my: e.clientY, w: b.w || 200, h: b.h || 150 };
-        this.renderCanvas();
-        this.showBlockEditor(i);
-        e.preventDefault();
-        return;
-      }
 
       // Click inside block → start drag
       if (mx >= bx && mx <= bx + bw && my >= by && my <= by + bh) {
@@ -154,11 +549,72 @@ const EPAdmin = {
     if (this.resizing) {
       const dx = (e.clientX - this.resizeStart.mx) / scale;
       const dy = (e.clientY - this.resizeStart.my) / scale;
-      block.w = Math.max(60, Math.round(this.resizeStart.w + dx));
-      block.h = Math.max(40, Math.round(this.resizeStart.h + dy));
-      // Clamp to canvas
-      if ((block.x || 0) + block.w > this.CANVAS_W) block.w = this.CANVAS_W - (block.x || 0);
-      if ((block.y || 0) + block.h > this.CANVAS_H) block.h = this.CANVAS_H - (block.y || 0);
+      const minW = 60;
+      const minH = 40;
+
+      let nx = this.resizeStart.x;
+      let ny = this.resizeStart.y;
+      let nw = this.resizeStart.w;
+      let nh = this.resizeStart.h;
+      const handle = this.resizeStart.handle || 'se';
+
+      if (handle.includes('e')) {
+        nw = this.resizeStart.w + dx;
+      }
+      if (handle.includes('s')) {
+        nh = this.resizeStart.h + dy;
+      }
+      if (handle.includes('w')) {
+        nw = this.resizeStart.w - dx;
+        nx = this.resizeStart.x + dx;
+      }
+      if (handle.includes('n')) {
+        nh = this.resizeStart.h - dy;
+        ny = this.resizeStart.y + dy;
+      }
+
+      if (nw < minW) {
+        if (handle.includes('w')) nx -= (minW - nw);
+        nw = minW;
+      }
+      if (nh < minH) {
+        if (handle.includes('n')) ny -= (minH - nh);
+        nh = minH;
+      }
+
+      if (nx < 0) {
+        if (handle.includes('w')) {
+          nw += nx;
+          nx = 0;
+        } else {
+          nx = 0;
+        }
+      }
+      if (ny < 0) {
+        if (handle.includes('n')) {
+          nh += ny;
+          ny = 0;
+        } else {
+          ny = 0;
+        }
+      }
+      if (nx + nw > this.CANVAS_W) {
+        nw = this.CANVAS_W - nx;
+      }
+      if (ny + nh > this.CANVAS_H) {
+        nh = this.CANVAS_H - ny;
+      }
+
+      nw = Math.max(minW, nw);
+      nh = Math.max(minH, nh);
+
+      if (nx + nw > this.CANVAS_W) nx = this.CANVAS_W - nw;
+      if (ny + nh > this.CANVAS_H) ny = this.CANVAS_H - nh;
+
+      block.x = Math.round(nx);
+      block.y = Math.round(ny);
+      block.w = Math.round(nw);
+      block.h = Math.round(nh);
       this.renderCanvas();
       this.updateSizeInputs();
     }
@@ -194,6 +650,34 @@ const EPAdmin = {
     this.renderCanvas();
   },
 
+  fitBlockToImage() {
+    const block = this.pages[this.currentPageIdx]?.blocks?.[this.activeBlockIdx];
+    if (!block || !block.image_url) return;
+
+    const img = new Image();
+    img.onload = () => {
+      const maxW = this.CANVAS_W - (block.x || 0);
+      const maxH = this.CANVAS_H - (block.y || 0);
+      let targetW = img.naturalWidth || block.w || 200;
+      let targetH = img.naturalHeight || block.h || 150;
+
+      if (targetW > maxW || targetH > maxH) {
+        const scale = Math.min(maxW / targetW, maxH / targetH);
+        targetW = Math.floor(targetW * scale);
+        targetH = Math.floor(targetH * scale);
+      }
+
+      block.w = Math.max(60, targetW);
+      block.h = Math.max(40, targetH);
+      this.renderCanvas();
+      this.updateSizeInputs();
+    };
+    img.onerror = () => {
+      this.showToast('Could not load image to fit.');
+    };
+    img.src = block.image_url;
+  },
+
   // ══════ CANVAS RENDERING ══════
 
   renderCanvas() {
@@ -202,6 +686,11 @@ const EPAdmin = {
     const page = this.pages[this.currentPageIdx];
     if (!page) return;
     const blocks = page.blocks || [];
+
+    container.classList.toggle('has-page-image', Boolean(page.page_image_url || page.image_path));
+    container.style.backgroundImage = page.page_image_url || page.image_path
+      ? `url("${page.page_image_url || page.image_path}")`
+      : '';
 
     container.innerHTML = blocks.map((b, i) => {
       const x = b.x || 0, y = b.y || 0, w = b.w || 200, h = b.h || 150;
@@ -225,7 +714,16 @@ const EPAdmin = {
           </div>
           <span class="epc-num">${i + 1}</span>
           <button class="epc-del" onmousedown="event.stopPropagation(); EPAdmin.removeBlock(${i})"><i class="fa fa-times"></i></button>
-          ${isActive ? '<div class="epc-resize"></div>' : ''}
+          ${isActive ? `
+            <div class="epc-resize-handle" data-handle="nw"></div>
+            <div class="epc-resize-handle" data-handle="n"></div>
+            <div class="epc-resize-handle" data-handle="ne"></div>
+            <div class="epc-resize-handle" data-handle="e"></div>
+            <div class="epc-resize-handle" data-handle="se"></div>
+            <div class="epc-resize-handle" data-handle="s"></div>
+            <div class="epc-resize-handle" data-handle="sw"></div>
+            <div class="epc-resize-handle" data-handle="w"></div>
+          ` : ''}
           <span class="epc-dims">${w}×${h}</span>
         </div>
       `;
@@ -272,19 +770,23 @@ const EPAdmin = {
       this.currentEdition = data;
       this.pages = data.pages || [];
 
+      this.loadEditionMeta(data);
+
       // Migrate old format
       this.pages.forEach(p => {
         if (!p.blocks) {
           p.blocks = (p.articles || []).map((a, i) => ({
             id: a.id || Date.now() + i,
+            article_id: a.article_id || a.id || Date.now() + i,
             headline: a.headline || '', sub_headline: a.sub_headline || '',
             body_text: a.body_text || '', body_html: a.body_html || '',
             category_label: a.category_label || '',
             image_url: a.article_image_url || a.image_url || '',
             gallery: a.gallery || [],
-            x: (a.width_pct ? (a.width_pct / 100) * this.CANVAS_W * i * 0.3 : i * 210) || 0,
-            y: 0, w: a.width_pct ? (a.width_pct / 100) * this.CANVAS_W : 200,
-            h: a.height_px || 150,
+            x: a.x ?? ((a.width_pct ? (a.width_pct / 100) * this.CANVAS_W * i * 0.3 : i * 210) || 0),
+            y: a.y ?? 0,
+            w: a.w || a.width || (a.width_pct ? (a.width_pct / 100) * this.CANVAS_W : 200),
+            h: a.h || a.height || a.height_px || 150,
             border_width: a.border_width ?? 0, border_radius: a.border_radius ?? 10,
             border_color: a.border_color || '#e41e26', border_style: a.border_style || 'solid',
           }));
@@ -308,26 +810,48 @@ const EPAdmin = {
     const name = document.getElementById('edName').value;
     const lang = document.getElementById('edLang').value;
     if (!date) { alert('Date required'); return; }
+    this.syncEditionMetaFromInputs();
+    try {
+      await this.ensureUploadedImages();
+    } catch (e) {
+      alert(e.message || 'Image upload failed');
+      return;
+    }
 
     const payload = {
       date, name: name || `Edition ${date}`, language: lang,
+      masthead_image_url: this.editionMeta.masthead_image_url || '',
+      footer_links: this.editionMeta.footer_links || [],
       pages: this.pages.map(p => ({
         page_number: p.page_number, category: p.category || 'मुख पृष्ठ',
+        image_path: p.page_image_url || p.image_path || '',
+        page_image_url: p.page_image_url || p.image_path || '',
+        layout_json: (p.blocks || []).map(b => ({
+          article_id: b.article_id || b.id,
+          x: b.x || 0,
+          y: b.y || 0,
+          width: b.w || b.width || 200,
+          height: b.h || b.height || 150,
+        })),
         blocks: (p.blocks || []).map(b => ({
-          id: b.id, headline: b.headline, sub_headline: b.sub_headline,
+          id: b.id, article_id: b.article_id || b.id, headline: b.headline, title: b.headline, sub_headline: b.sub_headline,
           body_text: b.body_text, body_html: b.body_html || '',
-          category_label: b.category_label, image_url: b.image_url,
+          author: b.author || 'Vidyarthi Mitra Desk',
+          category_label: b.category_label, category: b.category_label,
+          image_url: b.image_url, image: b.image_url,
           gallery: b.gallery || [],
-          x: b.x || 0, y: b.y || 0, w: b.w || 200, h: b.h || 150,
+          x: b.x || 0, y: b.y || 0, w: b.w || 200, h: b.h || 150, width: b.w || 200, height: b.h || 150,
           border_width: b.border_width ?? 0, border_radius: b.border_radius ?? 10,
           border_color: b.border_color || '#e41e26', border_style: b.border_style || 'solid',
         })),
         articles: (p.blocks || []).map(b => ({
-          id: b.id, headline: b.headline, sub_headline: b.sub_headline,
+          id: b.id, article_id: b.article_id || b.id, headline: b.headline, title: b.headline, sub_headline: b.sub_headline,
           body_text: b.body_text, body_html: b.body_html || '',
-          category_label: b.category_label, article_image_url: b.image_url,
-          image_url: b.image_url, gallery: b.gallery || [],
-          x: b.x, y: b.y, w: b.w, h: b.h,
+          author: b.author || 'Vidyarthi Mitra Desk',
+          category_label: b.category_label, category: b.category_label,
+          article_image_url: b.image_url,
+          image_url: b.image_url, image: b.image_url, gallery: b.gallery || [],
+          x: b.x, y: b.y, w: b.w, h: b.h, width: b.w, height: b.h,
           border_width: b.border_width, border_radius: b.border_radius,
           border_color: b.border_color, border_style: b.border_style,
         })),
@@ -388,12 +912,17 @@ const EPAdmin = {
   // ══════ BLOCK CRUD ══════
 
   addBlock() {
-    const page = this.pages[this.currentPageIdx];
-    if (!page) return;
+    let page = this.pages[this.currentPageIdx];
+    if (!page) {
+      this.addPage();
+      page = this.pages[this.currentPageIdx];
+      if (!page) return;
+    }
     if (!page.blocks) page.blocks = [];
     const count = page.blocks.length;
     page.blocks.push({
       id: Date.now(),
+      article_id: Date.now(),
       headline: '', sub_headline: '', body_text: '', body_html: '',
       category_label: '', image_url: '', gallery: [],
       x: 10 + (count % 3) * 270, y: 10 + Math.floor(count / 3) * 170,
@@ -424,6 +953,7 @@ const EPAdmin = {
     document.getElementById('blockEditor').style.display = 'block';
     document.getElementById('noBlockMsg').style.display = 'none';
 
+    document.getElementById('blkArticleId').value = block.article_id || block.id || '';
     document.getElementById('blkHeadline').value = block.headline || '';
     document.getElementById('blkSubheadline').value = block.sub_headline || '';
     document.getElementById('blkCategory').value = block.category_label || '';
@@ -460,6 +990,7 @@ const EPAdmin = {
     const block = this.pages[this.currentPageIdx]?.blocks?.[this.activeBlockIdx];
     if (!block) return;
 
+    block.article_id = document.getElementById('blkArticleId').value || block.id;
     block.headline = document.getElementById('blkHeadline').value;
     block.sub_headline = document.getElementById('blkSubheadline').value;
     block.category_label = document.getElementById('blkCategory').value;
@@ -478,18 +1009,87 @@ const EPAdmin = {
     this.showToast('✅ Block saved');
   },
 
-  handleBlockImage(file) {
+  async uploadImage(file) {
+    const form = new FormData();
+    form.append('image', file);
+    const res = await fetch('/api/epaper/admin/upload-image', {
+      method: 'POST',
+      body: form,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Image upload failed');
+    return data.url;
+  },
+
+  dataUrlToFile(dataUrl, fallbackName = 'epaper-image.png') {
+    const parts = dataUrl.split(',');
+    const meta = parts[0] || '';
+    const mime = (meta.match(/data:(.*?);base64/) || [])[1] || 'image/png';
+    const ext = (mime.split('/')[1] || 'png').replace('jpeg', 'jpg');
+    const binary = atob(parts[1] || '');
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new File([bytes], fallbackName.replace(/\.[^.]+$/, '') + '.' + ext, { type: mime });
+  },
+
+  async uploadDataUrl(dataUrl, name) {
+    return this.uploadImage(this.dataUrlToFile(dataUrl, name));
+  },
+
+  async ensureUploadedImages() {
+    for (const page of this.pages) {
+      if (page.page_image_url?.startsWith('data:image/')) {
+        page.page_image_url = await this.uploadDataUrl(page.page_image_url, `page-${page.page_number}.png`);
+        page.image_path = page.page_image_url;
+      }
+      if (page.image_path?.startsWith('data:image/')) {
+        page.image_path = await this.uploadDataUrl(page.image_path, `page-${page.page_number}.png`);
+        page.page_image_url = page.image_path;
+      }
+      for (const block of (page.blocks || [])) {
+        if (block.image_url?.startsWith('data:image/')) {
+          block.image_url = await this.uploadDataUrl(block.image_url, `article-${block.article_id || block.id}.png`);
+        }
+        if (Array.isArray(block.gallery)) {
+          for (let i = 0; i < block.gallery.length; i++) {
+            if (block.gallery[i]?.startsWith('data:image/')) {
+              block.gallery[i] = await this.uploadDataUrl(block.gallery[i], `gallery-${block.article_id || block.id}-${i}.png`);
+            }
+          }
+        }
+      }
+    }
+  },
+
+  async handleBlockImage(file) {
     if (!file?.type.startsWith('image/') || this.activeBlockIdx === null) return;
-    const reader = new FileReader();
-    reader.onload = e => {
+    try {
+      const imageUrl = await this.uploadImage(file);
       const block = this.pages[this.currentPageIdx]?.blocks?.[this.activeBlockIdx];
       if (block) {
-        block.image_url = e.target.result;
+        block.image_url = imageUrl;
         this.renderCanvas();
         document.getElementById('blockImageLabel').innerHTML = `<img src="${block.image_url}" alt="">`;
+        this.showToast('Article image uploaded');
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (e) {
+      alert(e.message || 'Image upload failed');
+    }
+  },
+
+  async handlePageImage(file) {
+    if (!file?.type.startsWith('image/')) return;
+    try {
+      const imageUrl = await this.uploadImage(file);
+      const page = this.pages[this.currentPageIdx];
+      if (!page) return;
+      page.page_image_url = imageUrl;
+      page.image_path = imageUrl;
+      this.renderCanvas();
+      this.showToast('Page image uploaded');
+    } catch (e) {
+      alert(e.message || 'Image upload failed');
+    }
   },
 
   // Gallery
@@ -505,14 +1105,20 @@ const EPAdmin = {
       </div>
     `).join('') + `<div class="epb-gal-add" onclick="document.getElementById('galleryInput').click()"><i class="fa fa-plus"></i></div>`;
   },
-  addGalleryImage(file) {
+  async addGalleryImage(file) {
     if (!file?.type.startsWith('image/') || this.activeBlockIdx === null) return;
-    const reader = new FileReader();
-    reader.onload = e => {
+    try {
+      const imageUrl = await this.uploadImage(file);
       const block = this.pages[this.currentPageIdx]?.blocks?.[this.activeBlockIdx];
-      if (block) { if (!block.gallery) block.gallery = []; block.gallery.push(e.target.result); this.renderGallery(); }
-    };
-    reader.readAsDataURL(file);
+      if (block) {
+        if (!block.gallery) block.gallery = [];
+        block.gallery.push(imageUrl);
+        this.renderGallery();
+        this.showToast('Gallery image uploaded');
+      }
+    } catch (e) {
+      alert(e.message || 'Image upload failed');
+    }
   },
   removeGalleryImage(idx) {
     const block = this.pages[this.currentPageIdx]?.blocks?.[this.activeBlockIdx];

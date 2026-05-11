@@ -2,7 +2,7 @@
    Vidyarthi Mitra E-Paper Viewer — Aaj Tak Style
    ══════════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700;800&family=Noto+Serif:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
   --ep-red: #e41e26;
@@ -19,6 +19,7 @@
   --ep-nav-h: 44px;
   --ep-toolbar-w: 48px;
   --ep-font: 'Inter', 'Noto Sans Devanagari', sans-serif;
+  --ep-serif: 'Noto Serif', 'Noto Sans Devanagari', serif;
 }
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -131,23 +132,123 @@ body.epaper-body {
 .ep-main {
   margin-top: calc(var(--ep-header-h) + var(--ep-nav-h));
   display: flex; min-height: calc(100vh - var(--ep-header-h) - var(--ep-nav-h));
+  justify-content: center; padding: 16px;
   transition: margin-top .3s ease;
 }
 .ep-main.header-hidden { margin-top: var(--ep-nav-h); }
 
+/* ── NEWSPAPER FRAME ───────────────────────── */
+.ep-paper {
+  width: min(1100px, 100%);
+  background: #fffdfa;
+  border: 1px solid #e6e0d7;
+  box-shadow: 0 14px 40px rgba(0,0,0,.12);
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+}
+
+.ep-paper:fullscreen {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+}
+.ep-paper:fullscreen .ep-viewer {
+  flex: 1;
+  padding: 16px;
+}
+
+.ep-paper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(255,255,255,0.6), transparent 35%),
+    radial-gradient(circle at 80% 30%, rgba(0,0,0,0.04), transparent 40%),
+    linear-gradient(90deg, rgba(0,0,0,0.03) 0, transparent 10%, transparent 90%, rgba(0,0,0,0.03) 100%),
+    repeating-linear-gradient(0deg, rgba(0,0,0,0.03) 0, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 3px);
+  mix-blend-mode: multiply;
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+.ep-masthead {
+  padding: 18px 18px 10px;
+  background: linear-gradient(180deg, #ffffff 0%, #faf6ef 100%);
+  border-bottom: 1px solid #ece5d9;
+}
+
+.ep-masthead-img {
+  height: 110px;
+  border-radius: 10px;
+  border: 1px dashed #d6cfc4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  overflow: hidden;
+  position: relative;
+}
+.ep-masthead-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.ep-masthead-placeholder {
+  font-size: 12px;
+  color: #a8a29e;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+}
+body.epaper-body.has-masthead .ep-masthead-placeholder { display: none; }
+
+.ep-masthead-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+.ep-masthead-item {
+  position: absolute;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ep-masthead-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.ep-masthead-text {
+  font-family: var(--ep-serif);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-align: center;
+  width: 100%;
+  line-height: 1.1;
+}
+
 /* ── PAGE VIEWER ───────────────────────────── */
 .ep-viewer {
   flex: 1; position: relative;
-  overflow: hidden; background: #e8e4df;
-  display: flex; align-items: center; justify-content: center;
-  cursor: grab; user-select: none;
+  overflow: auto; background: #f2eee6;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 24px 16px 36px;
+  user-select: none;
 }
-.ep-viewer:active { cursor: grabbing; }
+.ep-viewer.can-pan { cursor: grab; }
+.ep-viewer.can-pan:active { cursor: grabbing; }
 
 .ep-page-container {
   position: relative;
   transition: transform .15s ease;
   transform-origin: center center;
+  margin: 0 auto;
 }
 
 .ep-page-img {
@@ -155,7 +256,54 @@ body.epaper-body {
   box-shadow: 0 4px 40px rgba(0,0,0,.2);
   pointer-events: none; user-select: none;
   -webkit-user-drag: none;
+  border: 1px solid #e5e0d7;
+  background: #fff;
 }
+
+.ep-flip {
+  animation: ep-page-flip .45s ease;
+  transform-origin: left center;
+}
+
+@keyframes ep-page-flip {
+  0% { opacity: 0; transform: perspective(900px) rotateY(-10deg); }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; transform: perspective(900px) rotateY(0deg); }
+}
+
+/* ── FOOTER LINKS ─────────────────────────── */
+.ep-paper-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px 16px;
+  border-top: 1px solid #ece5d9;
+  background: #fffdf7;
+}
+
+.ep-footer-dots { display: flex; align-items: center; gap: 10px; }
+.ep-dot {
+  width: 16px; height: 16px; border-radius: 50%;
+  display: inline-block; border: 1px solid #e5e7eb;
+}
+.ep-dot.d1 { background: #9ca3af; }
+.ep-dot.d2 { background: #d1d5db; }
+.ep-dot.d3 { background: #22c55e; }
+.ep-dot.d4 { background: #0ea5e9; }
+.ep-dot.d5 { background: #facc15; }
+.ep-dot.d6 { background: #111827; }
+
+.ep-footer-links { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.ep-footer-link {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1px solid #e5e7eb; background: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #111827; text-decoration: none; font-size: 15px;
+  transition: all .2s ease;
+}
+.ep-footer-link:hover { border-color: var(--ep-red); color: var(--ep-red); transform: translateY(-1px); }
+
 
 /* ── BLOCK GRID (New Page Builder) ──────── */
 .ep-block-grid {
