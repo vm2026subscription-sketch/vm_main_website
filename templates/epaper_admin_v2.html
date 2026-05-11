@@ -42,6 +42,24 @@
     .epa-edition-info{display:flex;align-items:center;gap:12px;font-size:13px;}
     .epa-badge{padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;background:#fee2e2;color:var(--r);}
     .epa-empty{text-align:center;padding:30px;color:var(--muted);font-size:14px;}
+    .epa-masthead-preview{height:90px;border:1.5px dashed var(--border);border-radius:10px;display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden;}
+    .epa-masthead-preview img{width:100%;height:100%;object-fit:cover;display:block;}
+    .epa-masthead-placeholder{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;font-weight:700;}
+    .epa-header-builder{display:grid;grid-template-columns:1fr 320px;gap:12px;align-items:start;margin-top:10px;}
+    .epa-header-canvas-wrap{background:#f3f4f6;border-radius:10px;padding:10px;}
+    .epa-header-canvas{position:relative;width:1100px;height:140px;background:#fff;border:1px solid #e5e7eb;margin:0 auto;box-shadow:0 2px 12px rgba(0,0,0,.08);}
+    .epa-header-item{position:absolute;border:1px dashed #cbd5f5;cursor:move;overflow:hidden;background:rgba(255,255,255,.7);}
+    .epa-header-item.active{border-color:var(--r);box-shadow:0 0 0 2px rgba(228,30,38,.2);}
+    .epa-header-item img{width:100%;height:100%;object-fit:contain;pointer-events:none;user-select:none;}
+    .epa-header-text{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-weight:700;color:#111827;text-align:center;padding:4px;}
+    .epa-header-handle{position:absolute;width:10px;height:10px;background:var(--r);border-radius:2px;z-index:5;}
+    .epa-header-handle[data-handle="nw"]{top:-5px;left:-5px;cursor:nwse-resize;}
+    .epa-header-handle[data-handle="ne"]{top:-5px;right:-5px;cursor:nesw-resize;}
+    .epa-header-handle[data-handle="se"]{bottom:-5px;right:-5px;cursor:nwse-resize;}
+    .epa-header-handle[data-handle="sw"]{bottom:-5px;left:-5px;cursor:nesw-resize;}
+    .epa-header-controls{background:#f9fafb;border:1px solid var(--border);border-radius:10px;padding:10px;}
+    .epa-header-controls h4{font-size:12px;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+    .epa-header-controls h4 i{color:var(--r);}
 
     .epa-page-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
     .epa-page-tab{padding:6px 14px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;transition:all .2s;}
@@ -54,6 +72,8 @@
     .epc-layout{display:grid;grid-template-columns:1fr 360px;gap:16px;}
     .epc-canvas-wrap{background:#e5e7eb;border-radius:12px;padding:12px;overflow:hidden;}
     .epc-canvas{position:relative;width:800px;height:1000px;background:#fff;margin:0 auto;box-shadow:0 4px 24px rgba(0,0,0,.12);transform-origin:top center;border:1px solid #d1d5db;}
+    .epc-canvas.has-page-image{background-size:100% 100%;background-position:center;background-repeat:no-repeat;}
+    .epc-canvas.has-page-image::before{content:'';position:absolute;inset:0;background:rgba(255,255,255,.08);pointer-events:none;}
 
     .epc-block{position:absolute;cursor:move;overflow:hidden;border:2px solid rgba(0,0,0,.12);transition:box-shadow .15s;background:#f9fafb;}
     .epc-block:hover{box-shadow:0 4px 20px rgba(0,0,0,.15);}
@@ -66,8 +86,15 @@
     .epc-num{position:absolute;top:4px;left:4px;width:20px;height:20px;border-radius:50%;background:var(--r);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;pointer-events:none;}
     .epc-del{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(220,38,38,.9);color:#fff;border:none;cursor:pointer;font-size:9px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;z-index:5;}
     .epc-block:hover .epc-del{opacity:1;}
-    .epc-resize{position:absolute;bottom:0;right:0;width:14px;height:14px;cursor:nwse-resize;background:var(--r);border-radius:2px 0 0 0;z-index:5;}
-    .epc-resize::after{content:'';position:absolute;bottom:2px;right:2px;width:6px;height:6px;border-right:2px solid #fff;border-bottom:2px solid #fff;}
+    .epc-resize-handle{position:absolute;width:12px;height:12px;background:var(--r);border-radius:2px;z-index:6;}
+    .epc-resize-handle[data-handle="nw"]{top:-6px;left:-6px;cursor:nwse-resize;}
+    .epc-resize-handle[data-handle="n"]{top:-6px;left:calc(50% - 6px);cursor:ns-resize;}
+    .epc-resize-handle[data-handle="ne"]{top:-6px;right:-6px;cursor:nesw-resize;}
+    .epc-resize-handle[data-handle="e"]{top:calc(50% - 6px);right:-6px;cursor:ew-resize;}
+    .epc-resize-handle[data-handle="se"]{bottom:-6px;right:-6px;cursor:nwse-resize;}
+    .epc-resize-handle[data-handle="s"]{bottom:-6px;left:calc(50% - 6px);cursor:ns-resize;}
+    .epc-resize-handle[data-handle="sw"]{bottom:-6px;left:-6px;cursor:nesw-resize;}
+    .epc-resize-handle[data-handle="w"]{top:calc(50% - 6px);left:-6px;cursor:ew-resize;}
     .epc-dims{position:absolute;top:4px;right:28px;background:rgba(0,0,0,.5);color:#fff;font-size:8px;padding:2px 5px;border-radius:3px;pointer-events:none;}
     .epc-add-btn{position:absolute;bottom:16px;right:16px;padding:10px 18px;background:var(--r);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;display:flex;align-items:center;gap:6px;box-shadow:0 4px 12px rgba(228,30,38,.3);transition:all .2s;}
     .epc-add-btn:hover{background:#c0171e;transform:translateY(-2px);}
@@ -134,17 +161,53 @@
       </form>
     </div>
 
+    <!-- Header + Footer Links -->
+    <div class="epa-card">
+      <h2><i class="fa fa-newspaper"></i> Newspaper Header & Footer</h2>
+      <div class="epa-form-row" style="grid-template-columns:2fr 1fr;align-items:end">
+        <div class="epa-form-group">
+          <label>Header image</label>
+          <div class="epa-masthead-preview" id="mastheadPreview">
+            <span class="epa-masthead-placeholder">No header image</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button type="button" class="epa-btn epa-btn-primary" id="mastheadUploadBtn"><i class="fa fa-upload"></i> Upload</button>
+          <button type="button" class="epa-btn epa-btn-danger" id="mastheadClearBtn"><i class="fa fa-times"></i> Clear</button>
+          <input type="file" id="mastheadInput" accept="image/*" style="display:none">
+        </div>
+      </div>
+
+      <div class="epa-form-row" style="grid-template-columns:repeat(4, 1fr)">
+        <div class="epa-form-group"><label>Search link</label><input type="url" id="footerLinkSearch" placeholder="/epaper"></div>
+        <div class="epa-form-group"><label>WhatsApp link</label><input type="url" id="footerLinkWhatsapp" placeholder="https://wa.me/"></div>
+        <div class="epa-form-group"><label>Facebook link</label><input type="url" id="footerLinkFacebook" placeholder="https://facebook.com/"></div>
+        <div class="epa-form-group"><label>X link</label><input type="url" id="footerLinkX" placeholder="https://x.com/"></div>
+      </div>
+
+    </div>
+
     <!-- Page Builder -->
     <div class="epa-card" id="builderSection" style="display:none">
       <h2><i class="fa fa-th-large"></i> Page Builder — Drag & Drop</h2>
       <div class="epa-page-tabs" id="pageTabs"></div>
+      <div class="epa-card" style="margin:0 0 14px;padding:14px;background:#fafafa">
+        <h2 style="font-size:14px;margin-bottom:10px"><i class="fa fa-image"></i> Newspaper Page Image</h2>
+        <div class="epa-form-row" style="grid-template-columns:1fr auto;align-items:end;margin-bottom:0">
+          <div class="epa-form-group">
+            <label>Upload scanned page / designed image</label>
+            <input type="file" id="pageImageInput" accept="image/*">
+          </div>
+          <button type="button" class="epa-btn epa-btn-danger" id="clearPageImageBtn"><i class="fa fa-times"></i> Clear Image</button>
+        </div>
+      </div>
 
       <div class="epc-layout">
         <!-- Left: Canvas -->
         <div>
           <div style="font-size:11px;color:var(--muted);margin-bottom:8px">
             <i class="fa fa-info-circle" style="color:var(--r)"></i>
-            <strong>Drag</strong> to move • <strong>Corner handle</strong> to resize • Click block to edit
+            <strong>Drag</strong> to move • <strong>Edge or corner handles</strong> to resize • Click block to edit
           </div>
           <div class="epc-canvas-wrap" style="overflow:auto;max-height:75vh">
             <div class="epc-canvas" id="pageCanvas"></div>
@@ -165,6 +228,9 @@
               <div class="epb-img-upload" id="blockImageUpload">
                 <input type="file" id="blockImageInput" accept="image/*">
                 <div class="epb-upload-label" id="blockImageLabel"><i class="fa fa-cloud-upload-alt"></i>Upload image</div>
+              </div>
+              <div style="display:flex;gap:6px;margin-top:8px">
+                <button type="button" class="epa-btn epa-btn-sm" onclick="EPAdmin.fitBlockToImage()"><i class="fa fa-expand"></i> Fit to image</button>
               </div>
             </div>
 
@@ -205,6 +271,7 @@
             <div class="epb-section">
               <div class="epb-section-title"><i class="fa fa-pen-fancy"></i> Article</div>
               <form id="blockForm">
+                <div class="epa-form-group" style="margin-bottom:6px"><label>Article ID</label><input type="text" id="blkArticleId" placeholder="e.g. 15"></div>
                 <div class="epa-form-group" style="margin-bottom:6px"><label>Headline</label><input type="text" id="blkHeadline" placeholder="Article headline" required></div>
                 <div class="epa-form-group" style="margin-bottom:6px"><label>Sub-headline</label><input type="text" id="blkSubheadline" placeholder="Optional"></div>
                 <div class="epa-form-group" style="margin-bottom:6px"><label>Category</label><input type="text" id="blkCategory" placeholder="e.g. परीक्षा"></div>

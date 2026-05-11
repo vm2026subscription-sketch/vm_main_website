@@ -93,18 +93,38 @@
 
   <!-- ── MAIN CONTENT ── -->
   <div class="ep-main" id="epMain">
-    <!-- Page Viewer -->
-    <div class="ep-viewer" id="epViewer">
-      <div class="ep-page-container" id="epPageContainer">
-        <img class="ep-page-img" id="epPageImg" src="" alt="E-Paper Page" draggable="false">
-        <div id="epHotspots" style="position:absolute;inset:0;"></div>
+    <div class="ep-paper" id="epPaper">
+      <div class="ep-masthead">
+        <div class="ep-masthead-img" id="epMastheadImg">
+          <span class="ep-masthead-placeholder">Header image</span>
+        </div>
       </div>
 
-      <!-- Empty state -->
-      <div id="epEmptyState" style="display:none; text-align:center; padding:60px 24px;">
-        <i class="fa fa-newspaper" style="font-size:64px;color:#d1d5db;display:block;margin-bottom:16px"></i>
-        <h2 style="font-size:22px;color:#374151;margin-bottom:8px">कोई संस्करण उपलब्ध नहीं</h2>
-        <p style="color:#6b7280;font-size:14px">इस तारीख के लिए E-Paper उपलब्ध नहीं है।<br>कैलेंडर से कोई अन्य तारीख चुनें।</p>
+      <!-- Page Viewer -->
+      <div class="ep-viewer" id="epViewer">
+        <div class="ep-page-container" id="epPageContainer">
+          <img class="ep-page-img" id="epPageImg" src="" alt="E-Paper Page" draggable="false">
+          <div id="epHotspots" style="position:absolute;inset:0;"></div>
+        </div>
+
+        <!-- Empty state -->
+        <div id="epEmptyState" style="display:none; text-align:center; padding:60px 24px;">
+          <i class="fa fa-newspaper" style="font-size:64px;color:#d1d5db;display:block;margin-bottom:16px"></i>
+          <h2 style="font-size:22px;color:#374151;margin-bottom:8px">कोई संस्करण उपलब्ध नहीं</h2>
+          <p style="color:#6b7280;font-size:14px">इस तारीख के लिए E-Paper उपलब्ध नहीं है।<br>कैलेंडर से कोई अन्य तारीख चुनें।</p>
+        </div>
+      </div>
+
+      <div class="ep-paper-footer">
+        <div class="ep-footer-dots" aria-hidden="true">
+          <span class="ep-dot d1"></span>
+          <span class="ep-dot d2"></span>
+          <span class="ep-dot d3"></span>
+          <span class="ep-dot d4"></span>
+          <span class="ep-dot d5"></span>
+          <span class="ep-dot d6"></span>
+        </div>
+        <div class="ep-footer-links" id="epFooterLinks"></div>
       </div>
     </div>
   </div>
