@@ -599,10 +599,13 @@ body.epaper-body.has-masthead .ep-masthead-placeholder { display: none; }
 .ep-article-topbar {
   position: sticky; top: 0; z-index: 5;
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0 12px 0 0;
+  padding: 0 14px 0 0;
   background: #fff;
   border-bottom: 1px solid var(--ep-border);
-  min-height: 52px;
+  min-height: 48px;
+}
+.ep-tts-estimate {
+  font-size: 11px; color: var(--ep-muted); white-space: nowrap;
 }
 
 .ep-article-back {
@@ -630,11 +633,29 @@ body.epaper-body.has-masthead .ep-masthead-placeholder { display: none; }
 .ep-art-play-btn:hover { background: var(--ep-orange-dark); transform: scale(1.04); box-shadow: 0 4px 16px rgba(255,102,0,.45); }
 .ep-art-play-btn.loading { opacity: .7; cursor: wait; }
 
-/* ── AI Tab bar (Translate / Summarize / Share) ── */
+/* ── AI Tab bar (Voice+Play / Summarize / Share) ── */
 .ep-ai-bar {
-  display: flex; align-items: stretch;
+  display: flex; align-items: center;
   border-bottom: 1px solid var(--ep-border);
   background: #f9fafb;
+}
+
+/* Voice + Play slot that lives inside the tab bar */
+.ep-voice-tab-slot {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 10px; flex: 2;
+  border-right: 1px solid var(--ep-border);
+}
+.ep-voice-tab-slot .ep-tts-voice-select {
+  flex: 1; min-width: 0;
+  padding: 6px 8px; border-radius: 8px;
+  border: 1px solid #d1d5db; font-size: 12px;
+  font-family: var(--ep-font); background: #fff;
+  color: #374151; cursor: pointer; outline: none;
+}
+.ep-voice-tab-slot .ep-tts-voice-select:focus { border-color: var(--ep-orange); }
+.ep-voice-tab-slot .ep-art-play-btn {
+  padding: 7px 14px; font-size: 13px; white-space: nowrap; flex-shrink: 0;
 }
 .ep-ai-tab {
   flex: 1; display: flex; flex-direction: column;
@@ -812,6 +833,13 @@ body.epaper-body.has-masthead .ep-masthead-placeholder { display: none; }
   font-family: var(--ep-font); transition: all .2s;
 }
 .ep-inpl-speed:hover { background: rgba(255,255,255,.2); }
+.ep-inpl-dl {
+  width: 28px; height: 28px; border-radius: 50%; border: none; cursor: pointer;
+  background: rgba(255,255,255,.08); color: rgba(255,255,255,.55);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; transition: all .2s;
+}
+.ep-inpl-dl:hover { background: rgba(255,255,255,.2); color: #fff; }
 .ep-inpl-close {
   width: 28px; height: 28px; border-radius: 50%;
   background: rgba(255,255,255,.08); color: rgba(255,255,255,.55);
@@ -992,4 +1020,17 @@ body.epaper-body.has-masthead .ep-masthead-placeholder { display: none; }
 @media (max-width: 480px) {
   .ep-date-btn { padding: 0 10px; gap: 5px; }
   .ep-nav-item { padding: 0 8px; }
+}
+
+
+/* ── Sentence highlight while TTS plays ── */
+.ep-tts-sentence {
+  border-radius: 3px;
+  padding: 1px 2px;
+  transition: background .2s, color .2s;
+}
+.ep-tts-sentence.ep-tts-active {
+  background: #fff3c4;
+  color: #111;
+  box-shadow: 0 0 0 2px #fbbf24;
 }

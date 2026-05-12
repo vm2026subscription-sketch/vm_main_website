@@ -20,12 +20,20 @@ const EP = {
   ttsUtterance: null,
   ttsPlaying: false,
 
+  footerLinksDefault: [
+    { key: 'search',    icon: 'fa fa-magnifying-glass', url: '/epaper' },
+    { key: 'whatsapp',  icon: 'fab fa-whatsapp',        url: 'https://wa.me/?text=Vidyarthi%20Mitra%20E-Paper' },
+    { key: 'facebook',  icon: 'fab fa-facebook-f',      url: 'https://www.facebook.com/' },
+    { key: 'x',         icon: 'fab fa-x-twitter',       url: 'https://x.com/' },
+  ],
+
   // DOM refs
   el: {},
 
   init() {
     this.cacheDOM();
     this.bindEvents();
+    this.renderFooterLinks(this.footerLinksDefault);
     this.setDate(new Date());
     // Load editions list in background (for calendar) - don't await
     this.loadEditions();
@@ -130,6 +138,10 @@ const EP = {
       // Scroll buttons
       scrollUp: document.getElementById('epScrollUp'),
       scrollDown: document.getElementById('epScrollDown'),
+      // Masthead
+      mastheadImg: document.getElementById('epMastheadImg'),
+      // Footer links
+      footerLinks: document.getElementById('epFooterLinks'),
     };
   },
 
@@ -150,6 +162,10 @@ const EP = {
     // Edge page arrows
     this.el.edgePrev?.addEventListener('click', () => this.changePage(-1));
     this.el.edgeNext?.addEventListener('click', () => this.changePage(1));
+
+    // Side nav click zones
+    document.getElementById('epSideNavLeft')?.addEventListener('click', () => this.changePage(-1));
+    document.getElementById('epSideNavRight')?.addEventListener('click', () => this.changePage(1));
 
     // Zoom
     this.el.zoomIn?.addEventListener('click', () => this.setZoom(this.zoom + 0.25));
@@ -222,9 +238,11 @@ const EP = {
       this._voiceUpdateUI();
     });
 
-    // Voice selector
+    // Voice selector — set voice AND translate visible article text
     this.el.voiceSelect?.addEventListener('change', () => {
-      this._voice.selectedVoice = this.el.voiceSelect.value;
+      const val = this.el.voiceSelect.value;
+      this._voice.selectedVoice = val;
+      this._translatePanelForVoice(val);
     });
 
     // Translate
@@ -235,6 +253,14 @@ const EP = {
       if (e.key === 'ArrowLeft') this.changePage(-1);
       if (e.key === 'ArrowRight') this.changePage(1);
       if (e.key === 'Escape') this.closeArticle();
+      if (e.key === ' ' || e.key === 'Spacebar') {
+        const tag = document.activeElement?.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || document.activeElement?.isContentEditable) return;
+        if (this.currentArticle && (this._voice.playing || this._voice.paused || this._voice.loading)) {
+          e.preventDefault();
+          this.voiceToggle();
+        }
+      }
       if (e.key === '+' || e.key === '=') this.setZoom(this.zoom + 0.25);
       if (e.key === '-') this.setZoom(this.zoom - 0.25);
     });
@@ -290,6 +316,51 @@ const EP = {
     document.title = edition?.name?.trim()
       ? `${edition.name} | Vidyarthi Mitra E-Paper`
       : 'Vidyarthi Mitra — E-Paper Reader';
+  },
+
+  applyMastheadImage(url) {
+    if (!this.el.mastheadImg) return;
+    const existing = this.el.mastheadImg.querySelector('img');
+    if (url) {
+      let img = existing;
+      if (!img) {
+        img = document.createElement('img');
+        img.alt = 'E-Paper Header';
+        this.el.mastheadImg.innerHTML = '';
+        this.el.mastheadImg.appendChild(img);
+      }
+      img.src = url;
+      document.body.classList.add('has-masthead');
+    } else {
+      this.el.mastheadImg.innerHTML = '<span class="ep-masthead-placeholder">Header image</span>';
+      document.body.classList.remove('has-masthead');
+    }
+  },
+
+  resolveFooterLinks(rawLinks) {
+    const base = this.footerLinksDefault.map(item => ({ ...item }));
+    if (!Array.isArray(rawLinks)) return base;
+    rawLinks.forEach(item => {
+      const key = item?.key || '';
+      const target = base.find(link => link.key === key);
+      if (target) {
+        if (item.url)  target.url  = item.url;
+        if (item.icon) target.icon = item.icon;
+      } else if (item?.url) {
+        base.push({ key: key || 'link', url: item.url, icon: item.icon || 'fa fa-link' });
+      }
+    });
+    return base;
+  },
+
+  renderFooterLinks(rawLinks) {
+    if (!this.el.footerLinks) return;
+    const links = this.resolveFooterLinks(rawLinks);
+    this.el.footerLinks.innerHTML = links.map(item => {
+      const href  = item.url  || '#';
+      const label = item.key  || 'link';
+      return `<a class="ep-footer-link" href="${href}" target="_blank" rel="noopener" aria-label="${label}"><i class="${item.icon}"></i></a>`;
+    }).join('');
   },
 
   formatDateISO(d) {
@@ -393,6 +464,8 @@ const EP = {
       this.pages = data.pages || [];
       this.totalPages = this.pages.length || 1;
       this.updateEditionBrand(data);
+      this.applyMastheadImage(data.masthead_image_url || '');
+      this.renderFooterLinks(data.footer_links || this.footerLinksDefault);
       document.getElementById('epEmptyState')?.style.setProperty('display', 'none');
       this.renderCategories(this.pages);
       this.renderThumbnails();
@@ -431,11 +504,12 @@ const EP = {
   },
 
   showDemoPage() {
-    // Show a placeholder when no real data
     this.currentEdition = null;
     this.totalPages = 1;
     this.pages = [];
     this.updateEditionBrand(null);
+    this.applyMastheadImage('');
+    this.renderFooterLinks(this.footerLinksDefault);
     if (this.el.pageImg) {
       this.el.pageImg.src = '';
       this.el.pageImg.alt = 'No edition available';
@@ -728,11 +802,20 @@ const EP = {
 
   // ── Article Panel ──
   currentArticle: null,
+  _origArticleTitle: null,
+  _origArticleHTML: null,
 
   openArticle(index) {
     const art = this.articles[index];
     if (!art) return;
     this.currentArticle = art;
+
+    // Reset voice select and player state each time a new article opens
+    if (this.el.voiceSelect) this.el.voiceSelect.value = '';
+    this._voice.selectedVoice = '';
+    if (this.el.ttsPrompt) this.el.ttsPrompt.style.display = '';
+    if (this.el.voiceBar) this.el.voiceBar.classList.remove('active', 'loading', 'playing');
+    if (this.el.ttsStartBtn) { this.el.ttsStartBtn.innerHTML = '<i class="fa fa-play"></i> <span>Play</span>'; this.el.ttsStartBtn.classList.remove('loading'); }
 
     if (this.el.articleCategory) this.el.articleCategory.textContent = art.category_label || 'News';
     if (this.el.articleTitle) this.el.articleTitle.textContent = art.headline || '';
@@ -764,12 +847,17 @@ const EP = {
       }
     }
 
+    // Save originals for translation restore
+    this._origArticleTitle = art.headline || '';
+    this._origArticleHTML  = this.el.articleText ? this.el.articleText.innerHTML : '';
+
     // Reset AI tabs
     this.switchAiTab(null);
     this.stopTTS();
     this.updateReadingTime();
 
     this.el.articlePanel?.classList.add('open');
+    if (this.el.articlePanel) this.el.articlePanel.scrollTop = 0;
     document.body.style.overflow = 'hidden';
 
     // Show video button if article has video
@@ -858,6 +946,70 @@ const EP = {
     this.el.translateSelect.value = isDevanagari ? 'en' : 'hi';
   },
 
+  async _translatePanelForVoice(voiceVal) {
+    if (!this.currentArticle) return;
+
+    const VOICE_LANG = {
+      'hi-IN-MadhurNeural': 'hi', 'hi-IN-SwaraNeural': 'hi',
+      'mr-IN-ManoharNeural': 'mr', 'mr-IN-AarohiNeural': 'mr',
+      'en-IN-PrabhatNeural': 'en', 'en-IN-NeerjaNeural': 'en',
+    };
+    const lang = VOICE_LANG[voiceVal] || '';
+
+    // Restore originals on Auto
+    if (!lang) {
+      if (this.el.articleTitle) this.el.articleTitle.textContent = this._origArticleTitle || '';
+      if (this.el.articleText)  this.el.articleText.innerHTML  = this._origArticleHTML  || '';
+      this.showToast('Restored original language');
+      return;
+    }
+
+    this.showToast('🔄 Translating...');
+
+    const art = this.currentArticle;
+    const headline = art.headline || '';
+
+    // Get body as plain text from the original stored HTML
+    const bodyEl = document.createElement('div');
+    bodyEl.innerHTML = this._origArticleHTML || '';
+    const bodyText = (bodyEl.innerText || bodyEl.textContent || '').trim();
+
+    try {
+      // Translate headline and body in parallel as separate calls
+      // so we can reliably place them back in the right elements
+      const [hRes, bRes] = await Promise.all([
+        fetch('/api/epaper/translate', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: headline, target_lang: lang }),
+        }),
+        fetch('/api/epaper/translate', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: bodyText.slice(0, 4000), target_lang: lang }),
+        }),
+      ]);
+
+      const hData = hRes.ok ? await hRes.json() : {};
+      const bData = bRes.ok ? await bRes.json() : {};
+
+      const newTitle = hData.translated_text || headline;
+      const newBody  = bData.translated_text || bodyText;
+
+      if (this.el.articleTitle) this.el.articleTitle.textContent = newTitle;
+      if (this.el.articleText) {
+        this.el.articleText.innerHTML = newBody
+          .split(/\n+/)
+          .filter(p => p.trim())
+          .map(p => `<p>${p}</p>`)
+          .join('');
+      }
+
+      const langNames = { hi: 'हिंदी', mr: 'मराठी', en: 'English' };
+      this.showToast(`✅ Translated to ${langNames[lang] || lang}`);
+    } catch (e) {
+      this.showToast('Translation failed');
+    }
+  },
+
   // ══════════════════════════════════════════════
   //  PREMIUM VOICE BAR SYSTEM — Edge Neural TTS
   //  Real Indian news anchor voice (server-side)
@@ -874,10 +1026,16 @@ const EP = {
   },
 
   detectLang(text) {
-    const hindi = (text.match(/[\u0900-\u097F]/g) || []).length;
+    const devanagari = (text.match(/[\u0900-\u097F]/g) || []).length;
     const total = text.length;
-    if (hindi / total > 0.3) return 'hi-IN';
-    return 'en-US';
+    if (devanagari / total > 0.3) {
+      const marathiWords = ['\u0906\u0939\u0947','\u0928\u093E\u0939\u0940','\u0906\u0923\u093F','\u092E\u0932\u093E','\u0906\u092A\u0923','\u0939\u094B\u0924\u0947','\u0915\u0947\u0932\u0947','\u091D\u093E\u0932\u0947','\u092E\u094D\u0939\u0923\u093E\u0932\u0947','\u092E\u0939\u093E\u0930\u093E\u0937\u094D\u091F\u094D\u0930'];
+      const hindiWords   = ['\u0939\u0948','\u0928\u0939\u0940\u0902','\u0914\u0930','\u0925\u093E','\u0939\u0948\u0902','\u092F\u0939','\u0915\u0939\u093E','\u092C\u0924\u093E\u092F\u093E','\u0907\u0938\u0938\u0947'];
+      const mr = marathiWords.filter(w => text.includes(w)).length;
+      const hi = hindiWords.filter(w => text.includes(w)).length;
+      return mr > hi ? 'mr-IN' : 'hi-IN';
+    }
+    return 'en-IN';
   },
 
   // Get article plain text
@@ -895,6 +1053,99 @@ const EP = {
       text += tmp.textContent || tmp.innerText || '';
     }
     return text.trim();
+  },
+
+  // ── Sentence highlight state ────────────────────────
+  _ttsSpans: [],
+  _ttsTotalChars: 0,
+  _ttsCurrentSpan: -1,
+
+  _splitSentences(text) {
+    text = text.replace(/\s+/g, ' ').trim();
+    const sentences = [];
+    let buf = '';
+    for (let i = 0; i < text.length; i++) {
+      buf += text[i];
+      const ch = text[i];
+      if (/[।!?]/.test(ch)) {
+        if (buf.trim()) sentences.push(buf.trim());
+        buf = '';
+      } else if (ch === '.') {
+        const next = text[i + 1] || '';
+        const afterNext = text[i + 2] || '';
+        const isRealEnd = (next === ' ' && /[A-Zऀ-ॿ]/.test(afterNext)) || !next || next === '\n';
+        if (isRealEnd) {
+          if (buf.trim()) sentences.push(buf.trim());
+          buf = '';
+          if (next === ' ') i++;
+        }
+      }
+    }
+    if (buf.trim()) sentences.push(buf.trim());
+    return sentences.filter(Boolean);
+  },
+
+  _prepareHighlight() {
+    this._ttsSpans = [];
+    this._ttsCurrentSpan = -1;
+    let charOffset = 0;
+
+    const titleEl = this.el.articleTitle;
+    if (titleEl) {
+      titleEl.querySelectorAll('.ep-tts-sentence').forEach(s => s.outerHTML = s.textContent);
+      titleEl.normalize();
+      const t = titleEl.textContent.trim();
+      const sp = document.createElement('span');
+      sp.className = 'ep-tts-sentence';
+      sp.textContent = t;
+      titleEl.textContent = '';
+      titleEl.appendChild(sp);
+      this._ttsSpans.push({ el: sp, start: charOffset, end: charOffset + t.length });
+      charOffset += t.length + 2;
+    }
+
+    const paras = this.el.articleText ? this.el.articleText.querySelectorAll('p') : [];
+    (paras.length ? paras : (this.el.articleText ? [this.el.articleText] : [])).forEach(p => {
+      p.querySelectorAll('.ep-tts-sentence').forEach(s => s.outerHTML = s.textContent);
+      p.normalize();
+      const txt = p.textContent.trim();
+      const sentences = this._splitSentences(txt);
+      p.textContent = '';
+      sentences.forEach((s, si) => {
+        const sp = document.createElement('span');
+        sp.className = 'ep-tts-sentence';
+        sp.textContent = s;
+        p.appendChild(sp);
+        if (si < sentences.length - 1) p.appendChild(document.createTextNode(' '));
+        this._ttsSpans.push({ el: sp, start: charOffset, end: charOffset + s.length });
+        charOffset += s.length + 1;
+      });
+    });
+
+    this._ttsTotalChars = charOffset || 1;
+  },
+
+  _highlightAt(currentTime, duration) {
+    if (!this._ttsTotalChars || !duration) return;
+    const pos = (currentTime / duration) * this._ttsTotalChars;
+    let idx = -1;
+    for (let i = 0; i < this._ttsSpans.length; i++) {
+      if (pos >= this._ttsSpans[i].start && pos < this._ttsSpans[i].end) { idx = i; break; }
+    }
+    if (idx === this._ttsCurrentSpan) return;
+    if (this._ttsCurrentSpan >= 0 && this._ttsSpans[this._ttsCurrentSpan])
+      this._ttsSpans[this._ttsCurrentSpan].el.classList.remove('ep-tts-active');
+    this._ttsCurrentSpan = idx;
+    if (idx >= 0 && this._ttsSpans[idx]) {
+      this._ttsSpans[idx].el.classList.add('ep-tts-active');
+      this._ttsSpans[idx].el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  },
+
+  _clearHighlight() {
+    this.el.articleText?.querySelectorAll('.ep-tts-sentence.ep-tts-active').forEach(el => el.classList.remove('ep-tts-active'));
+    this.el.articleTitle?.querySelectorAll('.ep-tts-sentence.ep-tts-active').forEach(el => el.classList.remove('ep-tts-active'));
+    this._ttsCurrentSpan = -1;
   },
 
   // Calculate reading time in minutes
@@ -980,47 +1231,33 @@ const EP = {
   async voicePlay() {
     if (!this.currentArticle) return;
 
-    const rawText = this._getArticleText();
+    // Read from the currently DISPLAYED text (may already be translated)
+    const displayedTitle = this.el.articleTitle?.textContent || '';
+    const displayedBody  = (this.el.articleText?.innerText || this.el.articleText?.textContent || '')
+                            .replace(/[\r\n]+/g, ' ').replace(/ +/g, ' ').trim();
+    const rawText = (displayedTitle + '। ' + displayedBody).trim() || this._getArticleText();
     if (!rawText) { this.showToast('No text to read'); return; }
 
     // Stop any existing playback
     this.voiceStop();
     this._voice.loading = true;
 
+    // Show loading state on Play button
+    if (this.el.ttsStartBtn) { this.el.ttsStartBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> <span>Loading...</span>'; this.el.ttsStartBtn.classList.add('loading'); }
+
     // Show inline player, hide prompt
     if (this.el.ttsPrompt) this.el.ttsPrompt.style.display = 'none';
     if (this.el.voiceBar) this.el.voiceBar.classList.add('active', 'loading');
-    if (this.el.voiceTitle) this.el.voiceTitle.textContent = this.currentArticle.headline || 'Article';
+    if (this.el.voiceTitle) this.el.voiceTitle.textContent = displayedTitle || this.currentArticle.headline || 'Article';
     this._voiceUpdatePlayIcon();
-    
+
+    // Prepare sentence spans for highlight
+    this._prepareHighlight();
+
+    // Text is already in the right language (translated by _translatePanelForVoice)
     let textToRead = rawText;
     let rateStr = '+0%';
     let pitchStr = '+0Hz';
-
-    // If user selected a specific voice, check if translation is needed
-    const selectedVoice = this._voice.selectedVoice || '';
-    if (selectedVoice) {
-      const voiceLang = selectedVoice.startsWith('hi-') ? 'hi'
-                      : selectedVoice.startsWith('mr-') ? 'mr'
-                      : selectedVoice.startsWith('en-') ? 'en' : '';
-      const articleIsDevanagari = this.detectLang(rawText) === 'hi-IN';
-      const needsTranslation = (voiceLang === 'hi' || voiceLang === 'mr') && !articleIsDevanagari
-                            || voiceLang === 'en' && articleIsDevanagari;
-      if (needsTranslation && voiceLang) {
-        this.showToast('🔄 Translating...');
-        try {
-          const tRes = await fetch('/api/epaper/translate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: rawText.slice(0, 3000), target_lang: voiceLang === 'mr' ? 'mr' : voiceLang === 'hi' ? 'hi' : 'en' }),
-          });
-          if (tRes.ok) {
-            const tData = await tRes.json();
-            if (tData.translated_text) textToRead = tData.translated_text;
-          }
-        } catch (_) {}
-      }
-    }
 
     // Inline text preprocessing (fast, no LLM needed)
     textToRead = this._preprocessTTSText(textToRead);
@@ -1068,9 +1305,13 @@ const EP = {
         this._voiceUpdatePlayIcon();
       });
 
-      audio.addEventListener('timeupdate', () => this._voiceUpdateUI());
+      audio.addEventListener('timeupdate', () => {
+        this._voiceUpdateUI();
+        this._highlightAt(audio.currentTime, audio.duration);
+      });
 
       audio.addEventListener('ended', () => {
+        this._clearHighlight();
         this._voiceFinished();
       });
 
@@ -1085,6 +1326,7 @@ const EP = {
       this._voice.playing = true;
       this._voice.paused = false;
       this._voice.loading = false;
+      if (this.el.ttsStartBtn) { this.el.ttsStartBtn.innerHTML = '<i class="fa fa-play"></i> <span>Play</span>'; this.el.ttsStartBtn.classList.remove('loading'); }
       if (this.el.voiceBar) this.el.voiceBar.classList.remove('loading');
       this._voiceUpdatePlayIcon();
 
@@ -1098,9 +1340,11 @@ const EP = {
     } catch (err) {
       console.error('TTS Error:', err);
       this._voice.loading = false;
-      this.showToast('Voice generation failed. Try again.');
+      if (this.el.ttsStartBtn) { this.el.ttsStartBtn.innerHTML = '<i class="fa fa-play"></i> <span>Play</span>'; this.el.ttsStartBtn.classList.remove('loading'); }
       if (this.el.voiceBar) this.el.voiceBar.classList.remove('active', 'loading');
       if (this.el.ttsPrompt) this.el.ttsPrompt.style.display = '';
+      this._clearHighlight();
+      this.showToast('Voice generation failed. Try again.');
       this._voiceUpdatePlayIcon();
     }
   },
@@ -1156,20 +1400,17 @@ const EP = {
     if (audio) {
       audio.pause();
       audio.currentTime = 0;
-      // Revoke blob URL to free memory
-      if (audio.src && audio.src.startsWith('blob:')) {
-        URL.revokeObjectURL(audio.src);
-      }
+      if (audio.src && audio.src.startsWith('blob:')) URL.revokeObjectURL(audio.src);
       this._voice.audio = null;
     }
     this._voice.playing = false;
     this._voice.paused = false;
     this._voice.loading = false;
-    if (this.el.voiceBar) {
-      this.el.voiceBar.classList.remove('active', 'playing', 'loading');
-    }
+    if (this.el.ttsStartBtn) { this.el.ttsStartBtn.innerHTML = '<i class="fa fa-play"></i> <span>Play</span>'; this.el.ttsStartBtn.classList.remove('loading'); }
+    if (this.el.voiceBar) this.el.voiceBar.classList.remove('active', 'playing', 'loading');
     if (this.el.ttsPrompt) this.el.ttsPrompt.style.display = '';
     if (this.el.voiceProgressFill) this.el.voiceProgressFill.style.width = '0%';
+    this._clearHighlight();
     this._voiceUpdatePlayIcon();
   },
 
@@ -1306,6 +1547,49 @@ const EP = {
     } catch (e) {
       this.el.summaryOutput.innerHTML = '<p>Summarization service unavailable.</p>';
     }
+  },
+
+  // ── Download Audio ──
+  downloadAudio() {
+    const audio = this._voice.audio;
+    if (!audio || !audio.src || !audio.src.startsWith('blob:')) {
+      this.showToast('Play the article first to download audio');
+      return;
+    }
+    const headline = (this.currentArticle?.headline || 'article')
+      .replace(/[^a-z0-9ऀ-ॿ\s]/gi, '').trim().replace(/\s+/g, '-').slice(0, 60);
+    const a = document.createElement('a');
+    a.href = audio.src;
+    a.download = `${headline || 'audio'}.mp3`;
+    a.click();
+    this.showToast('⬇️ Downloading audio...');
+  },
+
+  // ── Save Page as PDF ──
+  savePDF() {
+    const imgSrc = this.el.pageImg?.src;
+    if (!imgSrc || imgSrc.endsWith('/') || imgSrc === location.href) {
+      this.showToast('No page loaded to save');
+      return;
+    }
+    // Open the page image in a new tab and trigger print-to-PDF
+    const win = window.open('', '_blank');
+    if (!win) { this.showToast('Allow popups to save PDF'); return; }
+    const date = this.el.dateBtnText?.textContent || '';
+    const pageNum = document.getElementById('epPageInfo')?.textContent || '';
+    win.document.write(`<!DOCTYPE html><html><head>
+      <title>Vidyarthi Mitra E-Paper${date ? ' — ' + date : ''}${pageNum ? ' | ' + pageNum : ''}</title>
+      <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh}
+        img{max-width:100%;max-height:100vh;object-fit:contain}
+        @media print{body{display:block}img{width:100%;height:auto;page-break-inside:avoid}}
+      </style>
+    </head><body>
+      <img src="${imgSrc}" onload="window.print()">
+    </body></html>`);
+    win.document.close();
+    this.showToast('📄 Opening print dialog...');
   },
 
   // ── Share ──
