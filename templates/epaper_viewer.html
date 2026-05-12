@@ -11,7 +11,7 @@
 
   <!-- PWA Manifest -->
   <link rel="manifest" href="{{ url_for('static', filename='epaper-manifest.json') }}">
-  <meta name="theme-color" content="#e41e26">
+  <meta name="theme-color" content="#ff6600">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='title.png') }}">
@@ -42,37 +42,14 @@
 </head>
 <body class="epaper-body">
   {% include '_shared_index_navbar.html' %}
-  <!-- ── HEADER ── -->
-  <header class="ep-header" id="epHeader">
-    <a href="/" class="ep-logo">
-      <img src="{{ url_for('static', filename='logo.png') }}" alt="VM" class="ep-logo-img">
-      <div class="ep-logo-text">
-        <strong>e-Paper</strong>
-        Vidyarthi Mitra
-      </div>
-    </a>
 
+  <!-- ── CATEGORY NAV ── -->
+  <nav class="ep-nav" id="epNav">
     <button class="ep-date-btn" id="epDateBtn">
       <i class="fa fa-calendar-alt"></i>
       <span id="epDateText">Loading...</span>
       <i class="fa fa-chevron-down" style="font-size:10px"></i>
     </button>
-
-    <div class="ep-header-spacer"></div>
-
-    <a href="/" class="ep-site-link">
-      <i class="fa fa-external-link-alt"></i>
-      <span>vidyarthimitra.in</span>
-    </a>
-  </header>
-
-  <!-- Header collapse button -->
-  <button class="ep-collapse-btn" id="epCollapseBtn">
-    <i class="fa fa-chevron-up"></i>
-  </button>
-
-  <!-- ── CATEGORY NAV ── -->
-  <nav class="ep-nav" id="epNav">
     <button class="ep-nav-scroll-btn" id="epNavLeft"><i class="fa fa-chevron-left"></i></button>
     <div class="ep-nav-list" id="epNavList">
       <a class="ep-nav-item active" data-cat="front" data-page="1">मुख पृष्ठ</a>
@@ -89,6 +66,14 @@
     </div>
     <button class="ep-nav-scroll-btn" id="epNavRight"><i class="fa fa-chevron-right"></i></button>
   </nav>
+
+  <!-- ── SIDE NAV CLICK ZONES ── -->
+  <div class="ep-side-nav ep-side-nav-left" id="epSideNavLeft" title="Previous Page">
+    <div class="ep-side-nav-icon"><i class="fa fa-chevron-left"></i></div>
+  </div>
+  <div class="ep-side-nav ep-side-nav-right" id="epSideNavRight" title="Next Page">
+    <div class="ep-side-nav-icon"><i class="fa fa-chevron-right"></i></div>
+  </div>
 
   <!-- ── MAIN CONTENT ── -->
   <div class="ep-main" id="epMain">
@@ -107,10 +92,10 @@
         </div>
 
         <!-- Empty state -->
-        <div id="epEmptyState" style="display:none; text-align:center; padding:60px 24px;">
-          <i class="fa fa-newspaper" style="font-size:64px;color:#d1d5db;display:block;margin-bottom:16px"></i>
-          <h2 style="font-size:22px;color:#374151;margin-bottom:8px">कोई संस्करण उपलब्ध नहीं</h2>
-          <p style="color:#6b7280;font-size:14px">इस तारीख के लिए E-Paper उपलब्ध नहीं है।<br>कैलेंडर से कोई अन्य तारीख चुनें।</p>
+        <div id="epEmptyState" style="display:none; text-align:center; padding:80px 24px;">
+          <i class="fa fa-newspaper" style="font-size:56px;color:#4b5563;display:block;margin-bottom:16px"></i>
+          <h2 style="font-size:20px;color:#6b7280;margin-bottom:8px;font-weight:700">कोई संस्करण उपलब्ध नहीं</h2>
+          <p style="color:#4b5563;font-size:13px;line-height:1.7">इस तारीख के लिए E-Paper उपलब्ध नहीं है।<br>कैलेंडर से कोई अन्य तारीख चुनें।</p>
         </div>
       </div>
 
@@ -163,49 +148,78 @@
 
   <!-- ── ARTICLE DETAIL PANEL ── -->
   <div class="ep-article-panel" id="epArticlePanel">
-    <!-- Article Header -->
-    <div class="ep-article-header">
+
+    <!-- ── Top bar: Back + Play ── -->
+    <div class="ep-article-topbar">
       <button class="ep-article-back" id="epArtBack">
         <i class="fa fa-chevron-left"></i> Back
       </button>
-
-      <!-- AI Assist Toolbar -->
-      <div class="ep-ai-bar">
-        <button class="ep-ai-tab active" data-tab="assist">
-          <i class="fa fa-wand-magic-sparkles"></i>
-          <span>AIssist</span>
-        </button>
-        <button class="ep-ai-tab" data-tab="translate">
-          <i class="fa fa-language"></i>
-          <span>Translate</span>
-        </button>
-        <button class="ep-ai-tab" data-tab="listen">
-          <i class="fa fa-headphones"></i>
-          <span>Listen</span>
-        </button>
-        <button class="ep-ai-tab" data-tab="summarize">
-          <i class="fa fa-file-lines"></i>
-          <span>Summarize</span>
-        </button>
-        <button class="ep-ai-tab" data-tab="share">
-          <i class="fa fa-share-nodes"></i>
-          <span>Share</span>
+      <div class="ep-art-listen-row" id="epTtsPrompt">
+        <select class="ep-tts-voice-select" id="epVoiceSelect" title="Select language">
+          <option value="">🎙️ Auto</option>
+          <option value="hi-IN-MadhurNeural">हिंदी</option>
+          <option value="mr-IN-ManoharNeural">मराठी</option>
+          <option value="en-IN-PrabhatNeural">English</option>
+        </select>
+        <button class="ep-art-play-btn" id="epTtsStartBtn">
+          <i class="fa fa-play"></i> <span>Play</span>
         </button>
       </div>
     </div>
 
-    <!-- AI Content Panels -->
-    <div class="ep-ai-content" data-tab="listen">
-      <div class="ep-tts-player">
-        <button class="ep-tts-play" id="epTtsPlay"><i class="fa fa-play"></i></button>
-        <div class="ep-tts-bar">
-          <input type="range" class="ep-tts-progress" id="epTtsProgress" min="0" max="100" value="0">
-          <div class="ep-tts-meta">
-            <span>Hindi • Auto</span>
-            <button class="ep-tts-speed" id="epTtsSpeed">1x</button>
-          </div>
+    <!-- ── Audio player strip (visible while playing) ── -->
+    <div class="ep-inline-player" id="epVoiceBar">
+      <div class="ep-inpl-progress" id="epVoiceProgressBg">
+        <div class="ep-inpl-fill" id="epVoiceProgressFill">
+          <div class="ep-inpl-dot"></div>
         </div>
       </div>
+      <div class="ep-inpl-controls">
+        <div class="ep-inpl-left">
+          <button class="ep-inpl-skip" id="epVoiceBack" title="Back 10s">
+            <i class="fa fa-rotate-left"></i><b>10</b>
+          </button>
+          <button class="ep-inpl-play" id="epVoicePlayBtn">
+            <i class="fa fa-play" id="epVoicePlayIcon"></i>
+          </button>
+          <button class="ep-inpl-skip" id="epVoiceForward" title="Forward 10s">
+            <i class="fa fa-rotate-right"></i><b>10</b>
+          </button>
+        </div>
+        <div class="ep-inpl-center">
+          <div class="ep-inpl-waveform" id="epVoiceWaveform">
+            <span></span><span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <div class="ep-inpl-times">
+            <span class="ep-inpl-time" id="epVoiceElapsed">0:00</span>
+            <span class="ep-inpl-title" id="epVoiceTitle">Article</span>
+            <span class="ep-inpl-time" id="epVoiceRemaining">-0:00</span>
+          </div>
+        </div>
+        <div class="ep-inpl-right">
+          <button class="ep-inpl-speed" id="epVoiceSpeedBtn">1×</button>
+          <button class="ep-inpl-close" id="epVoiceCloseBtn" title="Stop">
+            <i class="fa fa-stop"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── AI Tab bar ── -->
+    <div class="ep-ai-bar">
+      <button class="ep-ai-tab" data-tab="translate">
+        <i class="fa fa-language"></i>
+        <span>Translate</span>
+      </button>
+      <button class="ep-ai-tab" data-tab="summarize">
+        <i class="fa fa-file-lines"></i>
+        <span>Summarize</span>
+      </button>
+      <button class="ep-ai-tab" data-tab="share">
+        <i class="fa fa-share-nodes"></i>
+        <span>Share</span>
+      </button>
     </div>
 
     <div class="ep-ai-content" data-tab="translate">

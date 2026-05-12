@@ -6,7 +6,7 @@ import os
 import re
 from datetime import datetime
 
-from flask import Blueprint, jsonify, render_template, request, redirect, url_for
+from flask import Blueprint, jsonify, render_template, request, redirect, url_for, send_file
 from werkzeug.utils import secure_filename
 
 epaper_bp = Blueprint("epaper", __name__)
@@ -234,34 +234,34 @@ def api_delete_edition(date):
 @epaper_bp.route("/api/epaper/translate", methods=["POST"])
 def api_translate():
     data = request.get_json(silent=True) or {}
-    text = data.get("text", "")
+    text = data.get("text", "").strip()
     target = data.get("target_lang", "en")
 
     if not text:
         return jsonify({"error": "No text provided."}), 400
 
-    # Free fallback: simple placeholder (replace with real API)
-    # For production, integrate Google Translate API or LibreTranslate
     try:
-        # Attempt LibreTranslate (self-hosted or free instance)
-        from urllib.request import Request, urlopen
-        libre_url = os.getenv("LIBRETRANSLATE_URL", "https://libretranslate.de/translate")
-        req_body = json.dumps({
-            "q": text[:2000],
-            "source": "auto",
-            "target": target,
-            "format": "text",
-        }).encode("utf-8")
-        req = Request(libre_url, data=req_body, headers={"Content-Type": "application/json"})
-        with urlopen(req, timeout=10) as resp:
-            result = json.loads(resp.read().decode("utf-8"))
-            return jsonify({"translated_text": result.get("translatedText", text)})
-    except Exception:
-        # Fallback — return original text with a note
-        return jsonify({
-            "translated_text": text,
-            "note": "Translation API unavailable. Showing original text."
-        })
+        from deep_translator import GoogleTranslator
+        # Split into chunks ≤4500 chars (Google Translate limit)
+        chunks, start = [], 0
+        while start < len(text):
+            end = min(start + 4500, len(text))
+            # Break at sentence boundary if possible
+            if end < len(text):
+                for sep in ('। ', '. ', '\n', ' '):
+                    pos = text.rfind(sep, start, end)
+                    if pos > start:
+                        end = pos + len(sep)
+                        break
+            chunks.append(text[start:end].strip())
+            start = end
+        translated_chunks = [
+            GoogleTranslator(source="auto", target=target).translate(c) or c
+            for c in chunks if c
+        ]
+        return jsonify({"translated_text": "\n\n".join(translated_chunks)})
+    except Exception as e:
+        return jsonify({"translated_text": text, "note": f"Translation failed: {str(e)}"})
 
 
 # ── AI: Summarize ──────────────────────────────────
@@ -326,11 +326,180 @@ def api_summarize():
     return jsonify({"summary": summary})
 
 
-# ── AI: TTS (server-side, optional) ────────────────
+# ── AI: LLM-optimized TTS script ───────────────────
+@epaper_bp.route("/api/epaper/tts-script", methods=["POST"])
+def api_tts_script():
+    """Use Groq LLM to process raw text into an optimized broadcast script for TTS."""
+    data = request.get_json(silent=True) or {}
+    text = data.get("text", "").strip()
+
+    if not text:
+        return jsonify({"error": "No text provided."}), 400
+
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        return jsonify({"error": "Groq API key not configured"}), 500
+
+    try:
+        from groq import Groq
+        client = Groq(api_key=api_key)
+
+        system_prompt = """You are a senior broadcast script writer for India's top news channels (Aaj Tak, NDTV India, Zee 24 Taas, ABP Maza, Times Now). Transform raw news text into a broadcast-ready narration script that sounds exactly like a real live news anchor — not a robot.
+
+LANGUAGE DETECTION:
+Detect the primary language: Hindi (हिंदी), Marathi (मराठी), or English.
+Return "language" as: "hi" for Hindi, "mr" for Marathi, "en" for English.
+Mixed scripts are normal — keep natural code-switching (e.g. English proper nouns in Hindi article).
+
+MANDATORY TRANSFORMATIONS:
+
+1. SENTENCE RHYTHM — Break long sentences at natural breath points. Each sentence max 15 words. Short punchy sentences for impact.
+
+2. PAUSE INJECTION (critical for realistic delivery):
+   - After headline: add "..." (anchor pause before story)
+   - After key facts, numbers, names: add ", " (short beat)
+   - Between topic shifts in Hindi/Marathi: add " | "
+   - After dramatic statements: add " — "
+   - End of important section: add full stop + new line
+
+3. NUMBER & SYMBOL CONVERSION:
+   Hindi/Marathi: ₹50,000 → पचास हजार रुपये | ₹2 crore → दो करोड़ रुपये | 50% → पचास प्रतिशत | 10 lakh → दस लाख
+   English: $1M → one million dollars | 10% → ten percent | 2025 → twenty twenty-five
+
+4. ABBREVIATION EXPANSION:
+   Hindi: JEE→जे ई ई | NEET→नीट | IIT→आई आई टी | UP→उत्तर प्रदेश | CM→मुख्यमंत्री | PM→प्रधानमंत्री
+   Marathi: JEE→जे ई ई | CM→मुख्यमंत्री | PM→पंतप्रधान | MH→महाराष्ट्र
+   English: JEE→J-E-E | IIT→I-I-T | CM→Chief Minister | PM→Prime Minister
+
+5. ANCHOR TONE BY LANGUAGE:
+   Hindi (Aaj Tak style): आदरपूर्ण, स्पष्ट उच्चारण, थोड़ी urgency। वाक्य छोटे और प्रभावशाली।
+   Marathi (Zee 24 Taas style): स्पष्ट मराठी उच्चारण। Standard Pune-style Marathi diction.
+   English (NDTV style): Crisp neutral Indian English. Measured pace.
+
+6. OPENING FORMAT (mandatory):
+   Hindi: Start with "एक बड़ी खबर... " or "ताज़ा जानकारी के मुताबिक... "
+   Marathi: Start with "महत्त्वाची बातमी... " or "ताज्या माहितीनुसार... "
+   English: Start with "Breaking news — " or "In a major development, "
+
+7. VOICE STYLE (choose based on story tone):
+   Breaking/urgent: speed=1.0, pitch="+2Hz"
+   Education/results: speed=0.95, pitch="+0Hz"
+   Government/policy: speed=0.92, pitch="-2Hz"
+   Positive/achievement: speed=1.0, pitch="+3Hz"
+
+Return ONLY valid JSON — no markdown, no extra text:
+{
+  "language": "hi|mr|en",
+  "title_script": "...",
+  "body_script": "...",
+  "voice_style": { "speed": 0.95, "pitch": "+0Hz", "emotion": "calm-authoritative", "pause_style": "short after facts" }
+}"""
+
+        response = client.chat.completions.create(
+            messages=[{"role": "user", "content": f"Raw News Article:\n\n{text[:4000]}"}],
+            model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
+            response_format={"type": "json_object"},
+            temperature=0.2,
+            max_tokens=2000,
+        )
+
+        import json as _json
+        result = _json.loads(response.choices[0].message.content)
+        return jsonify(result)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"LLM script optimization failed: {str(e)}"}), 500
+
+
+# ── AI: TTS (Google gTTS — reliable for Indian languages) ──
 @epaper_bp.route("/api/epaper/tts", methods=["POST"])
 def api_tts():
-    """Optional server-side TTS. Frontend uses Web Speech API by default."""
-    return jsonify({
-        "note": "Using browser-native Web Speech API. No server TTS needed.",
-        "supported": True,
-    })
+    """Server-side TTS using Google gTTS. Returns MP3 audio. Supports Hindi, Marathi, English."""
+    import io
+
+    data = request.get_json(silent=True) or {}
+    text = data.get("text", "").strip()
+    voice = data.get("voice", "")
+
+    if not text:
+        return jsonify({"error": "No text provided."}), 400
+
+    text = text[:5000]
+
+    # Auto-detect language from text or voice hint
+    VOICE_TO_LANG = {
+        "hi-IN-MadhurNeural": "hi", "hi-IN-SwaraNeural": "hi",
+        "mr-IN-ManoharNeural": "mr", "mr-IN-AarohiNeural": "mr",
+        "en-IN-PrabhatNeural": "en", "en-IN-NeerjaNeural": "en",
+    }
+    lang = VOICE_TO_LANG.get(voice, "")
+
+    if not lang:
+        devanagari_chars = len(re.findall(r'[ऀ-ॿ]', text))
+        devanagari_ratio = devanagari_chars / max(len(text), 1)
+        MARATHI_WORDS = ['आहे','नाही','आणि','मला','आपण','होते','केले','झाले','त्यांनी','म्हणाले','महाराष्ट्र','पुणे','मुंबई']
+        HINDI_WORDS   = ['है','नहीं','और','था','हैं','यह','हो','उन्होंने','कहा','इससे','बताया']
+        marathi_hits = sum(1 for w in MARATHI_WORDS if w in text)
+        hindi_hits   = sum(1 for w in HINDI_WORDS if w in text)
+
+        if devanagari_ratio > 0.3:
+            lang = "mr" if marathi_hits > hindi_hits else "hi"
+        else:
+            lang = "en"
+
+    # Normalize newlines so gTTS never pauses mid-sentence at a \n
+    text = re.sub(r'\r\n', ' ', text)
+    text = re.sub(r'[\r\n]+', ' ', text)
+    text = re.sub(r' +', ' ', text).strip()
+
+    try:
+        from gtts import gTTS
+
+        # Split text at sentence boundaries into chunks ≤ 90 chars so gTTS
+        # never has to cut a sentence at an arbitrary space mid-word.
+        def _sentence_chunks(t, max_chars=90):
+            parts = re.split(r'(?<=[.!?।])\s+', t.strip())
+            chunks, buf = [], ''
+            for part in parts:
+                part = part.strip()
+                if not part:
+                    continue
+                if not buf:
+                    buf = part
+                elif len(buf) + 1 + len(part) <= max_chars:
+                    buf += ' ' + part
+                else:
+                    chunks.append(buf)
+                    buf = part
+            if buf:
+                chunks.append(buf)
+            return chunks or [t]
+
+        audio_buf = io.BytesIO()
+        for chunk in _sentence_chunks(text):
+            gTTS(text=chunk, lang=lang, slow=False).write_to_fp(audio_buf)
+        audio_buf.seek(0)
+        return send_file(
+            audio_buf,
+            mimetype="audio/mpeg",
+            as_attachment=False,
+            download_name="tts_audio.mp3",
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"TTS error: {str(e)}"}), 500
+
+
+# ── API: Available TTS voices ───────────────────────
+@epaper_bp.route("/api/epaper/tts/voices")
+def api_tts_voices():
+    return jsonify({"voices": [
+        {"id": "hi-IN-MadhurNeural",  "name": "माधुर ♂ (Hindi)",   "lang": "hi", "gender": "male"},
+        {"id": "hi-IN-SwaraNeural",   "name": "स्वरा ♀ (Hindi)",   "lang": "hi", "gender": "female"},
+        {"id": "mr-IN-ManoharNeural", "name": "मनोहर ♂ (Marathi)", "lang": "mr", "gender": "male"},
+        {"id": "mr-IN-AarohiNeural",  "name": "आरोही ♀ (Marathi)", "lang": "mr", "gender": "female"},
+        {"id": "en-IN-PrabhatNeural", "name": "Prabhat ♂ (English)","lang": "en", "gender": "male"},
+        {"id": "en-IN-NeerjaNeural",  "name": "Neerja ♀ (English)", "lang": "en", "gender": "female"},
+    ]})

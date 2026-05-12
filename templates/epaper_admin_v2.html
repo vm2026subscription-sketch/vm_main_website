@@ -189,7 +189,13 @@
 
     <!-- Page Builder -->
     <div class="epa-card" id="builderSection" style="display:none">
-      <h2><i class="fa fa-th-large"></i> Page Builder — Drag & Drop</h2>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+        <h2 style="margin:0"><i class="fa fa-th-large"></i> Page Builder — Drag & Drop</h2>
+        <button type="button" class="epa-btn epa-btn-sm" id="undoBtn" onclick="EPAdmin.undo()" title="Undo (Ctrl+Z)" style="display:flex;align-items:center;gap:6px;opacity:.85">
+          <i class="fa fa-undo"></i> Undo
+          <span style="font-size:10px;opacity:.6;margin-left:2px">Ctrl+Z</span>
+        </button>
+      </div>
       <div class="epa-page-tabs" id="pageTabs"></div>
       <div class="epa-card" style="margin:0 0 14px;padding:14px;background:#fafafa">
         <h2 style="font-size:14px;margin-bottom:10px"><i class="fa fa-image"></i> Newspaper Page Image</h2>
