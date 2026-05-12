@@ -155,11 +155,21 @@
         <i class="fa fa-chevron-left"></i> Back
       </button>
       <div class="ep-art-listen-row" id="epTtsPrompt">
-        <select class="ep-tts-voice-select" id="epVoiceSelect" title="Select language">
-          <option value="">🎙️ Auto</option>
-          <option value="hi-IN-MadhurNeural">हिंदी</option>
-          <option value="mr-IN-ManoharNeural">मराठी</option>
-          <option value="en-IN-PrabhatNeural">English</option>
+        <span class="ep-tts-estimate" id="epTtsEstimate"></span>
+        <select class="ep-tts-voice-select" id="epVoiceSelect" title="Select voice">
+          <option value="">🎙️ Auto detect</option>
+          <optgroup label="हिंदी">
+            <option value="hi-IN-MadhurNeural">माधुर ♂ (Hindi)</option>
+            <option value="hi-IN-SwaraNeural">स्वरा ♀ (Hindi)</option>
+          </optgroup>
+          <optgroup label="मराठी">
+            <option value="mr-IN-ManoharNeural">मनोहर ♂ (Marathi)</option>
+            <option value="mr-IN-AarohiNeural">आरोही ♀ (Marathi)</option>
+          </optgroup>
+          <optgroup label="English">
+            <option value="en-IN-PrabhatNeural">Prabhat ♂ (English)</option>
+            <option value="en-IN-NeerjaNeural">Neerja ♀ (English)</option>
+          </optgroup>
         </select>
         <button class="ep-art-play-btn" id="epTtsStartBtn">
           <i class="fa fa-play"></i> <span>Play</span>
@@ -198,7 +208,11 @@
           </div>
         </div>
         <div class="ep-inpl-right">
-          <button class="ep-inpl-speed" id="epVoiceSpeedBtn">1×</button>
+          <span class="ep-inpl-time" id="epVoiceDuration">0:00</span>
+          <button class="ep-inpl-vol" id="epVoiceVolBtn" title="Mute/Unmute">
+            <i class="fa fa-volume-high"></i>
+          </button>
+          <button class="ep-inpl-speed" id="epVoiceSpeedBtn">1x</button>
           <button class="ep-inpl-close" id="epVoiceCloseBtn" title="Stop">
             <i class="fa fa-stop"></i>
           </button>
