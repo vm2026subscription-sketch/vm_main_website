@@ -240,13 +240,44 @@ def api_translate():
     if not text:
         return jsonify({"error": "No text provided."}), 400
 
+    lang_names = {
+        'hi': 'Hindi', 'mr': 'Marathi', 'en': 'English',
+        'bn': 'Bengali', 'ta': 'Tamil', 'te': 'Telugu',
+    }
+    target_name = lang_names.get(target, target)
+
+    api_key = os.getenv("GROQ_API_KEY")
+    if api_key:
+        try:
+            from groq import Groq
+            client = Groq(api_key=api_key)
+            response = client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            f"You are a professional translator. Translate the following text to {target_name}. "
+                            "Return ONLY the translated text — no explanations, no notes, no extra lines."
+                        ),
+                    },
+                    {"role": "user", "content": text[:3500]},
+                ],
+                model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
+                temperature=0.1,
+                max_tokens=2000,
+            )
+            translated = response.choices[0].message.content.strip()
+            return jsonify({"translated_text": translated})
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+
+    # Fallback: deep_translator
     try:
         from deep_translator import GoogleTranslator
-        # Split into chunks ≤4500 chars (Google Translate limit)
         chunks, start = [], 0
         while start < len(text):
             end = min(start + 4500, len(text))
-            # Break at sentence boundary if possible
             if end < len(text):
                 for sep in ('। ', '. ', '\n', ' '):
                     pos = text.rfind(sep, start, end)
@@ -261,7 +292,7 @@ def api_translate():
         ]
         return jsonify({"translated_text": "\n\n".join(translated_chunks)})
     except Exception as e:
-        return jsonify({"translated_text": text, "note": f"Translation failed: {str(e)}"})
+        return jsonify({"error": f"Translation failed: {str(e)}"}), 500
 
 
 # ── AI: Summarize ──────────────────────────────────
@@ -412,76 +443,115 @@ Return ONLY valid JSON — no markdown, no extra text:
         return jsonify({"error": f"LLM script optimization failed: {str(e)}"}), 500
 
 
-# ── AI: TTS (Google gTTS — reliable for Indian languages) ──
+# ── AI: TTS (Edge Neural Voices — Real Indian Anchor) ──
 @epaper_bp.route("/api/epaper/tts", methods=["POST"])
 def api_tts():
-    """Server-side TTS using Google gTTS. Returns MP3 audio. Supports Hindi, Marathi, English."""
+    """Server-side TTS using Microsoft Edge Neural voices.
+    Returns MP3 audio with natural Indian news anchor voice.
+    """
+    import asyncio
     import io
 
     data = request.get_json(silent=True) or {}
     text = data.get("text", "").strip()
-    voice = data.get("voice", "")
+    voice = data.get("voice", "")  # optional override
+    rate = data.get("rate", "+0%")  # e.g. "+10%", "-5%"
+    pitch = data.get("pitch", "+0Hz")  # e.g. "+5Hz", "-5Hz"
 
     if not text:
         return jsonify({"error": "No text provided."}), 400
 
     text = text[:5000]
 
-    # Auto-detect language from text or voice hint
-    VOICE_TO_LANG = {
-        "hi-IN-MadhurNeural": "hi", "hi-IN-SwaraNeural": "hi",
-        "mr-IN-ManoharNeural": "mr", "mr-IN-AarohiNeural": "mr",
-        "en-IN-PrabhatNeural": "en", "en-IN-NeerjaNeural": "en",
-    }
-    lang = VOICE_TO_LANG.get(voice, "")
+    # ── Language detection ──────────────────────────────────────────────────
+    devanagari_chars = len(re.findall(r'[ऀ-ॿ]', text))
+    devanagari_ratio = devanagari_chars / max(len(text), 1)
 
-    if not lang:
-        devanagari_chars = len(re.findall(r'[ऀ-ॿ]', text))
-        devanagari_ratio = devanagari_chars / max(len(text), 1)
-        MARATHI_WORDS = ['आहे','नाही','आणि','मला','आपण','होते','केले','झाले','त्यांनी','म्हणाले','महाराष्ट्र','पुणे','मुंबई']
-        HINDI_WORDS   = ['है','नहीं','और','था','हैं','यह','हो','उन्होंने','कहा','इससे','बताया']
-        marathi_hits = sum(1 for w in MARATHI_WORDS if w in text)
-        hindi_hits   = sum(1 for w in HINDI_WORDS if w in text)
+    MARATHI_WORDS = [
+        'आहे', 'नाही', 'आणि', 'मला', 'आपण', 'होते', 'केले', 'झाले',
+        'त्यांनी', 'म्हणाले', 'यावर', 'यामुळे', 'सांगितले', 'महाराष्ट्र',
+        'पुणे', 'मुंबई', 'नागपूर', 'ठाणे', 'सरकार', 'विद्यार्थी'
+    ]
+    HINDI_WORDS = [
+        'है', 'नहीं', 'और', 'था', 'हैं', 'यह', 'हो', 'उन्होंने',
+        'कहा', 'इससे', 'इसलिए', 'बताया', 'राज्य', 'सरकार'
+    ]
+    marathi_hits = sum(1 for w in MARATHI_WORDS if w in text)
+    hindi_hits = sum(1 for w in HINDI_WORDS if w in text)
 
+    if not voice:
         if devanagari_ratio > 0.3:
-            lang = "mr" if marathi_hits > hindi_hits else "hi"
+            if marathi_hits > hindi_hits:
+                voice = "mr-IN-ManoharNeural"
+                if rate == "+0%": rate = "-2%"
+                if pitch == "+0Hz": pitch = "+2Hz"
+            else:
+                voice = "hi-IN-MadhurNeural"
+                if rate == "+0%": rate = "-2%"
+                if pitch == "+0Hz": pitch = "+2Hz"
         else:
-            lang = "en"
+            voice = "en-IN-PrabhatNeural"
+            if rate == "+0%": rate = "-2%"
+            if pitch == "+0Hz": pitch = "+1Hz"
+    else:
+        _voice_defaults = {
+            "hi-IN-MadhurNeural":  ("-2%", "+2Hz"),
+            "hi-IN-SwaraNeural":   ("-1%", "+1Hz"),
+            "mr-IN-ManoharNeural": ("-2%", "+2Hz"),
+            "mr-IN-AarohiNeural":  ("-1%", "+1Hz"),
+            "en-IN-PrabhatNeural": ("-2%", "+1Hz"),
+            "en-IN-NeerjaNeural":  ("-1%", "+1Hz"),
+        }
+        if voice in _voice_defaults and rate == "+0%" and pitch == "+0Hz":
+            rate, pitch = _voice_defaults[voice]
 
-    # Normalize newlines so gTTS never pauses mid-sentence at a \n
-    text = re.sub(r'\r\n', ' ', text)
-    text = re.sub(r'[\r\n]+', ' ', text)
-    text = re.sub(r' +', ' ', text).strip()
+    # ── Server-side text preprocessing for natural delivery ─────────────────
+    _abbr_map = {
+        'JEE': 'जे ई ई', 'NEET': 'नीट', 'IIT': 'आई आई टी',
+        'IIM': 'आई आई एम', 'NIT': 'एन आई टी',
+        'CM': 'मुख्यमंत्री', 'PM': 'प्रधानमंत्री',
+        'BJP': 'बी जे पी', 'RSS': 'आर एस एस',
+        'CBSE': 'सी बी एस ई', 'SSC': 'एस एस सी', 'HSC': 'एच एस सी',
+        'CET': 'सी ई टी', 'DTE': 'डी टी ई',
+    }
+    for abbr, expansion in _abbr_map.items():
+        text = re.sub(rf'\b{abbr}\b', expansion, text)
+
+    def _rupee_to_words(m):
+        n = int(m.group(1).replace(',', ''))
+        if n >= 10000000: return f"{n/10000000:.1f} करोड़ रुपये"
+        if n >= 100000: return f"{n/100000:.1f} लाख रुपये"
+        if n >= 1000: return f"{n/1000:.0f} हज़ार रुपये"
+        return f"{n} रुपये"
+    text = re.sub(r'₹\s?(\d[\d,]*)', _rupee_to_words, text)
+
+    text = re.sub(r'(\d+)%', r'\1 प्रतिशत', text)
+    text = re.sub(r'।\s*', '। ... ', text)
+    text = re.sub(r'\.\s+', '. ... ', text)
+
+    if isinstance(rate, (int, float)):
+        pct = int((rate - 1) * 100)
+        rate = f"+{pct}%" if pct >= 0 else f"{pct}%"
+
+    async def _generate_audio():
+        import edge_tts
+        communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
+        audio_data = b""
+        async for chunk in communicate.stream():
+            if chunk["type"] == "audio":
+                audio_data += chunk["data"]
+        return audio_data
 
     try:
-        from gtts import gTTS
+        loop = asyncio.new_event_loop()
+        audio_bytes = loop.run_until_complete(_generate_audio())
+        loop.close()
 
-        # Split text at sentence boundaries into chunks ≤ 90 chars so gTTS
-        # never has to cut a sentence at an arbitrary space mid-word.
-        def _sentence_chunks(t, max_chars=90):
-            parts = re.split(r'(?<=[.!?।])\s+', t.strip())
-            chunks, buf = [], ''
-            for part in parts:
-                part = part.strip()
-                if not part:
-                    continue
-                if not buf:
-                    buf = part
-                elif len(buf) + 1 + len(part) <= max_chars:
-                    buf += ' ' + part
-                else:
-                    chunks.append(buf)
-                    buf = part
-            if buf:
-                chunks.append(buf)
-            return chunks or [t]
+        if not audio_bytes:
+            return jsonify({"error": "TTS generation failed."}), 500
 
-        audio_buf = io.BytesIO()
-        for chunk in _sentence_chunks(text):
-            gTTS(text=chunk, lang=lang, slow=False).write_to_fp(audio_buf)
-        audio_buf.seek(0)
         return send_file(
-            audio_buf,
+            io.BytesIO(audio_bytes),
             mimetype="audio/mpeg",
             as_attachment=False,
             download_name="tts_audio.mp3",
@@ -496,10 +566,10 @@ def api_tts():
 @epaper_bp.route("/api/epaper/tts/voices")
 def api_tts_voices():
     return jsonify({"voices": [
-        {"id": "hi-IN-MadhurNeural",  "name": "माधुर ♂ (Hindi)",   "lang": "hi", "gender": "male"},
-        {"id": "hi-IN-SwaraNeural",   "name": "स्वरा ♀ (Hindi)",   "lang": "hi", "gender": "female"},
-        {"id": "mr-IN-ManoharNeural", "name": "मनोहर ♂ (Marathi)", "lang": "mr", "gender": "male"},
-        {"id": "mr-IN-AarohiNeural",  "name": "आरोही ♀ (Marathi)", "lang": "mr", "gender": "female"},
-        {"id": "en-IN-PrabhatNeural", "name": "Prabhat ♂ (English)","lang": "en", "gender": "male"},
-        {"id": "en-IN-NeerjaNeural",  "name": "Neerja ♀ (English)", "lang": "en", "gender": "female"},
+        {"id": "hi-IN-MadhurNeural",  "name": "माधुर (Hindi Male)",     "lang": "hi", "gender": "male",   "style": "News Anchor"},
+        {"id": "hi-IN-SwaraNeural",   "name": "स्वरा (Hindi Female)",   "lang": "hi", "gender": "female", "style": "News Anchor"},
+        {"id": "mr-IN-ManoharNeural", "name": "मनोहर (Marathi Male)",   "lang": "mr", "gender": "male",   "style": "News Anchor"},
+        {"id": "mr-IN-AarohiNeural",  "name": "आरोही (Marathi Female)", "lang": "mr", "gender": "female", "style": "Professional"},
+        {"id": "en-IN-PrabhatNeural", "name": "Prabhat (English Male)",  "lang": "en", "gender": "male",   "style": "News Anchor"},
+        {"id": "en-IN-NeerjaNeural",  "name": "Neerja (English Female)", "lang": "en", "gender": "female", "style": "Professional"},
     ]})
