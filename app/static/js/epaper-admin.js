@@ -26,6 +26,35 @@ const EPAdmin = {
     this.updateEditionNamePreview();
   },
 
+  newEdition() {
+    // Reset state
+    this.currentEdition = null;
+    this.pages = [];
+    this.currentPageIdx = 0;
+    this.activeBlockIdx = null;
+
+    // Reset the edition form fields
+    const dateInput = document.getElementById('edDate');
+    const nameInput = document.getElementById('edName');
+    const langSelect = document.getElementById('edLang');
+    if (dateInput) dateInput.value = '';
+    if (nameInput) nameInput.value = '';
+    if (langSelect) langSelect.value = 'Hindi';
+    this.updateEditionNamePreview();
+
+    // Hide builder and delete button
+    const builder = document.getElementById('builderSection');
+    const deleteBtn = document.getElementById('deleteEditionBtn');
+    if (builder) builder.style.display = 'none';
+    if (deleteBtn) deleteBtn.style.display = 'none';
+
+    // Scroll to top of form
+    const form = document.getElementById('editionForm');
+    if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    this.showToast('Ready to create a new edition.');
+  },
+
   initQuill() {
     this.quill = new Quill('#quillEditor', {
       theme: 'snow',
