@@ -27,6 +27,44 @@
     .related-link:first-of-type{border-top:0}
     .back-link{display:inline-flex;margin-bottom:14px;color:#b4232a;text-decoration:none;font-weight:800}
     @media(max-width:900px){.article-shell{grid-template-columns:1fr}.article-side{order:-1}.side-card{display:none}.article-main{padding:22px}.article-copy{font-size:16px}}
+
+    /* ── TTS sentence highlight ── */
+    .tts-sentence{border-radius:4px;padding:1px 2px;transition:background .25s,color .25s;}
+    .tts-sentence.tts-active{background:#fff3c4;color:#111;box-shadow:0 0 0 2px #fbbf24;}
+
+    /* ── TTS Play bar ── */
+    .tts-bar{display:flex;align-items:center;gap:12px;background:#fff7f0;border:1px solid #fdd0a6;border-radius:10px;padding:12px 16px;margin:18px 0 4px;flex-wrap:wrap}
+    .tts-lang{padding:7px 10px;border-radius:8px;border:1px solid #d1d5db;font-size:13px;background:#fff;color:#374151;cursor:pointer;outline:none}
+    .tts-lang:focus{border-color:#ff6600}
+    .tts-play-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:22px;border:none;background:#ff6600;color:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;box-shadow:0 2px 10px rgba(255,102,0,.3);white-space:nowrap}
+    .tts-play-btn:hover{background:#e05500;transform:scale(1.03)}
+    .tts-play-btn:disabled{opacity:.6;cursor:wait;transform:none}
+    /* ── sticky audio player ── */
+    .tts-player{position:fixed;bottom:0;left:0;right:0;background:#111827;z-index:999;transform:translateY(100%);transition:transform .3s ease}
+    .tts-player.active{transform:translateY(0)}
+    .tts-progress{height:4px;background:rgba(255,255,255,.15);cursor:pointer;position:relative}
+    .tts-progress:hover{height:6px}
+    .tts-fill{height:100%;width:0;background:linear-gradient(90deg,#ff6600,#ff9940);transition:width .25s linear}
+    .tts-controls{display:flex;align-items:center;gap:10px;padding:10px 20px}
+    .tts-ctrl-btn{width:34px;height:34px;border-radius:50%;border:none;background:rgba(255,255,255,.1);color:rgba(255,255,255,.8);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:all .2s}
+    .tts-ctrl-btn:hover{background:rgba(255,255,255,.2);color:#fff}
+    .tts-ctrl-play{width:42px;height:42px;background:#ff6600!important;color:#fff!important;font-size:15px;box-shadow:0 2px 8px rgba(255,102,0,.4)}
+    .tts-ctrl-play:hover{background:#e05500!important;transform:scale(1.08)}
+    .tts-info{flex:1;min-width:0;text-align:center}
+    .tts-title{font-size:12px;color:rgba(255,255,255,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px;margin:0 auto}
+    .tts-times{display:flex;gap:6px;justify-content:center;font-size:10px;color:rgba(255,255,255,.45);font-variant-numeric:tabular-nums;margin-top:2px}
+    .tts-speed-btn{padding:4px 10px;border-radius:12px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);border:none;cursor:pointer;font-size:11px;font-weight:700;transition:all .2s}
+    .tts-speed-btn:hover{background:rgba(255,255,255,.2);color:#fff}
+    .tts-close-btn{color:rgba(255,255,255,.5)!important}
+    .tts-waveform{display:flex;align-items:center;gap:2px;height:16px;justify-content:center}
+    .tts-waveform span{width:3px;border-radius:2px;background:rgba(255,255,255,.2);height:4px;transition:height .1s}
+    .tts-player.playing .tts-waveform span{animation:ttsWave .55s ease-in-out infinite alternate;background:linear-gradient(180deg,#ff9940,#ff6600)}
+    .tts-player.playing .tts-waveform span:nth-child(1){animation-delay:0s}
+    .tts-player.playing .tts-waveform span:nth-child(2){animation-delay:.07s}
+    .tts-player.playing .tts-waveform span:nth-child(3){animation-delay:.14s}
+    .tts-player.playing .tts-waveform span:nth-child(4){animation-delay:.21s}
+    .tts-player.playing .tts-waveform span:nth-child(5){animation-delay:.28s}
+    @keyframes ttsWave{0%{height:3px}100%{height:14px}}
   </style>
 </head>
 <body>
@@ -42,6 +80,19 @@
         {% if article.edition_name %}<span>{{ article.edition_name }}</span>{% endif %}
         {% if article.page_number %}<span>Page {{ article.page_number }}</span>{% endif %}
       </div>
+      <!-- ── TTS Play bar ── -->
+      <div class="tts-bar">
+        <select class="tts-lang" id="ttsLang">
+          <option value="">🎙️ Auto detect</option>
+          <option value="hi-IN-MadhurNeural">हिंदी (Hindi)</option>
+          <option value="mr-IN-ManoharNeural">मराठी (Marathi)</option>
+          <option value="en-IN-PrabhatNeural">English</option>
+        </select>
+        <button class="tts-play-btn" id="ttsPlayBtn" onclick="ttsPlay()">
+          <i class="fa fa-play"></i> Play Article
+        </button>
+      </div>
+
       {% if article.image %}<img class="article-hero" src="{{ article.image }}" alt="{{ article.title }}">{% endif %}
       <div class="article-copy">
         {% if article.body_html %}
@@ -70,5 +121,317 @@
       </div>
     </aside>
   </main>
+
+  <!-- ── Sticky audio player ── -->
+  <div class="tts-player" id="ttsPlayer">
+    <div class="tts-progress" id="ttsProgress">
+      <div class="tts-fill" id="ttsFill"></div>
+    </div>
+    <div class="tts-controls">
+      <button class="tts-ctrl-btn" onclick="ttsSkip(-10)" title="Back 10s"><i class="fa fa-rotate-left"></i></button>
+      <button class="tts-ctrl-btn tts-ctrl-play" id="ttsCtrlPlay" onclick="ttsToggle()"><i class="fa fa-play" id="ttsCtrlIcon"></i></button>
+      <button class="tts-ctrl-btn" onclick="ttsSkip(10)" title="Forward 10s"><i class="fa fa-rotate-right"></i></button>
+      <div class="tts-info">
+        <div class="tts-waveform"><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="tts-title" id="ttsTitle">{{ article.title }}</div>
+        <div class="tts-times"><span id="ttsElapsed">0:00</span><span>·</span><span id="ttsRemaining">-0:00</span></div>
+      </div>
+      <button class="tts-speed-btn" id="ttsSpeedBtn" onclick="ttsCycleSpeed()">1×</button>
+      <button class="tts-ctrl-btn tts-close-btn" onclick="ttsStop()" title="Stop"><i class="fa fa-stop"></i></button>
+    </div>
+  </div>
+
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <script>
+    var _ttsAudio = null, _ttsPlaying = false, _ttsSpeed = 1, _ttsLoading = false;
+    var _speedSteps = [1, 1.25, 1.5, 0.75];
+    var _originalTitle = {{ (article.title or '')|tojson }};
+    var _originalHTML  = null;
+
+    // ── Sentence highlight state ──────────────────────
+    var _ttsSpans = [];       // [{el, start, end}] in char units
+    var _ttsTotalChars = 0;
+    var _ttsCurrentSpan = -1;
+
+    function _splitSentences(text) {
+      text = text.replace(/\s+/g, ' ').trim();
+      var sentences = [];
+      var buf = '';
+      for (var i = 0; i < text.length; i++) {
+        buf += text[i];
+        var ch = text[i];
+        if (/[।!?]/.test(ch)) {
+          // These always end a sentence
+          var s = buf.trim();
+          if (s) sentences.push(s);
+          buf = '';
+        } else if (ch === '.') {
+          // Only end sentence if followed by whitespace + uppercase or Devanagari start
+          var next = text[i + 1] || '';
+          var afterNext = text[i + 2] || '';
+          var isRealEnd = (next === ' ' && /[A-Zऀ-ॿ]/.test(afterNext)) || (!next) || (next === '\n');
+          if (isRealEnd) {
+            var s = buf.trim();
+            if (s) sentences.push(s);
+            buf = '';
+            if (next === ' ') i++; // consume the space
+          }
+        }
+      }
+      if (buf.trim()) sentences.push(buf.trim());
+      return sentences.filter(Boolean);
+    }
+
+    function _prepareHighlight() {
+      _ttsSpans = []; _ttsCurrentSpan = -1;
+      var charOffset = 0;
+
+      // Title as one span
+      var titleEl = document.querySelector('.article-title');
+      if (titleEl) {
+        titleEl.querySelectorAll('.tts-sentence').forEach(function(s){ s.outerHTML = s.textContent; });
+        titleEl.normalize();
+        var t = titleEl.textContent.trim();
+        var sp = document.createElement('span');
+        sp.className = 'tts-sentence'; sp.textContent = t;
+        titleEl.textContent = '';
+        titleEl.appendChild(sp);
+        _ttsSpans.push({ el: sp, start: charOffset, end: charOffset + t.length });
+        charOffset += t.length + 2;
+      }
+
+      // Each <p> split into sentences
+      var paras = document.querySelectorAll('.article-copy p');
+      if (!paras.length) {
+        // Fallback: whole copy as one block
+        var copyEl = document.querySelector('.article-copy');
+        if (copyEl) {
+          paras = [copyEl];
+        }
+      }
+      paras.forEach(function(p) {
+        p.querySelectorAll('.tts-sentence').forEach(function(s){ s.outerHTML = s.textContent; });
+        p.normalize();
+        var text = p.textContent.trim();
+        var sentences = _splitSentences(text);
+        p.textContent = '';
+        sentences.forEach(function(s, si) {
+          var sp = document.createElement('span');
+          sp.className = 'tts-sentence'; sp.textContent = s;
+          p.appendChild(sp);
+          if (si < sentences.length - 1) p.appendChild(document.createTextNode(' '));
+          _ttsSpans.push({ el: sp, start: charOffset, end: charOffset + s.length });
+          charOffset += s.length + 1;
+        });
+      });
+
+      _ttsTotalChars = charOffset || 1;
+    }
+
+    function _highlightAt(currentTime, duration) {
+      if (!_ttsTotalChars || !duration) return;
+      var pos = (currentTime / duration) * _ttsTotalChars;
+      var idx = -1;
+      for (var i = 0; i < _ttsSpans.length; i++) {
+        if (pos >= _ttsSpans[i].start && pos < _ttsSpans[i].end) { idx = i; break; }
+      }
+      if (idx === _ttsCurrentSpan) return;
+      if (_ttsCurrentSpan >= 0 && _ttsSpans[_ttsCurrentSpan])
+        _ttsSpans[_ttsCurrentSpan].el.classList.remove('tts-active');
+      _ttsCurrentSpan = idx;
+      if (idx >= 0 && _ttsSpans[idx]) {
+        _ttsSpans[idx].el.classList.add('tts-active');
+        _ttsSpans[idx].el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+
+    function _clearHighlight() {
+      document.querySelectorAll('.tts-sentence.tts-active').forEach(function(el){ el.classList.remove('tts-active'); });
+      _ttsCurrentSpan = -1;
+    }
+
+    // ── Helpers ──────────────────────────────────────
+    function _getArticleText() {
+      var titleEl = document.querySelector('.article-title');
+      var title = titleEl ? (titleEl.innerText || titleEl.textContent) : _originalTitle;
+      var copyEl = document.querySelector('.article-copy');
+      var body = copyEl ? (copyEl.innerText || copyEl.textContent || '') : '';
+      // Collapse any \r or \n inside the text so gTTS doesn't pause mid-sentence
+      body = body.replace(/\r\n/g, ' ').replace(/[\r\n]+/g, ' ').replace(/ {2,}/g, ' ');
+      title = title.replace(/[\r\n]+/g, ' ').trim();
+      return (title + '। ' + body.trim()).trim();
+    }
+
+    function _fmt(s) {
+      s = Math.max(0, Math.round(s));
+      return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0');
+    }
+
+    function _setIcon(playing) {
+      var ic = document.getElementById('ttsCtrlIcon');
+      if (ic) ic.className = playing ? 'fa fa-pause' : 'fa fa-play';
+      document.getElementById('ttsPlayer')?.classList.toggle('playing', playing);
+    }
+
+    function _updateProgress() {
+      if (!_ttsAudio || !_ttsAudio.duration) return;
+      document.getElementById('ttsFill').style.width = (_ttsAudio.currentTime/_ttsAudio.duration*100)+'%';
+      document.getElementById('ttsElapsed').textContent = _fmt(_ttsAudio.currentTime);
+      document.getElementById('ttsRemaining').textContent = '-'+_fmt(_ttsAudio.duration-_ttsAudio.currentTime);
+    }
+
+    // ── Translate ─────────────────────────────────────
+    var VOICE_TO_LANG = {
+      'hi-IN-MadhurNeural': 'hi',
+      'mr-IN-ManoharNeural': 'mr',
+      'en-IN-PrabhatNeural': 'en'
+    };
+
+    async function translateArticle(voice) {
+      var targetLang = VOICE_TO_LANG[voice] || '';
+      var copyEl = document.querySelector('.article-copy');
+      var titleEl = document.querySelector('.article-title');
+      if (!copyEl) return;
+
+      // Restore original if switching back to auto
+      if (!targetLang) {
+        if (_originalHTML !== null) copyEl.innerHTML = _originalHTML;
+        if (titleEl) titleEl.textContent = _originalTitle;
+        var notice = document.getElementById('ttsTranslateNotice');
+        if (notice) notice.remove();
+        return;
+      }
+
+      // Show spinner
+      var btn = document.getElementById('ttsPlayBtn');
+      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Translating...'; }
+
+      var textToTranslate = (_originalTitle + '\n\n' + (copyEl.innerText || copyEl.textContent)).trim();
+
+      try {
+        var res = await fetch('/api/epaper/translate', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ text: textToTranslate, target_lang: targetLang })
+        });
+        var data = await res.json();
+        var translated = data.translated_text || textToTranslate;
+        var lines = translated.split('\n').filter(function(l){ return l.trim(); });
+
+        // First line → title, rest → body
+        var newTitle = lines[0] || _originalTitle;
+        var newBody  = lines.slice(1).join('\n');
+
+        if (titleEl) titleEl.textContent = newTitle;
+        // Render body as paragraphs
+        copyEl.innerHTML = newBody.split('\n').filter(function(p){ return p.trim(); })
+          .map(function(p){ return '<p>'+p+'</p>'; }).join('');
+
+        // Show translation notice
+        var notice = document.getElementById('ttsTranslateNotice');
+        if (!notice) {
+          notice = document.createElement('div');
+          notice.id = 'ttsTranslateNotice';
+          notice.style.cssText = 'font-size:12px;color:#6b7280;margin:8px 0 16px;padding:6px 12px;background:#f3f4f6;border-radius:6px;';
+          copyEl.parentNode.insertBefore(notice, copyEl);
+        }
+        var langNames = {'hi':'हिंदी (Hindi)','mr':'मराठी (Marathi)','en':'English'};
+        notice.textContent = 'Translated to ' + (langNames[targetLang]||targetLang) + ' · Click Play to listen';
+
+      } catch(e) {
+        console.error('Translation failed', e);
+      }
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa fa-play"></i> Play Article'; }
+    }
+
+    // ── TTS ──────────────────────────────────────────
+    async function ttsPlay() {
+      if (_ttsLoading) return;
+      ttsStop();
+      _ttsLoading = true;
+      var btn = document.getElementById('ttsPlayBtn');
+      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Loading...'; }
+
+      // Wrap text into sentence spans before fetching audio
+      _prepareHighlight();
+
+      var text = _getArticleText();
+      var voice = document.getElementById('ttsLang')?.value || '';
+
+      try {
+        var res = await fetch('/api/epaper/tts', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ text: text.slice(0,5000), voice: voice })
+        });
+        if (!res.ok) throw new Error('TTS failed');
+        _ttsAudio = new Audio(URL.createObjectURL(await res.blob()));
+        _ttsAudio.playbackRate = _ttsSpeed;
+        _ttsAudio.addEventListener('timeupdate', function() {
+          _updateProgress();
+          _highlightAt(_ttsAudio.currentTime, _ttsAudio.duration);
+        });
+        _ttsAudio.addEventListener('ended', ttsStop);
+        await _ttsAudio.play();
+        _ttsPlaying = true; _ttsLoading = false;
+        document.getElementById('ttsPlayer')?.classList.add('active');
+        _setIcon(true);
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa fa-play"></i> Play Article'; }
+      } catch(e) {
+        console.error(e); _ttsLoading = false;
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa fa-play"></i> Play Article'; }
+        alert('Could not generate audio. Make sure the server is running.');
+      }
+    }
+
+    function ttsToggle() {
+      if (!_ttsAudio) { ttsPlay(); return; }
+      if (_ttsPlaying) { _ttsAudio.pause(); _ttsPlaying=false; _setIcon(false); }
+      else             { _ttsAudio.play();  _ttsPlaying=true;  _setIcon(true);  }
+    }
+
+    function ttsSkip(sec) {
+      if (_ttsAudio) _ttsAudio.currentTime = Math.max(0, _ttsAudio.currentTime+sec);
+    }
+
+    function ttsCycleSpeed() {
+      var idx = _speedSteps.indexOf(_ttsSpeed);
+      _ttsSpeed = _speedSteps[(idx+1) % _speedSteps.length];
+      if (_ttsAudio) _ttsAudio.playbackRate = _ttsSpeed;
+      document.getElementById('ttsSpeedBtn').textContent = _ttsSpeed+'×';
+    }
+
+    function ttsStop() {
+      if (_ttsAudio) {
+        _ttsAudio.pause();
+        if (_ttsAudio.src?.startsWith('blob:')) URL.revokeObjectURL(_ttsAudio.src);
+        _ttsAudio = null;
+      }
+      _ttsPlaying=false; _ttsLoading=false;
+      document.getElementById('ttsPlayer')?.classList.remove('active','playing');
+      _setIcon(false);
+      document.getElementById('ttsFill').style.width='0';
+      _clearHighlight();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // Save original HTML for restore on language reset
+      var copyEl = document.querySelector('.article-copy');
+      if (copyEl) _originalHTML = copyEl.innerHTML;
+
+      // Seekbar
+      document.getElementById('ttsProgress')?.addEventListener('click', function(e) {
+        if (!_ttsAudio||!_ttsAudio.duration) return;
+        var rect = this.getBoundingClientRect();
+        _ttsAudio.currentTime = ((e.clientX-rect.left)/rect.width)*_ttsAudio.duration;
+      });
+
+      // Language change → translate immediately
+      document.getElementById('ttsLang')?.addEventListener('change', function() {
+        ttsStop();
+        translateArticle(this.value);
+      });
+    });
+  </script>
 </body>
 </html>

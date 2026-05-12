@@ -31,6 +31,30 @@ const EPAdmin = {
   HEADER_W: 1100,
   HEADER_H: 140,
 
+  _undoStack: [],
+
+  _pushUndo() {
+    this._undoStack.push(JSON.parse(JSON.stringify({ pages: this.pages, editionMeta: this.editionMeta })));
+    if (this._undoStack.length > 50) this._undoStack.shift();
+  },
+
+  undo() {
+    if (!this._undoStack.length) { this.showToast('Nothing to undo'); return; }
+    const snap = this._undoStack.pop();
+    this.pages = snap.pages;
+    this.editionMeta = snap.editionMeta;
+    this.activeBlockIdx = null;
+    this.currentPageIdx = Math.min(this.currentPageIdx, this.pages.length - 1);
+    this.renderCanvas();
+    this.renderPageTabs();
+    this.renderMastheadPreview();
+    this.populateFooterLinkInputs();
+    if (this.editionMeta.header_items) this.renderHeaderCanvas();
+    document.getElementById('blockEditor').style.display = 'none';
+    document.getElementById('noBlockMsg').style.display = 'block';
+    this.showToast('↩ Undone');
+  },
+
   init() {
     this.loadEditions();
     this.bindEvents();
@@ -68,6 +92,7 @@ const EPAdmin = {
     document.getElementById('clearPageImageBtn')?.addEventListener('click', () => {
       const page = this.pages[this.currentPageIdx];
       if (!page) return;
+      this._pushUndo();
       page.page_image_url = '';
       page.image_path = '';
       this.renderCanvas();
@@ -135,6 +160,16 @@ const EPAdmin = {
         hdrLogoInput.value = '';
       });
     }
+
+    // Ctrl+Z undo
+    document.addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') {
+        const tag = document.activeElement?.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || document.activeElement?.isContentEditable) return;
+        e.preventDefault();
+        this.undo();
+      }
+    });
 
     // Canvas drag events
     const canvas = document.getElementById('pageCanvas');
@@ -230,6 +265,7 @@ const EPAdmin = {
   async handleMastheadImage(file) {
     if (!file?.type.startsWith('image/')) return;
     try {
+      this._pushUndo();
       const imageUrl = await this.uploadImage(file);
       this.editionMeta.masthead_image_url = imageUrl;
       this.renderMastheadPreview();
@@ -240,6 +276,7 @@ const EPAdmin = {
   },
 
   clearMastheadImage() {
+    this._pushUndo();
     this.editionMeta.masthead_image_url = '';
     this.renderMastheadPreview();
     this.showToast('Header image cleared');
@@ -273,6 +310,7 @@ const EPAdmin = {
   },
 
   addHeaderLogo() {
+    this._pushUndo();
     const items = this.editionMeta.header_items || [];
     items.push({
       id: Date.now(),
@@ -287,6 +325,7 @@ const EPAdmin = {
   },
 
   addHeaderText() {
+    this._pushUndo();
     const items = this.editionMeta.header_items || [];
     items.push({
       id: Date.now(),
@@ -304,6 +343,7 @@ const EPAdmin = {
 
   removeHeaderItem() {
     if (this.headerActiveIdx === null) return;
+    this._pushUndo();
     this.editionMeta.header_items.splice(this.headerActiveIdx, 1);
     this.headerActiveIdx = null;
     this.renderHeaderCanvas();
@@ -368,6 +408,7 @@ const EPAdmin = {
       const idx = itemEl ? parseInt(itemEl.dataset.idx, 10) : NaN;
       const item = Number.isNaN(idx) ? null : items[idx];
       if (!item) return;
+      this._pushUndo();
       this.headerResizing = true;
       this.headerActiveIdx = idx;
       this.headerResizeStart = {
@@ -392,6 +433,7 @@ const EPAdmin = {
       const w = (it.w || 120) * scale;
       const h = (it.h || 60) * scale;
       if (mx >= x && mx <= x + w && my >= y && my <= y + h) {
+        this._pushUndo();
         this.headerDragging = true;
         this.headerActiveIdx = i;
         this.headerDragOffset = { x: mx / scale - (it.x || 0), y: my / scale - (it.y || 0) };
@@ -491,6 +533,7 @@ const EPAdmin = {
       const b = Number.isNaN(idx) ? null : blocks[idx];
       if (!b) return;
 
+      this._pushUndo();
       this.resizing = true;
       this.activeBlockIdx = idx;
       this.resizeStart = {
@@ -517,6 +560,7 @@ const EPAdmin = {
 
       // Click inside block → start drag
       if (mx >= bx && mx <= bx + bw && my >= by && my <= by + bh) {
+        this._pushUndo();
         this.dragging = true;
         this.activeBlockIdx = i;
         this.dragOffset = { x: mx / scale - (b.x || 0), y: my / scale - (b.y || 0) };
@@ -655,6 +699,7 @@ const EPAdmin = {
     if (this.activeBlockIdx === null) return;
     const block = this.pages[this.currentPageIdx]?.blocks?.[this.activeBlockIdx];
     if (!block) return;
+    this._pushUndo();
     block.x = parseInt(document.getElementById('blkX').value) || 0;
     block.y = parseInt(document.getElementById('blkY').value) || 0;
     block.w = Math.max(60, parseInt(document.getElementById('blkW').value) || 200);
@@ -894,12 +939,14 @@ const EPAdmin = {
   // ══════ PAGES ══════
 
   addPage() {
+    this._pushUndo();
     this.pages.push({ page_number: this.pages.length + 1, category: 'मुख पृष्ठ', blocks: [] });
     this.renderPageTabs(); this.openPage(this.pages.length - 1);
   },
   deletePage(idx) {
     if (this.pages.length <= 1) return;
     if (!confirm(`Delete page ${idx + 1}?`)) return;
+    this._pushUndo();
     this.pages.splice(idx, 1);
     this.pages.forEach((p, i) => p.page_number = i + 1);
     this.renderPageTabs(); this.openPage(Math.min(idx, this.pages.length - 1));
@@ -924,6 +971,7 @@ const EPAdmin = {
   // ══════ BLOCK CRUD ══════
 
   addBlock() {
+    this._pushUndo();
     let page = this.pages[this.currentPageIdx];
     if (!page) {
       this.addPage();
@@ -948,6 +996,7 @@ const EPAdmin = {
 
   removeBlock(idx) {
     if (!confirm('Delete this block?')) return;
+    this._pushUndo();
     this.pages[this.currentPageIdx].blocks.splice(idx, 1);
     this.activeBlockIdx = null;
     this.renderCanvas();
@@ -1001,6 +1050,7 @@ const EPAdmin = {
     if (this.activeBlockIdx === null) return;
     const block = this.pages[this.currentPageIdx]?.blocks?.[this.activeBlockIdx];
     if (!block) return;
+    this._pushUndo();
 
     block.article_id = document.getElementById('blkArticleId').value || block.id;
     block.headline = document.getElementById('blkHeadline').value;

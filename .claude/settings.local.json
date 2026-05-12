@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python app.py)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5000/epaper-viewer)",
+      "WebFetch(domain:epaper.aajtak.in)",
+      "Bash(curl -s http://localhost:5000/epaper-viewer)",
+      "Bash(curl -s \"http://localhost:5000/static/epaper-viewer.css\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5000/api/epaper/tts/voices)",
+      "Bash(python -c \"import edge_tts; print\\('edge_tts ok'\\)\")",
+      "Bash(pip install *)",
+      "Bash(taskkill /F /IM python.exe)",
+      "Bash(Start-Sleep -Seconds 1)",
+      "Bash(Write-Output \"killed\")"
+    ]
+  }
+}
