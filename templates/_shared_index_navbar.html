@@ -355,7 +355,7 @@
       <a href="{{ url_for('fyjc_rank') }}" class="{% if request.endpoint == 'fyjc_rank' %}vm-active{% endif %}">FYJC Rank</a>
       <a href="{{ url_for('admissions') }}" class="{% if request.endpoint == 'admissions' %}vm-active{% endif %}">Admissions</a>
       <a href="{{ url_for('news') }}" class="{% if request.endpoint == 'news' %}vm-active{% endif %}">News</a>
-      <a href="{{ url_for('epaper_viewer') }}" class="{% if request.endpoint in ('epaper', 'epaper.epaper_viewer') %}vm-active{% endif %}">E-Paper</a>
+      <a href="{{ url_for('epaper.epaper_viewer') }}" class="{% if request.endpoint in ('epaper', 'epaper.epaper_viewer') %}vm-active{% endif %}">E-Paper</a>
       <a href="{{ url_for('guide_me') }}" class="{% if request.endpoint == 'guide_me' %}vm-active{% endif %}">Guide Me</a>
       <a href="#" class="vm-search vm-search-trigger" aria-label="Search"><i class="fa fa-search"></i></a>
       {% if session.get('auth_user') %}

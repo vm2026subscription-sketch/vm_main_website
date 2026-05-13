@@ -155,9 +155,20 @@
         <div class="epa-form-row">
           <div class="epa-form-group"><label>Date</label><input type="date" id="edDate" required></div>
           <div class="epa-form-group"><label>Name</label><input type="text" id="edName" placeholder="दैनिक संस्करण"></div>
-          <div class="epa-form-group"><label>Language</label>
+          <div class="epa-form-group">
+            <label>Language</label>
             <select id="edLang"><option value="Hindi">Hindi</option><option value="English">English</option><option value="Marathi">Marathi</option></select>
           </div>
+        </div>
+        <div class="epa-form-row">
+          <div class="epa-form-group">
+            <label>Status</label>
+            <select id="edStatus">
+              <option value="published">Published</option>
+              <option value="draft">Draft</option>
+            </select>
+          </div>
+          <div style="grid-column: 2/-1"></div>
         </div>
         <div style="display:flex;gap:10px">
           <button type="submit" class="epa-btn epa-btn-primary"><i class="fa fa-save"></i> Save Edition</button>

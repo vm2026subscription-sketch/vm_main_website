@@ -1784,13 +1784,13 @@ footer .row > [class*='col-'] {
             <h2 class="section-title">VIDYARTHI MITRA <span class="orange-text">E-PAPER</span></h2>
             <p class="section-subtitle">Maharashtra's first student-focused digital newspaper — now with Read Aloud in Marathi, Hindi &amp; English.</p>
             <div class="epaper-grid">
-                <a href="{{ url_for('epaper_viewer') }}" class="card-link">
+                <a href="{{ url_for('epaper.epaper_viewer') }}" class="card-link">
                     <div class="epaper-card">
                         <h3>&#128240; Today's Edition</h3>
                         <p>Read the latest edition with education &amp; exam news.</p>
                     </div>
                 </a>
-                <a href="{{ url_for('epaper_viewer') }}" class="card-link">
+                <a href="{{ url_for('epaper.epaper_viewer') }}" class="card-link">
                     <div class="epaper-card">
                         <h3>&#127908; Listen in Marathi</h3>
                         <p>Audio read-aloud of articles — मनोहर / आरोही voices.</p>
@@ -2434,7 +2434,7 @@ footer .row > [class*='col-'] {
                         <h5>Our <span class="footer-accent">Products</span></h5>
                         <ul>
                             <li><a href="/">VidyarthiMitra.org</a></li>
-                            <li><a href="{{ url_for('epaper_viewer') }}">E-Paper - Digital News</a></li>
+                            <li><a href="{{ url_for('epaper.epaper_viewer') }}">E-Paper - Digital News</a></li>
                             <li><a href="https://test.vidyarthimitra.org" target="_blank" rel="noopener">Career Assessment Test</a></li>
                             <li><a href="{{ url_for('cutoffs') }}">DTE Cut-offs 2025-26</a></li>
                             <li><a href="{{ url_for('fyjc_rank') }}">11th Cut-offs 2025-26</a></li>

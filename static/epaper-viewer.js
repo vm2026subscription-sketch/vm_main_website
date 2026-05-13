@@ -1646,37 +1646,93 @@ const EP = {
     this.showToast('⬇️ Downloading audio...');
   },
 
-  // ── Save Page as PDF ──
-  savePDF() {
-    // If page is already a PDF, open it directly
-    const pdfFrame = document.getElementById('epPdfFrame');
-    if (pdfFrame && pdfFrame.style.display !== 'none' && pdfFrame.src) {
-      window.open(pdfFrame.src, '_blank');
+  // ── Save Edition as PDF ──
+  async savePDF() {
+    if (!this.pages.length) {
+      this.showToast('No edition pages available');
       return;
     }
-    const imgSrc = this.el.pageImg?.src;
-    if (!imgSrc || imgSrc.endsWith('/') || imgSrc === location.href) {
-      this.showToast('No page loaded to save');
+    const originalPage = this.currentPage;
+    const originalZoom = this.zoom;
+    const captures = [];
+    const viewer = document.getElementById('epPaper') || this.el.viewer || document.body;
+    if (!viewer) {
+      this.showToast('PDF export is unavailable right now');
       return;
     }
-    // Open the page image in a new tab and trigger print-to-PDF
+
+    try {
+      for (let pageNum = 1; pageNum <= this.pages.length; pageNum++) {
+        this.showPage(pageNum);
+        this.setZoom(1);
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+        if (typeof window.html2canvas !== 'function') {
+          throw new Error('html2canvas unavailable');
+        }
+
+        const canvas = await window.html2canvas(viewer, {
+          backgroundColor: '#ffffff',
+          useCORS: true,
+          scale: Math.max(2, Math.min(3, (window.devicePixelRatio || 1.5) * 1.5)),
+        });
+        captures.push(canvas.toDataURL('image/png'));
+      }
+    } catch (err) {
+      console.error('Edition PDF capture failed:', err);
+      this.showToast('PDF export failed');
+      return;
+    } finally {
+      if (originalPage) this.showPage(originalPage);
+      this.setZoom(originalZoom);
+    }
+
     const win = window.open('', '_blank');
-    if (!win) { this.showToast('Allow popups to save PDF'); return; }
-    const date = this.el.dateBtnText?.textContent || '';
-    const pageNum = document.getElementById('epPageInfo')?.textContent || '';
+    if (!win) {
+      this.showToast('Allow popups to save PDF');
+      return;
+    }
+
+    const title = this.currentEdition?.name || 'Vidyarthi Mitra E-Paper';
+    const pagesHtml = captures.map((src, index) => `
+      <section class="pdf-page">
+        <img src="${src}" alt="Page ${index + 1}">
+      </section>
+    `).join('');
+
     win.document.write(`<!DOCTYPE html><html><head>
-      <title>Vidyarthi Mitra E-Paper${date ? ' — ' + date : ''}${pageNum ? ' | ' + pageNum : ''}</title>
+      <meta charset="utf-8">
+      <title>${title.replace(/</g, '&lt;')}</title>
       <style>
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{background:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;print-color-adjust:exact;-webkit-print-color-adjust:exact}
-        img{max-width:100%;max-height:100vh;object-fit:contain}
-        @media print{body{display:block;background:#fff !important}img{width:100%;height:auto;page-break-inside:avoid}}
+        @page { size: A4 portrait; margin: 0; }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; width: 210mm; min-height: 297mm; background: #fff; }
+        body { font-family: Arial, sans-serif; }
+        .pdf-page {
+          width: 210mm;
+          height: 297mm;
+          page-break-after: always;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #fff;
+          overflow: hidden;
+        }
+        .pdf-page:last-child { page-break-after: auto; }
+        .pdf-page img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          display: block;
+        }
       </style>
-    </head><body>
-      <img src="${imgSrc}" onload="window.print()">
+    </head><body>${pagesHtml}
+      <script>
+        window.onload = function () { setTimeout(function () { window.print(); }, 300); };
+      </script>
     </body></html>`);
     win.document.close();
-    this.showToast('📄 Opening print dialog...');
+    this.showToast('📄 Opening print dialog for full edition PDF');
   },
 
   // ── Share ──
@@ -1736,4 +1792,5 @@ const EP = {
 };
 
 // Initialize on DOM ready
+window.EP = EP;
 document.addEventListener('DOMContentLoaded', () => EP.init());
