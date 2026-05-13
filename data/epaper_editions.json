@@ -843,7 +843,7 @@
             "width": 356,
             "height": 356,
             "border_width": 0,
-            "border_radius": 0,
+            "border_radius": 10,
             "border_color": "#e41e26",
             "border_style": "solid"
           }
@@ -897,7 +897,7 @@
             "width": 356,
             "height": 356,
             "border_width": 0,
-            "border_radius": 0,
+            "border_radius": 10,
             "border_color": "#e41e26",
             "border_style": "solid"
           }
@@ -1028,6 +1028,85 @@
             "h": 678,
             "width": 520,
             "height": 678,
+            "border_width": 0,
+            "border_radius": 0,
+            "border_color": "#e41e26",
+            "border_style": "solid"
+          }
+        ]
+      },
+      {
+        "page_number": 3,
+        "category": "मुख पृष्ठ",
+        "image_path": "",
+        "page_image_url": "",
+        "layout_json": [],
+        "blocks": [],
+        "articles": []
+      },
+      {
+        "page_number": 4,
+        "category": "मुख पृष्ठ",
+        "image_path": "",
+        "page_image_url": "",
+        "layout_json": [
+          {
+            "article_id": 1778666081979,
+            "x": 10,
+            "y": 10,
+            "width": 282,
+            "height": 283
+          }
+        ],
+        "blocks": [
+          {
+            "id": 1778666081979,
+            "article_id": 1778666081979,
+            "headline": "",
+            "title": "",
+            "sub_headline": "",
+            "body_text": "",
+            "body_html": "",
+            "author": "Vidyarthi Mitra Desk",
+            "category_label": "",
+            "category": "",
+            "image_url": "/static/uploads/epaper/Untitled_design_2-20260513152505219532.png",
+            "image": "/static/uploads/epaper/Untitled_design_2-20260513152505219532.png",
+            "gallery": [],
+            "x": 10,
+            "y": 10,
+            "w": 282,
+            "h": 283,
+            "width": 282,
+            "height": 283,
+            "border_width": 0,
+            "border_radius": 0,
+            "border_color": "#e41e26",
+            "border_style": "solid"
+          }
+        ],
+        "articles": [
+          {
+            "id": 1778666081979,
+            "article_id": 1778666081979,
+            "headline": "",
+            "title": "",
+            "sub_headline": "",
+            "body_text": "",
+            "body_html": "",
+            "author": "Vidyarthi Mitra Desk",
+            "category_label": "",
+            "category": "",
+            "article_image_url": "/static/uploads/epaper/Untitled_design_2-20260513152505219532.png",
+            "image_url": "/static/uploads/epaper/Untitled_design_2-20260513152505219532.png",
+            "image": "/static/uploads/epaper/Untitled_design_2-20260513152505219532.png",
+            "gallery": [],
+            "x": 10,
+            "y": 10,
+            "w": 282,
+            "h": 283,
+            "width": 282,
+            "height": 283,
             "border_width": 0,
             "border_radius": 0,
             "border_color": "#e41e26",
