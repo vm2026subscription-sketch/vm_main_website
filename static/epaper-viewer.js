@@ -34,9 +34,36 @@ const EP = {
     this.cacheDOM();
     this.bindEvents();
     this.renderFooterLinks(this.footerLinksDefault);
-    this.setDate(new Date());
-    // Load editions list in background (for calendar) - don't await
+    // Load the latest published edition automatically instead of defaulting to today
+    this.loadLatestEdition();
+    // Load editions list for calendar in background
     this.loadEditions();
+  },
+
+  async loadLatestEdition() {
+    try {
+      const data = await this._cachedFetch('/api/epaper/latest');
+      const d = data.date ? new Date(data.date + 'T00:00:00') : new Date();
+      this.currentDate = d;
+      if (this.el.dateBtnText) {
+        const opts = { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' };
+        this.el.dateBtnText.textContent = d.toLocaleDateString('hi-IN', opts);
+      }
+      this.currentPage = 1;
+      this.currentEdition = data;
+      this.pages = data.pages || [];
+      this.totalPages = this.pages.length || 1;
+      this.updateEditionBrand(data);
+      this.applyMastheadImage(data.masthead_image_url || '');
+      this.renderFooterLinks(data.footer_links || this.footerLinksDefault);
+      document.getElementById('epEmptyState')?.style.setProperty('display', 'none');
+      this.renderCategories(this.pages);
+      this.renderThumbnails();
+      this.showPage(1);
+    } catch (e) {
+      // No published editions — show empty state
+      this.setDate(new Date());
+    }
   },
 
   // API response cache (5-minute TTL)

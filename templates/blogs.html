@@ -1,118 +1,109 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
-   <!-- Main Navbar -->
-  <nav class="navbar">
-    <a class="logo" href="#">
-      <img src="{{ url_for('static', filename='logo.png') }}" alt="Vidyarthi Mitra" class="logo-image"/>
-    </a>
-    <div class="nav-links">
-      <a href="{{ url_for('index') }}">HOME</a>
-      <a class="nav-link active" href="{{ url_for('universities') }}">Universities</a>
-      <a class="nav-link" href="{{ url_for('colleges') }}">Colleges</a>
-      <a class="nav-link" href="{{ url_for('courses') }}">Courses</a>
-      <a class="nav-link" href="{{ url_for('exams') }}">Entrance Exams</a>
-      <a class="nav-link" href="{{ url_for('mock_exams') }}">Mock Exams</a>
-      <a class="nav-link" href="{{ url_for('news') }}">News</a>
-    </div>
-  </nav>
-  <meta charset="UTF-8">
-  <title>Blogs & Updates | Vidyarthi Mitra</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% extends "base.html" %}
+{% block title %}Blog & Updates | VidyarthiMitra.org{% endblock %}
+{% block meta_description %}Latest education news, exam updates, admission alerts, and career guidance articles for students from VidyarthiMitra.org.{% endblock %}
+{% block meta_keywords %}education blog, exam updates, admission alerts, JEE results, NEET registration, Maharashtra SSC result, career guidance{% endblock %}
 
+{% block page_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='blog.css') }}">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&family=Inter&display=swap" rel="stylesheet">
+{% endblock %}
 
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&family=Inter&display=swap" rel="stylesheet">
+{% block content %}
+<style>
+  .blog-hero { background: linear-gradient(135deg, #003d6b, #0a5990); color: #fff; padding: 48px 24px; text-align: center; }
+  .blog-hero h1 { color: #fff; font-size: 2rem; font-weight: 800; margin: 0 0 10px; }
+  .blog-hero p { color: rgba(255,255,255,0.88); margin: 0; font-size: 15px; }
+</style>
 
-  <!-- Flask CSS (url_for) -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='blog.css') }}">
-</head>
-<body>
-{% include '_shared_index_navbar.html' %}
-<style>.navbar{display:none !important;}</style>
-<!-- HEADER -->
-<header class="blog-header">
-  <h1>Educational Blogs &amp; Updates</h1>
-  <p>Latest news, exams, admissions, results &amp; career guidance</p>
+<div class="blog-hero">
+  <h1>Blog &amp; Updates</h1>
+  <p>Latest news, exam updates, admission alerts, and career guidance for students</p>
+</div>
 
-  <div class="blog-search">
-    <select id="categoryFilter">
-      <option value="all"       {% if category == 'all'       %}selected{% endif %}>All</option>
-      <option value="result"    {% if category == 'result'    %}selected{% endif %}>Result</option>
-      <option value="exam"      {% if category == 'exam'      %}selected{% endif %}>Exam</option>
-      <option value="admission" {% if category == 'admission' %}selected{% endif %}>Admission</option>
-      <option value="career"    {% if category == 'career'    %}selected{% endif %}>Career</option>
+<div style="background:#f5f6f8;padding:14px 0;">
+  <div style="max-width:1240px;margin:0 auto;padding:0 20px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+    <span style="font-weight:700;font-size:13px;color:#555;">Filter:</span>
+    <select id="categoryFilter" onchange="filterBlog(this.value)" style="border:1px solid #e5e7eb;border-radius:6px;padding:7px 14px;font-size:13px;background:#fff;cursor:pointer;">
+      <option value="all">All Topics</option>
+      <option value="result">Results</option>
+      <option value="exam">Exams</option>
+      <option value="admission">Admissions</option>
+      <option value="career">Career</option>
     </select>
-
-    <input
-      type="text"
-      id="searchInput"
-      placeholder="Search blogs..."
-      value="{{ search }}"
-    >
+    <input type="text" id="blogSearch" onkeyup="searchBlog(this.value)" placeholder="Search articles..." style="border:1px solid #e5e7eb;border-radius:6px;padding:7px 14px;font-size:13px;flex:1;min-width:180px;max-width:300px;">
   </div>
-</header>
+</div>
 
-<!-- BLOG CONTAINER -->
-<section class="blog-container" id="blogContainer">
+<section class="blog-container" id="blogContainer" style="max-width:1240px;margin:0 auto;padding:32px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px;">
 
- <!-- BLOG CARD -->
   <div class="blog-card result">
-    <img src="{{ url_for('static', filename='blog1.jpg') }}" alt="Maharashtra SSC Result 2025">
+    <img src="{{ url_for('static', filename='blog1.jpg') }}" alt="Maharashtra SSC Result 2026" style="width:100%;height:180px;object-fit:cover;">
     <div class="blog-content">
       <span class="tag result">RESULT</span>
       <h3>Maharashtra SSC Result 2026</h3>
       <p>SSC results expected soon. Check official updates and cutoff trends.</p>
-      <button>Read More</button>
+      <a href="{{ url_for('news') }}?category=Result" class="read-more-btn" style="display:inline-block;background:#ff6600;color:#fff;padding:8px 18px;border-radius:5px;font-weight:700;font-size:13px;margin-top:10px;text-decoration:none;">Read More</a>
     </div>
   </div>
 
   <div class="blog-card admission">
-    <img src="{{ url_for('static', filename='blog2.jpg') }}" alt="NEET UG 2025 Registration">
+    <img src="{{ url_for('static', filename='blog2.jpg') }}" alt="NEET UG 2026 Registration" style="width:100%;height:180px;object-fit:cover;">
     <div class="blog-content">
       <span class="tag admission">ADMISSION</span>
       <h3>NEET UG 2026 Registration</h3>
-      <p>Complete registration process, eligibility & important dates.</p>
-      <button>Read More</button>
+      <p>Complete registration process, eligibility &amp; important dates.</p>
+      <a href="{{ url_for('news') }}?category=Medical" class="read-more-btn" style="display:inline-block;background:#ff6600;color:#fff;padding:8px 18px;border-radius:5px;font-weight:700;font-size:13px;margin-top:10px;text-decoration:none;">Read More</a>
     </div>
   </div>
 
   <div class="blog-card exam">
-    <img src="{{ url_for('static', filename='blog3.jpg') }}" alt="JEE Main 2025 Admit Card">
+    <img src="{{ url_for('static', filename='blog3.jpg') }}" alt="JEE Main 2026 Admit Card" style="width:100%;height:180px;object-fit:cover;">
     <div class="blog-content">
       <span class="tag exam">EXAM</span>
       <h3>JEE Main 2026 Admit Card</h3>
       <p>Admit card download link and exam-day guidelines.</p>
-      <button>Read More</button>
+      <a href="{{ url_for('news') }}?category=Engineering" class="read-more-btn" style="display:inline-block;background:#ff6600;color:#fff;padding:8px 18px;border-radius:5px;font-weight:700;font-size:13px;margin-top:10px;text-decoration:none;">Read More</a>
     </div>
   </div>
 
   <div class="blog-card exam">
-    <img src="{{ url_for('static', filename='blog4.jpg') }}" alt="MHT-CET Mock Seat Allotment">
+    <img src="{{ url_for('static', filename='blog4.jpg') }}" alt="MHT-CET Mock Seat Allotment" style="width:100%;height:180px;object-fit:cover;">
     <div class="blog-content">
       <span class="tag exam">EXAM</span>
       <h3>MHT-CET Mock Seat Allotment</h3>
       <p>Check provisional allotment and understand counselling rounds.</p>
-      <button>Read More</button>
+      <a href="{{ url_for('news') }}?category=Engineering" class="read-more-btn" style="display:inline-block;background:#ff6600;color:#fff;padding:8px 18px;border-radius:5px;font-weight:700;font-size:13px;margin-top:10px;text-decoration:none;">Read More</a>
     </div>
   </div>
 
   <div class="blog-card career">
-    <img src="{{ url_for('static', filename='blog5.jpg') }}" alt="Top Career Options After 12th">
+    <img src="{{ url_for('static', filename='blog5.jpg') }}" alt="Top Career Options After 12th" style="width:100%;height:180px;object-fit:cover;">
     <div class="blog-content">
       <span class="tag career">CAREER</span>
       <h3>Top Career Options After 12th</h3>
-      <p>Explore engineering, medical, commerce & skill-based careers.</p>
-      <button>Read More</button>
+      <p>Explore engineering, medical, commerce &amp; skill-based careers.</p>
+      <a href="{{ url_for('articles') }}" class="read-more-btn" style="display:inline-block;background:#ff6600;color:#fff;padding:8px 18px;border-radius:5px;font-weight:700;font-size:13px;margin-top:10px;text-decoration:none;">Read More</a>
     </div>
   </div>
 
-  <!-- ADD MORE BLOG CARDS AS NEEDED -->
-
 </section>
 
-<!-- Flask JS (url_for) -->
-<script src="{{ url_for('static', filename='blog.js') }}"></script>
-</body>
-</html>
+<script>
+function filterBlog(cat) {
+  document.querySelectorAll('.blog-card').forEach(function(card) {
+    if (cat === 'all' || card.classList.contains(cat)) {
+      card.style.display = '';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+function searchBlog(q) {
+  var query = q.toLowerCase().trim();
+  document.querySelectorAll('.blog-card').forEach(function(card) {
+    var text = card.textContent.toLowerCase();
+    card.style.display = (!query || text.includes(query)) ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}

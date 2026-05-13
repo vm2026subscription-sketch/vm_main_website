@@ -332,7 +332,7 @@
   <div class="vm-nav-inner">
     <div>
       <a href="{{ url_for('blog') }}">Blog</a>
-      <a href="{{ url_for('epaper') }}">Epaper</a>
+      <a href="{{ url_for('epaper.epaper_viewer') }}">E-Paper</a>
     </div>
     <div class="vm-nav-right">विद्यार्थी मित्र<span style="color:#ffd28a;">.org</span></div>
   </div>
@@ -355,9 +355,9 @@
       <a href="{{ url_for('fyjc_rank') }}" class="{% if request.endpoint == 'fyjc_rank' %}vm-active{% endif %}">FYJC Rank</a>
       <a href="{{ url_for('admissions') }}" class="{% if request.endpoint == 'admissions' %}vm-active{% endif %}">Admissions</a>
       <a href="{{ url_for('news') }}" class="{% if request.endpoint == 'news' %}vm-active{% endif %}">News</a>
-      <a href="{{ url_for('epaper') }}" class="{% if request.endpoint == 'epaper' %}vm-active{% endif %}">Epaper<span class="vm-badge-new">New</span></a>
+      <a href="{{ url_for('epaper_viewer') }}" class="{% if request.endpoint in ('epaper', 'epaper.epaper_viewer') %}vm-active{% endif %}">E-Paper</a>
       <a href="{{ url_for('guide_me') }}" class="{% if request.endpoint == 'guide_me' %}vm-active{% endif %}">Guide Me</a>
-      <a href="javascript:void(0)" class="vm-search vm-search-trigger"><i class="fa fa-search"></i></a>
+      <a href="#" class="vm-search vm-search-trigger" aria-label="Search"><i class="fa fa-search"></i></a>
       {% if session.get('auth_user') %}
       <a href="{{ url_for('logout') }}" class="nav-auth nav-login">Logout</a>
       {% else %}
@@ -403,7 +403,7 @@
       { keywords: ['article', 'articles', 'career'], url: '{{ url_for("articles") }}', label: 'Career Articles' },
       { keywords: ['story', 'stories', 'student'], url: '{{ url_for("student_stories") }}', label: 'Student Stories' },
       { keywords: ['guide', 'guide me', 'guideme'], url: '{{ url_for("guide_me") }}', label: 'Guide Me' },
-      { keywords: ['epaper', 'e-paper'], url: '{{ url_for("epaper") }}', label: 'Epaper' }
+      { keywords: ['epaper', 'e-paper'], url: '{{ url_for("epaper.epaper_viewer") }}', label: 'E-Paper' }
     ];
 
     function openSearch() {
@@ -454,6 +454,7 @@
 
     trigger.addEventListener('click', function (e) {
       e.preventDefault();
+      e.stopPropagation();
       openSearch();
     });
 

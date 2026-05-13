@@ -1047,47 +1047,38 @@
         </div>`).join('');
 
       try {
-        const endpoints = ['/api/epaper-feed'];
-
-        let res = null;
-        for (const endpoint of endpoints) {
-          const attempt = await fetch(endpoint, {
-            method: 'GET',
-            headers: { 'Accept': 'application/json' },
-          });
-          if (attempt.ok) {
-            res = attempt;
-            break;
-          }
-        }
-
-        if (!res) throw new Error('No working editions endpoint found');
-
-        let payload = await res.json();
-        let list = extractEditionList(payload);
-        let nextPage = extractNextPage(payload);
-        let pageGuard = 0;
-
-        while (nextPage && pageGuard < 25) {
-          const nextRes = await fetch(nextPage, {
-            method: 'GET',
-            headers: { 'Accept': 'application/json' },
-          });
-          if (!nextRes.ok) break;
-
-          payload = await nextRes.json();
-          list = list.concat(extractEditionList(payload));
-          nextPage = extractNextPage(payload);
-          pageGuard += 1;
-        }
-
-        const uniqueById = new Map();
-        list.forEach((e, idx) => {
-          const normalized = normalizeEdition(e, idx);
-          uniqueById.set(normalized.id, normalized);
+        const res = await fetch('/api/epaper/editions', {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' },
         });
 
-        editions = Array.from(uniqueById.values());
+        if (!res.ok) throw new Error('Editions endpoint returned ' + res.status);
+
+        const payload = await res.json();
+        const list = Array.isArray(payload.editions) ? payload.editions : [];
+
+        const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+        editions = list
+          .filter(e => e.published !== false)
+          .map((e, idx) => {
+            const isRecent = e.date && (Date.now() - new Date(e.date).getTime()) < sevenDaysMs;
+            return {
+              id: idx + 1,
+              viewerDate: e.date || null,
+              start: e.date || '–',
+              end: e.date || '–',
+              lang: e.language || 'Marathi',
+              week: e.name || 'Daily Edition',
+              tags: [e.language || 'Marathi'],
+              isNew: isRecent,
+              pdf: null,
+              url: e.date ? '/epaper-viewer/' + e.date : null,
+              displayTitle: e.name || null,
+              displaySubtitle: (e.language || '') + ' · ' + (e.total_pages || 1) + ' page' + ((e.total_pages || 1) !== 1 ? 's' : ''),
+              masthead_image_url: e.masthead_image_url || null,
+            };
+          })
+          .reverse(); // newest first
 
         renderGrid();
       } catch (err) {
@@ -1161,8 +1152,11 @@
         const hasPdf   = !!(e.pdf || e.url);
         const isDigest = !!e.displayTitle;
 
+        const coverStyle = e.masthead_image_url
+          ? `style="background:linear-gradient(rgba(0,0,0,.45),rgba(0,0,0,.55)),url('${e.masthead_image_url}') center/cover no-repeat"`
+          : '';
         card.innerHTML = `
-          <div class="card-cover">
+          <div class="card-cover" ${coverStyle}>
             ${e.isNew ? '<div class="new-badge">New</div>' : ''}
             <div class="edition-badge ${langKey}">${e.lang}</div>
             <div class="cover-logo">Vidyarthi <span>Mitra</span></div>
@@ -1184,8 +1178,8 @@
             </div>
           </div>
           <div class="card-footer">
-            <button class="btn-read" onclick="openModal(${e.id})">
-              <i class="fa fa-book-open"></i> Read Edition
+            <button class="btn-read" onclick="readEdition(${e.id})">
+              <i class="fa fa-book-open"></i> Read Now
             </button>
             <button class="btn-download" title="Download PDF"
               onclick="event.stopPropagation(); downloadPdf(${e.id})"
@@ -1439,6 +1433,16 @@
     /* ═══════════════════════════════════════════════
        MODAL
     ═══════════════════════════════════════════════ */
+    function readEdition(id) {
+      const e = editions.find(x => x.id === id);
+      if (!e) return;
+      if (e.viewerDate) {
+        window.location.href = '/epaper-viewer/' + e.viewerDate;
+      } else {
+        openModal(id);
+      }
+    }
+
     function openModal(id) {
       const e = editions.find(x => x.id === id);
       if (!e) return;

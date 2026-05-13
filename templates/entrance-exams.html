@@ -2,8 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Entrance Exams in India | Vidyarthi Mitra</title>
+  <title>Entrance Exams in India 2026 | JEE, NEET, MHT-CET | VidyarthiMitra.org</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Complete guide to 150+ entrance exams in India 2026 — JEE Main, NEET UG, MHT-CET, CLAT, CAT, GATE, and more. Exam dates, eligibility, syllabus, official links.">
+  <meta name="keywords" content="entrance exams India 2026, JEE Main 2026, NEET UG 2026, MHT-CET, CLAT, CAT, GATE, engineering entrance exams, medical entrance exams">
+  <meta name="robots" content="index, follow">
+  <meta property="og:title" content="Entrance Exams in India 2026 | VidyarthiMitra.org">
+  <meta property="og:description" content="Complete guide to 150+ entrance exams — JEE, NEET, MHT-CET, CLAT, CAT and more. Dates, eligibility, official links.">
+  <meta property="og:type" content="website">
   <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
 
   <!-- Google Fonts -->
@@ -532,37 +538,79 @@
   </div>
 </section>
 
-<!-- ═══════════════════ FOOTER ═══════════════════ -->
-<footer class="footer">
-  <div class="footer-grid">
-    <div class="footer-brand">
-      <div class="f-logo">Vidyarthi <span>Mitra</span></div>
-      <p>India's most comprehensive entrance exam guide. Helping millions of students find their path since 2010.</p>
-    </div>
-    <div class="footer-col">
-      <h4>Exam Streams</h4>
-      <a href="#">Engineering</a>
-      <a href="#">Medical</a>
-      <a href="#">Law</a>
-      <a href="#">Management</a>
-      <a href="#">Defence</a>
-      <a href="#">Banking</a>
-    </div>
-    <div class="footer-col">
-      <h4>Resources</h4>
-      <a href="#">Mock Tests</a>
-      <a href="#">Previous Papers</a>
-      <a href="#">Study Material</a>
-      <a href="#">Counselling</a>
-      <a href="#">About Us</a>
-    </div>
-  </div>
-  <div class="footer-bottom">
-    <span>© 2026 VidyarthiMitra.org | All Rights Reserved</span>
-  </div>
+<footer style="background:#1f2738;color:#c9d4e2;padding:20px 24px;text-align:center;font-size:13px;margin-top:0;">
+  <p>&copy; 2026 VidyarthiMitra.org - All Rights Reserved |
+    <a href="/terms" style="color:#ff8a33;">Terms</a> |
+    <a href="/privacy" style="color:#ff8a33;">Privacy</a> |
+    <a href="{{ url_for('contact') }}" style="color:#ff8a33;">Contact Us</a>
+  </p>
 </footer>
 
-
 <script src="{{ url_for('static', filename='entrance-exams.js') }}"></script>
+<script>
+// Official website lookup for exam Details links
+(function() {
+  var EXAM_URLS = {
+    'JEE Main': 'https://jeemain.nta.ac.in',
+    'JEE Advanced': 'https://jeeadv.ac.in',
+    'BITSAT': 'https://www.bitsadmission.com',
+    'VITEEE': 'https://viteee.vit.ac.in',
+    'SRMJEEE': 'https://www.srmist.edu.in',
+    'MHT-CET': 'https://cetcell.mahacet.org',
+    'KCET': 'https://kea.kar.nic.in',
+    'WBJEE': 'https://wbjeeb.nic.in',
+    'COMEDK': 'https://www.comedk.org',
+    'GUJCET': 'https://gseb.org',
+    'AP EAMCET': 'https://cets.apsche.ap.gov.in',
+    'TS EAMCET': 'https://tseamcet.nic.in',
+    'KEAM': 'https://cee.kerala.gov.in',
+    'UPSEE': 'https://aktu.ac.in',
+    'TANCET': 'https://www.annauniv.edu/tancet',
+    'TNEA': 'https://www.tneaonline.org',
+    'OJEE': 'https://ojee.nic.in',
+    'NEET UG': 'https://neet.nta.nic.in',
+    'AIIMS': 'https://aiimsexams.ac.in',
+    'JIPMER': 'https://jipmer.edu.in',
+    'CLAT': 'https://consortiumofnlus.ac.in',
+    'AILET': 'https://nludelhi.ac.in',
+    'LSAT India': 'https://www.lsatindia.in',
+    'NDA': 'https://www.upsc.gov.in',
+    'CDS': 'https://www.upsc.gov.in',
+    'AFCAT': 'https://afcat.cdac.in',
+    'CAT': 'https://iimcat.ac.in',
+    'MAT': 'https://mat.aima.in',
+    'XAT': 'https://xatonline.in',
+    'SNAP': 'https://www.snaptest.org',
+    'NMAT': 'https://www.nmat.org',
+    'IBPS PO': 'https://www.ibps.in',
+    'IBPS Clerk': 'https://www.ibps.in',
+    'SBI PO': 'https://www.sbi.co.in/careers',
+    'RBI Grade B': 'https://www.rbi.org.in',
+    'SSC CGL': 'https://ssc.nic.in',
+    'UPSC CSE': 'https://www.upsc.gov.in',
+    'GATE': 'https://gate.iitkgp.ac.in',
+    'NATA': 'https://www.nata.in',
+    'UCEED': 'https://www.uceed.iitb.ac.in',
+    'GPAT': 'https://gpat.nta.nic.in',
+    'ICAR AIEEA': 'https://icar.org.in',
+    'NCHM JEE': 'https://nchm.nta.nic.in',
+    'MAH MBA CET': 'https://cetcell.mahacet.org',
+  };
+  document.querySelectorAll('.exam-card').forEach(function(card) {
+    var abbr = card.querySelector('.exam-abbr');
+    var link = card.querySelector('.exam-link');
+    if (!abbr || !link) return;
+    var examName = abbr.textContent.trim();
+    var url = EXAM_URLS[examName];
+    if (url) {
+      link.setAttribute('href', url);
+      link.setAttribute('target', '_blank');
+      link.setAttribute('rel', 'noopener');
+    } else {
+      link.setAttribute('href', '{{ url_for("exams") }}');
+    }
+  });
+})();
+</script>
 </body>
 </html>

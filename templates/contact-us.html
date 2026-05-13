@@ -576,7 +576,7 @@
         <li><a href="https://goo.gl/HbsLr2">Download App</a></li>
         <li><a href="{{ url_for('guide_me') }}">Expert Advice</a></li>
         <li><a href="{{ url_for('feedback') }}">Feedback</a></li>
-        <li><a href="#">Sign In</a></li>
+        <li><a href="{{ url_for('login') }}">Sign In</a></li>
         <li><a href="{{ url_for('join_us') }}">Join Us</a></li>
       </ul>
     </div>
@@ -609,9 +609,9 @@
   <div class="footer-bottom">
     <p>&copy; 2026 VidyarthiMitra.org - All Rights Reserved</p>
     <div class="footer-links">
-      <a href="#">Terms &amp; Conditions</a>
-      <a href="#">Privacy Policy</a>
-      <a href="#">About Us</a>
+      <a href="{{ url_for('terms') }}">Terms &amp; Conditions</a>
+      <a href="{{ url_for('privacy') }}">Privacy Policy</a>
+      <a href="{{ url_for('about') }}">About Us</a>
       <a href="{{ url_for('contact') }}">Contact Us</a>
       <a href="{{ url_for('join_us') }}">Join Us</a>
       <a href="{{ url_for('refund_policy') }}">Refund &amp; Cancellation</a>

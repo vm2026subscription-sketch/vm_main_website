@@ -6,8 +6,18 @@ import os
 import re
 from datetime import datetime
 
-from flask import Blueprint, jsonify, render_template, request, redirect, url_for, send_file
+from flask import Blueprint, jsonify, render_template, request, redirect, url_for, send_file, session
 from werkzeug.utils import secure_filename
+
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "saurabhedict@gmail.com")
+
+
+def _require_admin():
+    """Return redirect to login if user is not an admin, else None."""
+    user = session.get("auth_user")
+    if not user or user.get("email", "").lower() != ADMIN_EMAIL.lower():
+        return redirect(url_for("login"))
+    return None
 
 epaper_bp = Blueprint("epaper", __name__)
 
@@ -110,11 +120,17 @@ def epaper_viewer(date=None, page=1):
 # ── Admin Page (Region Mapper) ─────────────────────
 @epaper_bp.route("/epaper-admin")
 def epaper_admin_v2():
-    return render_template("epaper_admin_v2.html")
+    guard = _require_admin()
+    if guard:
+        return guard
+    admin_user = session.get("auth_user", {})
+    return render_template("epaper_admin_v2.html", admin_user=admin_user)
 
 
 @epaper_bp.route("/api/epaper/admin/upload-image", methods=["POST"])
 def api_upload_epaper_image():
+    if _require_admin():
+        return jsonify({"error": "Unauthorized"}), 401
     image = request.files.get("image") or request.files.get("file")
     if not image or not image.filename:
         return jsonify({"error": "file required"}), 400
@@ -169,10 +185,52 @@ def epaper_article(article_id):
 def api_editions():
     editions = _load_editions()
     return jsonify({"editions": [
-        {"date": e["date"], "name": e.get("name", ""), "language": e.get("language", "Hindi"),
-         "total_pages": len(e.get("pages", []))}
+        {
+            "date": e["date"],
+            "name": e.get("name", ""),
+            "language": e.get("language", "Hindi"),
+            "total_pages": len(e.get("pages", [])),
+            "published": e.get("published", True),
+            "masthead_image_url": e.get("masthead_image_url", ""),
+        }
         for e in editions
     ]})
+
+
+# ── API: Latest published edition ─────────────────
+@epaper_bp.route("/api/epaper/latest")
+def api_latest_edition():
+    editions = _load_editions()
+    published = [e for e in editions if e.get("published", True)]
+    if not published:
+        return jsonify({"error": "No published editions."}), 404
+    latest = sorted(published, key=lambda e: e["date"], reverse=True)[0]
+    return jsonify({
+        "date": latest["date"],
+        "name": latest.get("name", ""),
+        "language": latest.get("language", "Hindi"),
+        "masthead_image_url": latest.get("masthead_image_url", ""),
+        "footer_links": latest.get("footer_links", []),
+        "header_items": latest.get("header_items", []),
+        "pages": latest.get("pages", []),
+        "published": latest.get("published", True),
+    })
+
+
+# ── API: Publish / Unpublish edition ─────────────
+@epaper_bp.route("/api/epaper/admin/edition/<date>/publish", methods=["POST"])
+def api_publish_edition(date):
+    if _require_admin():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.get_json(silent=True) or {}
+    published = bool(data.get("published", True))
+    editions = _load_editions()
+    for e in editions:
+        if e["date"] == date:
+            e["published"] = published
+            _save_editions(editions)
+            return jsonify({"success": True, "published": published})
+    return jsonify({"error": "Edition not found."}), 404
 
 
 # ── API: Get edition by date ───────────────────────
@@ -210,6 +268,8 @@ def api_article(article_id):
 # ── API: Create / Update edition (Admin) ───────────
 @epaper_bp.route("/api/epaper/admin/edition", methods=["POST"])
 def api_create_edition():
+    if _require_admin():
+        return jsonify({"error": "Unauthorized"}), 401
     data = request.get_json(silent=True) or {}
     date_str = data.get("date", "")
     if not re.match(r"\d{4}-\d{2}-\d{2}$", date_str):
@@ -247,6 +307,8 @@ def api_create_edition():
 # ── API: Delete edition ───────────────────────────
 @epaper_bp.route("/api/epaper/admin/edition/<date>", methods=["DELETE"])
 def api_delete_edition(date):
+    if _require_admin():
+        return jsonify({"error": "Unauthorized"}), 401
     editions = _load_editions()
     editions = [e for e in editions if e["date"] != date]
     _save_editions(editions)

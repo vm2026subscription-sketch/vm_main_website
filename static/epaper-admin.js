@@ -808,19 +808,51 @@ const EPAdmin = {
     const list = document.getElementById('editionsList');
     if (!list) return;
     if (!this.editions.length) { list.innerHTML = '<div class="epa-empty">No editions yet.</div>'; return; }
-    list.innerHTML = this.editions.map(ed => `
-      <div class="epa-edition-card">
-        <div class="epa-edition-info">
-          <strong>${ed.date}</strong>
-          <span>${ed.name || 'Untitled'}</span>
-          <span class="epa-badge">${ed.language || 'Hindi'}</span>
-          <span style="color:var(--muted);font-size:12px">${ed.total_pages || 0} pages</span>
+    list.innerHTML = this.editions.slice().sort((a, b) => b.date.localeCompare(a.date)).map(ed => {
+      const isPublished = ed.published !== false;
+      const pubBadge = isPublished
+        ? `<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">✓ Published</span>`
+        : `<span style="background:#fef9c3;color:#854d0e;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">Draft</span>`;
+      return `
+        <div class="epa-edition-card">
+          <div class="epa-edition-info">
+            <strong>${ed.date}</strong>
+            <span>${ed.name || 'Untitled'}</span>
+            <span class="epa-badge">${ed.language || 'Hindi'}</span>
+            <span style="color:var(--muted);font-size:12px">${ed.total_pages || 0} pages</span>
+            ${pubBadge}
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <button class="epa-btn epa-btn-sm epa-btn-primary" onclick="EPAdmin.editEdition('${ed.date}')">
+              <i class="fa fa-edit"></i> Edit
+            </button>
+            <button class="epa-btn epa-btn-sm ${isPublished ? 'epa-btn-danger' : 'epa-btn-success'}"
+              onclick="EPAdmin.togglePublish('${ed.date}', ${!isPublished})">
+              <i class="fa fa-${isPublished ? 'eye-slash' : 'eye'}"></i> ${isPublished ? 'Unpublish' : 'Publish'}
+            </button>
+          </div>
         </div>
-        <button class="epa-btn epa-btn-sm epa-btn-primary" onclick="EPAdmin.editEdition('${ed.date}')">
-          <i class="fa fa-edit"></i> Edit
-        </button>
-      </div>
-    `).join('');
+      `;
+    }).join('');
+  },
+
+  async togglePublish(date, publish) {
+    try {
+      const res = await fetch(`/api/epaper/admin/edition/${date}/publish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ published: publish }),
+      });
+      if (res.ok) {
+        this.showToast(publish ? '✅ Edition published!' : '⚠ Edition unpublished');
+        this.loadEditions();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        this.showToast('Error: ' + (err.error || 'Failed'));
+      }
+    } catch (e) {
+      this.showToast('Network error');
+    }
   },
 
   async editEdition(date) {
