@@ -173,14 +173,14 @@ const EP = {
     this.el.fitPage?.addEventListener('click', () => this.setZoom(1));
     this.el.fullscreen?.addEventListener('click', () => this.toggleFullscreen());
 
-    // Scroll buttons
+    // Scroll buttons — scroll amount scales with zoom level
     this.el.scrollUp?.addEventListener('click', () => {
       const viewer = this.el.viewer;
-      if (viewer) viewer.scrollBy({ top: -300, behavior: 'smooth' });
+      if (viewer) viewer.scrollBy({ top: -(250 * this.zoom), behavior: 'smooth' });
     });
     this.el.scrollDown?.addEventListener('click', () => {
       const viewer = this.el.viewer;
-      if (viewer) viewer.scrollBy({ top: 300, behavior: 'smooth' });
+      if (viewer) viewer.scrollBy({ top: 250 * this.zoom, behavior: 'smooth' });
     });
 
     // Thumbnail strip
@@ -199,15 +199,36 @@ const EP = {
       }
     });
 
-    // Viewer wheel zoom
+    // Viewer wheel zoom (Ctrl+scroll) + normal scroll passthrough
     const v = this.el.viewer;
     if (v) {
       v.addEventListener('wheel', (e) => {
-        if (e.ctrlKey) {
+        if (e.ctrlKey || e.metaKey) {
           e.preventDefault();
-          this.setZoom(this.zoom + (e.deltaY < 0 ? 0.15 : -0.15));
+          const delta = e.deltaY < 0 ? 0.1 : -0.1;
+          this.setZoom(this.zoom + delta);
         }
       }, { passive: false });
+
+      // Pinch-to-zoom on touch
+      let _lastDist = null;
+      v.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 2) {
+          const dx = e.touches[0].clientX - e.touches[1].clientX;
+          const dy = e.touches[0].clientY - e.touches[1].clientY;
+          _lastDist = Math.hypot(dx, dy);
+        }
+      }, { passive: true });
+      v.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 2 && _lastDist !== null) {
+          const dx = e.touches[0].clientX - e.touches[1].clientX;
+          const dy = e.touches[0].clientY - e.touches[1].clientY;
+          const dist = Math.hypot(dx, dy);
+          this.setZoom(this.zoom * (dist / _lastDist));
+          _lastDist = dist;
+        }
+      }, { passive: true });
+      v.addEventListener('touchend', () => { _lastDist = null; }, { passive: true });
     }
 
     // Article panel back
@@ -238,11 +259,16 @@ const EP = {
       this._voiceUpdateUI();
     });
 
-    // Voice selector — set voice AND translate visible article text
-    this.el.voiceSelect?.addEventListener('change', () => {
+    // Voice selector — set voice, translate visible article text,
+    // and if audio is playing regenerate audio in new language
+    this.el.voiceSelect?.addEventListener('change', async () => {
       const val = this.el.voiceSelect.value;
       this._voice.selectedVoice = val;
-      this._translatePanelForVoice(val);
+      await this._translatePanelForVoice(val);
+      // If already playing or paused, restart playback with new language
+      if (this._voice.playing || this._voice.paused) {
+        try { await this.voicePlay(); } catch (e) { /* swallow */ }
+      }
     });
 
     // Translate
@@ -566,14 +592,34 @@ const EP = {
       if (this.el.pageContainer) this.el.pageContainer.style.display = 'none';
       this.renderBlockGrid(page.blocks, viewer);
     } else if (page.page_image_url) {
-      // Legacy: single image with hotspots
+      const isPdf = page.page_image_url.toLowerCase().endsWith('.pdf');
       if (this.el.pageContainer) this.el.pageContainer.style.display = '';
-      if (this.el.pageImg) {
-        this.el.pageImg.style.display = 'block';
-        this.el.pageImg.src = page.page_image_url;
+
+      if (isPdf) {
+        // Render PDF in an iframe
+        if (this.el.pageImg) this.el.pageImg.style.display = 'none';
+        let pdfFrame = document.getElementById('epPdfFrame');
+        if (!pdfFrame) {
+          pdfFrame = document.createElement('iframe');
+          pdfFrame.id = 'epPdfFrame';
+          pdfFrame.style.cssText = 'width:100%;height:100%;border:none;display:block;';
+          this.el.pageContainer.appendChild(pdfFrame);
+        }
+        pdfFrame.style.display = 'block';
+        pdfFrame.src = page.page_image_url;
+        if (this.el.hotspotsLayer) this.el.hotspotsLayer.style.display = 'none';
+      } else {
+        // Image page
+        const pdfFrame = document.getElementById('epPdfFrame');
+        if (pdfFrame) pdfFrame.style.display = 'none';
+        if (this.el.pageImg) {
+          this.el.pageImg.style.display = 'block';
+          this.el.pageImg.src = page.page_image_url;
+        }
+        if (this.el.hotspotsLayer) this.el.hotspotsLayer.style.display = 'block';
+        this.renderHotspots(page.articles || []);
       }
-      if (this.el.hotspotsLayer) this.el.hotspotsLayer.style.display = 'block';
-      this.renderHotspots(page.articles || []);
+
       const grid = document.getElementById('epBlockGrid');
       if (grid) grid.style.display = 'none';
     }
@@ -653,7 +699,7 @@ const EP = {
           const w = ((block.w || 200) / CANVAS_W * 100).toFixed(2);
           const h = ((block.h || 150) / canvasH * 100).toFixed(2);
           const bw = block.border_width ?? 0;
-          const br = block.border_radius ?? 10;
+          const br = block.border_radius ?? 0;
           const bc = block.border_color || '#e41e26';
           const bs = block.border_style || 'solid';
           const borderCSS = type === 'article' && bw > 0 ? `border:${bw}px ${bs} ${bc};` : '';
@@ -683,16 +729,11 @@ const EP = {
 
           return `
             <div class="ep-block-card" onclick="EP.openArticle(${articleIndex})" title="${block.headline || ''}" style="${baseStyle}cursor:pointer;">
-              ${hasImg ? `<img class="ep-block-img" src="${imgSrc}" alt="${block.headline || ''}" draggable="false" loading="lazy" onload="this.classList.add('loaded')" style="width:100%;height:100%;object-fit:cover;display:block;">` : `
+              ${hasImg ? `<img class="ep-block-img" src="${imgSrc}" alt="${block.headline || ''}" draggable="false" loading="lazy" style="width:100%;height:100%;object-fit:contain;display:block;">` : `
                 <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f3f4f6,#e5e7eb);color:#d1d5db;font-size:28px;">
                   <i class="fa fa-newspaper"></i>
                 </div>
               `}
-              <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.85));padding:12px 10px 8px;color:#fff;">
-                ${block.category_label ? `<span style="font-size:9px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.7);display:block;margin-bottom:2px;">${block.category_label}</span>` : ''}
-                <strong style="font-size:13px;line-height:1.3;display:block;">${block.headline || 'Untitled'}</strong>
-                ${block.sub_headline ? `<span style="font-size:10px;color:rgba(255,255,255,.6);display:block;margin-top:2px;">${block.sub_headline}</span>` : ''}
-              </div>
             </div>
           `;
         }).join('')}
@@ -726,15 +767,15 @@ const EP = {
   },
 
   applyTransform() {
-    // Apply zoom to the block grid or page container
+    const z = this.zoom;
     const grid = document.getElementById('epBlockGrid');
-    if (grid) {
-      grid.style.transform = `scale(${this.zoom})`;
-      grid.style.transformOrigin = 'top center';
-    }
-    if (this.el.pageContainer) {
-      this.el.pageContainer.style.transform = `scale(${this.zoom})`;
-    }
+    const target = (grid && grid.style.display !== 'none') ? grid : this.el.pageContainer;
+    if (!target) return;
+
+    // CSS zoom affects actual layout (unlike transform:scale), so scroll works naturally
+    target.style.zoom = z;
+    target.style.transform = '';
+    target.style.marginBottom = '';
   },
 
   toggleFullscreen() {
@@ -814,7 +855,7 @@ const EP = {
     if (this.el.voiceSelect) this.el.voiceSelect.value = '';
     this._voice.selectedVoice = '';
     if (this.el.ttsPrompt) this.el.ttsPrompt.style.display = '';
-    if (this.el.voiceBar) this.el.voiceBar.classList.remove('active', 'loading', 'playing');
+    if (this.el.voiceBar) this.el.voiceBar.classList.remove('loading', 'playing', 'topbar');
     if (this.el.ttsStartBtn) { this.el.ttsStartBtn.innerHTML = '<i class="fa fa-play"></i> <span>Play</span>'; this.el.ttsStartBtn.classList.remove('loading'); }
 
     if (this.el.articleCategory) this.el.articleCategory.textContent = art.category_label || 'News';
@@ -934,7 +975,6 @@ const EP = {
     if (tab === 'summarize') this.summarizeArticle();
     if (tab === 'translate') {
       this._autoSetTranslateLang();
-      this.translateArticle();
     }
   },
 
@@ -1059,6 +1099,7 @@ const EP = {
   _ttsSpans: [],
   _ttsTotalChars: 0,
   _ttsCurrentSpan: -1,
+  _estimatedTtsDuration: 0,
 
   _splitSentences(text) {
     text = text.replace(/\s+/g, ' ').trim();
@@ -1123,11 +1164,18 @@ const EP = {
     });
 
     this._ttsTotalChars = charOffset || 1;
+    // Estimate audio duration for the whole text so highlighting can use
+    // a stable timebase even if the actual audio blob durations differ
+    const fullText = (this.el.articleTitle?.textContent || '') + ' ' + (this.el.articleText?.innerText || '');
+    this._estimatedTtsDuration = this._estimateAudioDuration(fullText.trim());
   },
 
   _highlightAt(currentTime, duration) {
-    if (!this._ttsTotalChars || !duration) return;
-    const pos = (currentTime / duration) * this._ttsTotalChars;
+    if (!this._ttsTotalChars) return;
+    // Use the larger of measured audio duration and estimated total duration
+    const denom = Math.max(duration || 0, this._estimatedTtsDuration || 0.001);
+    if (!denom) return;
+    const pos = (currentTime / denom) * this._ttsTotalChars;
     let idx = -1;
     for (let i = 0; i < this._ttsSpans.length; i++) {
       if (pos >= this._ttsSpans[i].start && pos < this._ttsSpans[i].end) { idx = i; break; }
@@ -1140,6 +1188,22 @@ const EP = {
       this._ttsSpans[idx].el.classList.add('ep-tts-active');
       this._ttsSpans[idx].el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
+  },
+
+  // Estimate TTS duration (seconds) from text length and approximate WPM
+  _estimateAudioDuration(text) {
+    if (!text) return 0;
+    // Count words approximately
+    const words = (text.trim().split(/\s+/).filter(Boolean) || []).length;
+    // Pick WPM based on detected language
+    const lang = this.detectLang(text);
+    let wpm = 180; // default English
+    if (lang === 'hi-IN' || lang === 'mr-IN') wpm = 150;
+    // Adjust for rate (1x = normal)
+    const rate = this._voice?.rate || 1;
+    const effectiveWpm = Math.max(80, Math.round(wpm * rate));
+    const minutes = words / effectiveWpm;
+    return Math.max(1, Math.round(minutes * 60));
   },
 
   _clearHighlight() {
@@ -1231,6 +1295,15 @@ const EP = {
   async voicePlay() {
     if (!this.currentArticle) return;
 
+    // If already paused, just resume from current position
+    if (this._voice.paused && this._voice.audio) {
+      this._voice.audio.play();
+      this._voice.paused = false;
+      this._voice.playing = true;
+      this._voiceUpdatePlayIcon();
+      return;
+    }
+
     // Read from the currently DISPLAYED text (may already be translated)
     const displayedTitle = this.el.articleTitle?.textContent || '';
     const displayedBody  = (this.el.articleText?.innerText || this.el.articleText?.textContent || '')
@@ -1242,13 +1315,10 @@ const EP = {
     this.voiceStop();
     this._voice.loading = true;
 
-    // Show loading state on Play button
-    if (this.el.ttsStartBtn) { this.el.ttsStartBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> <span>Loading...</span>'; this.el.ttsStartBtn.classList.add('loading'); }
-
-    // Show inline player, hide prompt
-    if (this.el.ttsPrompt) this.el.ttsPrompt.style.display = 'none';
-    if (this.el.voiceBar) this.el.voiceBar.classList.add('active', 'loading');
+    // Show voice bar immediately
+    if (this.el.voiceBar) this.el.voiceBar.classList.add('loading', 'topbar');
     if (this.el.voiceTitle) this.el.voiceTitle.textContent = displayedTitle || this.currentArticle.headline || 'Article';
+    if (this.el.ttsStartBtn) { this.el.ttsStartBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> <span>Loading...</span>'; this.el.ttsStartBtn.classList.add('loading'); }
     this._voiceUpdatePlayIcon();
 
     // Prepare sentence spans for highlight
@@ -1277,28 +1347,18 @@ const EP = {
       const res = await fetch('/api/epaper/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: textToRead,
-          voice: this._voice.selectedVoice || '',
-          rate: rateStr,
-          pitch: pitchStr
-        }),
+        body: JSON.stringify({ text: textToRead, voice: this._voice.selectedVoice || '', rate: rateStr, pitch: pitchStr }),
       });
-
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || 'TTS request failed');
       }
 
-      // Get audio as blob
       const audioBlob = await res.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
-
-      // Create HTML5 Audio
       const audio = new Audio(audioUrl);
       this._voice.audio = audio;
 
-      // Wire up audio events
       audio.addEventListener('loadedmetadata', () => {
         this._voice.loading = false;
         if (this.el.voiceDuration) this.el.voiceDuration.textContent = this._formatTime(audio.duration || 0);
@@ -1321,27 +1381,21 @@ const EP = {
         this._voiceFinished();
       });
 
-      // Start playback
       await audio.play();
+      if (this.el.voiceBar) this.el.voiceBar.classList.remove('loading');
       this._voice.playing = true;
       this._voice.paused = false;
       this._voice.loading = false;
       if (this.el.ttsStartBtn) { this.el.ttsStartBtn.innerHTML = '<i class="fa fa-play"></i> <span>Play</span>'; this.el.ttsStartBtn.classList.remove('loading'); }
-      if (this.el.voiceBar) this.el.voiceBar.classList.remove('loading');
       this._voiceUpdatePlayIcon();
-
-      this.showToast('🔊 Now playing — AI News Voice');
-      this.trackEvent('voice_play', {
-        article: this.currentArticle?.headline,
-        lang: this.detectLang(textToRead),
-        voice: this._voice.selectedVoice || 'auto',
-      });
+      this.showToast('🔊 Now playing');
+      this.trackEvent('voice_play', { article: this.currentArticle?.headline, voice: this._voice.selectedVoice || 'auto' });
 
     } catch (err) {
       console.error('TTS Error:', err);
       this._voice.loading = false;
       if (this.el.ttsStartBtn) { this.el.ttsStartBtn.innerHTML = '<i class="fa fa-play"></i> <span>Play</span>'; this.el.ttsStartBtn.classList.remove('loading'); }
-      if (this.el.voiceBar) this.el.voiceBar.classList.remove('active', 'loading');
+      if (this.el.voiceBar) this.el.voiceBar.classList.remove('loading', 'topbar');
       if (this.el.ttsPrompt) this.el.ttsPrompt.style.display = '';
       this._clearHighlight();
       this.showToast('Voice generation failed. Try again.');
@@ -1360,9 +1414,9 @@ const EP = {
     }
     if (this.el.voiceRemaining) this.el.voiceRemaining.textContent = '0:00';
     this._voiceUpdatePlayIcon();
-   if (this.el.voiceBar) this.el.voiceBar.classList.remove('playing', 'loading');
+    if (this.el.voiceBar) this.el.voiceBar.classList.remove('playing', 'loading', 'topbar');
     setTimeout(() => {
-      if (this.el.voiceBar) this.el.voiceBar.classList.remove('active');
+      if (this.el.voiceBar) this.el.voiceBar.classList.remove('topbar');
       if (this.el.ttsPrompt) this.el.ttsPrompt.style.display = '';
     }, 1800);
     this.showToast('✅ Finished reading');
@@ -1407,7 +1461,7 @@ const EP = {
     this._voice.paused = false;
     this._voice.loading = false;
     if (this.el.ttsStartBtn) { this.el.ttsStartBtn.innerHTML = '<i class="fa fa-play"></i> <span>Play</span>'; this.el.ttsStartBtn.classList.remove('loading'); }
-    if (this.el.voiceBar) this.el.voiceBar.classList.remove('active', 'playing', 'loading');
+    if (this.el.voiceBar) this.el.voiceBar.classList.remove('playing', 'loading', 'topbar');
     if (this.el.ttsPrompt) this.el.ttsPrompt.style.display = '';
     if (this.el.voiceProgressFill) this.el.voiceProgressFill.style.width = '0%';
     this._clearHighlight();
@@ -1567,6 +1621,12 @@ const EP = {
 
   // ── Save Page as PDF ──
   savePDF() {
+    // If page is already a PDF, open it directly
+    const pdfFrame = document.getElementById('epPdfFrame');
+    if (pdfFrame && pdfFrame.style.display !== 'none' && pdfFrame.src) {
+      window.open(pdfFrame.src, '_blank');
+      return;
+    }
     const imgSrc = this.el.pageImg?.src;
     if (!imgSrc || imgSrc.endsWith('/') || imgSrc === location.href) {
       this.showToast('No page loaded to save');
@@ -1581,9 +1641,9 @@ const EP = {
       <title>Vidyarthi Mitra E-Paper${date ? ' — ' + date : ''}${pageNum ? ' | ' + pageNum : ''}</title>
       <style>
         *{margin:0;padding:0;box-sizing:border-box}
-        body{background:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh}
+        body{background:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;print-color-adjust:exact;-webkit-print-color-adjust:exact}
         img{max-width:100%;max-height:100vh;object-fit:contain}
-        @media print{body{display:block}img{width:100%;height:auto;page-break-inside:avoid}}
+        @media print{body{display:block;background:#fff !important}img{width:100%;height:auto;page-break-inside:avoid}}
       </style>
     </head><body>
       <img src="${imgSrc}" onload="window.print()">
