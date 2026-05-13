@@ -63,7 +63,7 @@
             "width": 294,
             "height": 641,
             "border_width": 0,
-            "border_radius": 10,
+            "border_radius": 0,
             "border_color": "#e41e26",
             "border_style": "solid"
           },
@@ -88,7 +88,7 @@
             "width": 481,
             "height": 390,
             "border_width": 0,
-            "border_radius": 10,
+            "border_radius": 0,
             "border_color": "#e41e26",
             "border_style": "solid"
           },
@@ -113,7 +113,7 @@
             "width": 186,
             "height": 511,
             "border_width": 2,
-            "border_radius": 12,
+            "border_radius": 0,
             "border_color": "#2563eb",
             "border_style": "solid"
           },
@@ -138,7 +138,7 @@
             "width": 151,
             "height": 151,
             "border_width": 0,
-            "border_radius": 10,
+            "border_radius": 0,
             "border_color": "#e41e26",
             "border_style": "solid"
           }
@@ -168,7 +168,7 @@
             "width": 294,
             "height": 641,
             "border_width": 0,
-            "border_radius": 10,
+            "border_radius": 0,
             "border_color": "#e41e26",
             "border_style": "solid"
           },
@@ -194,7 +194,7 @@
             "width": 481,
             "height": 390,
             "border_width": 0,
-            "border_radius": 10,
+            "border_radius": 0,
             "border_color": "#e41e26",
             "border_style": "solid"
           },
@@ -220,7 +220,7 @@
             "width": 186,
             "height": 511,
             "border_width": 2,
-            "border_radius": 12,
+            "border_radius": 0,
             "border_color": "#2563eb",
             "border_style": "solid"
           },
@@ -246,7 +246,7 @@
             "width": 151,
             "height": 151,
             "border_width": 0,
-            "border_radius": 10,
+            "border_radius": 0,
             "border_color": "#e41e26",
             "border_style": "solid"
           }
@@ -323,7 +323,7 @@
             "width": 386,
             "height": 475,
             "border_width": 0,
-            "border_radius": 10,
+            "border_radius": 0,
             "border_color": "#e41e26",
             "border_style": "solid"
           },
@@ -348,7 +348,7 @@
             "width": 388,
             "height": 391,
             "border_width": 0,
-            "border_radius": 10,
+            "border_radius": 0,
             "border_color": "#e41e26",
             "border_style": "solid"
           },
@@ -373,7 +373,7 @@
             "width": 402,
             "height": 568,
             "border_width": 0,
-            "border_radius": 10,
+            "border_radius": 0,
             "border_color": "#e41e26",
             "border_style": "solid"
           },
@@ -398,7 +398,7 @@
             "width": 389,
             "height": 410,
             "border_width": 0,
-            "border_radius": 10,
+            "border_radius": 0,
             "border_color": "#e41e26",
             "border_style": "solid"
           },
@@ -423,7 +423,7 @@
             "width": 388,
             "height": 79,
             "border_width": 0,
-            "border_radius": 10,
+            "border_radius": 0,
             "border_color": "#e41e26",
             "border_style": "solid"
           }
@@ -451,7 +451,7 @@
             "width": 386,
             "height": 475,
             "border_width": 0,
-            "border_radius": 10,
+            "border_radius": 0,
             "border_color": "#e41e26",
             "border_style": "solid"
           },
@@ -477,7 +477,7 @@
             "width": 388,
             "height": 391,
             "border_width": 0,
-            "border_radius": 10,
+            "border_radius": 0,
             "border_color": "#e41e26",
             "border_style": "solid"
           },
@@ -503,7 +503,7 @@
             "width": 402,
             "height": 568,
             "border_width": 0,
-            "border_radius": 10,
+            "border_radius": 0,
             "border_color": "#e41e26",
             "border_style": "solid"
           },
@@ -529,7 +529,7 @@
             "width": 389,
             "height": 410,
             "border_width": 0,
-            "border_radius": 10,
+            "border_radius": 0,
             "border_color": "#e41e26",
             "border_style": "solid"
           },
@@ -555,7 +555,7 @@
             "width": 388,
             "height": 79,
             "border_width": 0,
-            "border_radius": 10,
+            "border_radius": 0,
             "border_color": "#e41e26",
             "border_style": "solid"
           }
@@ -604,7 +604,7 @@
             "width": 268,
             "height": 122,
             "border_width": 0,
-            "border_radius": 10,
+            "border_radius": 0,
             "border_color": "#e41e26",
             "border_style": "solid"
           },
@@ -631,7 +631,7 @@
             "width": 520,
             "height": 678,
             "border_width": 0,
-            "border_radius": 10,
+            "border_radius": 0,
             "border_color": "#e41e26",
             "border_style": "solid"
           }
@@ -659,7 +659,7 @@
             "width": 268,
             "height": 122,
             "border_width": 0,
-            "border_radius": 10,
+            "border_radius": 0,
             "border_color": "#e41e26",
             "border_style": "solid"
           },
@@ -687,7 +687,7 @@
             "width": 520,
             "height": 678,
             "border_width": 0,
-            "border_radius": 10,
+            "border_radius": 0,
             "border_color": "#e41e26",
             "border_style": "solid"
           }
@@ -747,5 +747,293 @@
         "color": "#111827"
       }
     ]
+  },
+  {
+    "date": "2026-05-12",
+    "name": "VM 2026",
+    "language": "Hindi",
+    "masthead_image_url": "/static/uploads/epaper/Untitled_design_page-0001-20260512163034347729.jpg",
+    "footer_links": [
+      {
+        "key": "search",
+        "url": "/epaper"
+      },
+      {
+        "key": "whatsapp",
+        "url": "https://wa.me/?text=Vidyarthi%20Mitra%20E-Paper"
+      },
+      {
+        "key": "facebook",
+        "url": "https://www.facebook.com/"
+      },
+      {
+        "key": "x",
+        "url": "https://x.com/"
+      }
+    ],
+    "header_items": [],
+    "pages": [
+      {
+        "page_number": 1,
+        "category": "मुख पृष्ठ",
+        "image_path": "",
+        "page_image_url": "",
+        "layout_json": [
+          {
+            "article_id": 1778654799935,
+            "x": 0,
+            "y": 0,
+            "width": 437,
+            "height": 436
+          },
+          {
+            "article_id": "1778655663093",
+            "x": 444,
+            "y": 8,
+            "width": 356,
+            "height": 356
+          }
+        ],
+        "blocks": [
+          {
+            "id": 1778654799935,
+            "article_id": 1778654799935,
+            "headline": "",
+            "title": "",
+            "sub_headline": "",
+            "body_text": "",
+            "body_html": "",
+            "author": "Vidyarthi Mitra Desk",
+            "category_label": "",
+            "category": "",
+            "image_url": "/static/uploads/epaper/Untitled_design_1-20260513122356973584.png",
+            "image": "/static/uploads/epaper/Untitled_design_1-20260513122356973584.png",
+            "gallery": [],
+            "x": 0,
+            "y": 0,
+            "w": 437,
+            "h": 436,
+            "width": 437,
+            "height": 436,
+            "border_width": 0,
+            "border_radius": 0,
+            "border_color": "#e41e26",
+            "border_style": "solid"
+          },
+          {
+            "id": 1778655663093,
+            "article_id": "1778655663093",
+            "headline": "NTA cancels NEET UG 2026",
+            "title": "NTA cancels NEET UG 2026",
+            "sub_headline": "sub headline ",
+            "body_text": "In one of the biggest examination controversies in recent Indian education history, the National Testing Agency (NTA) has officially cancelled the NEET UG 2026 examination after serious allegations of a large-scale question paper leak surfaced across multiple states. The decision has impacted more than 24 lakh medical aspirants who appeared for the exam on May 3, 2026, hoping to secure admission into MBBS, BDS, AYUSH, and other medical courses across India.\nThe announcement came late Tuesday evening after mounting pressure from students, parents, coaching institutions, opposition leaders, and investigative agencies. The controversy intensified when investigators from the Rajasthan Police Special Operations Group (SOG), along with cybercrime units and intelligence agencies, uncovered evidence suggesting that portions of the exam paper had been circulating illegally long before the examination date.\nAccording to investigators, a so-called “guess paper” was being shared through encrypted WhatsApp groups, Telegram channels, and private coaching networks for nearly a month before the exam. Initially dismissed as another common prediction booklet circulated by coaching centres every year, the material later became the centre of a massive scandal when officials discovered that approximately 120 questions from the Biology and Chemistry sections matched the actual NEET UG 2026 paper exactly.\nAuthorities described the similarity as “far beyond coincidence.”\nThe leaked material reportedly contained nearly 410 highly probable questions, many of which appeared in almost identical wording in the final examination paper. Several students are now under investigation after unusually high score patterns were detected in specific centres across Rajasthan, Bihar, Uttar Pradesh, Delhi, and parts of Maharashtra.\nThe financial dimension of the scandal has shocked investigators even further. Preliminary reports suggest that copies of the leaked material were allegedly sold for amounts ranging between ₹5 lakh and ₹40 lakh per candidate depending on the level of access. Some middlemen reportedly promised “confirmed selection packages” to parents desperate to secure medical seats for their children.\nPolice raids conducted over the last few days resulted in the seizure of laptops, mobile phones, printed papers, handwritten notes, pen drives, and transaction records linked to suspected coaching operators and brokers. Multiple arrests have already been made, including individuals connected to private coaching institutes and alleged educational rackets operating across state borders.\nSources close to the investigation claim that authorities are also examining whether insiders linked to paper printing, transportation, or exam management systems were involved. Cyber forensic teams are tracing the origin of the leaked files and analyzing digital communication records to determine how early the paper may have been accessed.\nFollowing emergency meetings with the Ministry of Education, the NTA concluded that the integrity of the examination process had been “seriously compromised,” making it impossible to ensure fairness for all candidates. Officials stated that continuing with the existing results would undermine public trust in one of India’s most competitive entrance examinations.\nThe cancellation has triggered an emotional wave across the country. Thousands of students who spent years preparing for NEET expressed frustration, anger, and exhaustion on social media. Many aspirants described the decision as heartbreaking but necessary to maintain fairness.\nOutside several coaching hubs in cities like Kota, Patna, and Delhi, students gathered in protest, demanding strict action against those responsible for the leak. Some students argued that innocent aspirants are once again paying the price for systemic failures and corruption within the examination ecosystem.\nEducation experts say the scandal exposes deeper structural issues in India’s high-stakes examination system, where enormous competition, financial pressure, and commercialization have created fertile ground for organized cheating networks. NEET remains one of the toughest entrance exams in the country, with only a small fraction of candidates eventually securing government medical seats.\nPolitical reactions have also intensified. Opposition parties accused the government and NTA of failing to secure national-level examinations despite repeated controversies in recent years involving recruitment tests and entrance exams. Several leaders demanded a parliamentary inquiry and called for reforms in the functioning of examination bodies.\nMeanwhile, the Ministry of Education has assured students that a fresh examination schedule will be announced soon. Sources indicate that the re-exam could be conducted under significantly tighter security protocols, including enhanced digital surveillance, AI-based monitoring systems, stricter paper transportation mechanisms, biometric verification, and last-minute encrypted question paper delivery.\nThe Supreme Court is also expected to hear multiple petitions related to the cancellation, student compensation, accountability, and demands for an independent probe monitored by central agencies.\nFor millions of students and families, the cancellation represents more than just a delayed exam. It reflects the emotional, financial, and psychological burden carried by aspirants in India’s intensely competitive education system. Many students had taken gap years, relocated to coaching cities, or spent substantial family savings preparing for NEET 2026.\nAs investigations continue, the focus now shifts toward identifying the full network behind the alleged leak and restoring public confidence in the examination process. The coming weeks are expected to be crucial, not only for the future of NEET UG 2026 but also for the credibility of India’s national testing infrastructure.",
+            "body_html": "<p>In one of the biggest examination controversies in recent Indian education history, the National Testing Agency (NTA) has officially cancelled the NEET UG 2026 examination after serious allegations of a large-scale question paper leak surfaced across multiple states. The decision has impacted more than 24 lakh medical aspirants who appeared for the exam on May 3, 2026, hoping to secure admission into MBBS, BDS, AYUSH, and other medical courses across India.</p><p>The announcement came late Tuesday evening after mounting pressure from students, parents, coaching institutions, opposition leaders, and investigative agencies. The controversy intensified when investigators from the Rajasthan Police Special Operations Group (SOG), along with cybercrime units and intelligence agencies, uncovered evidence suggesting that portions of the exam paper had been circulating illegally long before the examination date.</p><p>According to investigators, a so-called “guess paper” was being shared through encrypted WhatsApp groups, Telegram channels, and private coaching networks for nearly a month before the exam. Initially dismissed as another common prediction booklet circulated by coaching centres every year, the material later became the centre of a massive scandal when officials discovered that approximately 120 questions from the Biology and Chemistry sections matched the actual NEET UG 2026 paper exactly.</p><p>Authorities described the similarity as “far beyond coincidence.”</p><p>The leaked material reportedly contained nearly 410 highly probable questions, many of which appeared in almost identical wording in the final examination paper. Several students are now under investigation after unusually high score patterns were detected in specific centres across Rajasthan, Bihar, Uttar Pradesh, Delhi, and parts of Maharashtra.</p><p>The financial dimension of the scandal has shocked investigators even further. Preliminary reports suggest that copies of the leaked material were allegedly sold for amounts ranging between ₹5 lakh and ₹40 lakh per candidate depending on the level of access. Some middlemen reportedly promised “confirmed selection packages” to parents desperate to secure medical seats for their children.</p><p>Police raids conducted over the last few days resulted in the seizure of laptops, mobile phones, printed papers, handwritten notes, pen drives, and transaction records linked to suspected coaching operators and brokers. Multiple arrests have already been made, including individuals connected to private coaching institutes and alleged educational rackets operating across state borders.</p><p>Sources close to the investigation claim that authorities are also examining whether insiders linked to paper printing, transportation, or exam management systems were involved. Cyber forensic teams are tracing the origin of the leaked files and analyzing digital communication records to determine how early the paper may have been accessed.</p><p>Following emergency meetings with the Ministry of Education, the NTA concluded that the integrity of the examination process had been “seriously compromised,” making it impossible to ensure fairness for all candidates. Officials stated that continuing with the existing results would undermine public trust in one of India’s most competitive entrance examinations.</p><p>The cancellation has triggered an emotional wave across the country. Thousands of students who spent years preparing for NEET expressed frustration, anger, and exhaustion on social media. Many aspirants described the decision as heartbreaking but necessary to maintain fairness.</p><p>Outside several coaching hubs in cities like Kota, Patna, and Delhi, students gathered in protest, demanding strict action against those responsible for the leak. Some students argued that innocent aspirants are once again paying the price for systemic failures and corruption within the examination ecosystem.</p><p>Education experts say the scandal exposes deeper structural issues in India’s high-stakes examination system, where enormous competition, financial pressure, and commercialization have created fertile ground for organized cheating networks. NEET remains one of the toughest entrance exams in the country, with only a small fraction of candidates eventually securing government medical seats.</p><p>Political reactions have also intensified. Opposition parties accused the government and NTA of failing to secure national-level examinations despite repeated controversies in recent years involving recruitment tests and entrance exams. Several leaders demanded a parliamentary inquiry and called for reforms in the functioning of examination bodies.</p><p>Meanwhile, the Ministry of Education has assured students that a fresh examination schedule will be announced soon. Sources indicate that the re-exam could be conducted under significantly tighter security protocols, including enhanced digital surveillance, AI-based monitoring systems, stricter paper transportation mechanisms, biometric verification, and last-minute encrypted question paper delivery.</p><p>The Supreme Court is also expected to hear multiple petitions related to the cancellation, student compensation, accountability, and demands for an independent probe monitored by central agencies.</p><p>For millions of students and families, the cancellation represents more than just a delayed exam. It reflects the emotional, financial, and psychological burden carried by aspirants in India’s intensely competitive education system. Many students had taken gap years, relocated to coaching cities, or spent substantial family savings preparing for NEET 2026.</p><p>As investigations continue, the focus now shifts toward identifying the full network behind the alleged leak and restoring public confidence in the examination process. The coming weeks are expected to be crucial, not only for the future of NEET UG 2026 but also for the credibility of India’s national testing infrastructure.</p>",
+            "author": "Vidyarthi Mitra Desk",
+            "category_label": "exam",
+            "category": "exam",
+            "image_url": "/static/uploads/epaper/Untitled_design_2-20260513123115885954.png",
+            "image": "/static/uploads/epaper/Untitled_design_2-20260513123115885954.png",
+            "gallery": [],
+            "x": 444,
+            "y": 8,
+            "w": 356,
+            "h": 356,
+            "width": 356,
+            "height": 356,
+            "border_width": 0,
+            "border_radius": 0,
+            "border_color": "#e41e26",
+            "border_style": "solid"
+          }
+        ],
+        "articles": [
+          {
+            "id": 1778654799935,
+            "article_id": 1778654799935,
+            "headline": "",
+            "title": "",
+            "sub_headline": "",
+            "body_text": "",
+            "body_html": "",
+            "author": "Vidyarthi Mitra Desk",
+            "category_label": "",
+            "category": "",
+            "article_image_url": "/static/uploads/epaper/Untitled_design_1-20260513122356973584.png",
+            "image_url": "/static/uploads/epaper/Untitled_design_1-20260513122356973584.png",
+            "image": "/static/uploads/epaper/Untitled_design_1-20260513122356973584.png",
+            "gallery": [],
+            "x": 0,
+            "y": 0,
+            "w": 437,
+            "h": 436,
+            "width": 437,
+            "height": 436,
+            "border_width": 0,
+            "border_radius": 0,
+            "border_color": "#e41e26",
+            "border_style": "solid"
+          },
+          {
+            "id": 1778655663093,
+            "article_id": "1778655663093",
+            "headline": "NTA cancels NEET UG 2026",
+            "title": "NTA cancels NEET UG 2026",
+            "sub_headline": "sub headline ",
+            "body_text": "In one of the biggest examination controversies in recent Indian education history, the National Testing Agency (NTA) has officially cancelled the NEET UG 2026 examination after serious allegations of a large-scale question paper leak surfaced across multiple states. The decision has impacted more than 24 lakh medical aspirants who appeared for the exam on May 3, 2026, hoping to secure admission into MBBS, BDS, AYUSH, and other medical courses across India.\nThe announcement came late Tuesday evening after mounting pressure from students, parents, coaching institutions, opposition leaders, and investigative agencies. The controversy intensified when investigators from the Rajasthan Police Special Operations Group (SOG), along with cybercrime units and intelligence agencies, uncovered evidence suggesting that portions of the exam paper had been circulating illegally long before the examination date.\nAccording to investigators, a so-called “guess paper” was being shared through encrypted WhatsApp groups, Telegram channels, and private coaching networks for nearly a month before the exam. Initially dismissed as another common prediction booklet circulated by coaching centres every year, the material later became the centre of a massive scandal when officials discovered that approximately 120 questions from the Biology and Chemistry sections matched the actual NEET UG 2026 paper exactly.\nAuthorities described the similarity as “far beyond coincidence.”\nThe leaked material reportedly contained nearly 410 highly probable questions, many of which appeared in almost identical wording in the final examination paper. Several students are now under investigation after unusually high score patterns were detected in specific centres across Rajasthan, Bihar, Uttar Pradesh, Delhi, and parts of Maharashtra.\nThe financial dimension of the scandal has shocked investigators even further. Preliminary reports suggest that copies of the leaked material were allegedly sold for amounts ranging between ₹5 lakh and ₹40 lakh per candidate depending on the level of access. Some middlemen reportedly promised “confirmed selection packages” to parents desperate to secure medical seats for their children.\nPolice raids conducted over the last few days resulted in the seizure of laptops, mobile phones, printed papers, handwritten notes, pen drives, and transaction records linked to suspected coaching operators and brokers. Multiple arrests have already been made, including individuals connected to private coaching institutes and alleged educational rackets operating across state borders.\nSources close to the investigation claim that authorities are also examining whether insiders linked to paper printing, transportation, or exam management systems were involved. Cyber forensic teams are tracing the origin of the leaked files and analyzing digital communication records to determine how early the paper may have been accessed.\nFollowing emergency meetings with the Ministry of Education, the NTA concluded that the integrity of the examination process had been “seriously compromised,” making it impossible to ensure fairness for all candidates. Officials stated that continuing with the existing results would undermine public trust in one of India’s most competitive entrance examinations.\nThe cancellation has triggered an emotional wave across the country. Thousands of students who spent years preparing for NEET expressed frustration, anger, and exhaustion on social media. Many aspirants described the decision as heartbreaking but necessary to maintain fairness.\nOutside several coaching hubs in cities like Kota, Patna, and Delhi, students gathered in protest, demanding strict action against those responsible for the leak. Some students argued that innocent aspirants are once again paying the price for systemic failures and corruption within the examination ecosystem.\nEducation experts say the scandal exposes deeper structural issues in India’s high-stakes examination system, where enormous competition, financial pressure, and commercialization have created fertile ground for organized cheating networks. NEET remains one of the toughest entrance exams in the country, with only a small fraction of candidates eventually securing government medical seats.\nPolitical reactions have also intensified. Opposition parties accused the government and NTA of failing to secure national-level examinations despite repeated controversies in recent years involving recruitment tests and entrance exams. Several leaders demanded a parliamentary inquiry and called for reforms in the functioning of examination bodies.\nMeanwhile, the Ministry of Education has assured students that a fresh examination schedule will be announced soon. Sources indicate that the re-exam could be conducted under significantly tighter security protocols, including enhanced digital surveillance, AI-based monitoring systems, stricter paper transportation mechanisms, biometric verification, and last-minute encrypted question paper delivery.\nThe Supreme Court is also expected to hear multiple petitions related to the cancellation, student compensation, accountability, and demands for an independent probe monitored by central agencies.\nFor millions of students and families, the cancellation represents more than just a delayed exam. It reflects the emotional, financial, and psychological burden carried by aspirants in India’s intensely competitive education system. Many students had taken gap years, relocated to coaching cities, or spent substantial family savings preparing for NEET 2026.\nAs investigations continue, the focus now shifts toward identifying the full network behind the alleged leak and restoring public confidence in the examination process. The coming weeks are expected to be crucial, not only for the future of NEET UG 2026 but also for the credibility of India’s national testing infrastructure.",
+            "body_html": "<p>In one of the biggest examination controversies in recent Indian education history, the National Testing Agency (NTA) has officially cancelled the NEET UG 2026 examination after serious allegations of a large-scale question paper leak surfaced across multiple states. The decision has impacted more than 24 lakh medical aspirants who appeared for the exam on May 3, 2026, hoping to secure admission into MBBS, BDS, AYUSH, and other medical courses across India.</p><p>The announcement came late Tuesday evening after mounting pressure from students, parents, coaching institutions, opposition leaders, and investigative agencies. The controversy intensified when investigators from the Rajasthan Police Special Operations Group (SOG), along with cybercrime units and intelligence agencies, uncovered evidence suggesting that portions of the exam paper had been circulating illegally long before the examination date.</p><p>According to investigators, a so-called “guess paper” was being shared through encrypted WhatsApp groups, Telegram channels, and private coaching networks for nearly a month before the exam. Initially dismissed as another common prediction booklet circulated by coaching centres every year, the material later became the centre of a massive scandal when officials discovered that approximately 120 questions from the Biology and Chemistry sections matched the actual NEET UG 2026 paper exactly.</p><p>Authorities described the similarity as “far beyond coincidence.”</p><p>The leaked material reportedly contained nearly 410 highly probable questions, many of which appeared in almost identical wording in the final examination paper. Several students are now under investigation after unusually high score patterns were detected in specific centres across Rajasthan, Bihar, Uttar Pradesh, Delhi, and parts of Maharashtra.</p><p>The financial dimension of the scandal has shocked investigators even further. Preliminary reports suggest that copies of the leaked material were allegedly sold for amounts ranging between ₹5 lakh and ₹40 lakh per candidate depending on the level of access. Some middlemen reportedly promised “confirmed selection packages” to parents desperate to secure medical seats for their children.</p><p>Police raids conducted over the last few days resulted in the seizure of laptops, mobile phones, printed papers, handwritten notes, pen drives, and transaction records linked to suspected coaching operators and brokers. Multiple arrests have already been made, including individuals connected to private coaching institutes and alleged educational rackets operating across state borders.</p><p>Sources close to the investigation claim that authorities are also examining whether insiders linked to paper printing, transportation, or exam management systems were involved. Cyber forensic teams are tracing the origin of the leaked files and analyzing digital communication records to determine how early the paper may have been accessed.</p><p>Following emergency meetings with the Ministry of Education, the NTA concluded that the integrity of the examination process had been “seriously compromised,” making it impossible to ensure fairness for all candidates. Officials stated that continuing with the existing results would undermine public trust in one of India’s most competitive entrance examinations.</p><p>The cancellation has triggered an emotional wave across the country. Thousands of students who spent years preparing for NEET expressed frustration, anger, and exhaustion on social media. Many aspirants described the decision as heartbreaking but necessary to maintain fairness.</p><p>Outside several coaching hubs in cities like Kota, Patna, and Delhi, students gathered in protest, demanding strict action against those responsible for the leak. Some students argued that innocent aspirants are once again paying the price for systemic failures and corruption within the examination ecosystem.</p><p>Education experts say the scandal exposes deeper structural issues in India’s high-stakes examination system, where enormous competition, financial pressure, and commercialization have created fertile ground for organized cheating networks. NEET remains one of the toughest entrance exams in the country, with only a small fraction of candidates eventually securing government medical seats.</p><p>Political reactions have also intensified. Opposition parties accused the government and NTA of failing to secure national-level examinations despite repeated controversies in recent years involving recruitment tests and entrance exams. Several leaders demanded a parliamentary inquiry and called for reforms in the functioning of examination bodies.</p><p>Meanwhile, the Ministry of Education has assured students that a fresh examination schedule will be announced soon. Sources indicate that the re-exam could be conducted under significantly tighter security protocols, including enhanced digital surveillance, AI-based monitoring systems, stricter paper transportation mechanisms, biometric verification, and last-minute encrypted question paper delivery.</p><p>The Supreme Court is also expected to hear multiple petitions related to the cancellation, student compensation, accountability, and demands for an independent probe monitored by central agencies.</p><p>For millions of students and families, the cancellation represents more than just a delayed exam. It reflects the emotional, financial, and psychological burden carried by aspirants in India’s intensely competitive education system. Many students had taken gap years, relocated to coaching cities, or spent substantial family savings preparing for NEET 2026.</p><p>As investigations continue, the focus now shifts toward identifying the full network behind the alleged leak and restoring public confidence in the examination process. The coming weeks are expected to be crucial, not only for the future of NEET UG 2026 but also for the credibility of India’s national testing infrastructure.</p>",
+            "author": "Vidyarthi Mitra Desk",
+            "category_label": "exam",
+            "category": "exam",
+            "article_image_url": "/static/uploads/epaper/Untitled_design_2-20260513123115885954.png",
+            "image_url": "/static/uploads/epaper/Untitled_design_2-20260513123115885954.png",
+            "image": "/static/uploads/epaper/Untitled_design_2-20260513123115885954.png",
+            "gallery": [],
+            "x": 444,
+            "y": 8,
+            "w": 356,
+            "h": 356,
+            "width": 356,
+            "height": 356,
+            "border_width": 0,
+            "border_radius": 0,
+            "border_color": "#e41e26",
+            "border_style": "solid"
+          }
+        ]
+      },
+      {
+        "page_number": 2,
+        "category": "मुख पृष्ठ",
+        "image_path": "",
+        "page_image_url": "",
+        "layout_json": [
+          {
+            "article_id": "1778484042881",
+            "x": 0,
+            "y": 32,
+            "width": 268,
+            "height": 122
+          },
+          {
+            "article_id": "1778500771478",
+            "x": 280,
+            "y": 0,
+            "width": 520,
+            "height": 678
+          }
+        ],
+        "blocks": [
+          {
+            "id": 1778484042881,
+            "article_id": "1778484042881",
+            "headline": "screen",
+            "title": "screen",
+            "sub_headline": "",
+            "body_text": "",
+            "body_html": "<p><br></p>",
+            "author": "Vidyarthi Mitra Desk",
+            "category_label": "",
+            "category": "",
+            "image_url": "/static/uploads/epaper/screen-20260511125050783973.jpg",
+            "image": "/static/uploads/epaper/screen-20260511125050783973.jpg",
+            "gallery": [],
+            "x": 0,
+            "y": 32,
+            "w": 268,
+            "h": 122,
+            "width": 268,
+            "height": 122,
+            "border_width": 0,
+            "border_radius": 0,
+            "border_color": "#e41e26",
+            "border_style": "solid"
+          },
+          {
+            "id": 1778500771478,
+            "article_id": "1778500771478",
+            "headline": "गंजे लड़कों पर मर मिटती हैं लड़कियां",
+            "title": "गंजे लड़कों पर मर मिटती हैं लड़कियां",
+            "sub_headline": "",
+            "body_text": "पूर्वांचल और बोक के बीच में चले आयोजित युवकों के बाल आधारित समूह से ये पूर्वांचल का रिसर्च बताई गई है। युवकों को आकर्षक मानने वाले युवा आकर्षक बने रहने के लिए खूब ट्रीटमेंट कराने से भी नहीं हिचक रहे, लेकिन ऐसे युवाओं के लिए अच्छी खबर है। एक रिसर्च ने खुलासा किया है कि गंजे लड़कों को लड़कियां ज्यादा पसंद करती हैं।\nस्मार्ट और स्टाइलिश दिखने के लिए लड़के अक्सर पतले केश और हेयर स्टाइल अपनाते हैं। अपने पूर्व केश और स्टाइल के जरिए उनकी छवि होती है। वे कई लड़कियों को अपनी तरफ आकर्षित कर सकें। बदलते परिवेश में आकर्षक बनने का चलन खूब हो रहा है। ऐसे युवाओं को आकर्षक बनाने के झूठे दावों से परेशान हैं। हालांकि यूनिवर्सिटी में हुए शोध में एक नया तथ्य सामने आया है कि लड़कियां गंजे लड़कों को ज्यादा पसंद करती हैं। लंबे समय तक रिलेशनशिप करने के बाद अपने हेयर स्टाइल से लड़कियों को इंप्रेस करने की चिंता छोड़ देनी चाहिए क्योंकि अब जरूरत यह है कि अगर आपके बाल झड़ रहे हैं और आपको भी गंजापन होने का डर सता रहा है तो इससे परेशान होने की जरूरत नहीं है क्योंकि गंजे लड़के खुद ही लड़कियां सेटिंग कर लेते हैं।\n100लोगों द्वारा माना गया कि गंजे आदमी अधिक प्रभावशाली होते हैं।\n50%बाल गिर जाने के पश्चात महिलाओं ने पुरुषों को और भी ज्यादा आकर्षक बताया है।\n50की उम्र के बाद सामान्यतः 50 प्रतिशत पुरुषों के बाल झड़ने लगते हैं।\nक्या कहती है रिपोर्ट?गंजे होने की रिपोर्ट के मुताबिक गंजे एवं बाल वाले लोगों की तुलना में गंजे लोग ज्यादा प्रभावशाली दिखते हैं। जो लोग लंबे समय तक रिलेशनशिप में शोधकर्ताओं ने करीब 552 युवकों व युवतियों से पूछा कि वे पुरुष जिनके बाल थे या वे जो आकर्षक रूप से गंजे थे उन्हें अधिक “मर्दाना” माना गया।\nहोते हैं ज्यादा मैच्योरहालांकि, इस रिसर्च में ये भी सामने आया कि जिन व्यक्तियों का उम्र वाले बाल पुरुषों की तुलना में अधिक मर्दाना माना गया। शोधकर्ताओं के अनुसार, समझदारी और मैच्योरिटी की पहचान भी लोगों को प्रभावित करती है। गंजे पुरुषों को उम्र से ज्यादा अनुभव वाला माना जाता है।",
+            "body_html": "<p>पूर्वांचल और बोक के बीच में चले आयोजित युवकों के बाल आधारित समूह से ये पूर्वांचल का रिसर्च बताई गई है। युवकों को आकर्षक मानने वाले युवा आकर्षक बने रहने के लिए खूब ट्रीटमेंट कराने से भी नहीं हिचक रहे, लेकिन ऐसे युवाओं के लिए अच्छी खबर है। एक रिसर्च ने खुलासा किया है कि गंजे लड़कों को लड़कियां ज्यादा पसंद करती हैं।</p><p>स्मार्ट और स्टाइलिश दिखने के लिए लड़के अक्सर पतले केश और हेयर स्टाइल अपनाते हैं। अपने पूर्व केश और स्टाइल के जरिए उनकी छवि होती है। वे कई लड़कियों को अपनी तरफ आकर्षित कर सकें। बदलते परिवेश में आकर्षक बनने का चलन खूब हो रहा है। ऐसे युवाओं को आकर्षक बनाने के झूठे दावों से परेशान हैं। हालांकि यूनिवर्सिटी में हुए शोध में एक नया तथ्य सामने आया है कि लड़कियां गंजे लड़कों को ज्यादा पसंद करती हैं। लंबे समय तक रिलेशनशिप करने के बाद अपने हेयर स्टाइल से लड़कियों को इंप्रेस करने की चिंता छोड़ देनी चाहिए क्योंकि अब जरूरत यह है कि अगर आपके बाल झड़ रहे हैं और आपको भी गंजापन होने का डर सता रहा है तो इससे परेशान होने की जरूरत नहीं है क्योंकि गंजे लड़के खुद ही लड़कियां सेटिंग कर लेते हैं।</p><p>100लोगों द्वारा माना गया कि गंजे आदमी अधिक प्रभावशाली होते हैं।</p><p>50%बाल गिर जाने के पश्चात महिलाओं ने पुरुषों को और भी ज्यादा आकर्षक बताया है।</p><p>50की उम्र के बाद सामान्यतः 50 प्रतिशत पुरुषों के बाल झड़ने लगते हैं।</p><p>क्या कहती है रिपोर्ट?गंजे होने की रिपोर्ट के मुताबिक गंजे एवं बाल वाले लोगों की तुलना में गंजे लोग ज्यादा प्रभावशाली दिखते हैं। जो लोग लंबे समय तक रिलेशनशिप में शोधकर्ताओं ने करीब 552 युवकों व युवतियों से पूछा कि वे पुरुष जिनके बाल थे या वे जो आकर्षक रूप से गंजे थे उन्हें अधिक “मर्दाना” माना गया।</p><p>होते हैं ज्यादा मैच्योरहालांकि, इस रिसर्च में ये भी सामने आया कि जिन व्यक्तियों का उम्र वाले बाल पुरुषों की तुलना में अधिक मर्दाना माना गया। शोधकर्ताओं के अनुसार, समझदारी और मैच्योरिटी की पहचान भी लोगों को प्रभावित करती है। गंजे पुरुषों को उम्र से ज्यादा अनुभव वाला माना जाता है।</p>",
+            "author": "Vidyarthi Mitra Desk",
+            "category_label": "",
+            "category": "",
+            "image_url": "/static/uploads/epaper/WhatsApp_Image_2026-05-11_at_5.26.11_PM-20260511172939983917.jpeg",
+            "image": "/static/uploads/epaper/WhatsApp_Image_2026-05-11_at_5.26.11_PM-20260511172939983917.jpeg",
+            "gallery": [
+              "/static/uploads/epaper/Black_White_Minimal_Alone_Movie_Poster-20260512130535162101.png"
+            ],
+            "x": 280,
+            "y": 0,
+            "w": 520,
+            "h": 678,
+            "width": 520,
+            "height": 678,
+            "border_width": 0,
+            "border_radius": 0,
+            "border_color": "#e41e26",
+            "border_style": "solid"
+          }
+        ],
+        "articles": [
+          {
+            "id": 1778484042881,
+            "article_id": "1778484042881",
+            "headline": "screen",
+            "title": "screen",
+            "sub_headline": "",
+            "body_text": "",
+            "body_html": "<p><br></p>",
+            "author": "Vidyarthi Mitra Desk",
+            "category_label": "",
+            "category": "",
+            "article_image_url": "/static/uploads/epaper/screen-20260511125050783973.jpg",
+            "image_url": "/static/uploads/epaper/screen-20260511125050783973.jpg",
+            "image": "/static/uploads/epaper/screen-20260511125050783973.jpg",
+            "gallery": [],
+            "x": 0,
+            "y": 32,
+            "w": 268,
+            "h": 122,
+            "width": 268,
+            "height": 122,
+            "border_width": 0,
+            "border_radius": 0,
+            "border_color": "#e41e26",
+            "border_style": "solid"
+          },
+          {
+            "id": 1778500771478,
+            "article_id": "1778500771478",
+            "headline": "गंजे लड़कों पर मर मिटती हैं लड़कियां",
+            "title": "गंजे लड़कों पर मर मिटती हैं लड़कियां",
+            "sub_headline": "",
+            "body_text": "पूर्वांचल और बोक के बीच में चले आयोजित युवकों के बाल आधारित समूह से ये पूर्वांचल का रिसर्च बताई गई है। युवकों को आकर्षक मानने वाले युवा आकर्षक बने रहने के लिए खूब ट्रीटमेंट कराने से भी नहीं हिचक रहे, लेकिन ऐसे युवाओं के लिए अच्छी खबर है। एक रिसर्च ने खुलासा किया है कि गंजे लड़कों को लड़कियां ज्यादा पसंद करती हैं।\nस्मार्ट और स्टाइलिश दिखने के लिए लड़के अक्सर पतले केश और हेयर स्टाइल अपनाते हैं। अपने पूर्व केश और स्टाइल के जरिए उनकी छवि होती है। वे कई लड़कियों को अपनी तरफ आकर्षित कर सकें। बदलते परिवेश में आकर्षक बनने का चलन खूब हो रहा है। ऐसे युवाओं को आकर्षक बनाने के झूठे दावों से परेशान हैं। हालांकि यूनिवर्सिटी में हुए शोध में एक नया तथ्य सामने आया है कि लड़कियां गंजे लड़कों को ज्यादा पसंद करती हैं। लंबे समय तक रिलेशनशिप करने के बाद अपने हेयर स्टाइल से लड़कियों को इंप्रेस करने की चिंता छोड़ देनी चाहिए क्योंकि अब जरूरत यह है कि अगर आपके बाल झड़ रहे हैं और आपको भी गंजापन होने का डर सता रहा है तो इससे परेशान होने की जरूरत नहीं है क्योंकि गंजे लड़के खुद ही लड़कियां सेटिंग कर लेते हैं।\n100लोगों द्वारा माना गया कि गंजे आदमी अधिक प्रभावशाली होते हैं।\n50%बाल गिर जाने के पश्चात महिलाओं ने पुरुषों को और भी ज्यादा आकर्षक बताया है।\n50की उम्र के बाद सामान्यतः 50 प्रतिशत पुरुषों के बाल झड़ने लगते हैं।\nक्या कहती है रिपोर्ट?गंजे होने की रिपोर्ट के मुताबिक गंजे एवं बाल वाले लोगों की तुलना में गंजे लोग ज्यादा प्रभावशाली दिखते हैं। जो लोग लंबे समय तक रिलेशनशिप में शोधकर्ताओं ने करीब 552 युवकों व युवतियों से पूछा कि वे पुरुष जिनके बाल थे या वे जो आकर्षक रूप से गंजे थे उन्हें अधिक “मर्दाना” माना गया।\nहोते हैं ज्यादा मैच्योरहालांकि, इस रिसर्च में ये भी सामने आया कि जिन व्यक्तियों का उम्र वाले बाल पुरुषों की तुलना में अधिक मर्दाना माना गया। शोधकर्ताओं के अनुसार, समझदारी और मैच्योरिटी की पहचान भी लोगों को प्रभावित करती है। गंजे पुरुषों को उम्र से ज्यादा अनुभव वाला माना जाता है।",
+            "body_html": "<p>पूर्वांचल और बोक के बीच में चले आयोजित युवकों के बाल आधारित समूह से ये पूर्वांचल का रिसर्च बताई गई है। युवकों को आकर्षक मानने वाले युवा आकर्षक बने रहने के लिए खूब ट्रीटमेंट कराने से भी नहीं हिचक रहे, लेकिन ऐसे युवाओं के लिए अच्छी खबर है। एक रिसर्च ने खुलासा किया है कि गंजे लड़कों को लड़कियां ज्यादा पसंद करती हैं।</p><p>स्मार्ट और स्टाइलिश दिखने के लिए लड़के अक्सर पतले केश और हेयर स्टाइल अपनाते हैं। अपने पूर्व केश और स्टाइल के जरिए उनकी छवि होती है। वे कई लड़कियों को अपनी तरफ आकर्षित कर सकें। बदलते परिवेश में आकर्षक बनने का चलन खूब हो रहा है। ऐसे युवाओं को आकर्षक बनाने के झूठे दावों से परेशान हैं। हालांकि यूनिवर्सिटी में हुए शोध में एक नया तथ्य सामने आया है कि लड़कियां गंजे लड़कों को ज्यादा पसंद करती हैं। लंबे समय तक रिलेशनशिप करने के बाद अपने हेयर स्टाइल से लड़कियों को इंप्रेस करने की चिंता छोड़ देनी चाहिए क्योंकि अब जरूरत यह है कि अगर आपके बाल झड़ रहे हैं और आपको भी गंजापन होने का डर सता रहा है तो इससे परेशान होने की जरूरत नहीं है क्योंकि गंजे लड़के खुद ही लड़कियां सेटिंग कर लेते हैं।</p><p>100लोगों द्वारा माना गया कि गंजे आदमी अधिक प्रभावशाली होते हैं।</p><p>50%बाल गिर जाने के पश्चात महिलाओं ने पुरुषों को और भी ज्यादा आकर्षक बताया है।</p><p>50की उम्र के बाद सामान्यतः 50 प्रतिशत पुरुषों के बाल झड़ने लगते हैं।</p><p>क्या कहती है रिपोर्ट?गंजे होने की रिपोर्ट के मुताबिक गंजे एवं बाल वाले लोगों की तुलना में गंजे लोग ज्यादा प्रभावशाली दिखते हैं। जो लोग लंबे समय तक रिलेशनशिप में शोधकर्ताओं ने करीब 552 युवकों व युवतियों से पूछा कि वे पुरुष जिनके बाल थे या वे जो आकर्षक रूप से गंजे थे उन्हें अधिक “मर्दाना” माना गया।</p><p>होते हैं ज्यादा मैच्योरहालांकि, इस रिसर्च में ये भी सामने आया कि जिन व्यक्तियों का उम्र वाले बाल पुरुषों की तुलना में अधिक मर्दाना माना गया। शोधकर्ताओं के अनुसार, समझदारी और मैच्योरिटी की पहचान भी लोगों को प्रभावित करती है। गंजे पुरुषों को उम्र से ज्यादा अनुभव वाला माना जाता है।</p>",
+            "author": "Vidyarthi Mitra Desk",
+            "category_label": "",
+            "category": "",
+            "article_image_url": "/static/uploads/epaper/WhatsApp_Image_2026-05-11_at_5.26.11_PM-20260511172939983917.jpeg",
+            "image_url": "/static/uploads/epaper/WhatsApp_Image_2026-05-11_at_5.26.11_PM-20260511172939983917.jpeg",
+            "image": "/static/uploads/epaper/WhatsApp_Image_2026-05-11_at_5.26.11_PM-20260511172939983917.jpeg",
+            "gallery": [
+              "/static/uploads/epaper/Black_White_Minimal_Alone_Movie_Poster-20260512130535162101.png"
+            ],
+            "x": 280,
+            "y": 0,
+            "w": 520,
+            "h": 678,
+            "width": 520,
+            "height": 678,
+            "border_width": 0,
+            "border_radius": 0,
+            "border_color": "#e41e26",
+            "border_style": "solid"
+          }
+        ]
+      }
+    ],
+    "created_at": "2026-05-12T15:56:53.151776"
   }
 ]

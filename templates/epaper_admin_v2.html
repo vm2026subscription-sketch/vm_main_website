@@ -75,11 +75,11 @@
     .epc-canvas.has-page-image{background-size:100% 100%;background-position:center;background-repeat:no-repeat;}
     .epc-canvas.has-page-image::before{content:'';position:absolute;inset:0;background:rgba(255,255,255,.08);pointer-events:none;}
 
-    .epc-block{position:absolute;cursor:move;overflow:hidden;border:2px solid rgba(0,0,0,.12);transition:box-shadow .15s;background:#f9fafb;}
-    .epc-block:hover{box-shadow:0 4px 20px rgba(0,0,0,.15);}
-    .epc-block.active{border-color:var(--r)!important;box-shadow:0 0 0 3px rgba(228,30,38,.25);}
-    .epc-block img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;user-select:none;}
-    .epc-empty{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#d1d5db;font-size:28px;}
+    .epc-block{position:absolute;cursor:move;overflow:hidden;border:none;transition:box-shadow .15s;background:transparent;border-radius:0!important;}
+    .epc-block:hover{box-shadow:0 0 0 1px rgba(228,30,38,.35);}
+    .epc-block.active{box-shadow:0 0 0 2px var(--r),0 0 0 5px rgba(228,30,38,.2);}
+    .epc-block img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;user-select:none;border-radius:0!important;}
+    .epc-empty{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.5);font-size:28px;background:transparent;}
     .epc-label{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.8));padding:8px 10px 6px;color:#fff;pointer-events:none;}
     .epc-cat{font-size:8px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.7);display:block;}
     .epc-title{font-size:11px;font-weight:700;line-height:1.2;display:block;}
@@ -201,8 +201,8 @@
         <h2 style="font-size:14px;margin-bottom:10px"><i class="fa fa-image"></i> Newspaper Page Image</h2>
         <div class="epa-form-row" style="grid-template-columns:1fr auto;align-items:end;margin-bottom:0">
           <div class="epa-form-group">
-            <label>Upload scanned page / designed image</label>
-            <input type="file" id="pageImageInput" accept="image/*">
+            <label>Upload scanned page / designed image / PDF</label>
+            <input type="file" id="pageImageInput" accept="image/*,.pdf,application/pdf">
           </div>
           <button type="button" class="epa-btn epa-btn-danger" id="clearPageImageBtn"><i class="fa fa-times"></i> Clear Image</button>
         </div>
@@ -232,7 +232,7 @@
             <div class="epb-section">
               <div class="epb-section-title"><i class="fa fa-image"></i> Image</div>
               <div class="epb-img-upload" id="blockImageUpload">
-                <input type="file" id="blockImageInput" accept="image/*">
+                <input type="file" id="blockImageInput" accept="image/*,.pdf,application/pdf">
                 <div class="epb-upload-label" id="blockImageLabel"><i class="fa fa-cloud-upload-alt"></i>Upload image</div>
               </div>
               <div style="display:flex;gap:6px;margin-top:8px">

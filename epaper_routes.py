@@ -15,6 +15,7 @@ epaper_bp = Blueprint("epaper", __name__)
 EDITIONS_FILE = os.path.join(os.path.dirname(__file__), "data", "epaper_editions.json")
 EPAPER_UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "static", "uploads", "epaper")
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
+ALLOWED_UPLOAD_EXTENSIONS = ALLOWED_IMAGE_EXTENSIONS | {"pdf"}
 
 
 def _ensure_data_dir():
@@ -42,6 +43,10 @@ def _save_editions(data):
 
 def _allowed_image(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
+
+
+def _allowed_upload(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_UPLOAD_EXTENSIONS
 
 
 def _article_from_block(block, edition=None, page=None):
@@ -110,17 +115,35 @@ def epaper_admin_v2():
 
 @epaper_bp.route("/api/epaper/admin/upload-image", methods=["POST"])
 def api_upload_epaper_image():
-    image = request.files.get("image")
+    image = request.files.get("image") or request.files.get("file")
     if not image or not image.filename:
-        return jsonify({"error": "image file required"}), 400
-    if not _allowed_image(image.filename):
-        return jsonify({"error": "Unsupported image type"}), 400
+        return jsonify({"error": "file required"}), 400
+    if not _allowed_upload(image.filename):
+        return jsonify({"error": "Unsupported file type. Allowed: images and PDF"}), 400
 
     os.makedirs(EPAPER_UPLOAD_DIR, exist_ok=True)
     original = secure_filename(image.filename)
     stem, ext = os.path.splitext(original)
-    filename = f"{stem[:48]}-{datetime.now().strftime('%Y%m%d%H%M%S%f')}{ext.lower()}"
-    image.save(os.path.join(EPAPER_UPLOAD_DIR, filename))
+    ts = datetime.now().strftime('%Y%m%d%H%M%S%f')
+
+    if ext.lower() == ".pdf":
+        # Convert first page of PDF to PNG image
+        try:
+            import fitz  # PyMuPDF
+            pdf_bytes = image.read()
+            doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+            page = doc[0]
+            mat = fitz.Matrix(4.0, 4.0)  # 4x scale = ~288 DPI, matches print quality
+            pix = page.get_pixmap(matrix=mat)
+            doc.close()
+            filename = f"{stem[:48]}-{ts}.png"
+            pix.save(os.path.join(EPAPER_UPLOAD_DIR, filename))
+        except Exception as e:
+            return jsonify({"error": f"PDF conversion failed: {str(e)}"}), 500
+    else:
+        filename = f"{stem[:48]}-{ts}{ext.lower()}"
+        image.save(os.path.join(EPAPER_UPLOAD_DIR, filename))
+
     return jsonify({
         "success": True,
         "url": url_for("static", filename=f"uploads/epaper/{filename}"),
@@ -543,9 +566,16 @@ def api_tts():
         return audio_data
 
     try:
+        import sys
+        if sys.platform == "win32":
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         loop = asyncio.new_event_loop()
-        audio_bytes = loop.run_until_complete(_generate_audio())
-        loop.close()
+        asyncio.set_event_loop(loop)
+        try:
+            audio_bytes = loop.run_until_complete(_generate_audio())
+        finally:
+            loop.close()
+            asyncio.set_event_loop(None)
 
         if not audio_bytes:
             return jsonify({"error": "TTS generation failed."}), 500

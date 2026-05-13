@@ -11,7 +11,9 @@
       "Bash(pip install *)",
       "Bash(taskkill /F /IM python.exe)",
       "Bash(Start-Sleep -Seconds 1)",
-      "Bash(Write-Output \"killed\")"
+      "Bash(Write-Output \"killed\")",
+      "Bash(.venv\\\\Scripts\\\\pip.exe install *)",
+      "Bash(python -c ' *)"
     ]
   }
 }

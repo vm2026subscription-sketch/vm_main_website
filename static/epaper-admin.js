@@ -744,24 +744,28 @@ const EPAdmin = {
     if (!page) return;
     const blocks = page.blocks || [];
 
-    container.classList.toggle('has-page-image', Boolean(page.page_image_url || page.image_path));
-    container.style.backgroundImage = page.page_image_url || page.image_path
-      ? `url("${page.page_image_url || page.image_path}")`
+    const pageUrl = page.page_image_url || page.image_path || '';
+    const isPdf = pageUrl.toLowerCase().endsWith('.pdf');
+    container.classList.toggle('has-page-image', Boolean(pageUrl));
+    container.style.backgroundImage = (!isPdf && pageUrl) ? `url("${pageUrl}")` : '';
+
+    const pdfBg = isPdf
+      ? `<iframe class="epc-pdf-bg" src="${pageUrl}" style="position:absolute;inset:0;width:100%;height:100%;border:none;pointer-events:none;z-index:0;"></iframe>`
       : '';
 
-    container.innerHTML = blocks.map((b, i) => {
+    container.innerHTML = pdfBg + blocks.map((b, i) => {
       const x = b.x || 0, y = b.y || 0, w = b.w || 200, h = b.h || 150;
       const hasImg = b.image_url && b.image_url.length > 10;
       const isActive = i === this.activeBlockIdx;
       const bw = b.border_width ?? 0;
-      const br = b.border_radius ?? 10;
+      const br = b.border_radius ?? 0;
       const bc = b.border_color || '#e41e26';
       const bs = b.border_style || 'solid';
       const borderCSS = bw > 0 ? `border:${bw}px ${bs} ${bc};` : '';
 
       return `
         <div class="epc-block ${isActive ? 'active' : ''}" data-idx="${i}"
-             style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;border-radius:${br}px;${borderCSS}">
+             style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;border-radius:0;${borderCSS}">
           ${hasImg ? `<img src="${b.image_url}" alt="" draggable="false">` : `
             <div class="epc-empty"><i class="fa fa-image"></i></div>
           `}
@@ -844,7 +848,7 @@ const EPAdmin = {
             y: a.y ?? 0,
             w: a.w || a.width || (a.width_pct ? (a.width_pct / 100) * this.CANVAS_W : 200),
             h: a.h || a.height || a.height_px || 150,
-            border_width: a.border_width ?? 0, border_radius: a.border_radius ?? 10,
+            border_width: a.border_width ?? 0, border_radius: a.border_radius ?? 0,
             border_color: a.border_color || '#e41e26', border_style: a.border_style || 'solid',
           }));
         }
@@ -898,7 +902,7 @@ const EPAdmin = {
           image_url: b.image_url, image: b.image_url,
           gallery: b.gallery || [],
           x: b.x || 0, y: b.y || 0, w: b.w || 200, h: b.h || 150, width: b.w || 200, height: b.h || 150,
-          border_width: b.border_width ?? 0, border_radius: b.border_radius ?? 10,
+          border_width: b.border_width ?? 0, border_radius: b.border_radius ?? 0,
           border_color: b.border_color || '#e41e26', border_style: b.border_style || 'solid',
         })),
         articles: (p.blocks || []).map(b => ({
@@ -987,7 +991,7 @@ const EPAdmin = {
       category_label: '', image_url: '', gallery: [],
       x: 10 + (count % 3) * 270, y: 10 + Math.floor(count / 3) * 170,
       w: 250, h: 150,
-      border_width: 0, border_radius: 10, border_color: '#e41e26', border_style: 'solid',
+      border_width: 0, border_radius: 0, border_color: '#e41e26', border_style: 'solid',
     });
     this.activeBlockIdx = page.blocks.length - 1;
     this.renderCanvas();
@@ -1037,11 +1041,11 @@ const EPAdmin = {
 
     // Border
     document.getElementById('blkBorderWidth').value = block.border_width ?? 0;
-    document.getElementById('blkBorderRadius').value = block.border_radius ?? 10;
+    document.getElementById('blkBorderRadius').value = block.border_radius ?? 0;
     document.getElementById('blkBorderColor').value = block.border_color || '#e41e26';
     document.getElementById('blkBorderStyle').value = block.border_style || 'solid';
     document.getElementById('bwVal').textContent = (block.border_width ?? 0) + 'px';
-    document.getElementById('brVal').textContent = (block.border_radius ?? 10) + 'px';
+    document.getElementById('brVal').textContent = (block.border_radius ?? 0) + 'px';
     this.updateBorderPreview();
     this.renderGallery();
   },
@@ -1063,7 +1067,7 @@ const EPAdmin = {
     block.w = Math.max(60, parseInt(document.getElementById('blkW').value) || 200);
     block.h = Math.max(40, parseInt(document.getElementById('blkH').value) || 150);
     block.border_width = parseInt(document.getElementById('blkBorderWidth').value) || 0;
-    block.border_radius = parseInt(document.getElementById('blkBorderRadius').value) || 10;
+    block.border_radius = parseInt(document.getElementById('blkBorderRadius').value) || 0;
     block.border_color = document.getElementById('blkBorderColor').value || '#e41e26';
     block.border_style = document.getElementById('blkBorderStyle').value || 'solid';
 
@@ -1100,12 +1104,14 @@ const EPAdmin = {
 
   async ensureUploadedImages() {
     for (const page of this.pages) {
-      if (page.page_image_url?.startsWith('data:image/')) {
-        page.page_image_url = await this.uploadDataUrl(page.page_image_url, `page-${page.page_number}.png`);
+      if (page.page_image_url?.startsWith('data:image/') || page.page_image_url?.startsWith('data:application/pdf')) {
+        const ext = page.page_image_url.startsWith('data:application/pdf') ? 'pdf' : 'png';
+        page.page_image_url = await this.uploadDataUrl(page.page_image_url, `page-${page.page_number}.${ext}`);
         page.image_path = page.page_image_url;
       }
-      if (page.image_path?.startsWith('data:image/')) {
-        page.image_path = await this.uploadDataUrl(page.image_path, `page-${page.page_number}.png`);
+      if (page.image_path?.startsWith('data:image/') || page.image_path?.startsWith('data:application/pdf')) {
+        const ext = page.image_path.startsWith('data:application/pdf') ? 'pdf' : 'png';
+        page.image_path = await this.uploadDataUrl(page.image_path, `page-${page.page_number}.${ext}`);
         page.page_image_url = page.image_path;
       }
       for (const block of (page.blocks || [])) {
@@ -1124,23 +1130,31 @@ const EPAdmin = {
   },
 
   async handleBlockImage(file) {
-    if (!file?.type.startsWith('image/') || this.activeBlockIdx === null) return;
+    const isPdf = file?.type === 'application/pdf' || file?.name?.toLowerCase().endsWith('.pdf');
+    if (!file?.type.startsWith('image/') && !isPdf) return;
+    if (this.activeBlockIdx === null) return;
     try {
       const imageUrl = await this.uploadImage(file);
       const block = this.pages[this.currentPageIdx]?.blocks?.[this.activeBlockIdx];
       if (block) {
         block.image_url = imageUrl;
         this.renderCanvas();
-        document.getElementById('blockImageLabel').innerHTML = `<img src="${block.image_url}" alt="">`;
-        this.showToast('Article image uploaded');
+        const label = document.getElementById('blockImageLabel');
+        if (isPdf) {
+          label.innerHTML = `<i class="fa fa-file-pdf" style="font-size:32px;color:#e41e26"></i><span style="font-size:11px;display:block;margin-top:4px">${file.name}</span>`;
+        } else {
+          label.innerHTML = `<img src="${imageUrl}" alt="">`;
+        }
+        this.showToast(isPdf ? 'PDF uploaded' : 'Article image uploaded');
       }
     } catch (e) {
-      alert(e.message || 'Image upload failed');
+      alert(e.message || 'Upload failed');
     }
   },
 
   async handlePageImage(file) {
-    if (!file?.type.startsWith('image/')) return;
+    const isPdf = file?.type === 'application/pdf' || file?.name?.toLowerCase().endsWith('.pdf');
+    if (!file?.type.startsWith('image/') && !isPdf) return;
     try {
       const imageUrl = await this.uploadImage(file);
       const page = this.pages[this.currentPageIdx];
@@ -1148,9 +1162,9 @@ const EPAdmin = {
       page.page_image_url = imageUrl;
       page.image_path = imageUrl;
       this.renderCanvas();
-      this.showToast('Page image uploaded');
+      this.showToast(isPdf ? 'PDF uploaded' : 'Page image uploaded');
     } catch (e) {
-      alert(e.message || 'Image upload failed');
+      alert(e.message || 'Upload failed');
     }
   },
 
