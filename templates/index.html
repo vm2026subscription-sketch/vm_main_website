@@ -5,11 +5,21 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
-    <title>Vidyarthi Mitra - Education & Career Guidance</title>
+    <title>VidyarthiMitra.org — India's #1 Educational Guidance Portal</title>
+    <meta name="description" content="VidyarthiMitra.org is India's most trusted student guidance platform — college predictor, MHT-CET cutoffs, entrance exam info, FYJC rank predictor, career counselling, and e-paper for Maharashtra students.">
+    <meta name="keywords" content="vidyarthi mitra, college predictor, MHT-CET, JEE, NEET, Maharashtra admissions, FYJC, entrance exams, career guidance, DTE cutoffs">
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="VidyarthiMitra.org">
+    <link rel="canonical" href="https://vidyarthimitra.org/">
     <meta property="og:url" content="https://vidyarthimitra.org/"/>
-    <meta property="og:title" content="Vidyarthi Mitra"/>
-    <meta property="og:description" content="India's Trusted Student Guidance Platform"/>
-    <meta property="og:image" content="{{ url_for('static', filename='logo.png') }}"/>
+    <meta property="og:type" content="website"/>
+    <meta property="og:title" content="VidyarthiMitra.org — India's #1 Educational Guidance Portal"/>
+    <meta property="og:description" content="Maharashtra's most trusted student guidance platform — college predictor, MHT-CET cutoffs, entrance exams, FYJC rank predictor, career counselling and e-paper."/>
+    <meta property="og:image" content="{{ url_for('static', filename='logo.png', _external=True) }}"/>
+    <meta name="twitter:card" content="summary_large_image"/>
+    <meta name="twitter:title" content="VidyarthiMitra.org — India's #1 Educational Guidance Portal"/>
+    <meta name="twitter:description" content="College predictor, MHT-CET cutoffs, entrance exams, FYJC rank predictor, career counselling for Indian students."/>
+    <meta name="twitter:image" content="{{ url_for('static', filename='logo.png', _external=True) }}"/>
     
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
@@ -1750,11 +1760,11 @@ footer .row > [class*='col-'] {
             <div class="top-search-grid">
                 <div class="search-item">
                     <i class="fa fa-graduation-cap"></i>
-                    <a href="#">DTE Admissions 2024-25</a>
+                    <a href="{{ url_for('admissions') }}">DTE Admissions 2025-26</a>
                 </div>
                 <div class="search-item">
                     <i class="fa fa-mobile"></i>
-                    <a href="{{ url_for('cutoffs') }}">Download Cut-off App</a>
+                    <a href="https://play.google.com/store/apps/details?id=co.mark.jdhkd" target="_blank" rel="noopener">Download Cut-off App</a>
                 </div>
                 <div class="search-item">
                     <i class="fa fa-line-chart"></i>
@@ -1762,7 +1772,7 @@ footer .row > [class*='col-'] {
                 </div>
                 <div class="search-item">
                     <i class="fa fa-pencil"></i>
-                    <a href="#">Mock Tests</a>
+                    <a href="{{ url_for('mock_exams') }}">Mock Tests</a>
                 </div>
             </div>
         </div>
@@ -1771,25 +1781,25 @@ footer .row > [class*='col-'] {
     <!-- E-PAPER SECTION -->
     <section class="epaper-section">
         <div class="container">
-            <h2 class="section-title">EDUCATIONAL <span class="orange-text">E-PAPER</span></h2>
-            <p class="section-subtitle">A digital newspaper for students covering education, exams, careers and success stories.</p>
+            <h2 class="section-title">VIDYARTHI MITRA <span class="orange-text">E-PAPER</span></h2>
+            <p class="section-subtitle">Maharashtra's first student-focused digital newspaper — now with Read Aloud in Marathi, Hindi &amp; English.</p>
             <div class="epaper-grid">
-                <a href="/exam-updates" class="card-link">
+                <a href="{{ url_for('epaper_viewer') }}" class="card-link">
                     <div class="epaper-card">
-                        <h3>Entrance Exams</h3>
-                        <p>JEE, NEET, CET, NDA, CLAT & more.</p>
+                        <h3>&#128240; Today's Edition</h3>
+                        <p>Read the latest edition with education &amp; exam news.</p>
                     </div>
                 </a>
-                <a href="{{ url_for('articles') }}" class="card-link">
+                <a href="{{ url_for('epaper_viewer') }}" class="card-link">
                     <div class="epaper-card">
-                        <h3>Career Articles</h3>
-                        <p>Industry insights & career planning.</p>
+                        <h3>&#127908; Listen in Marathi</h3>
+                        <p>Audio read-aloud of articles — मनोहर / आरोही voices.</p>
                     </div>
                 </a>
-                <a href="/student-stories" class="card-link">
+                <a href="{{ url_for('epaper') }}" class="card-link">
                     <div class="epaper-card">
-                        <h3>Student Stories</h3>
-                        <p>Real journeys from top institutes.</p>
+                        <h3>&#128197; Past Editions</h3>
+                        <p>Browse all past editions from our archive.</p>
                     </div>
                 </a>
             </div>
@@ -1934,8 +1944,8 @@ footer .row > [class*='col-'] {
                     <h5>CDAC (PUNE)</h5>
                 </div>
                 <div class="partner-logo-box">
-                    <img src="{{ url_for('static', filename='SITM PUNE.jpeg') }}" alt="SITM">
-                    <h5>SITM (PUNE)</h5>
+                    <img src="{{ url_for('static', filename='iit-roorkee.png') }}" alt="IIT Roorkee">
+                    <h5>IIT ROORKEE</h5>
                 </div>
             </div>
         </div>
@@ -2388,8 +2398,8 @@ footer .row > [class*='col-'] {
                             <li><a href="https://play.google.com/store/apps/details?id=co.mark.jdhkd&pcampaignid=web_share">Download App</a></li>
                             <li><a href="/guide">Expert Advise</a></li>
                             <li><a href="/feedback">Feedback</a></li>
-                            <li><a href="#">Sign In</a></li>
-                            <li><a href="#">Join Us</a></li>
+                            <li><a href="{{ url_for('login') }}">Sign In</a></li>
+                            <li><a href="{{ url_for('register') }}">Join Us</a></li>
                         </ul>
                     </div>
                 </div>
@@ -2409,13 +2419,13 @@ footer .row > [class*='col-'] {
                     <div class="footer-widget">
                         <h5>Entrance <span class="footer-accent">Exams</span></h5>
                         <ul>
-                            <li><a href="#">MHT-CET</a></li>
-                            <li><a href="#">JEE Main</a></li>
-                            <li><a href="#">JEE Advanced</a></li>
-                            <li><a href="#">NEET UG</a></li>
-                            <li><a href="#">NEET PG</a></li>
-                            <li><a href="#">NDA</a></li>
-                            <li><a href="#">CLAT</a></li>
+                            <li><a href="{{ url_for('exams') }}">MHT-CET</a></li>
+                            <li><a href="{{ url_for('exams') }}">JEE Main</a></li>
+                            <li><a href="{{ url_for('exams') }}">JEE Advanced</a></li>
+                            <li><a href="{{ url_for('exams') }}">NEET UG</a></li>
+                            <li><a href="{{ url_for('exams') }}">NEET PG</a></li>
+                            <li><a href="{{ url_for('exams') }}">NDA</a></li>
+                            <li><a href="{{ url_for('exams') }}">CLAT</a></li>
                         </ul>
                     </div>
                 </div>
@@ -2423,14 +2433,14 @@ footer .row > [class*='col-'] {
                     <div class="footer-widget">
                         <h5>Our <span class="footer-accent">Products</span></h5>
                         <ul>
-                            <li><a href="#">VidyarthiMitra.org</a></li>
-                            <li><a href="#">Epaper - Digital News</a></li>
-                            <li><a href="#">Career Assessment Test</a></li>
-                            <li><a href="#">DTE Cut-offs 2024-25</a></li>
-                            <li><a href="#">11th Cut-offs 2024-25</a></li>
-                            <li><a href="#">Govt. & Private Jobs</a></li>
-                            <li><a href="#">Practice Tests</a></li>
-                            <li><a href="#">Study Abroad</a></li>
+                            <li><a href="/">VidyarthiMitra.org</a></li>
+                            <li><a href="{{ url_for('epaper_viewer') }}">E-Paper - Digital News</a></li>
+                            <li><a href="https://test.vidyarthimitra.org" target="_blank" rel="noopener">Career Assessment Test</a></li>
+                            <li><a href="{{ url_for('cutoffs') }}">DTE Cut-offs 2025-26</a></li>
+                            <li><a href="{{ url_for('fyjc_rank') }}">11th Cut-offs 2025-26</a></li>
+                            <li><a href="{{ url_for('news') }}?category=Govt+Jobs">Govt. &amp; Private Jobs</a></li>
+                            <li><a href="{{ url_for('mock_exams') }}">Practice Tests</a></li>
+                            <li><a href="https://studyabroad.vidyarthimitra.org" target="_blank" rel="noopener">Study Abroad</a></li>
                         </ul>
                     </div>
                 </div>
@@ -2447,13 +2457,13 @@ footer .row > [class*='col-'] {
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2026 VidyarthiMitra.org - All Rights Reserved | 
-                    <a href="#">Terms and Conditions</a> | 
-                    <a href="#">Privacy Policy</a> | 
-                    <a href="#">About Us</a> | 
-                    <a href="#">Contact Us</a> | 
-                    <a href="#">Join Us</a> | 
-                    <a href="{{ url_for('refund_policy') }}">Refund & Cancellation</a>
+                <p>&copy; 2026 VidyarthiMitra.org - All Rights Reserved |
+                    <a href="/terms">Terms and Conditions</a> |
+                    <a href="/privacy">Privacy Policy</a> |
+                    <a href="/about">About Us</a> |
+                    <a href="{{ url_for('contact') }}">Contact Us</a> |
+                    <a href="{{ url_for('register') }}">Join Us</a> |
+                    <a href="{{ url_for('refund_policy') }}">Refund &amp; Cancellation</a>
                 </p>
             </div>
         </div>

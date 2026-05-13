@@ -1197,66 +1197,57 @@ def ensure_upload_table_exists(connection_url, table_name):
 
 
 UNIVERSITIES_DATA = [
-    {
-        "slug": "savitribai-phule-pune-university",
-        "name": "Savitribai Phule Pune University",
-        "location": "Pune",
-        "state": "Maharashtra",
-        "type": "Government",
-        "stream": "General",
-        "nirf": "19",
-        "logo_url": "/static/logo.png",
-    },
-    {
-        "slug": "university-of-mumbai",
-        "name": "University of Mumbai",
-        "location": "Mumbai",
-        "state": "Maharashtra",
-        "type": "Government",
-        "stream": "General",
-        "nirf": "45",
-        "logo_url": "/static/logo.png",
-    },
-    {
-        "slug": "rtm-nagpur-university",
-        "name": "Rashtrasant Tukadoji Maharaj Nagpur University",
-        "location": "Nagpur",
-        "state": "Maharashtra",
-        "type": "Government",
-        "stream": "General",
-        "nirf": "74",
-        "logo_url": "/static/logo.png",
-    },
-    {
-        "slug": "symbiosis-international",
-        "name": "Symbiosis International (Deemed University)",
-        "location": "Pune",
-        "state": "Maharashtra",
-        "type": "Deemed",
-        "stream": "Management",
-        "nirf": "17",
-        "logo_url": "/static/logo.png",
-    },
-    {
-        "slug": "mit-wpu",
-        "name": "MIT World Peace University",
-        "location": "Pune",
-        "state": "Maharashtra",
-        "type": "Private",
-        "stream": "Technology",
-        "nirf": "96",
-        "logo_url": "/static/logo.png",
-    },
-    {
-        "slug": "nmims-mumbai",
-        "name": "NMIMS University",
-        "location": "Mumbai",
-        "state": "Maharashtra",
-        "type": "Private",
-        "stream": "Management",
-        "nirf": "49",
-        "logo_url": "/static/logo.png",
-    },
+    # Maharashtra
+    {"slug": "savitribai-phule-pune-university", "name": "Savitribai Phule Pune University", "location": "Pune", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "19", "logo_url": "/static/logo.png"},
+    {"slug": "university-of-mumbai", "name": "University of Mumbai", "location": "Mumbai", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "45", "logo_url": "/static/logo.png"},
+    {"slug": "rtm-nagpur-university", "name": "Rashtrasant Tukadoji Maharaj Nagpur University", "location": "Nagpur", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "74", "logo_url": "/static/logo.png"},
+    {"slug": "symbiosis-international", "name": "Symbiosis International (Deemed University)", "location": "Pune", "state": "Maharashtra", "type": "Deemed", "stream": "Management", "nirf": "17", "logo_url": "/static/logo.png"},
+    {"slug": "mit-wpu", "name": "MIT World Peace University", "location": "Pune", "state": "Maharashtra", "type": "Private", "stream": "Technology", "nirf": "96", "logo_url": "/static/logo.png"},
+    {"slug": "nmims-mumbai", "name": "NMIMS University", "location": "Mumbai", "state": "Maharashtra", "type": "Private", "stream": "Management", "nirf": "49", "logo_url": "/static/logo.png"},
+    {"slug": "dr-babasaheb-ambedkar-marathwada", "name": "Dr. Babasaheb Ambedkar Marathwada University", "location": "Aurangabad", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
+    {"slug": "shivaji-university-kolhapur", "name": "Shivaji University Kolhapur", "location": "Kolhapur", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
+    {"slug": "solapur-university", "name": "Solapur University", "location": "Solapur", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
+    {"slug": "sant-gadge-baba-amravati", "name": "Sant Gadge Baba Amravati University", "location": "Amravati", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
+    {"slug": "dr-bamu-open", "name": "YCMOU (Yashwantrao Chavan Maharashtra Open University)", "location": "Nashik", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
+    {"slug": "bharati-vidyapeeth", "name": "Bharati Vidyapeeth (Deemed University)", "location": "Pune", "state": "Maharashtra", "type": "Deemed", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
+    # Delhi / NCR
+    {"slug": "delhi-university", "name": "University of Delhi", "location": "Delhi", "state": "Delhi", "type": "Government", "stream": "General", "nirf": "11", "logo_url": "/static/logo.png"},
+    {"slug": "jnu-delhi", "name": "Jawaharlal Nehru University", "location": "Delhi", "state": "Delhi", "type": "Government", "stream": "General", "nirf": "2", "logo_url": "/static/logo.png"},
+    {"slug": "jamia-millia-islamia", "name": "Jamia Millia Islamia", "location": "Delhi", "state": "Delhi", "type": "Government", "stream": "General", "nirf": "12", "logo_url": "/static/logo.png"},
+    {"slug": "amity-university-noida", "name": "Amity University", "location": "Noida", "state": "Uttar Pradesh", "type": "Private", "stream": "Technology", "nirf": "54", "logo_url": "/static/logo.png"},
+    # Karnataka
+    {"slug": "bangalore-university", "name": "Bangalore University", "location": "Bangalore", "state": "Karnataka", "type": "Government", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
+    {"slug": "manipal-academy", "name": "Manipal Academy of Higher Education", "location": "Manipal", "state": "Karnataka", "type": "Deemed", "stream": "Medical", "nirf": "8", "logo_url": "/static/logo.png"},
+    {"slug": "christ-university", "name": "CHRIST (Deemed University)", "location": "Bangalore", "state": "Karnataka", "type": "Deemed", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
+    # Tamil Nadu
+    {"slug": "anna-university", "name": "Anna University", "location": "Chennai", "state": "Tamil Nadu", "type": "Government", "stream": "Technology", "nirf": "7", "logo_url": "/static/logo.png"},
+    {"slug": "vit-vellore", "name": "Vellore Institute of Technology", "location": "Vellore", "state": "Tamil Nadu", "type": "Deemed", "stream": "Technology", "nirf": "10", "logo_url": "/static/logo.png"},
+    {"slug": "madras-university", "name": "University of Madras", "location": "Chennai", "state": "Tamil Nadu", "type": "Government", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
+    # Rajasthan
+    {"slug": "bits-pilani", "name": "Birla Institute of Technology & Science (BITS) Pilani", "location": "Pilani", "state": "Rajasthan", "type": "Deemed", "stream": "Technology", "nirf": "26", "logo_url": "/static/logo.png"},
+    {"slug": "university-of-rajasthan", "name": "University of Rajasthan", "location": "Jaipur", "state": "Rajasthan", "type": "Government", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
+    # Madhya Pradesh
+    {"slug": "davv-indore", "name": "Devi Ahilya Vishwavidyalaya (DAVV)", "location": "Indore", "state": "Madhya Pradesh", "type": "Government", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
+    # West Bengal
+    {"slug": "jadavpur-university", "name": "Jadavpur University", "location": "Kolkata", "state": "West Bengal", "type": "Government", "stream": "Technology", "nirf": "5", "logo_url": "/static/logo.png"},
+    {"slug": "university-of-calcutta", "name": "University of Calcutta", "location": "Kolkata", "state": "West Bengal", "type": "Government", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
+    # Gujarat
+    {"slug": "gujarat-university", "name": "Gujarat University", "location": "Ahmedabad", "state": "Gujarat", "type": "Government", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
+    {"slug": "nirma-university", "name": "Nirma University", "location": "Ahmedabad", "state": "Gujarat", "type": "Private", "stream": "Technology", "nirf": "N/A", "logo_url": "/static/logo.png"},
+    # Andhra Pradesh / Telangana
+    {"slug": "osmania-university", "name": "Osmania University", "location": "Hyderabad", "state": "Telangana", "type": "Government", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
+    {"slug": "university-of-hyderabad", "name": "University of Hyderabad", "location": "Hyderabad", "state": "Telangana", "type": "Government", "stream": "General", "nirf": "6", "logo_url": "/static/logo.png"},
+    # Punjab / Haryana
+    {"slug": "panjab-university", "name": "Panjab University", "location": "Chandigarh", "state": "Punjab", "type": "Government", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
+    {"slug": "kurukshetra-university", "name": "Kurukshetra University", "location": "Kurukshetra", "state": "Haryana", "type": "Government", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
+    # Uttar Pradesh
+    {"slug": "bhu-varanasi", "name": "Banaras Hindu University", "location": "Varanasi", "state": "Uttar Pradesh", "type": "Government", "stream": "General", "nirf": "3", "logo_url": "/static/logo.png"},
+    {"slug": "aligarh-muslim-university", "name": "Aligarh Muslim University", "location": "Aligarh", "state": "Uttar Pradesh", "type": "Government", "stream": "General", "nirf": "9", "logo_url": "/static/logo.png"},
+    # Others
+    {"slug": "iit-bombay", "name": "IIT Bombay", "location": "Mumbai", "state": "Maharashtra", "type": "Government", "stream": "Technology", "nirf": "3", "logo_url": "/static/logo.png"},
+    {"slug": "iit-delhi", "name": "IIT Delhi", "location": "Delhi", "state": "Delhi", "type": "Government", "stream": "Technology", "nirf": "2", "logo_url": "/static/logo.png"},
+    {"slug": "iit-madras", "name": "IIT Madras", "location": "Chennai", "state": "Tamil Nadu", "type": "Government", "stream": "Technology", "nirf": "1", "logo_url": "/static/logo.png"},
+    {"slug": "aiims-delhi", "name": "AIIMS New Delhi", "location": "Delhi", "state": "Delhi", "type": "Government", "stream": "Medical", "nirf": "1", "logo_url": "/static/logo.png"},
 ]
 
 
@@ -2199,6 +2190,163 @@ def fyjc_rank():
     return render_template("fyjc_rank.html")
 
 
+@app.route("/predict", methods=["POST"])
+def fyjc_predict():
+    import math
+
+    payload = request.get_json(silent=True) or {}
+    board = str(payload.get("board", "maharashtra")).strip()
+    category = str(payload.get("category", "open")).strip()
+    division = str(payload.get("division", "mumbai")).strip()
+    pwd = str(payload.get("pwd", "no")).strip()
+    stream = str(payload.get("stream", "science")).strip()
+    marks_raw = payload.get("marks", [])
+
+    try:
+        marks = [float(m) for m in marks_raw]
+        if len(marks) != 5 or any(m < 0 or m > 100 for m in marks):
+            return jsonify({"error": "Invalid marks"}), 400
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid marks"}), 400
+
+    total = sum(marks)
+    percentage = round(total / 500 * 100, 2)
+
+    # Approximate total applicants per division (historical FYJC data)
+    DIVISION_TOTALS = {
+        "mumbai": 260000, "pune": 185000, "nashik": 82000,
+        "aurangabad": 72000, "amravati": 42000, "nagpur": 92000,
+        "konkan": 52000, "latur": 53000,
+    }
+    total_applicants = DIVISION_TOTALS.get(division, 100000)
+
+    # Reserved category seat fraction
+    CAT_FACTOR = {
+        "open": 1.0, "obc": 0.27, "sc": 0.13, "st": 0.075,
+        "nt": 0.11, "vj": 0.03, "sbc": 0.02, "ews": 0.10,
+    }
+    cat_factor = CAT_FACTOR.get(category, 1.0)
+
+    # PWD/sports/ex-service get additional 3% seats bonus (smaller pool)
+    if pwd and pwd != "no":
+        cat_factor *= 0.05
+
+    # Percentile using normal approximation: mean ~72%, SD ~12%
+    z = (percentage - 72.0) / 12.0
+    # erf approximation
+    t = 1.0 / (1.0 + 0.3275911 * abs(z))
+    poly = t * (0.254829592 + t * (-0.284496736 + t * (1.421413741 + t * (-1.453152027 + t * 1.061405429))))
+    erf_approx = 1.0 - poly * math.exp(-(z * z))
+    if z < 0:
+        erf_approx = -erf_approx
+    percentile_raw = 50.0 * (1.0 + erf_approx)
+    percentile = round(min(99.9, max(0.1, percentile_raw)), 1)
+
+    # Rank range
+    rank_mid = max(1, int((1.0 - percentile / 100.0) * total_applicants * cat_factor))
+    rank_low = max(1, int(rank_mid * 0.88))
+    rank_high = max(rank_low + 50, int(rank_mid * 1.12))
+
+    # College lists per stream (representative Maharashtra FYJC cut-offs)
+    COLLEGE_DATA = {
+        "science": [
+            ("Jai Hind College", "Churchgate, Mumbai", 95.0),
+            ("Mithibai College", "Vile Parle, Mumbai", 93.6),
+            ("Ruia College", "Matunga, Mumbai", 92.8),
+            ("Wilson College", "Chowpatty, Mumbai", 91.4),
+            ("Bhavan's College", "Andheri, Mumbai", 90.2),
+            ("KC College", "Churchgate, Mumbai", 89.6),
+            ("Sathaye College", "Vile Parle, Mumbai", 88.0),
+            ("Patkar College", "Goregaon, Mumbai", 86.4),
+            ("NES Ratnam College", "Bhandup, Mumbai", 84.0),
+            ("Guru Nanak Khalsa College", "Matunga, Mumbai", 82.6),
+            ("VES College of Arts", "Chembur, Mumbai", 80.0),
+            ("Kelkar College", "Mulund, Mumbai", 78.4),
+            ("Saraswati College", "Kharghar, Navi Mumbai", 76.0),
+            ("Fergusson College", "Shivajinagar, Pune", 91.2),
+            ("SP College", "Sadashiv Peth, Pune", 89.4),
+            ("Nowrosjee Wadia College", "Pune", 87.6),
+            ("Brihan Maharashtra College", "Pune", 85.8),
+            ("BMCC (Balmohan Vishramshetra)", "Paud Rd, Pune", 84.0),
+            ("Abasaheb Garware College", "Karve Rd, Pune", 82.0),
+            ("Sir Parashurambhau College", "Tilak Rd, Pune", 80.4),
+        ],
+        "commerce": [
+            ("Jai Hind College (Commerce)", "Churchgate, Mumbai", 94.0),
+            ("H.R. College of Commerce", "Churchgate, Mumbai", 93.0),
+            ("N.M. College of Commerce", "Vile Parle, Mumbai", 92.0),
+            ("Mithibai College (Commerce)", "Vile Parle, Mumbai", 91.0),
+            ("Sydenham College", "Mumbai", 90.2),
+            ("Lala Lajpat Rai College", "Matunga, Mumbai", 89.0),
+            ("SIES College of Commerce", "Sion, Mumbai", 87.6),
+            ("Mulund College of Commerce", "Mulund, Mumbai", 86.0),
+            ("Thakur College of Science", "Kandivali, Mumbai", 84.4),
+            ("VES College of Arts", "Chembur, Mumbai", 82.0),
+            ("Nowrosjee Wadia College (Commerce)", "Pune", 90.0),
+            ("Abasaheb Garware College (Commerce)", "Pune", 88.0),
+            ("Brihan Maharashtra College (Commerce)", "Pune", 86.0),
+            ("Modern College Shivajinagar (Commerce)", "Pune", 84.0),
+            ("Shri Shivaji Science College", "Amravati", 82.0),
+        ],
+        "arts": [
+            ("Elphinstone College", "Fort, Mumbai", 88.0),
+            ("St. Xavier's College", "Fort, Mumbai", 87.0),
+            ("Wilson College (Arts)", "Chowpatty, Mumbai", 85.4),
+            ("Khalsa College", "Matunga, Mumbai", 83.0),
+            ("R.D. National College", "Bandra, Mumbai", 80.6),
+            ("K.J. Somaiya College", "Vidyavihar, Mumbai", 78.0),
+            ("Gurukul College of Arts", "Ghantali, Thane", 75.0),
+            ("Tilak College of Education", "Pune", 83.0),
+            ("Fergusson College (Arts)", "Shivajinagar, Pune", 85.0),
+            ("Modern College (Arts)", "Shivajinagar, Pune", 82.0),
+            ("Maulana Azad College", "Aurangabad", 74.0),
+            ("Hislop College (Arts)", "Nagpur", 76.0),
+            ("Institute of Science (Arts)", "Nagpur", 78.0),
+            ("S.M.T. Kasturbai College", "Nashik", 72.0),
+            ("New Arts College", "Ahmednagar", 70.0),
+        ],
+    }
+
+    college_list = COLLEGE_DATA.get(stream, COLLEGE_DATA["science"])
+    # Sort by cutoff descending; last year's cutoff
+    last_year_cutoff = percentage  # use student's % as reference
+    eligible_colleges = 0
+    colleges_out = []
+    for name, loc, cutoff in college_list:
+        diff = percentage - cutoff
+        if diff >= 2:
+            chance = "high"
+        elif diff >= -1:
+            chance = "moderate"
+        elif diff >= -3:
+            chance = "borderline"
+        else:
+            chance = "low"
+        if chance != "low":
+            eligible_colleges += 1
+        colleges_out.append({"name": name, "loc": loc, "cutoff": cutoff, "chance": chance})
+
+    # marks_vs_cutoff: student % minus median cutoff for the stream
+    cutoffs = [c[2] for c in college_list]
+    median_cutoff = sorted(cutoffs)[len(cutoffs) // 2]
+    marks_vs_cutoff = round(percentage - median_cutoff, 1)
+
+    return jsonify({
+        "rank_low": rank_low,
+        "rank_high": rank_high,
+        "total_applicants": total_applicants,
+        "board": board,
+        "category": category,
+        "division": division,
+        "stream": stream,
+        "percentage": percentage,
+        "percentile": percentile,
+        "eligible_colleges": eligible_colleges,
+        "marks_vs_cutoff": marks_vs_cutoff,
+        "colleges": colleges_out,
+    })
+
+
 @app.route("/admissions")
 def admissions():
     return render_template("admissions.html")  # Placeholder
@@ -2863,6 +3011,21 @@ def guide_me():
 @app.route('/refund-policy')
 def refund_policy():
     return render_template('refund.html')
+
+@app.route('/terms')
+@app.route('/terms-and-conditions')
+def terms():
+    return render_template('terms.html')
+
+@app.route('/privacy')
+@app.route('/privacy-policy')
+def privacy():
+    return render_template('privacy.html')
+
+@app.route('/about')
+@app.route('/about-us')
+def about():
+    return render_template('about.html')
 
 @app.route("/joinus")
 @app.route("/join-us")

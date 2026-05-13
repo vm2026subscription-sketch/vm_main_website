@@ -386,6 +386,9 @@
                 checkbox.addEventListener('change', applyFilters);
             });
 
+            // Ensure correct initial state on page load
+            applyFilters();
+
             if (stateSearch) {
                 stateSearch.addEventListener('input', function() {
                     const query = this.value.toLowerCase().trim();

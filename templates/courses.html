@@ -195,11 +195,10 @@
 
 {% block content %}
 
-{# ─────────────── DB ERROR BANNER (only shown if DB failed) ─────────────── #}
+{# ─────────────── INFO BANNER (only shown if DB unavailable) ─────────────── #}
 {% if error %}
-<div class="db-error-banner">
-  <strong>⚠ Database error:</strong> {{ error }}
-  — showing empty page. Check your <code>SUPABASE_POSTGRES_URL</code>.
+<div class="db-error-banner" style="background:#fff3cd;border-left:4px solid #ff6600;padding:14px 18px;margin:12px 0;border-radius:4px;font-size:14px;color:#555;">
+  <strong>&#9432; Note:</strong> Course data is currently being updated. Please check back shortly.
 </div>
 {% endif %}
 
