@@ -131,6 +131,23 @@
     .epa-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
     @media(max-width:900px){.epc-layout{grid-template-columns:1fr;}.epc-canvas{width:100%;height:auto;aspect-ratio:4/5;}}
+
+    /* ══ SHAPE BLOCKS ══ */
+    .epc-shape .epc-label{display:none;}
+    .epc-shape .epc-num{background:rgba(0,0,0,.35);font-size:8px;}
+    .epc-shape:hover{box-shadow:0 0 0 1.5px rgba(228,30,38,.5);}
+    .epc-shape.active{box-shadow:0 0 0 2px var(--r),0 0 0 5px rgba(228,30,38,.15);}
+
+    /* ══ SHAPE TOOLBAR ══ */
+    .epc-shape-toolbar{display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap;align-items:center;background:#f9fafb;border:1px solid var(--border);border-radius:8px;padding:6px 10px;}
+    .epc-shape-toolbar span{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-right:4px;}
+    .epc-shape-btn{padding:5px 11px;border:1.5px solid #d1d5db;border-radius:7px;background:#fff;color:#374151;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .18s;display:inline-flex;align-items:center;gap:5px;}
+    .epc-shape-btn:hover{border-color:var(--r);color:var(--r);background:#fff5f5;}
+    .epc-shape-btn svg{flex-shrink:0;}
+
+    /* ══ SHAPE EDITOR PANEL ══ */
+    .epb-color-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+    .epb-color-swatch{width:28px;height:28px;border-radius:6px;border:2px solid #d1d5db;cursor:pointer;padding:0;}
   </style>
 </head>
 <body>
@@ -231,6 +248,25 @@
             <i class="fa fa-info-circle" style="color:var(--r)"></i>
             <strong>Drag</strong> to move • <strong>Edge or corner handles</strong> to resize • Click block to edit
           </div>
+          <!-- Shape Toolbar -->
+          <div class="epc-shape-toolbar">
+            <span>Shapes:</span>
+            <button class="epc-shape-btn" onclick="EPAdmin.addShape('line-h')" title="Horizontal Line">
+              <svg width="14" height="4" viewBox="0 0 14 4"><rect x="0" y="1" width="14" height="2" fill="#374151"/></svg> Line
+            </button>
+            <button class="epc-shape-btn" onclick="EPAdmin.addShape('rect')" title="Rectangle">
+              <svg width="14" height="10" viewBox="0 0 14 10"><rect x="0.5" y="0.5" width="13" height="9" fill="none" stroke="#374151" stroke-width="1.5"/></svg> Rectangle
+            </button>
+            <button class="epc-shape-btn" onclick="EPAdmin.addShape('circle')" title="Circle / Ellipse">
+              <svg width="12" height="12" viewBox="0 0 12 12"><ellipse cx="6" cy="6" rx="5" ry="5" fill="none" stroke="#374151" stroke-width="1.5"/></svg> Circle
+            </button>
+            <button class="epc-shape-btn" onclick="EPAdmin.addShape('triangle')" title="Triangle">
+              <svg width="13" height="11" viewBox="0 0 13 11"><polygon points="6.5,0 13,11 0,11" fill="none" stroke="#374151" stroke-width="1.5"/></svg> Triangle
+            </button>
+            <button class="epc-shape-btn" onclick="EPAdmin.addShape('arrow')" title="Arrow">
+              <svg width="16" height="10" viewBox="0 0 16 10"><path d="M0 5 H12 M8 1 L14 5 L8 9" fill="none" stroke="#374151" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Arrow
+            </button>
+          </div>
           <div class="epc-canvas-wrap" style="overflow:auto;max-height:75vh">
             <div class="epc-canvas" id="pageCanvas"></div>
           </div>
@@ -244,8 +280,64 @@
           <div class="epb-editor" id="blockEditor" style="display:none">
             <h3><i class="fa fa-edit"></i> Edit Block</h3>
 
+            <!-- Shape Editor (shown for shape blocks only) -->
+            <div class="epb-section" id="shapeEditorSection" style="display:none">
+              <div class="epb-section-title"><i class="fa fa-shapes"></i> Shape Properties</div>
+              <div style="margin-bottom:8px">
+                <div class="epa-form-group">
+                  <label>Shape Type</label>
+                  <select id="shapeType" onchange="EPAdmin.applyShapeInputs()">
+                    <option value="line-h">— Horizontal Line</option>
+                    <option value="line-v">| Vertical Line</option>
+                    <option value="rect">▭ Rectangle</option>
+                    <option value="circle">● Circle / Ellipse</option>
+                    <option value="triangle">▲ Triangle</option>
+                    <option value="arrow">→ Arrow</option>
+                  </select>
+                </div>
+              </div>
+              <div class="epb-color-row" style="margin-bottom:8px">
+                <div class="epa-form-group">
+                  <label>Fill Color</label>
+                  <input type="color" id="shapeFill" value="#e41e26" style="height:28px;padding:2px;width:100%" oninput="EPAdmin.applyShapeInputs()">
+                </div>
+                <div class="epa-form-group">
+                  <label>Stroke Color</label>
+                  <input type="color" id="shapeStroke" value="#111827" style="height:28px;padding:2px;width:100%" oninput="EPAdmin.applyShapeInputs()">
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+                <div class="epa-form-group">
+                  <label>Stroke Width</label>
+                  <input type="range" id="shapeStrokeWidth" min="0" max="20" value="0"
+                    oninput="document.getElementById('shapeStrokeVal').textContent=this.value+'px'; EPAdmin.applyShapeInputs()">
+                  <span id="shapeStrokeVal" style="font-size:10px;color:var(--muted)">0px</span>
+                </div>
+                <div class="epa-form-group" id="shapeCornerGroup">
+                  <label>Corner Radius</label>
+                  <input type="range" id="shapeCornerRadius" min="0" max="100" value="0"
+                    oninput="document.getElementById('shapeCornerVal').textContent=this.value+'%'; EPAdmin.applyShapeInputs()">
+                  <span id="shapeCornerVal" style="font-size:10px;color:var(--muted)">0%</span>
+                </div>
+              </div>
+              <div class="epa-form-group" style="margin-bottom:10px">
+                <label>Opacity</label>
+                <input type="range" id="shapeOpacity" min="5" max="100" value="100"
+                  oninput="document.getElementById('shapeOpacityVal').textContent=this.value+'%'; EPAdmin.applyShapeInputs()">
+                <span id="shapeOpacityVal" style="font-size:10px;color:var(--muted)">100%</span>
+              </div>
+              <!-- No-fill checkbox for outline-only shapes -->
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:12px">
+                <input type="checkbox" id="shapeNoFill" onchange="EPAdmin.applyShapeInputs()" style="accent-color:var(--r)">
+                <label for="shapeNoFill" style="cursor:pointer;font-size:12px;font-weight:500">Outline only (no fill)</label>
+              </div>
+              <div style="display:flex;gap:6px">
+                <button type="button" class="epa-btn epa-btn-danger epa-btn-sm" onclick="EPAdmin.deleteBlock()"><i class="fa fa-trash"></i> Delete Shape</button>
+              </div>
+            </div>
+
             <!-- Image -->
-            <div class="epb-section">
+            <div class="epb-section" id="blockImageSection">
               <div class="epb-section-title"><i class="fa fa-image"></i> Image</div>
               <div class="epb-img-upload" id="blockImageUpload">
                 <input type="file" id="blockImageInput" accept="image/*,.pdf,application/pdf">
@@ -262,13 +354,13 @@
               <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px">
                 <div class="epa-form-group"><label>X</label><input type="number" id="blkX" value="0" min="0" onchange="EPAdmin.applySizeInputs()"></div>
                 <div class="epa-form-group"><label>Y</label><input type="number" id="blkY" value="0" min="0" onchange="EPAdmin.applySizeInputs()"></div>
-                <div class="epa-form-group"><label>W</label><input type="number" id="blkW" value="200" min="60" onchange="EPAdmin.applySizeInputs()"></div>
-                <div class="epa-form-group"><label>H</label><input type="number" id="blkH" value="150" min="40" onchange="EPAdmin.applySizeInputs()"></div>
+                <div class="epa-form-group"><label>W</label><input type="number" id="blkW" value="200" min="1" onchange="EPAdmin.applySizeInputs()"></div>
+                <div class="epa-form-group"><label>H</label><input type="number" id="blkH" value="150" min="1" onchange="EPAdmin.applySizeInputs()"></div>
               </div>
             </div>
 
             <!-- Border -->
-            <div class="epb-section">
+            <div class="epb-section" id="blockBorderSection">
               <div class="epb-section-title"><i class="fa fa-border-all"></i> Border</div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px">
                 <div class="epa-form-group"><label>Width</label>
@@ -290,7 +382,7 @@
             </div>
 
             <!-- Article Details -->
-            <div class="epb-section">
+            <div class="epb-section" id="blockArticleSection">
               <div class="epb-section-title"><i class="fa fa-pen-fancy"></i> Article</div>
               <form id="blockForm">
                 <div class="epa-form-group" style="margin-bottom:6px"><label>Article ID</label><input type="text" id="blkArticleId" placeholder="e.g. 15"></div>
