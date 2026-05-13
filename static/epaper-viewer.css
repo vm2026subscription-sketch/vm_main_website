@@ -141,16 +141,9 @@ body.epaper-body {
   position: relative;
 }
 
-/* spine binding effect on left edge */
+/* left-edge spine removed */
 .ep-paper::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; bottom: 0;
-  width: 6px;
-  background: linear-gradient(90deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.08) 60%, transparent 100%);
-  pointer-events: none;
-  z-index: 5;
-  border-radius: 3px 0 0 2px;
+  display: none;
 }
 
 .ep-paper:fullscreen {
@@ -241,12 +234,10 @@ body.epaper-body.has-masthead .ep-masthead-placeholder { display: none; }
   user-select: none;
   -webkit-user-drag: none;
   background: #fff;
-  /* multi-layer shadow: spine shadow on left, depth below and right */
   box-shadow:
-    -10px 0 28px rgba(0,0,0,0.22),
     2px 8px 24px rgba(0,0,0,0.18),
     0 1px 0 rgba(0,0,0,0.08);
-  border-radius: 0 1px 1px 0;
+  border-radius: 1px;
 }
 
 /* Empty state */

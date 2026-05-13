@@ -115,18 +115,18 @@
 
   <!-- ── FLOATING TOOLBAR ── -->
   <div class="ep-toolbar">
-    <button class="ep-tool-btn" id="epZoomIn" title="Zoom In"><i class="fa fa-plus"></i></button>
-    <button class="ep-tool-btn" id="epZoomOut" title="Zoom Out"><i class="fa fa-minus"></i></button>
+    <button class="ep-tool-btn" id="epZoomIn" title="Zoom In" type="button"><i class="fa fa-plus"></i></button>
+    <button class="ep-tool-btn" id="epZoomOut" title="Zoom Out" type="button"><i class="fa fa-minus"></i></button>
     <div class="ep-tool-divider"></div>
-    <button class="ep-tool-btn" id="epFitPage" title="Fit Page"><i class="fa fa-expand-arrows-alt"></i></button>
-    <button class="ep-tool-btn" id="epFullscreen" title="Fullscreen"><i class="fa fa-expand"></i></button>
+    <button class="ep-tool-btn" id="epFitPage" title="Fit Page" type="button"><i class="fa fa-expand-arrows-alt"></i></button>
+    <button class="ep-tool-btn" id="epFullscreen" title="Fullscreen" type="button"><i class="fa fa-expand"></i></button>
     <div class="ep-tool-divider"></div>
-    <button class="ep-tool-btn" id="epScrollUp" title="Scroll Up"><i class="fa fa-arrow-up"></i></button>
-    <button class="ep-tool-btn" id="epScrollDown" title="Scroll Down"><i class="fa fa-arrow-down"></i></button>
+    <button class="ep-tool-btn" id="epScrollUp" title="Scroll Up" type="button"><i class="fa fa-arrow-up"></i></button>
+    <button class="ep-tool-btn" id="epScrollDown" title="Scroll Down" type="button"><i class="fa fa-arrow-down"></i></button>
     <div class="ep-tool-divider"></div>
-    <button class="ep-tool-btn" onclick="EP.shareArticle('copy')" title="Share"><i class="fa fa-share-alt"></i></button>
+    <button class="ep-tool-btn" onclick="EP.shareArticle('copy')" title="Share" type="button"><i class="fa fa-share-alt"></i></button>
     <div class="ep-tool-divider"></div>
-    <button class="ep-tool-btn" id="epSavePdfBtn" onclick="EP.savePDF()" title="Save Page as PDF"><i class="fa fa-file-pdf"></i></button>
+    <button class="ep-tool-btn" id="epSavePdfBtn" onclick="EP.savePDF()" title="Save Edition as PDF" type="button"><i class="fa fa-file-pdf"></i></button>
   </div>
 
   <!-- ── PAGE NAVIGATION ── -->
@@ -271,6 +271,7 @@
   <!-- ── Toast ── -->
   <div class="ep-toast" id="epToast"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="{{ url_for('static', filename='epaper-viewer.js') }}"></script>
 
   <!-- PWA Service Worker -->

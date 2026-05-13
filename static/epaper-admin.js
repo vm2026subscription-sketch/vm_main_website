@@ -889,6 +889,7 @@ const EPAdmin = {
       document.getElementById('edDate').value = data.date;
       document.getElementById('edName').value = data.name || '';
       document.getElementById('edLang').value = data.language || 'Hindi';
+      document.getElementById('edStatus').value = (data.published !== false) ? 'published' : 'draft';
       if (!this.pages.length) this.addPage();
       document.getElementById('builderSection').style.display = 'block';
       document.getElementById('deleteEditionBtn').style.display = 'inline-flex';
@@ -902,6 +903,7 @@ const EPAdmin = {
     const date = document.getElementById('edDate').value;
     const name = document.getElementById('edName').value;
     const lang = document.getElementById('edLang').value;
+    const status = document.getElementById('edStatus').value;
     if (!date) { alert('Date required'); return; }
     this.syncEditionMetaFromInputs();
     try {
@@ -913,6 +915,7 @@ const EPAdmin = {
 
     const payload = {
       date, name: name || `Edition ${date}`, language: lang,
+      published: status === 'published',
       masthead_image_url: this.editionMeta.masthead_image_url || '',
       footer_links: this.editionMeta.footer_links || [],
       pages: this.pages.map(p => ({
