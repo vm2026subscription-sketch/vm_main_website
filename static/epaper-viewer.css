@@ -1256,6 +1256,56 @@ body.epaper-body.has-masthead .ep-masthead-placeholder { display: none; }
 }
 
 
+/* ── New edition banner ── */
+.ep-new-edition-banner {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #1e293b;
+  color: #fff;
+  border-radius: 40px;
+  padding: 12px 18px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.35);
+  z-index: 9999;
+  font-size: 14px;
+  white-space: nowrap;
+  animation: epBannerIn .3s ease;
+}
+@keyframes epBannerIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+.ep-neb-icon { font-size: 18px; }
+.ep-neb-load {
+  background: #ff6600;
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .2s;
+}
+.ep-neb-load:hover { background: #e05500; }
+.ep-neb-close {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,.5);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 2px 4px;
+  line-height: 1;
+}
+.ep-neb-close:hover { color: #fff; }
+@media (max-width: 600px) {
+  .ep-new-edition-banner { font-size: 12px; padding: 10px 14px; gap: 8px; white-space: normal; max-width: 90vw; }
+}
+
 /* ── Sentence highlight while TTS plays ── */
 .ep-tts-sentence {
   border-radius: 3px;
