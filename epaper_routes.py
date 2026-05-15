@@ -108,6 +108,8 @@ def _iter_epaper_articles():
         for page in edition.get("pages", []):
             sources = page.get("blocks") or page.get("articles", [])
             for block in sources:
+                if block.get("type") == "shape":
+                    continue
                 yield _article_from_block(block, edition, page), edition, page
 
 
@@ -238,9 +240,10 @@ def api_latest_edition():
 def api_publish_edition(date):
     data = request.get_json(silent=True) or {}
     published = bool(data.get("published", True))
+    lang = request.args.get("lang", None)
     editions = _load_editions()
     for e in editions:
-        if e["date"] == date:
+        if e["date"] == date and (not lang or e.get("language", "Hindi") == lang):
             e["published"] = published
             try:
                 _save_editions(editions)
@@ -250,14 +253,39 @@ def api_publish_edition(date):
     return jsonify({"error": "Edition not found."}), 404
 
 
+# ── API: Available languages for a date ───────────
+@epaper_bp.route("/api/epaper/editions-by-date/<date>")
+def api_editions_by_date(date):
+    if not re.match(r"\d{4}-\d{2}-\d{2}$", date):
+        return jsonify({"error": "Invalid date format"}), 400
+    editions = _load_editions()
+    matches = [
+        {"language": e.get("language", "Hindi"), "name": e.get("name", "")}
+        for e in editions
+        if e["date"] == date and e.get("published", True)
+    ]
+    return jsonify({"editions": matches})
+
+
 # ── API: Get edition by date ───────────────────────
 @epaper_bp.route("/api/epaper/edition/<date>")
 def api_edition(date):
     if not re.match(r"\d{4}-\d{2}-\d{2}$", date):
         return jsonify({"error": "Invalid date format. Use YYYY-MM-DD."}), 400
 
+    lang = request.args.get("lang", None)
     editions = _load_editions()
-    edition = next((e for e in editions if e["date"] == date), None)
+
+    if lang:
+        edition = next(
+            (e for e in editions if e["date"] == date and e.get("published", True) and e.get("language", "Hindi") == lang),
+            None,
+        )
+        # Fallback to first published edition for that date if exact language not found
+        if not edition:
+            edition = next((e for e in editions if e["date"] == date and e.get("published", True)), None)
+    else:
+        edition = next((e for e in editions if e["date"] == date and e.get("published", True)), None)
 
     if not edition:
         return jsonify({"error": "No edition for this date."}), 404
@@ -291,7 +319,11 @@ def api_create_edition():
         return jsonify({"error": "date required (YYYY-MM-DD)."}), 400
 
     editions = _load_editions()
-    existing = next((e for e in editions if e["date"] == date_str), None)
+    lang_str = data.get("language", "Hindi")
+    existing = next(
+        (e for e in editions if e["date"] == date_str and e.get("language", "Hindi") == lang_str),
+        None,
+    )
 
     if existing:
         existing["name"] = data.get("name", existing.get("name", ""))
@@ -327,8 +359,12 @@ def api_create_edition():
 # ── API: Delete edition ───────────────────────────
 @epaper_bp.route("/api/epaper/admin/edition/<date>", methods=["DELETE"])
 def api_delete_edition(date):
+    lang = request.args.get("lang", None)
     editions = _load_editions()
-    editions = [e for e in editions if e["date"] != date]
+    if lang:
+        editions = [e for e in editions if not (e["date"] == date and e.get("language", "Hindi") == lang)]
+    else:
+        editions = [e for e in editions if e["date"] != date]
     try:
         _save_editions(editions)
     except Exception as exc:

@@ -130,7 +130,49 @@
     .epa-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:500;z-index:999;opacity:0;transition:all .3s;pointer-events:none;}
     .epa-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
-    @media(max-width:900px){.epc-layout{grid-template-columns:1fr;}.epc-canvas{width:100%;height:auto;aspect-ratio:4/5;}}
+    /* ── 4-col footer link row ── */
+    .epa-form-row-4col{grid-template-columns:repeat(4,1fr);}
+
+    /* ── LAPTOP (≤1280px) ── */
+    @media(max-width:1280px){
+      .epa-wrap{padding:0 12px;}
+      .epc-canvas{width:720px;}
+    }
+
+    /* ── TABLET (≤900px) ── */
+    @media(max-width:900px){
+      .epc-layout{grid-template-columns:1fr;}
+      .epc-canvas{width:100%;height:auto;aspect-ratio:4/5;}
+      .epa-form-row{grid-template-columns:1fr 1fr;}
+      .epa-form-row-4col{grid-template-columns:1fr 1fr;}
+      .epa-header-builder{grid-template-columns:1fr;}
+      .epa-header-canvas-wrap{overflow-x:auto;}
+      .epa-edition-card{flex-wrap:wrap;gap:8px;}
+      .epa-edition-info{flex-wrap:wrap;gap:6px;}
+    }
+
+    /* ── MOBILE (≤600px) ── */
+    @media(max-width:600px){
+      .epa-header{flex-wrap:wrap;gap:6px;padding:10px 12px;}
+      .epa-header h1{font-size:15px;width:100%;}
+      .epa-header a{margin-left:0;}
+      .epa-header>span{width:100%;font-size:11px;}
+      .epa-wrap{padding:0 8px;margin-top:10px;}
+      .epa-card{padding:12px;}
+      .epa-form-row{grid-template-columns:1fr;}
+      .epa-form-row-4col{grid-template-columns:1fr 1fr;}
+      .epb-editor{max-height:none;}
+      .epc-canvas-wrap{padding:6px;border-radius:8px;overflow-x:auto;}
+      .epc-canvas{width:800px;height:1000px;transform-origin:top left;}
+      .epa-page-tabs{gap:4px;}
+      .epa-page-tab{padding:5px 10px;font-size:11px;}
+      .epc-shape-toolbar{flex-wrap:wrap;}
+      .epa-header-canvas-wrap{overflow-x:auto;}
+      .epa-edition-card{flex-direction:column;align-items:flex-start;gap:8px;}
+      .epa-edition-info{flex-wrap:wrap;gap:6px;font-size:12px;}
+      .epa-edition-actions{flex-wrap:wrap;width:100%;flex-shrink:1!important;}
+      .epa-edition-actions .epa-btn{flex:1;justify-content:center;min-width:80px;}
+    }
 
     /* ══ SHAPE BLOCKS ══ */
     .epc-shape .epc-label{display:none;}
@@ -211,7 +253,7 @@
         </div>
       </div>
 
-      <div class="epa-form-row" style="grid-template-columns:repeat(4, 1fr)">
+      <div class="epa-form-row epa-form-row-4col">
         <div class="epa-form-group"><label>Search link</label><input type="url" id="footerLinkSearch" placeholder="/epaper"></div>
         <div class="epa-form-group"><label>WhatsApp link</label><input type="url" id="footerLinkWhatsapp" placeholder="https://wa.me/"></div>
         <div class="epa-form-group"><label>Facebook link</label><input type="url" id="footerLinkFacebook" placeholder="https://facebook.com/"></div>
@@ -248,6 +290,25 @@
             <i class="fa fa-info-circle" style="color:var(--r)"></i>
             <strong>Drag</strong> to move • <strong>Edge or corner handles</strong> to resize • Click block to edit
           </div>
+          <!-- Section header meta (pages 2+) -->
+          <div id="pageMetaRow" style="display:none;background:#fff8f8;border:1.5px solid #fca5a5;border-radius:10px;padding:12px 14px;margin-bottom:10px;">
+            <div style="font-size:11px;font-weight:700;color:var(--r);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;"><i class="fa fa-heading"></i> Section Header Preview</div>
+            <div class="epa-form-row" style="grid-template-columns:1fr 1fr;margin-bottom:10px">
+              <div class="epa-form-group"><label>Section Name</label><input type="text" id="pageCategoryInput" placeholder="SCHOOL & HIGHER EDUCATION" oninput="EPAdmin.savePageMeta()"></div>
+              <div class="epa-form-group"><label>Date Range</label><input type="text" id="pageDateRangeInput" placeholder="04 May to 10 May, 2026" oninput="EPAdmin.savePageMeta()"></div>
+            </div>
+            <div id="pageHeaderPreview" style="border-top:2px dotted #d9252a;border-bottom:2px dotted #d9252a;padding:6px 14px;display:flex;align-items:center;justify-content:space-between;background:#fff;">
+              <div style="display:flex;align-items:center;gap:14px;">
+                <span id="prevPageNum" style="font-size:26px;font-weight:800;color:#d9252a;line-height:1;font-family:Georgia,serif;">02</span>
+                <span id="prevPageCat" style="font-size:14px;font-weight:800;color:#d9252a;border-left:3px solid #d9252a;padding-left:12px;font-family:Georgia,serif;letter-spacing:.5px;">SECTION</span>
+              </div>
+              <div style="text-align:right">
+                <div id="prevPageDate" style="font-size:10px;font-weight:600;color:#374151;margin-bottom:2px;"></div>
+                <div style="font-size:11px;font-weight:800;color:#d9252a;">Vidyarthi Mitra</div>
+              </div>
+            </div>
+          </div>
+
           <!-- Shape Toolbar -->
           <div class="epc-shape-toolbar">
             <span>Shapes:</span>
@@ -416,6 +477,25 @@
       <div id="editionsList"><div class="epa-empty">Loading...</div></div>
     </div>
 
+  </div>
+
+  <!-- ── Add Page Modal ── -->
+  <div id="epaAddPageModal" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.55);align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:14px;padding:24px;width:400px;max-width:92vw;box-shadow:0 20px 50px rgba(0,0,0,.25);">
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;"><i class="fa fa-plus-circle" style="color:var(--r)"></i> New Section Page</h3>
+      <div class="epa-form-group" style="margin-bottom:12px">
+        <label>Section / Category Name</label>
+        <input type="text" id="newPageCategory" placeholder="e.g. SCHOOL & HIGHER EDUCATION">
+      </div>
+      <div class="epa-form-group" style="margin-bottom:20px">
+        <label>Date Range <span style="font-weight:400;color:var(--muted)">(shown in header)</span></label>
+        <input type="text" id="newPageDateRange" placeholder="e.g. 04 May to 10 May, 2026">
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button type="button" class="epa-btn" id="epaAddPageCancel" style="background:#f3f4f6;color:#374151">Cancel</button>
+        <button type="button" class="epa-btn epa-btn-primary" id="epaAddPageConfirm"><i class="fa fa-plus"></i> Add Page</button>
+      </div>
+    </div>
   </div>
 
   <div class="epa-toast" id="adminToast"></div>
