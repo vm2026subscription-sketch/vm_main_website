@@ -21,16 +21,47 @@ def _require_admin():
 
 epaper_bp = Blueprint("epaper", __name__)
 
-# ── In-memory store (replace with DB later) ────────
 import tempfile
 
 EDITIONS_FILE = os.path.join(os.path.dirname(__file__), "data", "epaper_editions.json")
-# Vercel serverless filesystems are read-only except /tmp; use this as writable fallback
 _EDITIONS_TMP = os.path.join(tempfile.gettempdir(), "epaper_editions.json")
 EPAPER_UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "static", "uploads", "epaper")
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
 ALLOWED_UPLOAD_EXTENSIONS = ALLOWED_IMAGE_EXTENSIONS | {"pdf"}
 
+
+# ── Postgres (Supabase) helpers ─────────────────────
+
+def _pg_url():
+    return os.getenv("SUPABASE_POSTGRES_URL") or os.getenv("DATABASE_URL")
+
+
+def _pg_connect():
+    import psycopg2
+    url = _pg_url()
+    conn = psycopg2.connect(url, connect_timeout=5)
+    conn.autocommit = False
+    return conn
+
+
+def _pg_ensure_table(conn):
+    with conn.cursor() as cur:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS epaper_editions_store (
+                id TEXT PRIMARY KEY,
+                data JSONB NOT NULL DEFAULT '[]'::jsonb,
+                updated_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        """)
+        cur.execute("""
+            INSERT INTO epaper_editions_store (id, data)
+            VALUES ('editions', '[]'::jsonb)
+            ON CONFLICT (id) DO NOTHING
+        """)
+    conn.commit()
+
+
+# ── File fallback helpers ───────────────────────────
 
 def _ensure_data_dir():
     d = os.path.dirname(EDITIONS_FILE)
@@ -41,9 +72,8 @@ def _ensure_data_dir():
             pass
 
 
-def _load_editions():
+def _load_editions_from_file():
     _ensure_data_dir()
-    # Prefer /tmp copy (contains latest admin saves when primary FS is read-only)
     for path in [_EDITIONS_TMP, EDITIONS_FILE]:
         if os.path.exists(path):
             try:
@@ -54,9 +84,8 @@ def _load_editions():
     return []
 
 
-def _save_editions(data):
+def _save_editions_to_file(data):
     _ensure_data_dir()
-    # Try primary path first; fall back to /tmp on read-only filesystems (e.g. Vercel)
     last_exc = None
     for path in [EDITIONS_FILE, _EDITIONS_TMP]:
         try:
@@ -65,11 +94,57 @@ def _save_editions(data):
                 os.makedirs(dir_, exist_ok=True)
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
-            return  # success
+            return
         except (PermissionError, OSError) as exc:
             last_exc = exc
             continue
-    raise RuntimeError(f"Cannot persist editions data: {last_exc}")
+    raise RuntimeError(f"Cannot persist editions to file: {last_exc}")
+
+
+# ── Public load / save ──────────────────────────────
+
+def _load_editions():
+    if _pg_url():
+        try:
+            conn = _pg_connect()
+            _pg_ensure_table(conn)
+            with conn.cursor() as cur:
+                cur.execute("SELECT data FROM epaper_editions_store WHERE id = 'editions'")
+                row = cur.fetchone()
+            conn.close()
+            db_data = row[0] if row else []
+            if isinstance(db_data, str):
+                db_data = json.loads(db_data)
+            # Auto-migrate: if DB empty but JSON file has data, seed DB once
+            if not db_data:
+                file_data = _load_editions_from_file()
+                if file_data:
+                    _save_editions(file_data)
+                return file_data
+            return db_data
+        except Exception as e:
+            print(f"[epaper] Postgres load failed, falling back to file: {e}")
+    return _load_editions_from_file()
+
+
+def _save_editions(data):
+    if _pg_url():
+        try:
+            conn = _pg_connect()
+            _pg_ensure_table(conn)
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO epaper_editions_store (id, data, updated_at)
+                    VALUES ('editions', %s::jsonb, NOW())
+                    ON CONFLICT (id) DO UPDATE
+                        SET data = EXCLUDED.data, updated_at = NOW()
+                """, (json.dumps(data, ensure_ascii=False),))
+            conn.commit()
+            conn.close()
+            return
+        except Exception as e:
+            print(f"[epaper] Postgres save failed, falling back to file: {e}")
+    _save_editions_to_file(data)
 
 
 def _allowed_image(filename):
