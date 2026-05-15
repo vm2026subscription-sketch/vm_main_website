@@ -163,13 +163,17 @@ const EPAdmin = {
       });
     }
 
-    // Ctrl+Z undo
+    // Ctrl+Z undo, Ctrl+D duplicate
     document.addEventListener('keydown', e => {
+      const tag = document.activeElement?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || document.activeElement?.isContentEditable) return;
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') {
-        const tag = document.activeElement?.tagName;
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || document.activeElement?.isContentEditable) return;
         e.preventDefault();
         this.undo();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        e.preventDefault();
+        this.duplicateBlock();
       }
     });
 
@@ -579,6 +583,69 @@ const EPAdmin = {
     });
   },
 
+  _computeGapIndicators(dragged, blocks, excludeIdx) {
+    const gaps = [];
+    const { x: dx, y: dy, w: dw, h: dh } = dragged;
+    for (let i = 0; i < blocks.length; i++) {
+      if (i === excludeIdx) continue;
+      const b = blocks[i];
+      const bx = b.x || 0, by = b.y || 0, bw = b.w || 200, bh = b.h || 150;
+
+      // Horizontal gap — only if blocks have overlapping Y range
+      const yA = Math.max(dy, by), yB = Math.min(dy + dh, by + bh);
+      if (yB > yA) {
+        const midY = Math.round((yA + yB) / 2);
+        if (bx >= dx + dw) {
+          gaps.push({ type: 'gap-h', x1: dx + dw, x2: bx, y: midY, dist: Math.round(bx - (dx + dw)) });
+        } else if (bx + bw <= dx) {
+          gaps.push({ type: 'gap-h', x1: bx + bw, x2: dx, y: midY, dist: Math.round(dx - (bx + bw)) });
+        }
+      }
+
+      // Vertical gap — only if blocks have overlapping X range
+      const xA = Math.max(dx, bx), xB = Math.min(dx + dw, bx + bw);
+      if (xB > xA) {
+        const midX = Math.round((xA + xB) / 2);
+        if (by >= dy + dh) {
+          gaps.push({ type: 'gap-v', y1: dy + dh, y2: by, x: midX, dist: Math.round(by - (dy + dh)) });
+        } else if (by + bh <= dy) {
+          gaps.push({ type: 'gap-v', y1: by + bh, y2: dy, x: midX, dist: Math.round(dy - (by + bh)) });
+        }
+      }
+    }
+    return gaps;
+  },
+
+  _renderGapIndicators(gaps) {
+    const container = document.getElementById('pageCanvas');
+    if (!container) return;
+    container.querySelectorAll('.epc-gap').forEach(el => el.remove());
+    gaps.forEach(gap => {
+      const el = document.createElement('div');
+      el.className = 'epc-gap';
+      if (gap.type === 'gap-h') {
+        const w = gap.x2 - gap.x1;
+        if (w <= 0) return;
+        el.style.cssText = `left:${gap.x1}px;top:${gap.y - 0.5}px;width:${w}px;height:1px;`;
+        const lbl = document.createElement('span');
+        lbl.className = 'epc-gap-label';
+        lbl.textContent = gap.dist + 'px';
+        lbl.style.cssText = 'left:50%;top:-9px;transform:translateX(-50%);';
+        el.appendChild(lbl);
+      } else {
+        const h = gap.y2 - gap.y1;
+        if (h <= 0) return;
+        el.style.cssText = `top:${gap.y1}px;left:${gap.x - 0.5}px;width:1px;height:${h}px;`;
+        const lbl = document.createElement('span');
+        lbl.className = 'epc-gap-label';
+        lbl.textContent = gap.dist + 'px';
+        lbl.style.cssText = 'top:50%;left:5px;transform:translateY(-50%);';
+        el.appendChild(lbl);
+      }
+      container.appendChild(el);
+    });
+  },
+
   // ══════ CANVAS DRAG & DROP ══════
 
   onCanvasMouseDown(e) {
@@ -672,6 +739,11 @@ const EPAdmin = {
       this._guides = snapped.guides;
       this.renderCanvas();
       this._renderGuides(this._guides);
+      const gaps = this._computeGapIndicators(
+        { x: block.x, y: block.y, w: block.w || 200, h: block.h || 150 },
+        page?.blocks || [], this.activeBlockIdx
+      );
+      this._renderGapIndicators(gaps);
       this.updateSizeInputs();
     }
 
@@ -756,6 +828,7 @@ const EPAdmin = {
     this.resizeStart = null;
     this._guides = [];
     this._renderGuides([]);
+    this._renderGapIndicators([]);
   },
 
   updateSizeInputs() {
@@ -1287,6 +1360,24 @@ const EPAdmin = {
     this.renderCanvas();
     document.getElementById('blockEditor').style.display = 'none';
     document.getElementById('noBlockMsg').style.display = 'block';
+  },
+
+  duplicateBlock() {
+    if (this.activeBlockIdx === null) return;
+    const page = this.pages[this.currentPageIdx];
+    if (!page) return;
+    this._pushUndo();
+    const orig = page.blocks[this.activeBlockIdx];
+    const clone = JSON.parse(JSON.stringify(orig));
+    clone.id = Date.now();
+    if (clone.article_id) clone.article_id = Date.now() + 1;
+    clone.x = Math.min((orig.x || 0) + 20, this.CANVAS_W - (orig.w || 200));
+    clone.y = Math.min((orig.y || 0) + 20, this.CANVAS_H - (orig.h || 150));
+    page.blocks.push(clone);
+    this.activeBlockIdx = page.blocks.length - 1;
+    this.renderCanvas();
+    this.showBlockEditor(this.activeBlockIdx);
+    this.showToast('Duplicated — Ctrl+D');
   },
 
   deleteBlock() { if (this.activeBlockIdx !== null) this.removeBlock(this.activeBlockIdx); },
