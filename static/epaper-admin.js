@@ -828,13 +828,16 @@ const EPAdmin = {
             <span style="color:var(--muted);font-size:12px">${ed.total_pages || 0} pages</span>
             ${pubBadge}
           </div>
-          <div style="display:flex;gap:6px;flex-shrink:0;">
-            <button class="epa-btn epa-btn-sm epa-btn-primary" onclick="EPAdmin.editEdition('${ed.date}')">
+          <div class="epa-edition-actions" style="display:flex;gap:6px;flex-shrink:0;">
+            <button class="epa-btn epa-btn-sm epa-btn-primary" onclick="EPAdmin.editEdition('${ed.date}', '${ed.language || 'Hindi'}')">
               <i class="fa fa-edit"></i> Edit
             </button>
             <button class="epa-btn epa-btn-sm ${isPublished ? 'epa-btn-danger' : 'epa-btn-success'}"
-              onclick="EPAdmin.togglePublish('${ed.date}', ${!isPublished})">
+              onclick="EPAdmin.togglePublish('${ed.date}', ${!isPublished}, '${ed.language || 'Hindi'}')">
               <i class="fa fa-${isPublished ? 'eye-slash' : 'eye'}"></i> ${isPublished ? 'Unpublish' : 'Publish'}
+            </button>
+            <button class="epa-btn epa-btn-sm epa-btn-danger" onclick="EPAdmin.deleteEditionByDate('${ed.date}', '${ed.language || 'Hindi'}')">
+              <i class="fa fa-trash"></i> Delete
             </button>
           </div>
         </div>
@@ -842,9 +845,10 @@ const EPAdmin = {
     }).join('');
   },
 
-  async togglePublish(date, publish) {
+  async togglePublish(date, publish, lang) {
+    const langParam = lang ? `?lang=${encodeURIComponent(lang)}` : '';
     try {
-      const res = await fetch(`/api/epaper/admin/edition/${date}/publish`, {
+      const res = await fetch(`/api/epaper/admin/edition/${date}/publish${langParam}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ published: publish }),
@@ -861,9 +865,10 @@ const EPAdmin = {
     }
   },
 
-  async editEdition(date) {
+  async editEdition(date, lang) {
+    const langParam = lang ? `?lang=${encodeURIComponent(lang)}` : '';
     try {
-      const res = await fetch(`/api/epaper/edition/${date}`);
+      const res = await fetch(`/api/epaper/edition/${date}${langParam}`);
       if (!res.ok) { alert('Not found'); return; }
       const data = await res.json();
       this.currentEdition = data;
@@ -932,6 +937,7 @@ const EPAdmin = {
       footer_links: this.editionMeta.footer_links || [],
       pages: this.pages.map(p => ({
         page_number: p.page_number, category: p.category || 'मुख पृष्ठ',
+        date_range: p.date_range || '',
         image_path: p.page_image_url || p.image_path || '',
         page_image_url: p.page_image_url || p.image_path || '',
         layout_json: (p.blocks || []).map(b => ({
@@ -979,20 +985,71 @@ const EPAdmin = {
   async deleteEdition() {
     if (!this.currentEdition) return;
     if (!confirm(`Delete ${this.currentEdition.date}?`)) return;
+    const lang = this.currentEdition.language || 'Hindi';
+    const langParam = `?lang=${encodeURIComponent(lang)}`;
     try {
-      await fetch(`/api/epaper/admin/edition/${this.currentEdition.date}`, { method: 'DELETE' });
+      await fetch(`/api/epaper/admin/edition/${this.currentEdition.date}${langParam}`, { method: 'DELETE' });
       this.currentEdition = null; this.pages = [];
       document.getElementById('builderSection').style.display = 'none';
       this.loadEditions(); this.showToast('Deleted');
     } catch (e) { alert('Failed'); }
   },
 
+  async deleteEditionByDate(date, lang) {
+    if (!confirm(`Delete edition ${date}${lang ? ` (${lang})` : ''}? This cannot be undone.`)) return;
+    const langParam = lang ? `?lang=${encodeURIComponent(lang)}` : '';
+    try {
+      const res = await fetch(`/api/epaper/admin/edition/${date}${langParam}`, { method: 'DELETE' });
+      if (!res.ok) { this.showToast('Delete failed'); return; }
+      // If this edition is currently open in the builder, close it
+      if (this.currentEdition?.date === date && (!lang || this.currentEdition?.language === lang)) {
+        this.currentEdition = null; this.pages = [];
+        document.getElementById('builderSection').style.display = 'none';
+      }
+      this.loadEditions(); this.showToast('Edition deleted');
+    } catch (e) { this.showToast('Delete failed'); }
+  },
+
   // ══════ PAGES ══════
 
   addPage() {
-    this._pushUndo();
-    this.pages.push({ page_number: this.pages.length + 1, category: 'मुख पृष्ठ', blocks: [] });
-    this.renderPageTabs(); this.openPage(this.pages.length - 1);
+    if (this.pages.length === 0) {
+      this._pushUndo();
+      this.pages.push({ page_number: 1, category: 'मुख पृष्ठ', date_range: '', blocks: [] });
+      this.renderPageTabs(); this.openPage(0);
+      return;
+    }
+    // Pages 2+ — ask for category + date range
+    const modal = document.getElementById('epaAddPageModal');
+    if (!modal) {
+      this._pushUndo();
+      this.pages.push({ page_number: this.pages.length + 1, category: 'News', date_range: '', blocks: [] });
+      this.renderPageTabs(); this.openPage(this.pages.length - 1);
+      return;
+    }
+    document.getElementById('newPageCategory').value = '';
+    document.getElementById('newPageDateRange').value = '';
+    modal.style.display = 'flex';
+    setTimeout(() => document.getElementById('newPageCategory').focus(), 50);
+    const doAdd = () => {
+      const category = document.getElementById('newPageCategory').value.trim() || 'News';
+      const dateRange = document.getElementById('newPageDateRange').value.trim() || '';
+      modal.style.display = 'none';
+      off();
+      this._pushUndo();
+      this.pages.push({ page_number: this.pages.length + 1, category, date_range: dateRange, blocks: [] });
+      this.renderPageTabs(); this.openPage(this.pages.length - 1);
+    };
+    const doCancel = () => { modal.style.display = 'none'; off(); };
+    const onKey = (e) => { if (e.key === 'Enter') doAdd(); if (e.key === 'Escape') doCancel(); };
+    const off = () => {
+      document.getElementById('epaAddPageConfirm').removeEventListener('click', doAdd);
+      document.getElementById('epaAddPageCancel').removeEventListener('click', doCancel);
+      document.removeEventListener('keydown', onKey);
+    };
+    document.getElementById('epaAddPageConfirm').addEventListener('click', doAdd);
+    document.getElementById('epaAddPageCancel').addEventListener('click', doCancel);
+    document.addEventListener('keydown', onKey);
   },
   deletePage(idx) {
     if (this.pages.length <= 1) return;
@@ -1017,6 +1074,41 @@ const EPAdmin = {
     this.renderPageTabs(); this.renderCanvas();
     document.getElementById('blockEditor').style.display = 'none';
     document.getElementById('noBlockMsg').style.display = 'block';
+    this.updatePageMetaUI();
+  },
+  updatePageMetaUI() {
+    const row = document.getElementById('pageMetaRow');
+    if (!row) return;
+    const idx = this.currentPageIdx;
+    if (idx === 0) { row.style.display = 'none'; return; }
+    row.style.display = 'block';
+    const page = this.pages[idx];
+    document.getElementById('pageCategoryInput').value = page?.category || '';
+    document.getElementById('pageDateRangeInput').value = page?.date_range || '';
+    this._refreshPageHeaderPreview();
+  },
+  _refreshPageHeaderPreview() {
+    const idx = this.currentPageIdx;
+    const page = this.pages[idx];
+    if (!page) return;
+    const num = String(idx + 1).padStart(2, '0');
+    const cat = (page.category || 'SECTION').toUpperCase();
+    const dr = page.date_range || '';
+    const numEl = document.getElementById('prevPageNum');
+    const catEl = document.getElementById('prevPageCat');
+    const dateEl = document.getElementById('prevPageDate');
+    if (numEl) numEl.textContent = num;
+    if (catEl) catEl.textContent = cat;
+    if (dateEl) dateEl.textContent = dr;
+  },
+  savePageMeta() {
+    const page = this.pages[this.currentPageIdx];
+    if (!page) return;
+    const catEl = document.getElementById('pageCategoryInput');
+    const drEl = document.getElementById('pageDateRangeInput');
+    if (catEl) page.category = catEl.value;
+    if (drEl) page.date_range = drEl.value;
+    this._refreshPageHeaderPreview();
   },
 
   // ══════ BLOCK CRUD ══════

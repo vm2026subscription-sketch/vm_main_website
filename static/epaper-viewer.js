@@ -17,6 +17,8 @@ const EP = {
   pages: [],
   articles: [],
   currentEdition: null,
+  currentLanguage: '',
+  mastheadUrl: '',
   ttsUtterance: null,
   ttsPlaying: false,
 
@@ -51,13 +53,15 @@ const EP = {
       }
       this.currentPage = 1;
       this.currentEdition = data;
+      this.currentLanguage = data.language || 'Hindi';
       this.pages = data.pages || [];
       this.totalPages = this.pages.length || 1;
+      this.mastheadUrl = data.masthead_image_url || '';
       this.updateEditionBrand(data);
-      this.applyMastheadImage(data.masthead_image_url || '');
+      this.applyMastheadImage(this.mastheadUrl);
       this.renderFooterLinks(data.footer_links || this.footerLinksDefault);
       document.getElementById('epEmptyState')?.style.setProperty('display', 'none');
-      this.renderCategories(this.pages);
+      this.fetchAndRenderLanguageTabs(data.date);
       this.renderThumbnails();
       this.showPage(1);
     } catch (e) {
@@ -390,6 +394,32 @@ const EP = {
     }
   },
 
+  updatePageHeader(page, pageNum) {
+    const el = this.el.mastheadImg;
+    if (!el) return;
+    if (pageNum === 1) {
+      el.style.cssText = '';
+      this.applyMastheadImage(this.mastheadUrl || '');
+      return;
+    }
+    const num = String(pageNum).padStart(2, '0');
+    const cat = (page.category || '').toUpperCase();
+    const dateRange = page.date_range || '';
+    el.style.cssText = 'border:none;border-radius:0;background:#fff;padding:0;height:72px;';
+    el.innerHTML = `
+      <div style="border-top:2px dotted #d9252a;border-bottom:2px dotted #d9252a;padding:6px 14px;display:flex;align-items:center;justify-content:space-between;background:#fff;width:100%;height:100%;box-sizing:border-box;">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <span style="font-size:26px;font-weight:800;color:#d9252a;line-height:1;font-family:Georgia,serif;">${num}</span>
+          <span style="font-size:14px;font-weight:800;color:#d9252a;border-left:3px solid #d9252a;padding-left:12px;font-family:Georgia,serif;letter-spacing:.5px;">${cat}</span>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          ${dateRange ? `<div style="font-size:10px;font-weight:600;color:#374151;margin-bottom:2px;">${dateRange}</div>` : ''}
+          <div style="font-size:11px;font-weight:800;color:#d9252a;">Vidyarthi Mitra</div>
+        </div>
+      </div>`;
+    document.body.classList.add('has-masthead');
+  },
+
   resolveFooterLinks(rawLinks) {
     const base = this.footerLinksDefault.map(item => ({ ...item }));
     if (!Array.isArray(rawLinks)) return base;
@@ -514,13 +544,15 @@ const EP = {
     try {
       const data = await this._cachedFetch(`/api/epaper/edition/${iso}`);
       this.currentEdition = data;
+      this.currentLanguage = data.language || 'Hindi';
       this.pages = data.pages || [];
       this.totalPages = this.pages.length || 1;
+      this.mastheadUrl = data.masthead_image_url || '';
       this.updateEditionBrand(data);
-      this.applyMastheadImage(data.masthead_image_url || '');
+      this.applyMastheadImage(this.mastheadUrl);
       this.renderFooterLinks(data.footer_links || this.footerLinksDefault);
       document.getElementById('epEmptyState')?.style.setProperty('display', 'none');
-      this.renderCategories(this.pages);
+      this.fetchAndRenderLanguageTabs(data.date);
       this.renderThumbnails();
       this.showPage(1);
     } catch (e) {
@@ -576,27 +608,65 @@ const EP = {
     this.showToast('इस तारीख का संस्करण उपलब्ध नहीं है');
   },
 
-  // ── Categories ──
-  renderCategories(pages) {
+  // ── Language Tabs ──
+  async fetchAndRenderLanguageTabs(date) {
     if (!this.el.navList) return;
-    const cats = ['मुख पृष्ठ'];
-    pages.forEach(p => {
-      if (p.category && !cats.includes(p.category)) cats.push(p.category);
-    });
+    try {
+      const data = await this._cachedFetch(`/api/epaper/editions-by-date/${date}`);
+      this.renderLanguageTabs(data.editions || []);
+    } catch (e) {
+      this.renderLanguageTabs([]);
+    }
+  },
 
-    this.el.navList.innerHTML = cats.map((c, i) =>
-      `<a class="ep-nav-item ${i === 0 ? 'active' : ''}" data-cat="${c}" data-page="${i + 1}">${c}</a>`
+  renderLanguageTabs(editions) {
+    if (!this.el.navList) return;
+    if (!editions.length) {
+      this.el.navList.innerHTML = '';
+      return;
+    }
+    this.el.navList.innerHTML = editions.map(ed =>
+      `<a class="ep-nav-item ${ed.language === this.currentLanguage ? 'active' : ''}" data-lang="${ed.language}">${ed.language}</a>`
     ).join('');
-
     this.el.navList.querySelectorAll('.ep-nav-item').forEach(item => {
-      item.addEventListener('click', (e) => {
+      item.addEventListener('click', async (e) => {
         e.preventDefault();
+        const lang = item.dataset.lang;
+        if (lang === this.currentLanguage) return;
         this.el.navList.querySelectorAll('.ep-nav-item').forEach(n => n.classList.remove('active'));
         item.classList.add('active');
-        const pg = parseInt(item.dataset.page) || 1;
-        this.showPage(pg);
+        await this.loadEditionForLanguage(lang);
       });
     });
+  },
+
+  async loadEditionForLanguage(lang) {
+    if (!this.currentEdition) return;
+    const date = this.currentEdition.date;
+    // Bypass cache so unpublished state is always fresh
+    const url = `/api/epaper/edition/${date}?lang=${encodeURIComponent(lang)}`;
+    delete this._apiCache[url];
+    this.showLoadingSkeleton();
+    try {
+      const data = await fetch(url).then(r => r.json());
+      this.currentEdition = data;
+      this.currentLanguage = data.language || lang;
+      this.pages = data.pages || [];
+      this.totalPages = this.pages.length || 1;
+      this.mastheadUrl = data.masthead_image_url || '';
+      this.updateEditionBrand(data);
+      this.applyMastheadImage(this.mastheadUrl);
+      this.renderFooterLinks(data.footer_links || this.footerLinksDefault);
+      document.getElementById('epEmptyState')?.style.setProperty('display', 'none');
+      // Update active tab
+      this.el.navList?.querySelectorAll('.ep-nav-item').forEach(n => {
+        n.classList.toggle('active', n.dataset.lang === this.currentLanguage);
+      });
+      this.renderThumbnails();
+      this.showPage(1);
+    } catch (e) {
+      this.showToast('Edition not available');
+    }
   },
 
   // ── Page Display ──
@@ -609,6 +679,8 @@ const EP = {
 
      const page = this.pages[this.currentPage - 1];
     if (!page) return;
+
+    this.updatePageHeader(page, this.currentPage);
 
     const viewer = this.el.viewer || document.getElementById('epViewer');
     document.getElementById('epEmptyState')?.style.setProperty('display', 'none');
@@ -672,7 +744,36 @@ const EP = {
   },
 
   getBlockType(block) {
-    return block?.type === 'divider' ? 'divider' : 'article';
+    if (block?.type === 'divider') return 'divider';
+    if (block?.type === 'shape')   return 'shape';
+    return 'article';
+  },
+
+  buildShapeMarkup(block) {
+    const fill   = block.no_fill ? 'none' : (block.fill_color   || '#cccccc');
+    const stroke = block.stroke_color || '#111827';
+    const sw     = block.stroke_width || 0;
+    const op     = (block.opacity ?? 100) / 100;
+    const cr     = block.corner_radius || 0;
+    switch (block.shape_type) {
+      case 'rect':
+        return `<div style="width:100%;height:100%;background:${fill};border:${sw}px solid ${sw > 0 ? stroke : 'transparent'};border-radius:${cr}%;opacity:${op};box-sizing:border-box;"></div>`;
+      case 'circle':
+        return `<div style="width:100%;height:100%;background:${fill};border:${sw}px solid ${sw > 0 ? stroke : 'transparent'};border-radius:50%;opacity:${op};box-sizing:border-box;"></div>`;
+      case 'line-h':
+      case 'line-v':
+        return `<div style="width:100%;height:100%;background:${fill === 'none' ? stroke : fill};border-radius:${cr}%;opacity:${op};"></div>`;
+      case 'triangle': {
+        const svgSw = sw > 0 ? `stroke="${stroke}" stroke-width="${sw * 2}" stroke-linejoin="round"` : '';
+        return `<svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style="opacity:${op};display:block;"><polygon points="50,2 98,98 2,98" fill="${fill}" ${svgSw}/></svg>`;
+      }
+      case 'arrow': {
+        const af = fill === 'none' ? 'transparent' : fill;
+        return `<svg width="100%" height="100%" viewBox="0 0 120 40" preserveAspectRatio="none" style="opacity:${op};display:block;overflow:visible;"><path d="M2 20 H90 M78 5 L110 20 L78 35" fill="none" stroke="${af === 'transparent' ? stroke : af}" stroke-width="${Math.max(2, sw + 3)}" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+      }
+      default:
+        return `<div style="width:100%;height:100%;background:${fill};opacity:${op};"></div>`;
+    }
   },
 
   buildDividerMarkup(block) {
@@ -736,6 +837,14 @@ const EP = {
             return `
               <div class="ep-block-divider-card" style="${baseStyle}">
                 ${this.buildDividerMarkup(block)}
+              </div>
+            `;
+          }
+
+          if (type === 'shape') {
+            return `
+              <div style="${baseStyle}pointer-events:none;">
+                ${this.buildShapeMarkup(block)}
               </div>
             `;
           }
@@ -836,18 +945,22 @@ const EP = {
     }
 
     container.innerHTML = this.pages.map((page, i) => {
-      const cat = page.category || `Page ${i + 1}`;
-      const blocks = page.blocks || [];
-      // Find the first block with an image for the thumbnail
-      const firstImg = blocks.find(b => b.image_url && b.image_url.length > 10);
-      const thumbUrl = firstImg ? this.optimizeCloudinaryUrl(firstImg.image_url, 120) : '';
       const isActive = (i + 1) === this.currentPage;
+
+      // Prefer the actual page scan; fall back to first block image
+      let thumbUrl = '';
+      if (page.page_image_url) {
+        thumbUrl = this.optimizeCloudinaryUrl(page.page_image_url, 160);
+      } else {
+        const firstImg = (page.blocks || []).find(b => b.type !== 'shape' && b.image_url && b.image_url.length > 10);
+        if (firstImg) thumbUrl = this.optimizeCloudinaryUrl(firstImg.image_url, 160);
+      }
 
       return `
         <div class="ep-thumb-card ${isActive ? 'active' : ''}" onclick="EP.showPage(${i + 1})">
-          <div class="ep-thumb-label">${cat}</div>
+          <div class="ep-thumb-label">Page ${i + 1}</div>
           ${thumbUrl
-            ? `<img class="ep-thumb-img" src="${thumbUrl}" alt="${cat}" loading="lazy">`
+            ? `<img class="ep-thumb-img" src="${thumbUrl}" alt="Page ${i + 1}" loading="lazy">`
             : `<div class="ep-thumb-placeholder"><i class="fa fa-newspaper"></i></div>`
           }
         </div>
@@ -888,17 +1001,21 @@ const EP = {
     if (this.el.articleCategory) this.el.articleCategory.textContent = art.category_label || 'News';
     if (this.el.articleTitle) this.el.articleTitle.textContent = art.headline || '';
     if (this.el.articleDate) this.el.articleDate.textContent = art.created_at || this.formatDateISO(this.currentDate);
-    // Always hide cover image — gallery images are used instead
+    // Show cover image only when there's no gallery; gallery replaces it
+    const gallery = art.gallery || [];
+    const coverImg = art.article_image_url || art.image_url || art.image || '';
     if (this.el.articleImg) {
-      this.el.articleImg.style.display = 'none';
-      this.el.articleImg.classList.remove('wide');
+      if (coverImg && gallery.length === 0) {
+        this.el.articleImg.src = coverImg;
+        this.el.articleImg.style.display = 'block';
+      } else {
+        this.el.articleImg.style.display = 'none';
+      }
       this.el.articleImg.onclick = null;
     }
 
     // Rich HTML content or plain text
     if (this.el.articleText) {
-      // Show gallery images at original size BEFORE the article text
-      const gallery = art.gallery || [];
       let galHTML = '';
       if (gallery.length > 0) {
         galHTML = '<div class="ep-article-gallery-full">';

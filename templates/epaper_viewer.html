@@ -12,6 +12,7 @@
   <!-- PWA Manifest -->
   <link rel="manifest" href="{{ url_for('static', filename='epaper-manifest.json') }}">
   <meta name="theme-color" content="#ff6600">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='title.png') }}">
@@ -51,19 +52,7 @@
       <i class="fa fa-chevron-down" style="font-size:10px"></i>
     </button>
     <button class="ep-nav-scroll-btn" id="epNavLeft"><i class="fa fa-chevron-left"></i></button>
-    <div class="ep-nav-list" id="epNavList">
-      <a class="ep-nav-item active" data-cat="front" data-page="1">मुख पृष्ठ</a>
-      <a class="ep-nav-item" data-cat="education">शिक्षा</a>
-      <a class="ep-nav-item" data-cat="exams">परीक्षा</a>
-      <a class="ep-nav-item" data-cat="career">करियर</a>
-      <a class="ep-nav-item" data-cat="technology">टेक्नोलॉजी</a>
-      <a class="ep-nav-item" data-cat="sports">खेल</a>
-      <a class="ep-nav-item" data-cat="editorial">संपादकीय</a>
-      <a class="ep-nav-item" data-cat="state">राज्य</a>
-      <a class="ep-nav-item" data-cat="national">देश</a>
-      <a class="ep-nav-item" data-cat="international">अंतरराष्ट्रीय</a>
-      <a class="ep-nav-item" data-cat="trending">ट्रेंडिंग</a>
-    </div>
+    <div class="ep-nav-list" id="epNavList"></div>
     <button class="ep-nav-scroll-btn" id="epNavRight"><i class="fa fa-chevron-right"></i></button>
   </nav>
 
@@ -134,6 +123,13 @@
     <button class="ep-pager-btn" id="epPrevPage" title="Previous Page"><i class="fa fa-chevron-left"></i></button>
     <span class="ep-pager-info" id="epPageInfo">1 / 1</span>
     <button class="ep-pager-btn" id="epNextPage" title="Next Page"><i class="fa fa-chevron-right"></i></button>
+  </div>
+
+  <!-- ── THUMBNAIL STRIP ── -->
+  <div class="ep-thumb-strip" id="epThumbStrip">
+    <button class="ep-thumb-nav-btn" id="epThumbLeft" title="Scroll left"><i class="fa fa-chevron-left"></i></button>
+    <div class="ep-thumb-scroll" id="epThumbScroll"></div>
+    <button class="ep-thumb-nav-btn" id="epThumbRight" title="Scroll right"><i class="fa fa-chevron-right"></i></button>
   </div>
 
   <!-- ── DATE PICKER ── -->
