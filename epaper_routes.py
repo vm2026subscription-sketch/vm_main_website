@@ -356,6 +356,36 @@ def api_create_edition():
     return jsonify({"success": True}), 201
 
 
+# ── API: Get edition (admin — no published filter) ────
+@epaper_bp.route("/api/epaper/admin/edition/<date>", methods=["GET"])
+def api_get_edition_admin(date):
+    if not re.match(r"\d{4}-\d{2}-\d{2}$", date):
+        return jsonify({"error": "Invalid date format"}), 400
+    lang = request.args.get("lang", None)
+    editions = _load_editions()
+    if lang:
+        edition = next(
+            (e for e in editions if e["date"] == date and e.get("language", "Hindi") == lang),
+            None,
+        )
+        if not edition:
+            edition = next((e for e in editions if e["date"] == date), None)
+    else:
+        edition = next((e for e in editions if e["date"] == date), None)
+    if not edition:
+        return jsonify({"error": "No edition for this date."}), 404
+    return jsonify({
+        "date": edition["date"],
+        "name": edition.get("name", ""),
+        "language": edition.get("language", "Hindi"),
+        "masthead_image_url": edition.get("masthead_image_url", ""),
+        "footer_links": edition.get("footer_links", []),
+        "header_items": edition.get("header_items", []),
+        "pages": edition.get("pages", []),
+        "published": edition.get("published", True),
+    })
+
+
 # ── API: Delete edition ───────────────────────────
 @epaper_bp.route("/api/epaper/admin/edition/<date>", methods=["DELETE"])
 def api_delete_edition(date):
