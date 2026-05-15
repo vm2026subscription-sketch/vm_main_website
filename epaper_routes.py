@@ -223,7 +223,7 @@ def epaper_viewer(date=None, page=1):
         else:
             edition = sorted(published, key=lambda e: e["date"], reverse=True)[0] if published else None
         if edition:
-            initial_edition_json = _json.dumps(edition, ensure_ascii=False)
+            initial_edition_json = _json.dumps(edition, ensure_ascii=False).replace('</script>', r'<\/script>')
     except Exception:
         pass
     return render_template("epaper_viewer.html", initial_date=date, initial_page=page,
