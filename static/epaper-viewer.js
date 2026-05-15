@@ -955,19 +955,37 @@ const EP = {
   applyTransform() {
     const z = this.zoom;
     const grid = document.getElementById('epBlockGrid');
-    const target = (grid && grid.style.display !== 'none') ? grid : this.el.pageContainer;
+    const useGrid = grid && grid.style.display !== 'none';
+    const target = useGrid ? grid : this.el.pageContainer;
+    const viewer = this.el.viewer;
     if (!target) return;
 
-    // CSS zoom affects actual layout (unlike transform:scale), so scroll works naturally
     target.style.zoom = z;
     target.style.transform = '';
     target.style.marginBottom = '';
+
+    if (!viewer) return;
+
+    if (z > 1) {
+      // Zoomed in: switch to flex-start so the content doesn't clip on the left,
+      // then scroll to show the center of the zoomed content
+      viewer.style.justifyContent = 'flex-start';
+      requestAnimationFrame(() => {
+        const excess = viewer.scrollWidth - viewer.clientWidth;
+        if (excess > 0) viewer.scrollLeft = Math.round(excess / 2);
+      });
+    } else {
+      // Zoomed out or normal: let flexbox center the content
+      viewer.style.justifyContent = '';
+      viewer.scrollLeft = 0;
+    }
   },
 
   toggleFullscreen() {
     if (!document.fullscreenElement) {
       document.body.classList.add('ep-fullscreen');
-      (this.el.viewer || document.body).requestFullscreen?.();
+      // Request fullscreen on documentElement so masthead, toolbar and nav are all visible
+      document.documentElement.requestFullscreen?.();
     } else {
       document.body.classList.remove('ep-fullscreen');
       document.exitFullscreen?.();

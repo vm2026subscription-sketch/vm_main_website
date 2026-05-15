@@ -152,6 +152,20 @@ body.epaper-body {
   box-shadow: none;
 }
 
+/* document.documentElement fullscreen — whole page visible incl masthead */
+body.ep-fullscreen .ep-paper {
+  max-width: 100%;
+  border-radius: 0;
+  box-shadow: none;
+}
+body.ep-fullscreen .ep-main {
+  padding: 0 0 0;
+  min-height: calc(100vh - var(--ep-nav-h));
+}
+body.ep-fullscreen .ep-viewer {
+  max-height: calc(100vh - var(--ep-nav-h) - 124px - 116px);
+}
+
 /* ── MASTHEAD STRIP ────────────────────────────── */
 .ep-masthead {
   padding: 14px 20px 10px;
