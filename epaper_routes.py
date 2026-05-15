@@ -212,7 +212,22 @@ def _find_epaper_article(article_id):
 @epaper_bp.route("/epaper-viewer/<date>")
 @epaper_bp.route("/epaper-viewer/<date>/page-<int:page>")
 def epaper_viewer(date=None, page=1):
-    return render_template("epaper_viewer.html", initial_date=date, initial_page=page)
+    import json as _json
+    initial_edition_json = None
+    try:
+        editions = _load_editions()
+        published = [e for e in editions if e.get("published", True)]
+        if date:
+            edition = next((e for e in published if e["date"] == date), None) or \
+                      (sorted(published, key=lambda e: e["date"], reverse=True)[0] if published else None)
+        else:
+            edition = sorted(published, key=lambda e: e["date"], reverse=True)[0] if published else None
+        if edition:
+            initial_edition_json = _json.dumps(edition, ensure_ascii=False)
+    except Exception:
+        pass
+    return render_template("epaper_viewer.html", initial_date=date, initial_page=page,
+                           initial_edition_json=initial_edition_json)
 
 
 # ── Admin Page (Region Mapper) ─────────────────────
