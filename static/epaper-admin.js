@@ -960,8 +960,12 @@ const EPAdmin = {
         body: JSON.stringify(payload),
       });
       if (res.ok) { this.showToast('✅ Edition saved!'); this.loadEditions(); }
-      else { const e = await res.json(); alert(e.error || 'Save failed'); }
-    } catch (e) { alert('Network error'); }
+      else {
+        let msg = `Save failed (${res.status})`;
+        try { const e = await res.json(); msg = e.error || msg; } catch {}
+        alert(msg);
+      }
+    } catch (e) { alert('Network error: ' + e.message); }
   },
 
   async deleteEdition() {
