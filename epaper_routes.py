@@ -147,6 +147,9 @@ def epaper_admin_v2():
     return render_template("epaper_admin_v2.html", admin_user=admin_user)
 
 
+EPAPER_TMP_UPLOAD_DIR = os.path.join(tempfile.gettempdir(), "epaper_uploads")
+
+
 @epaper_bp.route("/api/epaper/admin/upload-image", methods=["POST"])
 def api_upload_epaper_image():
     image = request.files.get("image") or request.files.get("file")
@@ -155,33 +158,53 @@ def api_upload_epaper_image():
     if not _allowed_upload(image.filename):
         return jsonify({"error": "Unsupported file type. Allowed: images and PDF"}), 400
 
-    os.makedirs(EPAPER_UPLOAD_DIR, exist_ok=True)
     original = secure_filename(image.filename)
     stem, ext = os.path.splitext(original)
     ts = datetime.now().strftime('%Y%m%d%H%M%S%f')
 
     if ext.lower() == ".pdf":
-        # Convert first page of PDF to PNG image
         try:
             import fitz  # PyMuPDF
             pdf_bytes = image.read()
             doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-            page = doc[0]
-            mat = fitz.Matrix(4.0, 4.0)  # 4x scale = ~288 DPI, matches print quality
-            pix = page.get_pixmap(matrix=mat)
+            pg = doc[0]
+            mat = fitz.Matrix(4.0, 4.0)
+            pix = pg.get_pixmap(matrix=mat)
             doc.close()
             filename = f"{stem[:48]}-{ts}.png"
-            pix.save(os.path.join(EPAPER_UPLOAD_DIR, filename))
+            file_bytes = pix.tobytes("png")
         except Exception as e:
             return jsonify({"error": f"PDF conversion failed: {str(e)}"}), 500
     else:
         filename = f"{stem[:48]}-{ts}{ext.lower()}"
-        image.save(os.path.join(EPAPER_UPLOAD_DIR, filename))
+        file_bytes = image.read()
 
-    return jsonify({
-        "success": True,
-        "url": url_for("static", filename=f"uploads/epaper/{filename}"),
-    }), 201
+    # Try primary static uploads dir; fall back to /tmp on read-only filesystems (Vercel)
+    for upload_dir, use_tmp in [(EPAPER_UPLOAD_DIR, False), (EPAPER_TMP_UPLOAD_DIR, True)]:
+        try:
+            os.makedirs(upload_dir, exist_ok=True)
+            filepath = os.path.join(upload_dir, filename)
+            with open(filepath, "wb") as f:
+                f.write(file_bytes)
+            if use_tmp:
+                serve_url = f"/api/epaper/uploads/{filename}"
+            else:
+                serve_url = url_for("static", filename=f"uploads/epaper/{filename}")
+            return jsonify({"success": True, "url": serve_url}), 201
+        except (PermissionError, OSError):
+            continue
+
+    return jsonify({"error": "Could not save image — filesystem unavailable"}), 500
+
+
+@epaper_bp.route("/api/epaper/uploads/<filename>")
+def api_serve_tmp_upload(filename):
+    """Serve images saved to /tmp (Vercel fallback)."""
+    safe = secure_filename(filename)
+    filepath = os.path.join(EPAPER_TMP_UPLOAD_DIR, safe)
+    if not os.path.exists(filepath):
+        return jsonify({"error": "Not found"}), 404
+    return send_file(filepath)
 
 
 @epaper_bp.route("/article/<article_id>")
