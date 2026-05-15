@@ -180,6 +180,11 @@
     .epc-shape:hover{box-shadow:0 0 0 1.5px rgba(228,30,38,.5);}
     .epc-shape.active{box-shadow:0 0 0 2px var(--r),0 0 0 5px rgba(228,30,38,.15);}
 
+    /* ══ SMART ALIGNMENT GUIDES ══ */
+    .epc-guide{position:absolute;pointer-events:none;z-index:100;}
+    .epc-guide-h{left:0;right:0;height:1px;background:#ff2bba;box-shadow:0 0 3px rgba(255,43,186,.6);}
+    .epc-guide-v{top:0;bottom:0;width:1px;background:#ff2bba;box-shadow:0 0 3px rgba(255,43,186,.6);}
+
     /* ══ SHAPE TOOLBAR ══ */
     .epc-shape-toolbar{display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap;align-items:center;background:#f9fafb;border:1px solid var(--border);border-radius:8px;padding:6px 10px;}
     .epc-shape-toolbar span{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-right:4px;}
