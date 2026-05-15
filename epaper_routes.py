@@ -22,7 +22,11 @@ def _require_admin():
 epaper_bp = Blueprint("epaper", __name__)
 
 # ── In-memory store (replace with DB later) ────────
+import tempfile
+
 EDITIONS_FILE = os.path.join(os.path.dirname(__file__), "data", "epaper_editions.json")
+# Vercel serverless filesystems are read-only except /tmp; use this as writable fallback
+_EDITIONS_TMP = os.path.join(tempfile.gettempdir(), "epaper_editions.json")
 EPAPER_UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "static", "uploads", "epaper")
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
 ALLOWED_UPLOAD_EXTENSIONS = ALLOWED_IMAGE_EXTENSIONS | {"pdf"}
@@ -31,24 +35,41 @@ ALLOWED_UPLOAD_EXTENSIONS = ALLOWED_IMAGE_EXTENSIONS | {"pdf"}
 def _ensure_data_dir():
     d = os.path.dirname(EDITIONS_FILE)
     if d and not os.path.exists(d):
-        os.makedirs(d, exist_ok=True)
+        try:
+            os.makedirs(d, exist_ok=True)
+        except OSError:
+            pass
 
 
 def _load_editions():
     _ensure_data_dir()
-    if not os.path.exists(EDITIONS_FILE):
-        return []
-    try:
-        with open(EDITIONS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return []
+    # Prefer /tmp copy (contains latest admin saves when primary FS is read-only)
+    for path in [_EDITIONS_TMP, EDITIONS_FILE]:
+        if os.path.exists(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception:
+                continue
+    return []
 
 
 def _save_editions(data):
     _ensure_data_dir()
-    with open(EDITIONS_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    # Try primary path first; fall back to /tmp on read-only filesystems (e.g. Vercel)
+    last_exc = None
+    for path in [EDITIONS_FILE, _EDITIONS_TMP]:
+        try:
+            dir_ = os.path.dirname(path)
+            if dir_:
+                os.makedirs(dir_, exist_ok=True)
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            return  # success
+        except (PermissionError, OSError) as exc:
+            last_exc = exc
+            continue
+    raise RuntimeError(f"Cannot persist editions data: {last_exc}")
 
 
 def _allowed_image(filename):
@@ -221,7 +242,10 @@ def api_publish_edition(date):
     for e in editions:
         if e["date"] == date:
             e["published"] = published
-            _save_editions(editions)
+            try:
+                _save_editions(editions)
+            except Exception as exc:
+                return jsonify({"error": f"Save failed: {exc}"}), 500
             return jsonify({"success": True, "published": published})
     return jsonify({"error": "Edition not found."}), 404
 
@@ -293,7 +317,10 @@ def api_create_edition():
             "created_at": datetime.now().isoformat(),
         })
 
-    _save_editions(editions)
+    try:
+        _save_editions(editions)
+    except Exception as exc:
+        return jsonify({"error": f"Save failed: {exc}"}), 500
     return jsonify({"success": True}), 201
 
 
@@ -302,7 +329,10 @@ def api_create_edition():
 def api_delete_edition(date):
     editions = _load_editions()
     editions = [e for e in editions if e["date"] != date]
-    _save_editions(editions)
+    try:
+        _save_editions(editions)
+    except Exception as exc:
+        return jsonify({"error": f"Delete failed: {exc}"}), 500
     return jsonify({"success": True})
 
 
