@@ -551,21 +551,19 @@ const EPAdmin = {
       return;
     }
 
-    for (let i = blocks.length - 1; i >= 0; i--) {
-      const b = blocks[i];
-      const bx = (b.x || 0) * scale;
-      const by = (b.y || 0) * scale;
-      const bw = (b.w || 200) * scale;
-      const bh = (b.h || 150) * scale;
-
-      // Click inside block → start drag
-      if (mx >= bx && mx <= bx + bw && my >= by && my <= by + bh) {
+    // Use event delegation — whichever block DOM element is under the cursor wins
+    // This respects visual stacking and handles thin shapes (e.g. 6px lines) correctly
+    const clickedBlockEl = e.target.closest('.epc-block');
+    if (clickedBlockEl) {
+      const idx = parseInt(clickedBlockEl.dataset.idx, 10);
+      const b = Number.isNaN(idx) ? null : blocks[idx];
+      if (b) {
         this._pushUndo();
         this.dragging = true;
-        this.activeBlockIdx = i;
+        this.activeBlockIdx = idx;
         this.dragOffset = { x: mx / scale - (b.x || 0), y: my / scale - (b.y || 0) };
         this.renderCanvas();
-        this.showBlockEditor(i);
+        this.showBlockEditor(idx);
         e.preventDefault();
         return;
       }
@@ -605,8 +603,9 @@ const EPAdmin = {
     if (this.resizing) {
       const dx = (e.clientX - this.resizeStart.mx) / scale;
       const dy = (e.clientY - this.resizeStart.my) / scale;
-      const minW = 60;
-      const minH = 40;
+      const isShapeBlock = block.type === 'shape';
+      const minW = isShapeBlock ? 2 : 60;
+      const minH = isShapeBlock ? 2 : 40;
 
       let nx = this.resizeStart.x;
       let ny = this.resizeStart.y;
@@ -700,10 +699,11 @@ const EPAdmin = {
     const block = this.pages[this.currentPageIdx]?.blocks?.[this.activeBlockIdx];
     if (!block) return;
     this._pushUndo();
+    const isShapeBlock = block.type === 'shape';
     block.x = parseInt(document.getElementById('blkX').value) || 0;
     block.y = parseInt(document.getElementById('blkY').value) || 0;
-    block.w = Math.max(60, parseInt(document.getElementById('blkW').value) || 200);
-    block.h = Math.max(40, parseInt(document.getElementById('blkH').value) || 150);
+    block.w = Math.max(isShapeBlock ? 2 : 60, parseInt(document.getElementById('blkW').value) || (isShapeBlock ? 10 : 200));
+    block.h = Math.max(isShapeBlock ? 2 : 40, parseInt(document.getElementById('blkH').value) || (isShapeBlock ? 10 : 150));
     this.renderCanvas();
   },
 
@@ -755,24 +755,30 @@ const EPAdmin = {
 
     container.innerHTML = pdfBg + blocks.map((b, i) => {
       const x = b.x || 0, y = b.y || 0, w = b.w || 200, h = b.h || 150;
-      const hasImg = b.image_url && b.image_url.length > 10;
       const isActive = i === this.activeBlockIdx;
-      const bw = b.border_width ?? 0;
-      const br = b.border_radius ?? 0;
-      const bc = b.border_color || '#e41e26';
-      const bs = b.border_style || 'solid';
-      const borderCSS = bw > 0 ? `border:${bw}px ${bs} ${bc};` : '';
+      const isShape = b.type === 'shape';
 
-      return `
-        <div class="epc-block ${isActive ? 'active' : ''}" data-idx="${i}"
-             style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;border-radius:0;${borderCSS}">
-          ${hasImg ? `<img src="${b.image_url}" alt="" draggable="false">` : `
-            <div class="epc-empty"><i class="fa fa-image"></i></div>
-          `}
-          <div class="epc-label">
+      let innerContent;
+      if (isShape) {
+        innerContent = this._renderShapeContent(b);
+      } else {
+        const hasImg = b.image_url && b.image_url.length > 10;
+        innerContent = (hasImg ? `<img src="${b.image_url}" alt="" draggable="false">` : `<div class="epc-empty"><i class="fa fa-image"></i></div>`) +
+          `<div class="epc-label">
             ${b.category_label ? `<span class="epc-cat">${b.category_label}</span>` : ''}
             <span class="epc-title">${b.headline || 'Untitled'}</span>
-          </div>
+          </div>`;
+      }
+
+      const articleBorderCSS = !isShape && (b.border_width ?? 0) > 0
+        ? `border:${b.border_width}px ${b.border_style || 'solid'} ${b.border_color || '#e41e26'};`
+        : '';
+      const overflowCSS = isShape ? 'overflow:visible;' : 'overflow:hidden;';
+
+      return `
+        <div class="epc-block ${isActive ? 'active' : ''}${isShape ? ' epc-shape' : ''}" data-idx="${i}"
+             style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;border-radius:0;${articleBorderCSS}${overflowCSS}">
+          ${innerContent}
           <span class="epc-num">${i + 1}</span>
           <button class="epc-del" onmousedown="event.stopPropagation(); EPAdmin.removeBlock(${i})"><i class="fa fa-times"></i></button>
           ${isActive ? `
@@ -870,6 +876,7 @@ const EPAdmin = {
         if (!p.blocks) {
           p.blocks = (p.articles || []).map((a, i) => ({
             id: a.id || Date.now() + i,
+            type: a.type || 'article',
             article_id: a.article_id || a.id || Date.now() + i,
             headline: a.headline || '', sub_headline: a.sub_headline || '',
             body_text: a.body_text || '', body_html: a.body_html || '',
@@ -883,6 +890,11 @@ const EPAdmin = {
             border_width: a.border_width ?? 0, border_radius: a.border_radius ?? 0,
             border_color: a.border_color || '#e41e26', border_style: a.border_style || 'solid',
           }));
+        } else {
+          // Ensure shape blocks loaded from JSON have type set
+          p.blocks.forEach(b => {
+            if (!b.type && b.shape_type) b.type = 'shape';
+          });
         }
       });
 
@@ -929,18 +941,14 @@ const EPAdmin = {
           width: b.w || b.width || 200,
           height: b.h || b.height || 150,
         })),
-        blocks: (p.blocks || []).map(b => ({
-          id: b.id, article_id: b.article_id || b.id, headline: b.headline, title: b.headline, sub_headline: b.sub_headline,
-          body_text: b.body_text, body_html: b.body_html || '',
-          author: b.author || 'Vidyarthi Mitra Desk',
-          category_label: b.category_label, category: b.category_label,
-          image_url: b.image_url, image: b.image_url,
-          gallery: b.gallery || [],
-          x: b.x || 0, y: b.y || 0, w: b.w || 200, h: b.h || 150, width: b.w || 200, height: b.h || 150,
-          border_width: b.border_width ?? 0, border_radius: b.border_radius ?? 0,
-          border_color: b.border_color || '#e41e26', border_style: b.border_style || 'solid',
-        })),
-        articles: (p.blocks || []).map(b => ({
+        blocks: (p.blocks || []).map(b => {
+          const base = { id: b.id, type: b.type || 'article', x: b.x || 0, y: b.y || 0, w: b.w || 200, h: b.h || 150, width: b.w || 200, height: b.h || 150 };
+          if (b.type === 'shape') {
+            return { ...base, shape_type: b.shape_type, fill_color: b.fill_color, stroke_color: b.stroke_color, stroke_width: b.stroke_width, opacity: b.opacity, corner_radius: b.corner_radius, no_fill: b.no_fill };
+          }
+          return { ...base, article_id: b.article_id || b.id, headline: b.headline, title: b.headline, sub_headline: b.sub_headline, body_text: b.body_text, body_html: b.body_html || '', author: b.author || 'Vidyarthi Mitra Desk', category_label: b.category_label, category: b.category_label, image_url: b.image_url, image: b.image_url, gallery: b.gallery || [], border_width: b.border_width ?? 0, border_radius: b.border_radius ?? 0, border_color: b.border_color || '#e41e26', border_style: b.border_style || 'solid' };
+        }),
+        articles: (p.blocks || []).filter(b => b.type !== 'shape').map(b => ({
           id: b.id, article_id: b.article_id || b.id, headline: b.headline, title: b.headline, sub_headline: b.sub_headline,
           body_text: b.body_text, body_html: b.body_html || '',
           author: b.author || 'Vidyarthi Mitra Desk',
@@ -1037,6 +1045,70 @@ const EPAdmin = {
     this.showBlockEditor(this.activeBlockIdx);
   },
 
+  addShape(shapeType) {
+    let page = this.pages[this.currentPageIdx];
+    if (!page) { this.addPage(); page = this.pages[this.currentPageIdx]; }
+    if (!page) { this.showToast('No page selected'); return; }
+    this._pushUndo();
+    if (!page.blocks) page.blocks = [];
+    const sizes = {
+      'line-h':   { w: 400, h: 6 },
+      'line-v':   { w: 6, h: 300 },
+      'rect':     { w: 220, h: 140 },
+      'circle':   { w: 160, h: 160 },
+      'triangle': { w: 160, h: 140 },
+      'arrow':    { w: 240, h: 40 },
+    };
+    const { w, h } = sizes[shapeType] || { w: 160, h: 160 };
+    page.blocks.push({
+      id: Date.now(),
+      type: 'shape',
+      shape_type: shapeType,
+      x: Math.round((this.CANVAS_W - w) / 2),
+      y: Math.round((this.CANVAS_H - h) / 2),
+      w, h,
+      fill_color: '#e41e26',
+      stroke_color: '#111827',
+      stroke_width: 0,
+      no_fill: false,
+      opacity: 100,
+      corner_radius: 0,
+    });
+    this.activeBlockIdx = page.blocks.length - 1;
+    this.renderCanvas();
+    this.showBlockEditor(this.activeBlockIdx);
+    this.showToast('Shape added — drag to reposition');
+  },
+
+  _renderShapeContent(b) {
+    const fill = b.no_fill ? 'none' : (b.fill_color || '#e41e26');
+    const stroke = b.stroke_color || '#111827';
+    const sw = b.stroke_width || 0;
+    const op = (b.opacity ?? 100) / 100;
+    const cr = b.corner_radius || 0;
+
+    switch (b.shape_type) {
+      case 'rect':
+        return `<div style="width:100%;height:100%;background:${fill};border:${sw}px solid ${sw > 0 ? stroke : 'transparent'};border-radius:${cr}%;opacity:${op};box-sizing:border-box;"></div>`;
+      case 'circle':
+        return `<div style="width:100%;height:100%;background:${fill};border:${sw}px solid ${sw > 0 ? stroke : 'transparent'};border-radius:50%;opacity:${op};box-sizing:border-box;"></div>`;
+      case 'line-h':
+        return `<div style="width:100%;height:100%;background:${fill === 'none' ? stroke : fill};border-radius:${cr}%;opacity:${op};"></div>`;
+      case 'line-v':
+        return `<div style="width:100%;height:100%;background:${fill === 'none' ? stroke : fill};border-radius:${cr}%;opacity:${op};"></div>`;
+      case 'triangle': {
+        const svgSw = sw > 0 ? `stroke="${stroke}" stroke-width="${sw * 2}" stroke-linejoin="round"` : '';
+        return `<svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style="opacity:${op};display:block;"><polygon points="50,2 98,98 2,98" fill="${fill}" ${svgSw}/></svg>`;
+      }
+      case 'arrow': {
+        const arFill = fill === 'none' ? 'transparent' : fill;
+        return `<svg width="100%" height="100%" viewBox="0 0 120 40" preserveAspectRatio="none" style="opacity:${op};display:block;overflow:visible;"><path d="M2 20 H90 M78 5 L110 20 L78 35" fill="none" stroke="${arFill === 'transparent' ? stroke : arFill}" stroke-width="${Math.max(2, sw + 3)}" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+      }
+      default:
+        return `<div style="width:100%;height:100%;background:${fill};opacity:${op};"></div>`;
+    }
+  },
+
   removeBlock(idx) {
     if (!confirm('Delete this block?')) return;
     this._pushUndo();
@@ -1057,6 +1129,41 @@ const EPAdmin = {
     document.getElementById('blockEditor').style.display = 'block';
     document.getElementById('noBlockMsg').style.display = 'none';
 
+    const isShape = block.type === 'shape';
+    document.getElementById('shapeEditorSection').style.display = isShape ? 'block' : 'none';
+    document.getElementById('blockImageSection').style.display = isShape ? 'none' : 'block';
+    document.getElementById('blockBorderSection').style.display = isShape ? 'none' : 'block';
+    document.getElementById('blockArticleSection').style.display = isShape ? 'none' : 'block';
+
+    // Position & size (always shown)
+    const wInput = document.getElementById('blkW');
+    const hInput = document.getElementById('blkH');
+    wInput.min = isShape ? '2' : '60';
+    hInput.min = isShape ? '2' : '40';
+    document.getElementById('blkX').value = block.x || 0;
+    document.getElementById('blkY').value = block.y || 0;
+    wInput.value = block.w || (isShape ? 10 : 200);
+    hInput.value = block.h || (isShape ? 10 : 150);
+
+    if (isShape) {
+      // Populate shape inputs
+      document.getElementById('shapeType').value = block.shape_type || 'rect';
+      document.getElementById('shapeFill').value = block.fill_color || '#e41e26';
+      document.getElementById('shapeStroke').value = block.stroke_color || '#111827';
+      document.getElementById('shapeStrokeWidth').value = block.stroke_width || 0;
+      document.getElementById('shapeStrokeVal').textContent = (block.stroke_width || 0) + 'px';
+      document.getElementById('shapeOpacity').value = block.opacity ?? 100;
+      document.getElementById('shapeOpacityVal').textContent = (block.opacity ?? 100) + '%';
+      document.getElementById('shapeCornerRadius').value = block.corner_radius || 0;
+      document.getElementById('shapeCornerVal').textContent = (block.corner_radius || 0) + '%';
+      document.getElementById('shapeNoFill').checked = !!block.no_fill;
+      // Show corner radius only for rect
+      const showCorner = ['rect', 'circle'].includes(block.shape_type || '');
+      document.getElementById('shapeCornerGroup').style.display = showCorner ? '' : 'none';
+      return;
+    }
+
+    // Article block
     document.getElementById('blkArticleId').value = block.article_id || block.id || '';
     document.getElementById('blkHeadline').value = block.headline || '';
     document.getElementById('blkSubheadline').value = block.sub_headline || '';
@@ -1072,12 +1179,6 @@ const EPAdmin = {
     else
       label.innerHTML = '<i class="fa fa-cloud-upload-alt"></i>Upload image';
 
-    // Position & size
-    document.getElementById('blkX').value = block.x || 0;
-    document.getElementById('blkY').value = block.y || 0;
-    document.getElementById('blkW').value = block.w || 200;
-    document.getElementById('blkH').value = block.h || 150;
-
     // Border
     document.getElementById('blkBorderWidth').value = block.border_width ?? 0;
     document.getElementById('blkBorderRadius').value = block.border_radius ?? 0;
@@ -1089,10 +1190,28 @@ const EPAdmin = {
     this.renderGallery();
   },
 
+  applyShapeInputs() {
+    if (this.activeBlockIdx === null) return;
+    const block = this.pages[this.currentPageIdx]?.blocks?.[this.activeBlockIdx];
+    if (!block || block.type !== 'shape') return;
+    block.shape_type = document.getElementById('shapeType').value;
+    block.fill_color = document.getElementById('shapeFill').value;
+    block.stroke_color = document.getElementById('shapeStroke').value;
+    block.stroke_width = parseInt(document.getElementById('shapeStrokeWidth').value) || 0;
+    block.opacity = parseInt(document.getElementById('shapeOpacity').value) || 100;
+    block.corner_radius = parseInt(document.getElementById('shapeCornerRadius').value) || 0;
+    block.no_fill = document.getElementById('shapeNoFill').checked;
+    // Show corner radius only for rect/circle
+    const showCorner = ['rect', 'circle'].includes(block.shape_type);
+    document.getElementById('shapeCornerGroup').style.display = showCorner ? '' : 'none';
+    this.renderCanvas();
+  },
+
   saveBlock() {
     if (this.activeBlockIdx === null) return;
     const block = this.pages[this.currentPageIdx]?.blocks?.[this.activeBlockIdx];
     if (!block) return;
+    if (block.type === 'shape') { this.showToast('Shape properties auto-saved'); return; }
     this._pushUndo();
 
     block.article_id = document.getElementById('blkArticleId').value || block.id;
