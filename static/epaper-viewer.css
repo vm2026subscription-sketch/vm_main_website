@@ -577,6 +577,7 @@ body.epaper-body.has-masthead .ep-masthead-placeholder { display: none; }
 }
 .ep-tool-btn:hover { color: #fff; border-color: var(--ep-orange); background: rgba(217,37,42,0.2); }
 .ep-tool-btn.active { background: var(--ep-orange); color: #fff; border-color: var(--ep-orange); }
+.ep-tool-btn:disabled { opacity: .25; cursor: not-allowed; pointer-events: none; }
 
 .ep-tool-divider {
   width: 60%; height: 1px;
