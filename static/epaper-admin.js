@@ -30,8 +30,10 @@ const EPAdmin = {
   CANVAS_H: 1000,
   HEADER_W: 1100,
   HEADER_H: 140,
+  SNAP_THRESHOLD: 6,
 
   _undoStack: [],
+  _guides: [],
 
   _pushUndo() {
     this._undoStack.push(JSON.parse(JSON.stringify({ pages: this.pages, editionMeta: this.editionMeta })));
@@ -508,6 +510,75 @@ const EPAdmin = {
     this.headerResizeStart = null;
   },
 
+  // ══════ SMART ALIGNMENT GUIDES ══════
+
+  _getSnapPositions(excludeIdx) {
+    const page = this.pages[this.currentPageIdx];
+    const blocks = page?.blocks || [];
+    const xs = new Set([0, this.CANVAS_W, Math.round(this.CANVAS_W / 2)]);
+    const ys = new Set([0, this.CANVAS_H, Math.round(this.CANVAS_H / 2)]);
+    blocks.forEach((b, i) => {
+      if (i === excludeIdx) return;
+      const bx = b.x || 0, by = b.y || 0, bw = b.w || 200, bh = b.h || 150;
+      xs.add(bx); xs.add(bx + bw); xs.add(Math.round(bx + bw / 2));
+      ys.add(by); ys.add(by + bh); ys.add(Math.round(by + bh / 2));
+    });
+    return { xs: [...xs], ys: [...ys] };
+  },
+
+  _applySnap(nx, ny, bw, bh, excludeIdx) {
+    const T = this.SNAP_THRESHOLD;
+    const { xs, ys } = this._getSnapPositions(excludeIdx);
+    const guides = [];
+
+    const xCandidates = [
+      { edge: nx,           offset: 0 },
+      { edge: nx + bw,      offset: bw },
+      { edge: nx + bw / 2,  offset: bw / 2 },
+    ];
+    let bestXDist = T + 1, bestXSnap = null;
+    for (const { edge, offset } of xCandidates) {
+      for (const sx of xs) {
+        const d = Math.abs(edge - sx);
+        if (d < bestXDist) { bestXDist = d; bestXSnap = { x: sx - offset, guide: sx }; }
+      }
+    }
+    if (bestXSnap) { nx = bestXSnap.x; guides.push({ type: 'v', pos: bestXSnap.guide }); }
+
+    const yCandidates = [
+      { edge: ny,           offset: 0 },
+      { edge: ny + bh,      offset: bh },
+      { edge: ny + bh / 2,  offset: bh / 2 },
+    ];
+    let bestYDist = T + 1, bestYSnap = null;
+    for (const { edge, offset } of yCandidates) {
+      for (const sy of ys) {
+        const d = Math.abs(edge - sy);
+        if (d < bestYDist) { bestYDist = d; bestYSnap = { y: sy - offset, guide: sy }; }
+      }
+    }
+    if (bestYSnap) { ny = bestYSnap.y; guides.push({ type: 'h', pos: bestYSnap.guide }); }
+
+    return { x: nx, y: ny, guides };
+  },
+
+  _renderGuides(lines) {
+    const container = document.getElementById('pageCanvas');
+    if (!container) return;
+    container.querySelectorAll('.epc-guide').forEach(el => el.remove());
+    lines.forEach(line => {
+      const el = document.createElement('div');
+      if (line.type === 'v') {
+        el.className = 'epc-guide epc-guide-v';
+        el.style.left = line.pos + 'px';
+      } else {
+        el.className = 'epc-guide epc-guide-h';
+        el.style.top = line.pos + 'px';
+      }
+      container.appendChild(el);
+    });
+  },
+
   // ══════ CANVAS DRAG & DROP ══════
 
   onCanvasMouseDown(e) {
@@ -591,12 +662,16 @@ const EPAdmin = {
       const my = e.clientY - rect.top;
       let nx = mx / scale - this.dragOffset.x;
       let ny = my / scale - this.dragOffset.y;
-      // Clamp
+      // Clamp to canvas bounds
       nx = Math.max(0, Math.min(nx, this.CANVAS_W - (block.w || 200)));
       ny = Math.max(0, Math.min(ny, this.CANVAS_H - (block.h || 150)));
-      block.x = Math.round(nx);
-      block.y = Math.round(ny);
+      // Smart snap
+      const snapped = this._applySnap(nx, ny, block.w || 200, block.h || 150, this.activeBlockIdx);
+      block.x = Math.round(snapped.x);
+      block.y = Math.round(snapped.y);
+      this._guides = snapped.guides;
       this.renderCanvas();
+      this._renderGuides(this._guides);
       this.updateSizeInputs();
     }
 
@@ -679,6 +754,8 @@ const EPAdmin = {
     this.dragging = false;
     this.resizing = false;
     this.resizeStart = null;
+    this._guides = [];
+    this._renderGuides([]);
   },
 
   updateSizeInputs() {
