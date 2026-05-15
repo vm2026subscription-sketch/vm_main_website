@@ -40,6 +40,8 @@ const EP = {
     this.loadLatestEdition();
     // Load editions list for calendar in background
     this.loadEditions();
+    // Poll for new editions every 5 minutes
+    this.startAutoRefreshPoll();
   },
 
   async loadLatestEdition() {
@@ -71,6 +73,44 @@ const EP = {
       // No published editions — show empty state
       this.setDate(new Date());
     }
+  },
+
+  // ── Auto-refresh poll ──────────────────────────────
+  startAutoRefreshPoll() {
+    const POLL_MS = 5 * 60 * 1000; // every 5 minutes
+    setInterval(async () => {
+      try {
+        // Bypass cache with timestamp so we always get fresh data
+        const res = await fetch('/api/epaper/latest?_t=' + Date.now());
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.date) return;
+        const currentISO = this.currentDate ? this.formatDateISO(this.currentDate) : '';
+        if (data.date > currentISO) {
+          this._showNewEditionBanner(data);
+        }
+      } catch (e) { /* silently ignore network errors */ }
+    }, POLL_MS);
+  },
+
+  _showNewEditionBanner(data) {
+    if (document.getElementById('epNewEditionBanner')) return;
+    const banner = document.createElement('div');
+    banner.id = 'epNewEditionBanner';
+    banner.className = 'ep-new-edition-banner';
+    const label = data.name || data.date;
+    banner.innerHTML = `
+      <span class="ep-neb-icon">📰</span>
+      <span class="ep-neb-text">New edition available: <strong>${label}</strong></span>
+      <button class="ep-neb-load" onclick="EP._loadNewEdition('${data.date}')">Load Now</button>
+      <button class="ep-neb-close" onclick="document.getElementById('epNewEditionBanner').remove()">✕</button>
+    `;
+    document.body.appendChild(banner);
+  },
+
+  _loadNewEdition(date) {
+    document.getElementById('epNewEditionBanner')?.remove();
+    this.setDate(new Date(date + 'T00:00:00'));
   },
 
   // API response cache (5-minute TTL)
