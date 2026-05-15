@@ -98,13 +98,20 @@ const EP = {
     const banner = document.createElement('div');
     banner.id = 'epNewEditionBanner';
     banner.className = 'ep-new-edition-banner';
-    const label = data.name || data.date;
-    banner.innerHTML = `
-      <span class="ep-neb-icon">📰</span>
-      <span class="ep-neb-text">New edition available: <strong>${label}</strong></span>
-      <button class="ep-neb-load" onclick="EP._loadNewEdition('${data.date}')">Load Now</button>
-      <button class="ep-neb-close" onclick="document.getElementById('epNewEditionBanner').remove()">✕</button>
-    `;
+    const icon = document.createElement('span');
+    icon.className = 'ep-neb-icon'; icon.textContent = '📰';
+    const text = document.createElement('span');
+    text.className = 'ep-neb-text'; text.textContent = 'New edition available: ';
+    const strong = document.createElement('strong');
+    strong.textContent = data.name || data.date;
+    text.appendChild(strong);
+    const loadBtn = document.createElement('button');
+    loadBtn.className = 'ep-neb-load'; loadBtn.textContent = 'Load Now';
+    loadBtn.onclick = () => EP._loadNewEdition(data.date);
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'ep-neb-close'; closeBtn.textContent = '✕';
+    closeBtn.onclick = () => banner.remove();
+    banner.append(icon, text, loadBtn, closeBtn);
     document.body.appendChild(banner);
   },
 

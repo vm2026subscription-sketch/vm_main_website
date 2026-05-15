@@ -762,8 +762,9 @@ const EPAdmin = {
       if (isShape) {
         innerContent = this._renderShapeContent(b);
       } else {
-        const hasImg = b.image_url && b.image_url.length > 10;
-        innerContent = (hasImg ? `<img src="${b.image_url}" alt="" draggable="false">` : `<div class="epc-empty"><i class="fa fa-image"></i></div>`) +
+        const previewSrc = (b.image_url && b.image_url.length > 10) ? b.image_url : (b.gallery?.[0] || '');
+        const hasImg = Boolean(previewSrc);
+        innerContent = (hasImg ? `<img src="${previewSrc}" alt="" draggable="false">` : `<div class="epc-empty"><i class="fa fa-image"></i></div>`) +
           `<div class="epc-label">
             ${b.category_label ? `<span class="epc-cat">${b.category_label}</span>` : ''}
             <span class="epc-title">${b.headline || 'Untitled'}</span>
@@ -1353,6 +1354,12 @@ const EPAdmin = {
   },
 
   async ensureUploadedImages() {
+    // Upload masthead if still a local data URL (not yet on Cloudinary)
+    if (this.editionMeta.masthead_image_url?.startsWith('data:image/')) {
+      this.editionMeta.masthead_image_url = await this.uploadDataUrl(
+        this.editionMeta.masthead_image_url, 'masthead.png'
+      );
+    }
     for (const page of this.pages) {
       if (page.page_image_url?.startsWith('data:image/') || page.page_image_url?.startsWith('data:application/pdf')) {
         const ext = page.page_image_url.startsWith('data:application/pdf') ? 'pdf' : 'png';
