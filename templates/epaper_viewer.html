@@ -17,6 +17,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='title.png') }}">
 
+  {% if initial_edition_json %}
+  <script type="application/json" id="__epInitialEdition__">{{ initial_edition_json|safe }}</script>
+  {% endif %}
+
   <!-- GA4 Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
   <script>

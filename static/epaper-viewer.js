@@ -44,7 +44,10 @@ const EP = {
 
   async loadLatestEdition() {
     try {
-      const data = await this._cachedFetch('/api/epaper/latest');
+      const _initEl = document.getElementById('__epInitialEdition__');
+      const data = _initEl
+        ? JSON.parse(_initEl.textContent)
+        : await this._cachedFetch('/api/epaper/latest');
       const d = data.date ? new Date(data.date + 'T00:00:00') : new Date();
       this.currentDate = d;
       if (this.el.dateBtnText) {
