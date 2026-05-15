@@ -264,15 +264,15 @@ const EPAdmin = {
 
   async handleMastheadImage(file) {
     if (!file?.type.startsWith('image/')) return;
-    try {
-      this._pushUndo();
-      const imageUrl = await this.uploadImage(file);
-      this.editionMeta.masthead_image_url = imageUrl;
+    this._pushUndo();
+    // Store as data URL directly — avoids server filesystem write (works on Vercel)
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      this.editionMeta.masthead_image_url = e.target.result;
       this.renderMastheadPreview();
-      this.showToast('Header image uploaded');
-    } catch (e) {
-      alert(e.message || 'Image upload failed');
-    }
+      this.showToast('Header image ready');
+    };
+    reader.readAsDataURL(file);
   },
 
   clearMastheadImage() {
