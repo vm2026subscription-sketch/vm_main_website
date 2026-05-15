@@ -868,7 +868,7 @@ const EPAdmin = {
   async editEdition(date, lang) {
     const langParam = lang ? `?lang=${encodeURIComponent(lang)}` : '';
     try {
-      const res = await fetch(`/api/epaper/edition/${date}${langParam}`);
+      const res = await fetch(`/api/epaper/admin/edition/${date}${langParam}`);
       if (!res.ok) { alert('Not found'); return; }
       const data = await res.json();
       this.currentEdition = data;
