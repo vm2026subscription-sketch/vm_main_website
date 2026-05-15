@@ -1001,16 +1001,10 @@ const EP = {
     if (this.el.articleCategory) this.el.articleCategory.textContent = art.category_label || 'News';
     if (this.el.articleTitle) this.el.articleTitle.textContent = art.headline || '';
     if (this.el.articleDate) this.el.articleDate.textContent = art.created_at || this.formatDateISO(this.currentDate);
-    // Show cover image only when there's no gallery; gallery replaces it
+    // Only show admin-uploaded gallery images — never show the newspaper clipping
     const gallery = art.gallery || [];
-    const coverImg = art.article_image_url || art.image_url || art.image || '';
     if (this.el.articleImg) {
-      if (coverImg && gallery.length === 0) {
-        this.el.articleImg.src = coverImg;
-        this.el.articleImg.style.display = 'block';
-      } else {
-        this.el.articleImg.style.display = 'none';
-      }
+      this.el.articleImg.style.display = 'none';
       this.el.articleImg.onclick = null;
     }
 

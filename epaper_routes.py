@@ -254,7 +254,24 @@ def api_upload_epaper_image():
         filename = f"{stem[:48]}-{ts}{ext.lower()}"
         file_bytes = image.read()
 
-    # Try primary static uploads dir; fall back to /tmp on read-only filesystems (Vercel)
+    # Cloudinary — persistent CDN storage (required on Vercel where filesystem is ephemeral)
+    if os.getenv("CLOUDINARY_URL"):
+        try:
+            import io
+            import cloudinary
+            import cloudinary.uploader
+            result = cloudinary.uploader.upload(
+                io.BytesIO(file_bytes),
+                folder="epaper",
+                use_filename=True,
+                unique_filename=True,
+                resource_type="image",
+            )
+            return jsonify({"success": True, "url": result["secure_url"]}), 201
+        except Exception as e:
+            return jsonify({"error": f"Cloudinary upload failed: {e}"}), 500
+
+    # Local fallback: static uploads dir → /tmp (local dev only; /tmp is ephemeral on Vercel)
     for upload_dir, use_tmp in [(EPAPER_UPLOAD_DIR, False), (EPAPER_TMP_UPLOAD_DIR, True)]:
         try:
             os.makedirs(upload_dir, exist_ok=True)
