@@ -8,7 +8,7 @@ const EP = {
   currentPage: 1,
   totalPages: 1,
   zoom: 1,
-  minZoom: 0.5,
+  minZoom: 1,
   maxZoom: 3,
   isDragging: false,
   dragStart: { x: 0, y: 0 },
@@ -857,14 +857,15 @@ const EP = {
 
     this.articles = [];
 
-    // Canvas is 800×1130 in admin — use percentage-based positioning
+    // Canvas is 800px wide in admin — use percentage-based positioning
     const CANVAS_W = 800;
-    let maxY = 400;
+    let maxY = 100;
     blocks.forEach((block) => {
       const bottom = (block.y || 0) + (block.h || 150);
       if (bottom > maxY) maxY = bottom;
     });
-    const canvasH = Math.max(maxY + 20, 1130);
+    // Fit canvas height to actual content; no fixed minimum so there's no empty gap
+    const canvasH = maxY + 40;
     const aspectRatio = (canvasH / CANVAS_W * 100).toFixed(2);
 
     grid.innerHTML = `
@@ -950,6 +951,9 @@ const EP = {
   setZoom(level) {
     this.zoom = Math.max(this.minZoom, Math.min(this.maxZoom, level));
     this.applyTransform();
+    // Reflect button disabled state
+    if (this.el.zoomOut) this.el.zoomOut.disabled = this.zoom <= this.minZoom;
+    if (this.el.zoomIn)  this.el.zoomIn.disabled  = this.zoom >= this.maxZoom;
   },
 
   applyTransform() {
