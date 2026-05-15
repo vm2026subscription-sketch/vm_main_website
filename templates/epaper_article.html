@@ -28,6 +28,19 @@
     .back-link{display:inline-flex;margin-bottom:14px;color:#b4232a;text-decoration:none;font-weight:800}
     @media(max-width:900px){.article-shell{grid-template-columns:1fr}.article-side{order:-1}.side-card{display:none}.article-main{padding:22px}.article-copy{font-size:16px}}
 
+    /* ── Gallery ── */
+    .article-gallery{margin-bottom:28px}
+    .gallery-main-wrap{position:relative;border-radius:8px;overflow:hidden;background:#111;line-height:0}
+    .gallery-main-img{width:100%;max-height:520px;object-fit:contain;border-radius:8px;display:block}
+    .gallery-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:50%;width:38px;height:38px;font-size:22px;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;transition:background .2s;z-index:2}
+    .gallery-nav:hover{background:rgba(0,0,0,.8)}
+    .gallery-prev{left:10px}
+    .gallery-next{right:10px}
+    .gallery-counter{position:absolute;bottom:10px;right:12px;background:rgba(0,0,0,.55);color:#fff;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;z-index:2}
+    .gallery-thumbs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+    .gallery-thumb{width:72px;height:52px;object-fit:cover;border-radius:6px;cursor:pointer;border:2px solid transparent;opacity:.65;transition:all .2s}
+    .gallery-thumb.active,.gallery-thumb:hover{opacity:1;border-color:#b4232a}
+
     /* ── TTS sentence highlight ── */
     .tts-sentence{border-radius:4px;padding:1px 2px;transition:background .25s,color .25s;}
     .tts-sentence.tts-active{background:#fff3c4;color:#111;box-shadow:0 0 0 2px #fbbf24;}
@@ -93,7 +106,25 @@
         </button>
       </div>
 
-      {% if article.image %}<img class="article-hero" src="{{ article.image }}" alt="{{ article.title }}">{% endif %}
+      {%- if article.gallery and article.gallery|length > 0 %}
+        {%- if article.gallery|length == 1 %}
+          <img class="article-hero" src="{{ article.gallery[0] }}" alt="{{ article.title }}">
+        {%- else %}
+          <div class="article-gallery">
+            <div class="gallery-main-wrap">
+              <img class="article-hero gallery-main-img" id="galleryMain" src="{{ article.gallery[0] }}" alt="{{ article.title }}">
+              <button class="gallery-nav gallery-prev" onclick="galleryNav(-1)">&#8249;</button>
+              <button class="gallery-nav gallery-next" onclick="galleryNav(1)">&#8250;</button>
+              <div class="gallery-counter"><span id="galleryCurrent">1</span> / {{ article.gallery|length }}</div>
+            </div>
+            <div class="gallery-thumbs">
+              {%- for img in article.gallery %}
+                <img class="gallery-thumb {% if loop.first %}active{% endif %}" src="{{ img }}" alt="Image {{ loop.index }}" onclick="gallerySelect({{ loop.index0 }})">
+              {%- endfor %}
+            </div>
+          </div>
+        {%- endif %}
+      {%- endif %}
       <div class="article-copy">
         {% if article.body_html %}
           {{ article.body_html|safe }}
@@ -412,6 +443,24 @@
       _setIcon(false);
       document.getElementById('ttsFill').style.width='0';
       _clearHighlight();
+    }
+
+    // ── Gallery ──────────────────────────────────────
+    var _galleryImgs = [{% for img in article.gallery %}"{{ img }}"{% if not loop.last %},{% endif %}{% endfor %}];
+    var _galleryIdx = 0;
+    function gallerySelect(idx) {
+      _galleryIdx = idx;
+      var main = document.getElementById('galleryMain');
+      var cur  = document.getElementById('galleryCurrent');
+      if (main) main.src = _galleryImgs[idx];
+      if (cur)  cur.textContent = idx + 1;
+      document.querySelectorAll('.gallery-thumb').forEach(function(t, i) {
+        t.classList.toggle('active', i === idx);
+      });
+    }
+    function galleryNav(dir) {
+      var next = (_galleryIdx + dir + _galleryImgs.length) % _galleryImgs.length;
+      gallerySelect(next);
     }
 
     document.addEventListener('DOMContentLoaded', function() {
