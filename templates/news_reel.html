@@ -12,88 +12,159 @@
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --c-entrance:   #e11d48;
-      --c-results:    #2563eb;
-      --c-admissions: #059669;
-      --c-govtjobs:   #7c3aed;
-      --c-scholarship:#d97706;
-      --c-default:    #475569;
+      --flip-dur: 0.52s;
+      --flip-ease: cubic-bezier(.4,0,.2,1);
     }
 
-    html { height: 100%; }
-
-    body {
+    html, body {
       height: 100%;
       background: #0f0f12;
       font-family: -apple-system, 'Inter', 'Segoe UI', system-ui, sans-serif;
       overflow: hidden;
       color: #fff;
       -webkit-tap-highlight-color: transparent;
+      user-select: none;
     }
 
-    /* ── Progress bar (top of page) ── */
+    /* ── Progress bar ── */
     #nr-progress-bar {
       position: fixed;
       top: 0; left: 0;
       height: 3px;
-      background: var(--accent, #e11d48);
+      background: #e11d48;
       width: 0%;
-      z-index: 200;
-      transition: width .25s ease, background .4s;
+      z-index: 300;
+      transition: width .3s ease, background .4s;
     }
 
-    /* ── Reel container ── */
+    /* ── Reel stage (perspective container) ── */
     #nr-reel {
-      width: 100%;
-      height: 100vh;  /* fallback */
-      height: 100svh; /* small viewport height — accounts for mobile address bar */
-      overflow-y: scroll;
-      scroll-snap-type: y mandatory;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-    }
-    #nr-reel::-webkit-scrollbar { display: none; }
-
-    /* ── Each card ── */
-    .nr-card {
-      width: 100%;
-      height: 100vh;
-      height: 100svh;
-      scroll-snap-align: start;
-      scroll-snap-stop: always;
-      position: relative;
-      display: flex;
-      flex-direction: column;
+      position: fixed;
+      inset: 0;
+      perspective: 1400px;
+      perspective-origin: center center;
       overflow: hidden;
     }
 
-    /* Background image (blurred) */
+    /* ── Individual cards (stacked) ── */
+    .nr-card {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transform-origin: center center;
+      transform-style: preserve-3d;
+      backface-visibility: hidden;
+      will-change: transform, opacity;
+      /* inactive cards hidden behind */
+      opacity: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .nr-card.active {
+      opacity: 1;
+      pointer-events: auto;
+      z-index: 10;
+    }
+
+    /* ── Flip-out (going next: top half sweeps back, bottom lifts) ── */
+    .nr-card.flip-out-next {
+      z-index: 20;
+      animation: flipOutNext var(--flip-dur) var(--flip-ease) forwards;
+    }
+    @keyframes flipOutNext {
+      0%   { transform: rotateX(0deg);    opacity: 1; }
+      40%  { transform: rotateX(-45deg);  opacity: 1; }
+      100% { transform: rotateX(-92deg);  opacity: 0; }
+    }
+
+    /* ── Flip-in  (going next: next card rises from below) ── */
+    .nr-card.flip-in-next {
+      z-index: 15;
+      animation: flipInNext var(--flip-dur) var(--flip-ease) forwards;
+    }
+    @keyframes flipInNext {
+      0%   { transform: rotateX(92deg);  opacity: 0; }
+      60%  { transform: rotateX(45deg);  opacity: 1; }
+      100% { transform: rotateX(0deg);   opacity: 1; }
+    }
+
+    /* ── Flip-out (going prev: card drops down) ── */
+    .nr-card.flip-out-prev {
+      z-index: 20;
+      animation: flipOutPrev var(--flip-dur) var(--flip-ease) forwards;
+    }
+    @keyframes flipOutPrev {
+      0%   { transform: rotateX(0deg);   opacity: 1; }
+      40%  { transform: rotateX(45deg);  opacity: 1; }
+      100% { transform: rotateX(92deg);  opacity: 0; }
+    }
+
+    /* ── Flip-in (going prev: prev card falls from above) ── */
+    .nr-card.flip-in-prev {
+      z-index: 15;
+      animation: flipInPrev var(--flip-dur) var(--flip-ease) forwards;
+    }
+    @keyframes flipInPrev {
+      0%   { transform: rotateX(-92deg); opacity: 0; }
+      60%  { transform: rotateX(-45deg); opacity: 1; }
+      100% { transform: rotateX(0deg);   opacity: 1; }
+    }
+
+    /* ── Crease shadow overlay (the fold line) ── */
+    #nr-crease {
+      position: fixed;
+      inset: 0;
+      z-index: 25;
+      pointer-events: none;
+      opacity: 0;
+      background: linear-gradient(
+        to bottom,
+        rgba(0,0,0,0)    0%,
+        rgba(0,0,0,.55) 46%,
+        rgba(0,0,0,.95) 50%,
+        rgba(0,0,0,.55) 54%,
+        rgba(0,0,0,0)  100%
+      );
+    }
+    #nr-crease.show {
+      animation: creaseAnim var(--flip-dur) var(--flip-ease) forwards;
+    }
+    @keyframes creaseAnim {
+      0%   { opacity: 0; }
+      35%  { opacity: 1; }
+      65%  { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    /* ── Background image (blurred) ── */
     .nr-bg {
       position: absolute;
       inset: -10%;
       background-size: cover;
       background-position: center;
-      filter: blur(28px) brightness(.32) saturate(1.4);
+      filter: blur(28px) brightness(.3) saturate(1.4);
     }
 
-    /* Gradient overlay */
+    /* ── Gradient overlay ── */
     .nr-overlay {
       position: absolute;
       inset: 0;
       background: linear-gradient(
         to bottom,
-        rgba(0,0,0,.15) 0%,
-        rgba(0,0,0,.05) 30%,
-        rgba(0,0,0,.55) 65%,
-        rgba(0,0,0,.92) 100%
+        rgba(0,0,0,.12) 0%,
+        rgba(0,0,0,.04) 28%,
+        rgba(0,0,0,.5)  62%,
+        rgba(0,0,0,.9)  100%
       );
     }
-
-    /* No-image fallback — category gradient fills bg */
     .nr-card.no-img .nr-bg { display: none; }
     .nr-card.no-img .nr-overlay {
       background: var(--card-grad, linear-gradient(145deg,#1e293b,#0f0f12));
-      opacity: 1;
     }
 
     /* ── Content layer ── */
@@ -103,7 +174,7 @@
       display: flex;
       flex-direction: column;
       height: 100%;
-      padding: env(safe-area-inset-top, 12px) 0 env(safe-area-inset-bottom, 12px);
+      padding: env(safe-area-inset-top, 10px) 0 env(safe-area-inset-bottom, 10px);
     }
 
     /* ── Top bar ── */
@@ -127,7 +198,7 @@
     }
     @keyframes nr-pulse {
       0%, 100% { opacity: 1; transform: scale(1); }
-      50%       { opacity: .6; transform: scale(.8); }
+      50%       { opacity: .55; transform: scale(.75); }
     }
     .nr-brand-text {
       font-size: 13px;
@@ -137,15 +208,12 @@
     }
     .nr-counter {
       font-size: 12px;
-      color: rgba(255,255,255,.55);
+      color: rgba(255,255,255,.5);
       font-weight: 600;
     }
 
     /* ── Category badge ── */
-    .nr-cat {
-      padding: 0 18px;
-      margin-bottom: 8px;
-    }
+    .nr-cat { padding: 0 18px; margin-bottom: 8px; }
     .nr-cat-pill {
       display: inline-flex;
       align-items: center;
@@ -161,43 +229,37 @@
     }
     .nr-cat-dot { width: 6px; height: 6px; border-radius: 50%; }
 
-    /* ── Image preview (thumbnail, visible on no-bg cards) ── */
-    .nr-thumb {
-      margin: 0 18px 10px;
-      border-radius: 12px;
-      overflow: hidden;
-      max-height: 180px;
-      display: none;
-    }
-    .nr-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .nr-card.no-img .nr-thumb { display: block; }
-
-    /* ── Body (bottom section) ── */
+    /* ── Body ── */
     .nr-body {
       flex: 1;
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
-      padding: 0 18px 18px;
+      padding: 0 18px 20px;
     }
-    /* No-image cards: center content vertically */
     .nr-card.no-img .nr-body {
       justify-content: center;
       padding-bottom: 80px;
     }
 
-    .nr-headline {
-      font-size: clamp(18px, 4.5vw, 24px);
-      font-weight: 800;
-      line-height: 1.28;
-      color: #fff;
-      margin-bottom: 10px;
-      text-shadow: 0 1px 6px rgba(0,0,0,.4);
+    .nr-big-icon {
+      font-size: clamp(56px, 13vw, 96px);
+      margin-bottom: 20px;
+      opacity: .14;
+      text-align: center;
     }
 
+    .nr-headline {
+      font-size: clamp(18px, 4.5vw, 26px);
+      font-weight: 800;
+      line-height: 1.26;
+      color: #fff;
+      margin-bottom: 10px;
+      text-shadow: 0 2px 8px rgba(0,0,0,.5);
+    }
     .nr-desc {
       font-size: 13.5px;
-      color: rgba(255,255,255,.78);
+      color: rgba(255,255,255,.75);
       line-height: 1.62;
       display: -webkit-box;
       -webkit-line-clamp: 3;
@@ -205,10 +267,9 @@
       overflow: hidden;
       margin-bottom: 12px;
     }
-
     .nr-meta {
       font-size: 11.5px;
-      color: rgba(255,255,255,.45);
+      color: rgba(255,255,255,.42);
       margin-bottom: 16px;
       display: flex;
       align-items: center;
@@ -217,10 +278,7 @@
     .nr-meta-sep { opacity: .4; }
 
     /* ── Action buttons ── */
-    .nr-actions {
-      display: flex;
-      gap: 10px;
-    }
+    .nr-actions { display: flex; gap: 10px; }
 
     .nr-btn-read {
       flex: 1;
@@ -230,10 +288,10 @@
       gap: 7px;
       padding: 13px 16px;
       border-radius: 12px;
-      background: rgba(255,255,255,.16);
+      background: rgba(255,255,255,.14);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,.22);
+      border: 1px solid rgba(255,255,255,.2);
       color: #fff;
       font-size: 13px;
       font-weight: 700;
@@ -243,13 +301,12 @@
     .nr-btn-read:active { background: rgba(255,255,255,.26); }
 
     .nr-btn-icon {
-      width: 48px;
-      height: 48px;
+      width: 48px; height: 48px;
       border-radius: 12px;
-      background: rgba(255,255,255,.12);
+      background: rgba(255,255,255,.1);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,.18);
+      border: 1px solid rgba(255,255,255,.16);
       color: #fff;
       font-size: 15px;
       display: flex;
@@ -261,17 +318,16 @@
     }
     .nr-btn-icon:active { background: rgba(255,255,255,.24); }
 
-    /* ── Swipe hint (first card only) ── */
+    /* ── Swipe hint (first card) ── */
     .nr-swipe-hint {
       position: absolute;
-      bottom: 96px;
+      bottom: 100px;
       left: 50%;
-      transform: translateX(-50%);
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 4px;
-      color: rgba(255,255,255,.45);
+      color: rgba(255,255,255,.4);
       font-size: 11px;
       font-weight: 600;
       letter-spacing: .4px;
@@ -282,7 +338,7 @@
     .nr-swipe-hint i { font-size: 14px; }
     @keyframes nr-float {
       0%, 100% { transform: translateX(-50%) translateY(0); }
-      50%       { transform: translateX(-50%) translateY(-7px); }
+      50%       { transform: translateX(-50%) translateY(-8px); }
     }
 
     /* ── Desktop nav arrows ── */
@@ -291,9 +347,9 @@
       right: 22px;
       width: 44px; height: 44px;
       border-radius: 50%;
-      background: rgba(255,255,255,.1);
+      background: rgba(255,255,255,.09);
       backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,.15);
+      border: 1px solid rgba(255,255,255,.14);
       color: #fff;
       font-size: 16px;
       display: flex;
@@ -306,11 +362,7 @@
     #nr-nav-up { top: calc(50% - 52px); }
     #nr-nav-down { top: calc(50% + 8px); }
     #nr-nav-up:hover, #nr-nav-down:hover { background: rgba(255,255,255,.2); }
-
-    /* Hide desktop arrows on touch screens */
-    @media (hover: none) {
-      #nr-nav-up, #nr-nav-down { display: none; }
-    }
+    @media (hover: none) { #nr-nav-up, #nr-nav-down { display: none; } }
 
     /* ── Toast ── */
     #nr-toast {
@@ -318,26 +370,23 @@
       bottom: 80px;
       left: 50%;
       transform: translateX(-50%) translateY(20px);
-      background: rgba(255,255,255,.12);
+      background: rgba(255,255,255,.1);
       backdrop-filter: blur(16px);
-      border: 1px solid rgba(255,255,255,.18);
+      border: 1px solid rgba(255,255,255,.16);
       color: #fff;
       padding: 9px 20px;
       border-radius: 24px;
       font-size: 13px;
       font-weight: 600;
-      z-index: 300;
+      z-index: 400;
       opacity: 0;
       transition: all .25s;
       white-space: nowrap;
       pointer-events: none;
     }
-    #nr-toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
+    #nr-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-    /* ── Loading screen ── */
+    /* ── Loading ── */
     #nr-loading {
       position: fixed;
       inset: 0;
@@ -357,9 +406,9 @@
       animation: nr-spin .75s linear infinite;
     }
     @keyframes nr-spin { to { transform: rotate(360deg); } }
-    #nr-loading p { color: rgba(255,255,255,.45); font-size: 13px; }
+    #nr-loading p { color: rgba(255,255,255,.4); font-size: 13px; }
 
-    /* ── Error screen ── */
+    /* ── Error ── */
     #nr-error {
       position: fixed;
       inset: 0;
@@ -374,8 +423,8 @@
       padding: 32px;
     }
     #nr-error i { font-size: 40px; color: rgba(255,255,255,.2); }
-    #nr-error h2 { font-size: 18px; color: rgba(255,255,255,.7); }
-    #nr-error p { font-size: 13px; color: rgba(255,255,255,.35); }
+    #nr-error h2 { font-size: 18px; color: rgba(255,255,255,.65); }
+    #nr-error p  { font-size: 13px; color: rgba(255,255,255,.32); }
     #nr-error button {
       margin-top: 8px;
       padding: 10px 28px;
@@ -391,10 +440,10 @@
     #nr-back {
       position: fixed;
       top: 14px; left: 14px;
-      z-index: 150;
+      z-index: 200;
       width: 36px; height: 36px;
       border-radius: 50%;
-      background: rgba(0,0,0,.3);
+      background: rgba(0,0,0,.35);
       backdrop-filter: blur(8px);
       border: 1px solid rgba(255,255,255,.12);
       display: flex;
@@ -405,22 +454,22 @@
       font-size: 13px;
       transition: background .2s;
     }
-    #nr-back:hover { background: rgba(0,0,0,.5); color: #fff; }
+    #nr-back:hover { background: rgba(0,0,0,.55); color: #fff; }
   </style>
 </head>
 <body>
 
-  <!-- Progress bar -->
   <div id="nr-progress-bar"></div>
-
-  <!-- Back button -->
   <a id="nr-back" href="/news" title="Back to News"><i class="fa fa-arrow-left"></i></a>
 
-  <!-- Desktop nav -->
-  <button id="nr-nav-up" title="Previous" onclick="NR.nav(-1)"><i class="fa fa-chevron-up"></i></button>
-  <button id="nr-nav-down" title="Next" onclick="NR.nav(1)"><i class="fa fa-chevron-down"></i></button>
+  <!-- Desktop nav arrows -->
+  <button id="nr-nav-up"   title="Previous" onclick="NR.nav(-1)"><i class="fa fa-chevron-up"></i></button>
+  <button id="nr-nav-down" title="Next"     onclick="NR.nav(1)"><i class="fa fa-chevron-down"></i></button>
 
-  <!-- Reel -->
+  <!-- Crease shadow (fold line effect) -->
+  <div id="nr-crease"></div>
+
+  <!-- Reel stage -->
   <div id="nr-reel"></div>
 
   <!-- Loading -->
@@ -437,31 +486,32 @@
     <button onclick="NR.load()">Retry</button>
   </div>
 
-  <!-- Toast -->
   <div id="nr-toast"></div>
 
   <script>
   const NR = {
     articles: [],
     currentIdx: 0,
-    cardH: window.innerHeight,
+    _busy: false,
 
     CATS: {
-      entrance:   { label: 'Entrance Exams', color: '#e11d48', icon: 'fa-graduation-cap',
-                    grad: 'linear-gradient(145deg,#7f1d1d,#1a0a0a)' },
-      results:    { label: 'Results',         color: '#3b82f6', icon: 'fa-medal',
-                    grad: 'linear-gradient(145deg,#1e3a8a,#0a0f1a)' },
-      admissions: { label: 'Admissions',      color: '#10b981', icon: 'fa-door-open',
-                    grad: 'linear-gradient(145deg,#064e3b,#0a1a14)' },
-      govtjobs:   { label: 'Govt Jobs',       color: '#8b5cf6', icon: 'fa-briefcase',
-                    grad: 'linear-gradient(145deg,#3b0764,#0f0a1a)' },
-      scholarship:{ label: 'Scholarship',     color: '#f59e0b', icon: 'fa-star',
-                    grad: 'linear-gradient(145deg,#78350f,#1a1005)' },
+      entrance:    { label: 'Entrance Exams', color: '#e11d48', icon: 'fa-graduation-cap',
+                     grad: 'linear-gradient(145deg,#7f1d1d,#1a0a0a)' },
+      results:     { label: 'Results',        color: '#3b82f6', icon: 'fa-medal',
+                     grad: 'linear-gradient(145deg,#1e3a8a,#0a0f1a)' },
+      admissions:  { label: 'Admissions',     color: '#10b981', icon: 'fa-door-open',
+                     grad: 'linear-gradient(145deg,#064e3b,#0a1a14)' },
+      govtjobs:    { label: 'Govt Jobs',      color: '#8b5cf6', icon: 'fa-briefcase',
+                     grad: 'linear-gradient(145deg,#3b0764,#0f0a1a)' },
+      scholarship: { label: 'Scholarship',    color: '#f59e0b', icon: 'fa-star',
+                     grad: 'linear-gradient(145deg,#78350f,#1a1005)' },
     },
 
     catInfo(key) {
-      return this.CATS[key] || { label: key || 'News', color: '#64748b', icon: 'fa-newspaper',
-        grad: 'linear-gradient(145deg,#1e293b,#0f0f12)' };
+      return this.CATS[key] || {
+        label: key || 'News', color: '#64748b', icon: 'fa-newspaper',
+        grad: 'linear-gradient(145deg,#1e293b,#0f0f12)'
+      };
     },
 
     async load() {
@@ -475,7 +525,7 @@
         if (!this.articles.length) throw new Error('No articles');
         this.render();
         document.getElementById('nr-loading').style.display = 'none';
-      } catch (e) {
+      } catch {
         document.getElementById('nr-loading').style.display = 'none';
         document.getElementById('nr-error').style.display = 'flex';
       }
@@ -484,40 +534,48 @@
     render() {
       const reel = document.getElementById('nr-reel');
       reel.innerHTML = this.articles.map((a, i) => this.cardHTML(a, i)).join('');
+
+      // Show first card
+      reel.children[0]?.classList.add('active');
       this.currentIdx = 0;
       this.updateUI();
 
-      // Scroll listener
-      let ticking = false;
-      reel.addEventListener('scroll', () => {
-        if (!ticking) {
-          requestAnimationFrame(() => {
-            const idx = Math.round(reel.scrollTop / window.innerHeight);
-            if (idx !== this.currentIdx) {
-              this.currentIdx = Math.max(0, Math.min(idx, this.articles.length - 1));
-              this.updateUI();
-            }
-            ticking = false;
-          });
-          ticking = true;
-        }
+      // Touch swipe
+      let ty0 = 0, tx0 = 0;
+      reel.addEventListener('touchstart', e => {
+        ty0 = e.touches[0].clientY;
+        tx0 = e.touches[0].clientX;
+      }, { passive: true });
+      reel.addEventListener('touchend', e => {
+        const dy = ty0 - e.changedTouches[0].clientY;
+        const dx = Math.abs(tx0 - e.changedTouches[0].clientX);
+        if (Math.abs(dy) > 40 && Math.abs(dy) > dx) this.nav(dy > 0 ? 1 : -1);
       }, { passive: true });
 
-      // Keyboard nav
+      // Mouse wheel (desktop)
+      let wheelLock = false;
+      window.addEventListener('wheel', e => {
+        if (wheelLock) return;
+        wheelLock = true;
+        this.nav(e.deltaY > 0 ? 1 : -1);
+        setTimeout(() => wheelLock = false, 750);
+      }, { passive: true });
+
+      // Keyboard
       document.addEventListener('keydown', e => {
-        if (e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); this.nav(1); }
+        if (e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); this.nav(1);  }
         if (e.key === 'ArrowUp')                     { e.preventDefault(); this.nav(-1); }
       });
     },
 
     cardHTML(a, i) {
-      const cat = this.catInfo(a.category);
-      const img = (a.image || a.image_url || '').trim();
-      const hasImg = img.length > 8;
-      const ago = this.timeAgo(a.date);
-      const desc = this.stripHTML(a.desc || a.description || '');
-      const safeTitle = (a.title || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-      const safeLink  = (a.link || '#').replace(/'/g, "\\'");
+      const cat     = this.catInfo(a.category);
+      const img     = (a.image || a.image_url || '').trim();
+      const hasImg  = img.length > 8;
+      const ago     = this.timeAgo(a.date);
+      const desc    = this.stripHTML(a.desc || a.description || '');
+      const safeT   = (a.title || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      const safeL   = (a.link  || '#').replace(/'/g, "\\'");
 
       return `
         <div class="nr-card${hasImg ? '' : ' no-img'}"
@@ -527,7 +585,6 @@
           <div class="nr-overlay"></div>
 
           <div class="nr-content">
-            <!-- Top bar -->
             <div class="nr-topbar">
               <a class="nr-brand" href="/">
                 <div class="nr-brand-dot"></div>
@@ -536,7 +593,6 @@
               <span class="nr-counter">${i + 1} / ${this.articles.length}</span>
             </div>
 
-            <!-- Category -->
             <div class="nr-cat">
               <span class="nr-cat-pill" style="background:${cat.color}22;color:${cat.color};">
                 <span class="nr-cat-dot" style="background:${cat.color}"></span>
@@ -544,25 +600,13 @@
               </span>
             </div>
 
-            <!-- Thumbnail (no-image cards only) -->
-            ${hasImg ? `
-              <div class="nr-thumb">
-                <img src="${img}" alt="" loading="lazy"
-                     onerror="this.closest('.nr-thumb').style.display='none'">
-              </div>
-            ` : ''}
-
-            <!-- Bottom content -->
             <div class="nr-body">
-              ${!hasImg ? `
-                <div style="font-size:clamp(52px,12vw,88px);margin-bottom:18px;opacity:.18;text-align:center;">
-                  <i class="fa ${cat.icon}"></i>
-                </div>` : ''}
+              ${!hasImg ? `<div class="nr-big-icon"><i class="fa ${cat.icon}"></i></div>` : ''}
               <h2 class="nr-headline">${a.title || ''}</h2>
               ${desc ? `<p class="nr-desc">${desc}</p>` : ''}
               <div class="nr-meta">
                 <i class="fa fa-circle-dot" style="font-size:6px;color:${cat.color}"></i>
-                <span>${a.source || a.source_name || 'News'}</span>
+                <span>${a.source || 'News'}</span>
                 <span class="nr-meta-sep">·</span>
                 <span>${ago}</span>
               </div>
@@ -571,7 +615,7 @@
                   <i class="fa fa-arrow-up-right-from-square" style="font-size:12px"></i>
                   Read Full Article
                 </a>
-                <button class="nr-btn-icon" onclick="NR.share('${safeTitle}','${safeLink}')" title="Share">
+                <button class="nr-btn-icon" onclick="NR.share('${safeT}','${safeL}')" title="Share">
                   <i class="fa fa-share-nodes"></i>
                 </button>
                 <button class="nr-btn-icon" onclick="NR.nav(1)" title="Next">
@@ -584,39 +628,64 @@
               <div class="nr-swipe-hint">
                 <i class="fa fa-chevron-up"></i>
                 <span>Swipe up</span>
-              </div>
-            ` : ''}
+              </div>` : ''}
           </div>
         </div>`;
     },
 
     nav(dir) {
-      const reel = document.getElementById('nr-reel');
-      const next = Math.max(0, Math.min(this.currentIdx + dir, this.articles.length - 1));
-      reel.scrollTo({ top: next * window.innerHeight, behavior: 'smooth' });
+      if (this._busy) return;
+      const next = this.currentIdx + dir;
+      if (next < 0 || next >= this.articles.length) return;
+
+      this._busy = true;
+
+      const cards      = document.querySelectorAll('.nr-card');
+      const curCard    = cards[this.currentIdx];
+      const nextCard   = cards[next];
+      const crease     = document.getElementById('nr-crease');
+
+      const outClass = dir > 0 ? 'flip-out-next' : 'flip-out-prev';
+      const inClass  = dir > 0 ? 'flip-in-next'  : 'flip-in-prev';
+      const DUR_MS   = 520;
+
+      // Start crease shadow
+      crease.classList.remove('show');
+      void crease.offsetWidth;           // force reflow to restart animation
+      crease.classList.add('show');
+
+      // Exit current card
+      curCard.classList.remove('active');
+      curCard.classList.add(outClass);
+
+      // Enter next card (stagger slightly so exit leads)
+      nextCard.classList.add(inClass);
+
+      setTimeout(() => {
+        curCard.classList.remove(outClass);
+        nextCard.classList.remove(inClass);
+        nextCard.classList.add('active');
+        crease.classList.remove('show');
+        this.currentIdx = next;
+        this._busy = false;
+        this.updateUI();
+      }, DUR_MS);
     },
 
     updateUI() {
-      const a = this.articles[this.currentIdx];
+      const a   = this.articles[this.currentIdx];
       const cat = this.catInfo(a ? a.category : '');
-      // Progress bar
       const bar = document.getElementById('nr-progress-bar');
-      const pct = ((this.currentIdx + 1) / this.articles.length * 100).toFixed(1);
-      bar.style.width = pct + '%';
+      bar.style.width      = ((this.currentIdx + 1) / this.articles.length * 100).toFixed(1) + '%';
       bar.style.background = cat.color;
-      // Page title
-      if (a) document.title = a.title ? a.title.slice(0, 60) + ' — VM News' : 'VM News Reel';
+      if (a) document.title = (a.title || '').slice(0, 60) + ' — VM News';
     },
 
     async share(title, link) {
       try {
-        if (navigator.share) {
-          await navigator.share({ title, url: link });
-        } else {
-          await navigator.clipboard.writeText(link);
-          this.toast('Link copied!');
-        }
-      } catch { /* user cancelled */ }
+        if (navigator.share) { await navigator.share({ title, url: link }); }
+        else { await navigator.clipboard.writeText(link); this.toast('Link copied!'); }
+      } catch { /* cancelled */ }
     },
 
     toast(msg) {
@@ -637,7 +706,7 @@
     },
 
     stripHTML(s) {
-      return s.replace(/<[^>]*>/g, '').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').trim();
+      return (s || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim();
     },
   };
 
