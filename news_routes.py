@@ -88,10 +88,24 @@ def _to_iso_datetime(raw_value):
         return datetime.now().isoformat()
 
 
-def _build_article(title, link, description, pub_date, source_name):
+_IMG_TAG_RE = re.compile(r'<img[^>]+src=["\']([^"\']+)["\']', re.IGNORECASE)
+
+
+def _extract_img_from_html(html):
+    """Return first <img src=...> URL found in HTML, or empty string."""
+    m = _IMG_TAG_RE.search(html or "")
+    return m.group(1) if m else ""
+
+
+def _build_article(title, link, description, pub_date, source_name, image_url=""):
     """Normalize and filter a single feed entry to API article shape."""
     title = (title or "").strip()
     link = (link or "").strip()
+
+    # Extract image from description HTML before stripping tags
+    if not image_url:
+        image_url = _extract_img_from_html(description)
+
     description = re.sub(r'<[^>]+>', '', (description or "")).strip()
 
     if not title or not link:
@@ -110,7 +124,8 @@ def _build_article(title, link, description, pub_date, source_name):
         "date": _to_iso_datetime(pub_date),
         "desc": description,
         "source": source_name,
-        "category": category
+        "category": category,
+        "image": image_url,
     }
 
 
@@ -130,13 +145,34 @@ def _fetch_feed_with_stdlib(feed_url, source_name, timeout=10):
 
         root = ET.fromstring(content)
 
+        media_ns = 'http://search.yahoo.com/mrss/'
+
+        def _item_image(el):
+            """Extract best image URL from an RSS item/Atom entry element."""
+            # <media:thumbnail url="...">
+            thumb = el.find(f'{{{media_ns}}}thumbnail')
+            if thumb is not None and thumb.get('url'):
+                return thumb.get('url')
+            # <media:content url="..." medium="image">
+            for mc in el.findall(f'{{{media_ns}}}content'):
+                if mc.get('url') and mc.get('medium', 'image') == 'image':
+                    return mc.get('url')
+            # <enclosure url="..." type="image/...">
+            enc = el.find('enclosure')
+            if enc is not None and (enc.get('type', '').startswith('image/') or not enc.get('type')):
+                url = enc.get('url', '')
+                if url:
+                    return url
+            return ''
+
         # RSS items
         for item in root.findall('.//item')[:50]:
             title = item.findtext('title', default='')
             link = item.findtext('link', default='')
             description = item.findtext('description', default='')
             pub_date = item.findtext('pubDate', default='')
-            article = _build_article(title, link, description, pub_date, source_name)
+            image_url = _item_image(item)
+            article = _build_article(title, link, description, pub_date, source_name, image_url)
             if article:
                 articles.append(article)
 
@@ -149,7 +185,8 @@ def _fetch_feed_with_stdlib(feed_url, source_name, timeout=10):
                 link = '' if link_elem is None else (link_elem.get('href') or '')
                 description = entry.findtext('atom:summary', default='', namespaces=atom_ns) or entry.findtext('atom:content', default='', namespaces=atom_ns)
                 pub_date = entry.findtext('atom:published', default='', namespaces=atom_ns) or entry.findtext('atom:updated', default='', namespaces=atom_ns)
-                article = _build_article(title, link, description, pub_date, source_name)
+                image_url = _item_image(entry)
+                article = _build_article(title, link, description, pub_date, source_name, image_url)
                 if article:
                     articles.append(article)
 
@@ -196,7 +233,22 @@ def _fetch_feed(feed_url, source_name, timeout=10):
                 except Exception:
                     pass
 
-            article = _build_article(title, link, description, pub_date, source_name)
+            # Extract image URL
+            image_url = ""
+            if hasattr(entry, "media_thumbnail") and entry.media_thumbnail:
+                image_url = entry.media_thumbnail[0].get("url", "")
+            elif hasattr(entry, "media_content") and entry.media_content:
+                for mc in entry.media_content:
+                    if mc.get("url") and mc.get("medium", "image") == "image":
+                        image_url = mc["url"]
+                        break
+            elif hasattr(entry, "enclosures") and entry.enclosures:
+                for enc in entry.enclosures:
+                    if enc.get("type", "").startswith("image/"):
+                        image_url = enc.get("href", enc.get("url", ""))
+                        break
+
+            article = _build_article(title, link, description, pub_date, source_name, image_url)
             if article:
                 articles.append(article)
     

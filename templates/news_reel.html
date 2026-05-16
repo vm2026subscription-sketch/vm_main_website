@@ -180,6 +180,11 @@
       justify-content: flex-end;
       padding: 0 18px 18px;
     }
+    /* No-image cards: center content vertically */
+    .nr-card.no-img .nr-body {
+      justify-content: center;
+      padding-bottom: 80px;
+    }
 
     .nr-headline {
       font-size: clamp(18px, 4.5vw, 24px);
@@ -507,7 +512,7 @@
 
     cardHTML(a, i) {
       const cat = this.catInfo(a.category);
-      const img = a.image || a.image_url || '';
+      const img = (a.image || a.image_url || '').trim();
       const hasImg = img.length > 8;
       const ago = this.timeAgo(a.date);
       const desc = this.stripHTML(a.desc || a.description || '');
@@ -549,6 +554,10 @@
 
             <!-- Bottom content -->
             <div class="nr-body">
+              ${!hasImg ? `
+                <div style="font-size:clamp(52px,12vw,88px);margin-bottom:18px;opacity:.18;text-align:center;">
+                  <i class="fa ${cat.icon}"></i>
+                </div>` : ''}
               <h2 class="nr-headline">${a.title || ''}</h2>
               ${desc ? `<p class="nr-desc">${desc}</p>` : ''}
               <div class="nr-meta">
