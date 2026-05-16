@@ -27,7 +27,7 @@ const EPAdmin = {
   resizeStart: null,
 
   CANVAS_W: 800,
-  CANVAS_H: 1000,
+  CANVAS_H: 1131, // A4 at 800px wide (800 × √2)
   HEADER_W: 1100,
   HEADER_H: 140,
   SNAP_THRESHOLD: 6,

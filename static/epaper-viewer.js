@@ -42,6 +42,8 @@ const EP = {
     this.loadEditions();
     // Poll for new editions every 5 minutes
     this.startAutoRefreshPoll();
+    // Load news sidebar
+    this.loadNewsSidebar();
   },
 
   async loadLatestEdition() {
@@ -447,11 +449,21 @@ const EP = {
   updatePageHeader(page, pageNum) {
     const el = this.el.mastheadImg;
     if (!el) return;
+    const masthead = el.closest('.ep-masthead') || el.parentElement;
+    const viewer = this.el.viewer || document.getElementById('epViewer');
+    const grid = document.getElementById('epBlockGrid');
     if (pageNum === 1) {
       el.style.cssText = '';
+      if (masthead) masthead.style.cssText = '';
+      if (viewer) viewer.style.paddingTop = '';
+      if (grid) grid.style.marginTop = '';
       this.applyMastheadImage(this.mastheadUrl || '');
       return;
     }
+    // Page 2+: collapse all spacing so section header sits flush above content
+    if (masthead) masthead.style.cssText = 'padding:0;border-bottom:none;';
+    if (viewer) viewer.style.paddingTop = '0';
+    if (grid) grid.style.marginTop = '0';
     const num = String(pageNum).padStart(2, '0');
     const cat = (page.category || '').toUpperCase();
     const dateRange = page.date_range || '';
@@ -853,20 +865,17 @@ const EP = {
       (viewer || document.getElementById('epViewer'))?.appendChild(grid);
     }
     grid.style.display = 'block';
+    // Page 2+ collapses external spacing (updatePageHeader may have already set this,
+    // but on initial render the grid is created here so set it again)
+    grid.style.marginTop = this.currentPage > 1 ? '0' : '';
     if (this.el.hotspotsLayer) this.el.hotspotsLayer.style.display = 'none';
 
     this.articles = [];
 
-    // Canvas is 800px wide in admin — use percentage-based positioning
+    // Match admin canvas dimensions exactly for block position math
     const CANVAS_W = 800;
-    let maxY = 100;
-    blocks.forEach((block) => {
-      const bottom = (block.y || 0) + (block.h || 150);
-      if (bottom > maxY) maxY = bottom;
-    });
-    // Fit canvas height to actual content; no fixed minimum so there's no empty gap
-    const canvasH = maxY + 40;
-    const aspectRatio = (canvasH / CANVAS_W * 100).toFixed(2);
+    const canvasH = 1131; // must match CANVAS_H in epaper-admin.js (A4 at 800px)
+    const aspectRatio = '141.42'; // A4 fixed display (800 × √2 ≈ 1131px)
 
     // Background: page scan image if present
     const bgStyle = pageImageUrl
@@ -1976,6 +1985,51 @@ const EP = {
     this.el.toast.textContent = msg;
     this.el.toast.classList.add('show');
     setTimeout(() => this.el.toast.classList.remove('show'), 2500);
+  },
+
+  // ── News Sidebar ──
+  async loadNewsSidebar() {
+    const container = document.getElementById('epNewsCards');
+    if (!container) return;
+    try {
+      const res = await fetch('/api/news?limit=8&category=all');
+      const data = await res.json();
+      const articles = data.articles || [];
+      if (!articles.length) { container.innerHTML = '<p style="color:#6b7280;font-size:12px;padding:8px 0">No news available</p>'; return; }
+      container.innerHTML = articles.map(a => {
+        const thumb = a.image || a.image_url || '';
+        const cat = (a.category || 'news').replace(/_/g, ' ');
+        const ago = this._newsTimeAgo(a.pub_date);
+        return `
+          <a class="ep-news-card" href="${a.link || '#'}" target="_blank" rel="noopener">
+            <div class="ep-news-card-thumb">
+              ${thumb
+                ? `<img src="${thumb}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='<div class=ep-news-card-thumb-placeholder><i class=\\'fa fa-newspaper\\'></i></div>'">`
+                : '<div class="ep-news-card-thumb-placeholder"><i class="fa fa-newspaper"></i></div>'}
+            </div>
+            <div class="ep-news-card-body">
+              <div class="ep-news-card-cat">${cat}</div>
+              <div class="ep-news-card-title">${a.title || ''}</div>
+              <div class="ep-news-card-meta">${a.source_name || ''} · ${ago}</div>
+            </div>
+          </a>`;
+      }).join('');
+    } catch (e) {
+      container.innerHTML = '';
+    }
+  },
+
+  _newsTimeAgo(dateStr) {
+    if (!dateStr) return '';
+    try {
+      const diff = Date.now() - new Date(dateStr).getTime();
+      const m = Math.floor(diff / 60000);
+      if (m < 1) return 'Just now';
+      if (m < 60) return `${m}m ago`;
+      const h = Math.floor(m / 60);
+      if (h < 24) return `${h}h ago`;
+      return `${Math.floor(h / 24)}d ago`;
+    } catch { return ''; }
   },
 };
 
