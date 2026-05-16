@@ -739,7 +739,7 @@ const EP = {
     if (page.blocks && page.blocks.length > 0) {
       // Hide legacy elements
       if (this.el.pageContainer) this.el.pageContainer.style.display = 'none';
-      this.renderBlockGrid(page.blocks, viewer);
+      this.renderBlockGrid(page.blocks, viewer, page.page_image_url || '');
     } else if (page.page_image_url) {
       const isPdf = page.page_image_url.toLowerCase().endsWith('.pdf');
       if (this.el.pageContainer) this.el.pageContainer.style.display = '';
@@ -844,7 +844,7 @@ const EP = {
   },
 
   // ── Block Grid (NEW) ──
-  renderBlockGrid(blocks, viewer) {
+  renderBlockGrid(blocks, viewer, pageImageUrl = '') {
     let grid = document.getElementById('epBlockGrid');
     if (!grid) {
       grid = document.createElement('div');
@@ -868,8 +868,13 @@ const EP = {
     const canvasH = maxY + 40;
     const aspectRatio = (canvasH / CANVAS_W * 100).toFixed(2);
 
+    // Background: page scan image if present
+    const bgStyle = pageImageUrl
+      ? `background-image:url('${pageImageUrl}');background-size:100% 100%;background-repeat:no-repeat;background-position:center;`
+      : '';
+
     grid.innerHTML = `
-      <div class="ep-canvas-viewer" style="position:relative;width:100%;padding-bottom:${aspectRatio}%;">
+      <div class="ep-canvas-viewer" style="position:relative;width:100%;padding-bottom:${aspectRatio}%;${bgStyle}">
         ${blocks.map((block) => {
           const type = this.getBlockType(block);
           const hasImg = block.image_url && block.image_url.length > 10;
