@@ -70,6 +70,32 @@
 
   <!-- ── MAIN CONTENT ── -->
   <div class="ep-main" id="epMain">
+
+    <!-- ── NEWS SIDEBAR ── -->
+    <aside class="ep-news-sidebar" id="epNewsSidebar">
+      <div class="ep-news-sidebar-header">
+        <i class="fa fa-bolt"></i>
+        <span>Latest News</span>
+      </div>
+      <div id="epNewsCards">
+        <!-- skeleton -->
+        <div class="ep-news-sidebar-skeleton">
+          {% for _ in range(6) %}
+          <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.07)">
+            <div style="width:72px;height:56px;border-radius:6px;background:#1e1e24;flex-shrink:0"></div>
+            <div style="flex:1">
+              <div class="ep-sk-line" style="width:40%;margin-bottom:5px"></div>
+              <div class="ep-sk-line" style="width:100%"></div>
+              <div class="ep-sk-line" style="width:85%"></div>
+              <div class="ep-sk-line" style="width:50%;margin-top:6px"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <a class="ep-news-sidebar-more" href="/news" target="_blank">View all news →</a>
+    </aside>
+
     <div class="ep-paper" id="epPaper">
       <div class="ep-masthead">
         <div class="ep-masthead-img" id="epMastheadImg">
