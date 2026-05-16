@@ -14,7 +14,7 @@ try:
 except ImportError:
     feedparser = None
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, render_template, request
 
 # Category keywords for filtering
 CATEGORIES = {
@@ -310,6 +310,11 @@ def _prioritize_freshness_by_category(articles, fresh_hours=DEFAULT_FRESHNESS_HO
         append_unique(article)
 
     return ordered
+
+
+@news_bp.route("/news-reel")
+def news_reel():
+    return render_template("news_reel.html")
 
 
 @news_bp.route("/api/news", methods=["GET"])
