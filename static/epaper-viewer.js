@@ -1992,13 +1992,25 @@ const EP = {
     const container = document.getElementById('epNewsCards');
     if (!container) return;
     try {
-      const res = await fetch('/api/news?limit=8&category=all');
+      // Fetch a large pool so we can pick 2 per category
+      const res = await fetch('/api/news?limit=60&category=all');
       const data = await res.json();
-      const articles = data.articles || [];
-      if (!articles.length) { container.innerHTML = '<p style="color:#6b7280;font-size:12px;padding:8px 0">No news available</p>'; return; }
-      container.innerHTML = articles.map(a => {
+      const pool = data.articles || [];
+      if (!pool.length) { container.innerHTML = '<p style="color:#6b7280;font-size:12px;padding:8px 0">No news available</p>'; return; }
+
+      // Group by category, keep first 2 per category
+      const PER_CAT = 2;
+      const seen = {};
+      const picked = [];
+      for (const a of pool) {
+        const cat = a.category || 'news';
+        if (!seen[cat]) seen[cat] = 0;
+        if (seen[cat] < PER_CAT) { picked.push(a); seen[cat]++; }
+      }
+
+      container.innerHTML = picked.map(a => {
         const thumb = a.image || a.image_url || '';
-        const cat = (a.category || 'news').replace(/_/g, ' ');
+        const catLabel = (a.category || 'news').replace(/_/g, ' ');
         const ago = this._newsTimeAgo(a.pub_date);
         return `
           <a class="ep-news-card" href="${a.link || '#'}" target="_blank" rel="noopener">
@@ -2008,7 +2020,7 @@ const EP = {
                 : '<div class="ep-news-card-thumb-placeholder"><i class="fa fa-newspaper"></i></div>'}
             </div>
             <div class="ep-news-card-body">
-              <div class="ep-news-card-cat">${cat}</div>
+              <div class="ep-news-card-cat">${catLabel}</div>
               <div class="ep-news-card-title">${a.title || ''}</div>
               <div class="ep-news-card-meta">${a.source_name || ''} · ${ago}</div>
             </div>
