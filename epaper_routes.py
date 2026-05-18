@@ -31,8 +31,13 @@ def _upload_to_cloudinary(file_bytes, filename):
         public_id=os.path.splitext(filename)[0],
         overwrite=True,
         resource_type="image",
+        quality=100,           # no lossy compression
+        flags="preserve_transparency",  # keep PNG alpha
     )
-    return result["secure_url"]
+    # Strip any auto-transformation segment Cloudinary may insert in the URL
+    url = result["secure_url"]
+    url = re.sub(r'/upload/[^/]+/upload/', '/upload/', url)
+    return url
 
 
 def _require_admin():
