@@ -235,10 +235,52 @@
     <div class="ep-ai-bar" id="epTtsPrompt">
       <!-- Voice slot replaces Translate tab -->
       <div class="ep-voice-tab-slot">
-        <select class="ep-tts-voice-select" id="epVoiceSelect" title="Select language">
-          <option value="hi-IN-MadhurNeural">हिंदी</option>
-          <option value="mr-IN-ManoharNeural">मराठी</option>
-          <option value="en-IN-PrabhatNeural">English</option>
+        <select class="ep-tts-voice-select" id="epVoiceSelect" title="Select voice">
+          <optgroup label="Hindi">
+            <option value="hi-IN-MadhurNeural">Hindi – Madhur (Male)</option>
+            <option value="hi-IN-SwaraNeural">Hindi – Swara (Female)</option>
+          </optgroup>
+          <optgroup label="Marathi">
+            <option value="mr-IN-RonitNeural">Marathi – Ronit (Male)</option>
+            <option value="mr-IN-BhaktiNeural">Marathi – Bhakti (Female)</option>
+          </optgroup>
+          <optgroup label="Gujarati">
+            <option value="gu-IN-NiranjanNeural">Gujarati – Niranjan (Male)</option>
+            <option value="gu-IN-ShrutiNeural">Gujarati – Shruti (Female)</option>
+          </optgroup>
+          <optgroup label="Punjabi">
+            <option value="pa-IN-OjaswanNeural">Punjabi – Ojaswan (Male)</option>
+            <option value="pa-IN-VaaniNeural">Punjabi – Vaani (Female)</option>
+          </optgroup>
+          <optgroup label="Bengali">
+            <option value="bn-IN-BashkarNeural">Bengali – Bashkar (Male)</option>
+            <option value="bn-IN-TanishaaNeural">Bengali – Tanishaa (Female)</option>
+          </optgroup>
+          <optgroup label="Tamil">
+            <option value="ta-IN-ValluvarNeural">Tamil – Valluvar (Male)</option>
+            <option value="ta-IN-PallaviNeural">Tamil – Pallavi (Female)</option>
+          </optgroup>
+          <optgroup label="Telugu">
+            <option value="te-IN-ShubhamNeural">Telugu – Shubham (Male)</option>
+            <option value="te-IN-ManasaNeural">Telugu – Manasa (Female)</option>
+          </optgroup>
+          <optgroup label="Kannada">
+            <option value="kn-IN-GaganNeural">Kannada – Gagan (Male)</option>
+            <option value="kn-IN-SapnaNeural">Kannada – Sapna (Female)</option>
+          </optgroup>
+          <optgroup label="Malayalam">
+            <option value="ml-IN-MidhunNeural">Malayalam – Midhun (Male)</option>
+            <option value="ml-IN-SobhanaNeural">Malayalam – Sobhana (Female)</option>
+          </optgroup>
+          <optgroup label="Urdu">
+            <option value="ur-IN-SalmanNeural">Urdu – Salman (Male)</option>
+            <option value="ur-PK-AsadNeural">Urdu – Asad (Male)</option>
+            <option value="ur-PK-UzmaNeural">Urdu – Uzma (Female)</option>
+          </optgroup>
+          <optgroup label="English">
+            <option value="en-IN-PrabhatNeural">English – Prabhat (Male)</option>
+            <option value="en-IN-NeerjaNeural">English – Neerja (Female)</option>
+          </optgroup>
         </select>
         <button class="ep-art-play-btn" id="epTtsStartBtn">
           <i class="fa fa-play"></i> <span>Play</span>

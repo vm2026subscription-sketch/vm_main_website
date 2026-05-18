@@ -1209,7 +1209,15 @@ const EP = {
 
     const VOICE_LANG = {
       'hi-IN-MadhurNeural': 'hi', 'hi-IN-SwaraNeural': 'hi',
-      'mr-IN-ManoharNeural': 'mr', 'mr-IN-AarohiNeural': 'mr',
+      'mr-IN-RonitNeural': 'mr', 'mr-IN-BhaktiNeural': 'mr',
+      'gu-IN-NiranjanNeural': 'gu', 'gu-IN-ShrutiNeural': 'gu',
+      'pa-IN-OjaswanNeural': 'pa', 'pa-IN-VaaniNeural': 'pa',
+      'bn-IN-BashkarNeural': 'bn', 'bn-IN-TanishaaNeural': 'bn',
+      'ta-IN-ValluvarNeural': 'ta', 'ta-IN-PallaviNeural': 'ta',
+      'te-IN-ShubhamNeural': 'te', 'te-IN-ManasaNeural': 'te',
+      'kn-IN-GaganNeural': 'kn', 'kn-IN-SapnaNeural': 'kn',
+      'ml-IN-MidhunNeural': 'ml', 'ml-IN-SobhanaNeural': 'ml',
+      'ur-IN-SalmanNeural': 'ur', 'ur-PK-AsadNeural': 'ur', 'ur-PK-UzmaNeural': 'ur',
       'en-IN-PrabhatNeural': 'en', 'en-IN-NeerjaNeural': 'en',
     };
     const lang = VOICE_LANG[voiceVal] || '';
