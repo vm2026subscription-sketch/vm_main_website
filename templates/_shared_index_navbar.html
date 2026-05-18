@@ -1,10 +1,9 @@
 <style>
   .vm-nav-topbar {
-    background: #F8FAFC; /* Light gray */
-    color: #64748B;
+    background: #3a3a3a;
+    color: #fff;
     font-size: 13px;
     padding: 8px 0;
-    font-family: 'Inter', sans-serif;
   }
 
   /* Hide legacy per-page navbars that follow the shared navbar to avoid duplicates */
@@ -31,14 +30,14 @@
   }
 
   .vm-nav-topbar a {
-    color: #64748B;
+    color: #fff;
     text-decoration: none;
     margin-right: 15px;
     font-weight: 500;
   }
 
   .vm-nav-topbar a:hover {
-    color: #1E293B; /* Darker on hover */
+    color: #ffd28a;
   }
 
   .vm-nav-right {
@@ -49,25 +48,12 @@
   }
 
   .vm-main-header {
-    background: #FFFFFF; /* White */
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    background: #fff;
+    border-bottom: 1px solid #e6e6e6;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
     position: sticky;
     top: 0;
     z-index: 1000;
-    font-family: 'Inter', sans-serif;
-  }
-
-  .vm-brand-text {
-    font-size: 28px;
-    font-weight: 900;
-    color: #B59DF8; /* Lavender */
-    letter-spacing: -1px;
-    font-family: 'Syne', sans-serif;
-    font-style: italic;
-  }
-  .vm-brand-text span {
-    color: #B59DF8; /* Keep it uniform as per Stitch design */
   }
 
   .vm-main-header .vm-nav-inner {
@@ -83,20 +69,13 @@
     display: inline-flex;
     align-items: center;
     flex: 0 0 auto;
-    margin-right: 24px;
-    text-decoration: none !important;
+    margin-right: 8px;
   }
 
-  .vm-brand-text {
-    font-family: 'Syne', sans-serif;
-    font-weight: 800;
-    font-size: 24px;
-    color: #B59DF8; /* Lavender */
-    letter-spacing: -0.5px;
-  }
-  
-  .vm-brand-text span {
-    color: #FFFFFF;
+  .vm-brand img {
+    height: 40px;
+    width: auto;
+    display: block;
   }
 
   .vm-main-links {
@@ -129,16 +108,15 @@
   }
 
   .vm-main-links a {
-    color: #1E293B;
-    font-weight: 800;
+    color: #3b3b3b;
+    font-weight: 700;
     padding: 10px 8px;
-    font-size: 13px;
+    font-size: 11px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.4px;
     text-decoration: none;
     position: relative;
     white-space: nowrap;
-    transition: color 0.3s ease;
   }
 
   .vm-main-links a::before {
@@ -147,16 +125,15 @@
     bottom: 0;
     left: 50%;
     width: 0;
-    height: 3px;
-    background: #B4F56E; /* Lime Green */
+    height: 2px;
+    background: #ff6600;
     transform: translateX(-50%);
-    transition: width 0.3s ease;
-    border-radius: 3px 3px 0 0;
+    transition: width 0.25s ease;
   }
 
   .vm-main-links a:hover,
   .vm-main-links a.vm-active {
-    color: #B4F56E;
+    color: #ff6600;
   }
 
   .vm-main-links a:hover::before,
@@ -190,9 +167,8 @@
   /* nav toggle (hamburger) */
   .vm-nav-toggle {
     display: none;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255,255,255,0.1);
-    color: #FFFFFF;
+    background: transparent;
+    border: 1px solid rgba(0,0,0,0.06);
     padding: 8px 10px;
     border-radius: 6px;
     cursor: pointer;
@@ -206,48 +182,37 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 10px 20px;
-    margin-left: 12px;
-    border-radius: 99px;
-    border: none;
+    padding: 8px 12px;
+    margin-left: 8px;
+    border-radius: 999px;
+    border: 1px solid transparent;
     font-weight: 700;
-    font-size: 14px;
+    font-size: 13px;
     line-height: 1;
     white-space: nowrap;
-    text-transform: none;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
-  
-  .vm-main-links a.nav-auth::before {
-    display: none; /* No underline for buttons */
-  }
-  
-  .vm-main-links a.nav-auth:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(0,0,0,0.3);
   }
 
   .vm-main-links a.nav-register {
-    background: #B59DF8; /* Lavender */
-    color: #0B0F19; /* Dark Navy text */
+    background: #ff6600;
+    color: #fff;
+    border-color: #ff6600;
   }
 
   .vm-main-links a.nav-register:hover {
-    background: #A387EB;
-    color: #0B0F19;
+    background: #e55a00;
+    color: #fff;
   }
 
   .vm-main-links a.nav-login {
-    background: rgba(255, 255, 255, 0.1);
-    color: #FFFFFF;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    margin-left: auto;
+    background: #fff;
+    color: #ff6600;
+    border-color: rgba(255,102,0,0.25);
+    margin-left: auto; /* push auth buttons to the far right */
   }
 
   .vm-main-links a.nav-login:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: #FFFFFF;
+    background: rgba(255,102,0,0.06);
+    color: #e55a00;
   }
 
   @media (max-width: 768px) {
@@ -278,46 +243,37 @@
   .vm-search-modal {
     width: 90%;
     max-width: 600px;
-    background: #FFFFFF;
-    border-radius: 12px;
+    background: #fff;
+    border-radius: 10px;
     padding: 18px;
     display: flex;
     align-items: center;
     gap: 10px;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
     position: relative;
-    border: 1px solid rgba(0,0,0,0.05);
   }
 
   .vm-search-modal input {
     flex: 1;
-    background: #F4F6F8;
-    border: 1px solid rgba(0,0,0,0.1);
-    color: #1E293B;
-    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
     padding: 12px 14px;
     font-size: 14px;
     outline: none;
   }
-  
-  .vm-search-modal input::placeholder {
-    color: #A0AEC0;
-  }
 
   .vm-search-modal button {
-    background: #B4F56E;
+    background: #ff6600;
     border: none;
-    color: #0B0F19;
-    font-weight: 700;
-    border-radius: 8px;
-    padding: 12px 18px;
+    color: #fff;
+    border-radius: 6px;
+    padding: 12px 16px;
     font-size: 16px;
     cursor: pointer;
-    transition: background 0.3s;
   }
 
   .vm-search-modal button:hover {
-    background: #A1DE63;
+    background: #e55a00;
   }
 
   .vm-search-close {
@@ -378,14 +334,14 @@
       <a href="{{ url_for('blog') }}">Blog</a>
       <a href="{{ url_for('epaper.epaper_viewer') }}">E-Paper</a>
     </div>
-    <div class="vm-nav-right">विद्यार्थी मित्र<span style="color:#B4F56E;">.org</span></div>
+    <div class="vm-nav-right">विद्यार्थी मित्र<span style="color:#ffd28a;">.org</span></div>
   </div>
 </div>
 
 <header class="vm-main-header">
   <div class="vm-nav-inner">
-    <a class="vm-brand" href="{{ url_for('index') }}" style="text-decoration: none;">
-      <div class="vm-brand-text">Vidyarth<span>Mitra</span></div>
+    <a class="vm-brand" href="{{ url_for('index') }}">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="Vidyarthi Mitra">
     </a>
     <button id="vmNavToggle" class="vm-nav-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
     <nav class="vm-main-links" aria-label="Main navigation">
@@ -399,13 +355,14 @@
       <a href="{{ url_for('fyjc_rank') }}" class="{% if request.endpoint == 'fyjc_rank' %}vm-active{% endif %}">FYJC Rank</a>
       <a href="{{ url_for('admissions') }}" class="{% if request.endpoint == 'admissions' %}vm-active{% endif %}">Admissions</a>
       <a href="{{ url_for('news') }}" class="{% if request.endpoint == 'news' %}vm-active{% endif %}">News</a>
-      <a href="{{ url_for('epaper.epaper_viewer') }}" class="{% if request.endpoint in ('epaper', 'epaper.epaper_viewer') %}vm-active{% endif %}" style="color: #B4F56E; border-bottom: 2px solid #B4F56E;">THE TEA ☕</a>
-      <a href="{{ url_for('guide_me') }}" class="{% if request.endpoint == 'guide_me' %}vm-active{% endif %}">GUIDE ME 🔍</a>
+      <a href="{{ url_for('epaper.epaper_viewer') }}" class="{% if request.endpoint in ('epaper', 'epaper.epaper_viewer') %}vm-active{% endif %}">E-Paper</a>
+      <a href="{{ url_for('guide_me') }}" class="{% if request.endpoint == 'guide_me' %}vm-active{% endif %}">Guide Me</a>
+      <a href="#" class="vm-search vm-search-trigger" aria-label="Search"><i class="fa fa-search"></i></a>
       {% if session.get('auth_user') %}
       <a href="{{ url_for('logout') }}" class="nav-auth nav-login">Logout</a>
       {% else %}
-      <a href="{{ url_for('login') }}" class="nav-auth nav-login">Log In</a>
-      <a href="{{ url_for('register') }}" class="nav-auth nav-register">Let's go! 🚀</a>
+      <a href="{{ url_for('login') }}" class="nav-auth nav-login">Login</a>
+      <a href="{{ url_for('register') }}" class="nav-auth nav-register">Register</a>
       {% endif %}
     </nav>
   </div>

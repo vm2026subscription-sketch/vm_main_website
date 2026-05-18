@@ -23,25 +23,34 @@
     
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='left_feedback_button.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
     <style>
       .topbar { display: none; }
     </style>
 </head>
 <body>
     {% include '_shared_index_navbar.html' %}
-    <!-- Legacy duplicate topbar removed -->
+    <div class="topbar" style="display: none;">
+    <div class="container">
+        <div class="row">
+            <div class="col-sm-6">
+                <a href="{{ url_for('blog') }}">Blog</a>
+                <a href="{{ url_for('epaper') }}">Epaper</a>
+            </div>
+            <div class="col-sm-6 topbar-right">
+                विद्यार्थी मित्र<span class="topbar-org">.org</span>
+            </div>
+        </div>
+    </div>
+</div>
     
     <style>
         :root {
-            --orange: #B4F56E; /* Mapped to Lime Green */
-            --dark-blue: #B59DF8; /* Mapped to Lavender */
-            --light-bg: #FFFFFF; /* White Card Background */
-            --bg-color: #F4F6F8; /* Main background light gray */
-            --text-primary: #1E293B; /* Dark text */
-            --text-secondary: #64748B;
-            --accent-gold: #F5B865;
+            --orange: #ff6600;
+            --dark-blue: #003d6b;
+            --light-bg: #f5f5f5;
         }
         
         * {
@@ -51,14 +60,10 @@
         }
         
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Roboto', sans-serif;
             line-height: 1.6;
-            color: var(--text-primary);
-            background-color: var(--bg-color);
-        }
-
-        h1, h2, h3, h4, h5, h6 {
-            font-family: 'Syne', sans-serif;
+            color: #333;
+            background: #fff;
         }
 
         a,
@@ -345,134 +350,76 @@
         /* HERO SECTION */
         .hero {
             position: relative;
-            padding: 40px 20px;
-            background-color: var(--bg-color);
-            border-bottom: none;
-            display: flex;
-            justify-content: center;
-        }
-
-        .hero-inner {
-            position: relative;
-            width: 100%;
-            max-width: 1300px;
             height: 500px;
-            background-image: linear-gradient(rgba(11, 15, 25, 0.7), rgba(11, 15, 25, 0.95)), url('{{ url_for("static", filename="IITDELHI.jpg") }}');
             background-size: cover;
             background-position: center;
-            border-radius: 32px;
             display: flex;
             align-items: center;
-            justify-content: flex-start;
-            padding: 40px 60px;
-            border: 1px solid rgba(255,255,255,0.05);
-            overflow: hidden;
+            justify-content: center;
+            color: white;
+            text-align: center;
         }
         
         .hero-content {
-            max-width: 650px;
-            position: relative;
-            z-index: 2;
-            text-align: left;
+            max-width: 800px;
+            padding: 20px;
         }
         
-        .hero-badge {
-            display: inline-block;
-            background: #B4F56E;
-            color: #0B0F19;
-            font-weight: 800;
-            font-size: 11px;
-            padding: 6px 14px;
-            border-radius: 99px;
-            letter-spacing: 1px;
-            margin-bottom: 20px;
-            text-transform: uppercase;
-        }
-
         .hero-content h1 {
-            font-size: 68px;
-            font-weight: 900;
-            line-height: 1.05;
-            margin-bottom: 24px;
-            letter-spacing: -2px;
-            text-shadow: none;
-            text-transform: uppercase;
-        }
-        
-        .hero-gradient-text {
-            background: linear-gradient(90deg, #B59DF8, #B4F56E);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-style: italic;
-            display: inline-block;
-            position: relative;
-        }
-        
-        .hero-gradient-text::after {
-            content: '';
-            position: absolute;
-            bottom: 6px;
-            left: 0;
-            width: 100%;
-            height: 8px;
-            background: #B4F56E;
-            z-index: -1;
-            opacity: 0.5;
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
         
         .hero-content p {
             font-size: 18px;
-            color: var(--text-secondary);
             margin-bottom: 30px;
-            max-width: 500px;
-            text-shadow: none;
-            line-height: 1.5;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
         }
         
-        .hero-buttons {
-            display: flex;
-            gap: 16px;
-        }
-
         .hero-buttons .btn {
-            margin: 0;
-            padding: 14px 28px;
-            font-weight: 800;
-            font-size: 13px;
-            border-radius: 99px;
-            border: none;
+            margin: 6px;
+            padding: 13px 30px;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.4px;
+            border-radius: 6px;
+            border-width: 2px;
             min-width: 210px;
             text-align: center;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            text-transform: none;
-            letter-spacing: normal;
+            transition: transform 0.22s ease, box-shadow 0.22s ease, background-color 0.22s ease, color 0.22s ease;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+        }
+
+        .hero-buttons .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.22);
         }
 
         .hero-buttons .btn-primary {
-            background: #B4F56E;
-            color: #0B0F19;
-            box-shadow: 0 4px 15px rgba(180, 245, 110, 0.3);
+            background: var(--orange);
+            border-color: var(--orange);
+            color: #fff;
         }
 
         .hero-buttons .btn-primary:hover {
-            background: #9CE354;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(180, 245, 110, 0.4);
-            color: #0B0F19;
+            background: #e55a00;
+            border-color: #e55a00;
+            color: #fff;
         }
 
         .hero-buttons .btn-default {
-            background: rgba(255, 255, 255, 0.1);
-            color: #FFFFFF;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(4px);
+            background: rgba(255,255,255,0.95);
+            border-color: rgba(255,255,255,0.95);
+            color: var(--orange);
         }
 
         .hero-buttons .btn-default:hover {
-            background: rgba(255, 255, 255, 0.15);
-            border-color: rgba(255, 255, 255, 0.3);
-            color: #FFFFFF;
-            transform: translateY(-2px);
+            background: #fff;
+            border-color: #fff;
+            color: #d95500;
         }
 
         @media (max-width: 640px) {
@@ -1306,123 +1253,81 @@ header.scrolled { box-shadow: 0 10px 26px rgba(0,0,0,0.16); }
 
 /* ── Announcement Bar ──────────────────────────────────────────── */
 .announcement-bar {
-    background: #FFFFFF; border: 1px solid rgba(0,0,0,0.05);
-    border-left: 4px solid var(--orange); /* Lime Green */
+    background: #fff3cd; border-left: 4px solid var(--orange);
     padding: 15px 20px; margin: 30px 0;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     display: flex; align-items: center; gap: 12px;
-    border-radius: 8px;
 }
 .announcement-bar i { color: var(--orange); font-size: 24px; animation: pulse 2s infinite; }
-.announcement-bar p { margin: 0; font-size: 16px; font-weight: 500; color: #1E293B; }
+.announcement-bar p { margin: 0; font-size: 16px; font-weight: 500; color: #333; }
 
 /* ── Sections ──────────────────────────────────────────────────── */
-.section { padding: 60px 0; background: var(--bg-color); }
-.section.soft { background: #E2E8F0; } /* Soft grey */
-.section-title { text-align: center; font-size: 32px; font-weight: 800; margin-bottom: 10px; text-transform: uppercase; color: #1E293B; letter-spacing: -0.5px; }
-.section-title .orange-text { color: var(--orange); } /* Lime Green */
-.section-subtitle { text-align: center; font-size: 16px; color: var(--text-secondary); margin-bottom: 40px; }
+.section { padding: 60px 0; }
+.section.soft { background: #f8f8f8; }
+.section-title { text-align: center; font-size: 32px; font-weight: 700; margin-bottom: 10px; text-transform: uppercase; }
+.section-title .orange-text { color: var(--orange); }
+.section-subtitle { text-align: center; font-size: 15px; color: #777; margin-bottom: 40px; }
 .center { text-align: center; }
 
 /* ── Featured Alerts ───────────────────────────────────────────── */
-.featured-alerts-section { background: var(--bg-color); padding: 48px 0; border-top: 1px solid rgba(255,255,255,0.05); }
+.featured-alerts-section { background: #f5f6f8; padding: 48px 0; }
 .featured-alerts-section .section-subtitle { margin-bottom: 24px; }
 .featured-alert-grid {
-    max-width: 1080px;
+    max-width: 1020px;
     margin: 0 auto;
     display: grid;
-    grid-template-columns: repeat(12, 1fr);
-    gap: 20px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
 }
-.alert-box {
-    border: 1px solid rgba(255,255,255,0.05);
-    border-radius: 16px;
-    padding: 30px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+.featured-alerts-section .alert-box {
+    background: #fff;
+    border: 1px solid #e7ebf0;
+    border-left: 4px solid var(--orange);
+    border-radius: 10px;
+    padding: 16px 18px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
     transition: transform 0.25s ease, box-shadow 0.25s ease;
+    min-height: 96px;
     display: flex;
+    justify-content: center;
     flex-direction: column;
-    position: relative;
-    overflow: hidden;
 }
-.alert-box:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 24px rgba(0,0,0,0.4);
+.featured-alerts-section .alert-box:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.10);
 }
-.card-blue {
-    background: #192033;
-    grid-column: 1 / 8;
-}
-.card-yellow {
-    background: #F2AE61;
-    color: #0B0F19;
-    grid-column: 8 / 13;
-}
-.card-green {
-    background: #3B5418;
-    grid-column: 1 / 6;
-}
-.card-grey {
-    background: #21293A;
-    grid-column: 6 / 13;
-}
+.featured-alerts-section .alert-box h5 { margin: 0; font-size: 16px; font-weight: 700; color: #243042; }
+.featured-alerts-section .alert-box small { color: #7a8594; font-size: 13px; margin-top: 6px; }
 
-/* Card Specific Styling */
-.card-blue h3 { font-size: 28px; font-weight: 800; margin: 15px 0; color: #FFFFFF; }
-.card-blue p { color: #A0AEC0; font-size: 15px; margin-bottom: 20px; }
-.card-blue .icon-btn { width: 44px; height: 44px; border-radius: 10px; background: rgba(181, 157, 248, 0.1); color: #B59DF8; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-bottom: 10px; }
-.card-blue .btn-read { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #FFFFFF; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; width: max-content; }
-.card-blue .meta-tag { position: absolute; top: 30px; right: 30px; font-size: 11px; font-weight: 700; color: #A0AEC0; font-family: monospace; letter-spacing: 1px; }
-
-.card-yellow h4 { font-size: 16px; font-weight: 800; margin-bottom: 20px; color: #0B0F19; text-transform: uppercase; }
-.card-yellow .countdown { display: flex; gap: 10px; margin-bottom: 20px; }
-.card-yellow .time-box { background: #0B0F19; color: #FFFFFF; border-radius: 8px; flex: 1; text-align: center; padding: 15px 0; }
-.card-yellow .time-box strong { display: block; font-size: 24px; font-weight: 800; line-height: 1; margin-bottom: 4px; }
-.card-yellow .time-box span { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: #A0AEC0; }
-.card-yellow .btn-dark { background: #0B0F19; color: #F2AE61; border: none; padding: 14px; border-radius: 8px; font-weight: 700; width: 100%; cursor: pointer; }
-
-.card-green h4 { font-size: 20px; font-weight: 800; margin-bottom: 15px; color: #B4F56E; }
-.card-green ul { list-style: none; padding: 0; margin: 0; }
-.card-green ul li { color: #A0AEC0; font-size: 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
-.card-green ul li::before { content: ''; width: 6px; height: 6px; background: #B4F56E; border-radius: 50%; }
-.card-green i { color: #B4F56E; font-size: 20px; margin-bottom: 10px; }
-
-.card-grey h3 { font-size: 24px; font-weight: 800; color: #FFFFFF; margin-bottom: 10px; }
-.card-grey p { color: #A0AEC0; font-size: 14px; max-width: 80%; }
-.card-grey .tags { display: flex; gap: 10px; margin-top: 20px; }
-.card-grey .tag { background: rgba(0,0,0,0.3); color: #B59DF8; padding: 6px 12px; border-radius: 99px; font-size: 11px; font-weight: 700; }
-.card-grey .large-icon { position: absolute; right: 30px; bottom: 30px; font-size: 60px; color: rgba(180, 245, 110, 0.2); }
-
-@media (max-width: 992px) {
-    .card-blue, .card-yellow, .card-green, .card-grey { grid-column: 1 / 13; }
+@media (max-width: 768px) {
+    .featured-alert-grid { grid-template-columns: 1fr; }
 }
 
 /* ── Top Searches ──────────────────────────────────────────────── */
-.top-searches { background: #131A2A; color: white; padding: 48px 0; border-top: 1px solid rgba(255,255,255,0.05); }
-.top-searches .section-title { color: #FFFFFF; }
-.top-searches .section-title .orange-text { color: var(--dark-blue); } /* Lavender */
+.top-searches { background: linear-gradient(135deg, #ff6600 0%, #ff8a33 100%); color: white; padding: 32px 0; }
+.top-searches .section-title { color: #ffffff; }
+.top-searches .section-title .orange-text { color: #ffe0c2; }
 .top-search-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(170px, 210px));
     justify-content: center;
-    gap: 16px;
-    margin-top: 32px;
+    gap: 14px;
+    margin-top: 20px;
 }
 .search-item {
-    background: #1D2432; border: 1px solid rgba(255,255,255,0.05);
-    padding: 24px; text-align: center; border-radius: 12px;
-    transition: all 0.3s ease; margin-bottom: 0;
+    background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.34);
+    padding: 16px; text-align: center; border-radius: 8px;
+    transition: all 0.3s; margin-bottom: 0;
     min-height: 160px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-direction: column;
     aspect-ratio: 1 / 1;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
 }
-.search-item:hover { background: #262F40; transform: translateY(-6px); border-color: rgba(181, 157, 248, 0.5); box-shadow: 0 8px 20px rgba(181, 157, 248, 0.2); }
-.search-item a   { color: white; text-decoration: none; font-weight: 600; font-size: 15px; line-height: 1.35; margin-top: 12px; }
-.search-item i   { display: block; font-size: 32px; margin-bottom: 12px; color: var(--dark-blue); } /* Lavender */
+.search-item:hover { background: rgba(255,255,255,0.28); transform: translateY(-3px); }
+.search-item a   { color: white; text-decoration: none; font-weight: 500; font-size: 15px; line-height: 1.35; }
+.search-item i   { display: block; font-size: 28px; margin-bottom: 10px; color: #ffffff; }
 
 @media (max-width: 992px) {
     .top-search-grid { grid-template-columns: repeat(2, minmax(170px, 240px)); }
@@ -1431,10 +1336,10 @@ header.scrolled { box-shadow: 0 10px 26px rgba(0,0,0,0.16); }
 @media (max-width: 576px) {
     .top-search-grid { grid-template-columns: 1fr; justify-content: stretch; }
     .search-item { min-height: 130px; aspect-ratio: auto; }
+    .hero-buttons .btn { min-width: 185px; padding: 11px 20px; font-size: 11px; }
 }
 
 /* ── Info Boxes ────────────────────────────────────────────────── */
-.about-section { background: var(--bg-color); padding: 60px 0; border-top: 1px solid rgba(255,255,255,0.05); }
 .about-section .section-subtitle {
     max-width: 1080px;
     margin-left: auto;
@@ -1444,30 +1349,26 @@ header.scrolled { box-shadow: 0 10px 26px rgba(0,0,0,0.16); }
 .about-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 20px;
+    gap: 18px;
     margin-top: 34px;
 }
 
 .info-box {
-    background: #1D2432; padding: 25px; border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-align: center;
+    background: white; padding: 25px; border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08); text-align: center;
     transition: all 0.3s ease; margin-bottom: 20px;
-    min-height: 220px; border-top: 3px solid var(--orange); /* Lime Green */
-    border-left: 1px solid rgba(255,255,255,0.05);
-    border-right: 1px solid rgba(255,255,255,0.05);
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    min-height: 220px; border-top: 3px solid var(--orange);
 }
-.info-box:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.3); border-color: var(--dark-blue); } /* Lavender */
-.info-box i  { font-size: 40px; color: var(--orange); margin-bottom: 15px; transition: color 0.3s; }
-.info-box:hover i { color: var(--dark-blue); }
-.info-box h5 { font-size: 16px; font-weight: 700; color: #FFFFFF; margin: 10px 0; text-transform: uppercase; }
-.info-box p  { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+.info-box:hover { transform: translateY(-5px); box-shadow: 0 5px 20px rgba(0,0,0,0.15); }
+.info-box i  { font-size: 40px; color: var(--orange); margin-bottom: 15px; }
+.info-box h5 { font-size: 16px; font-weight: 700; color: #333; margin: 10px 0; text-transform: uppercase; }
+.info-box p  { font-size: 13px; color: #666; line-height: 1.6; }
 
 .about-grid .info-box {
     margin-bottom: 0;
     border-top-width: 4px;
-    border-radius: 12px;
-    padding: 24px 20px;
+    border-radius: 10px;
+    padding: 22px 20px;
     min-height: 235px;
 }
 
@@ -1481,48 +1382,33 @@ header.scrolled { box-shadow: 0 10px 26px rgba(0,0,0,0.16); }
 }
 
 /* ── CTA Buttons ───────────────────────────────────────────────── */
-.btn-primary { background: #B4F56E; border-color: #B4F56E; color: #0B0F19; font-weight: 700; border-radius: 99px; }
-.btn-primary:hover { background: #9CE354; border-color: #9CE354; color: #0B0F19; box-shadow: 0 4px 15px rgba(180, 245, 110, 0.4); }
-.btn-default { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); color: #FFFFFF; font-weight: 700; border-radius: 99px; }
-.btn-default:hover { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.4); color: #FFFFFF; }
+.btn-primary { background: var(--orange); border-color: var(--orange); color: white; }
+.btn-primary:hover { background: #e55a00; border-color: #e55a00; color: white; }
+.btn-default { background: white; border-color: white; color: var(--orange); }
+.btn-default:hover { background: var(--orange); border-color: var(--orange); color: white; }
 
 /* ── Testimonials ──────────────────────────────────────────────── */
-.testimonial-section { background: var(--bg-color); padding: 60px 0; border-top: 1px solid rgba(255,255,255,0.05); }
+.testimonial-section { background: white; padding: 60px 0; }
 .testimonial-item {
-    background: #1D2432; padding: 25px; border-radius: 12px;
-    margin-bottom: 20px; border-left: 3px solid var(--dark-blue); transition: all 0.3s;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    background: #f9f9f9; padding: 25px; border-radius: 5px;
+    margin-bottom: 20px; border-left: 3px solid var(--orange); transition: all 0.3s;
 }
-.testimonial-item:hover { box-shadow: 0 8px 25px rgba(0,0,0,0.3); transform: translateY(-4px); border-color: var(--orange); }
+.testimonial-item:hover { box-shadow: 0 5px 15px rgba(0,0,0,0.1); transform: translateY(-3px); }
 .testimonial-header { display: flex; align-items: center; margin-bottom: 15px; }
 .testimonial-img { width: 60px; height: 60px; border-radius: 50%; margin-right: 15px; border: 2px solid var(--orange); }
-.testimonial-author h6 { margin: 0; font-weight: 700; color: var(--orange); font-size: 15px; }
-.testimonial-author small { color: var(--text-secondary); font-size: 12px; }
-.testimonial-text { font-size: 14px; color: #FFFFFF; font-style: italic; line-height: 1.7; opacity: 0.9; }
+.testimonial-author h6 { margin: 0; font-weight: 700; color: var(--orange); font-size: 14px; }
+.testimonial-author small { color: #999; font-size: 12px; }
+.testimonial-text { font-size: 13px; color: #666; font-style: italic; line-height: 1.7; }
 
 /* ── Partners ──────────────────────────────────────────────────── */
-.partners-section { padding: 50px 0; background: #131A2A; border-top: 1px solid rgba(255,255,255,0.05); }
+.partners-section { padding: 50px 0; background: #f9f9f9; }
 .partner-logo-box { text-align: center; margin-bottom: 30px; }
 .partner-logo-box img {
-    max-width: 120px; height: auto; border: 2px solid rgba(255,255,255,0.1);
-    border-radius: 12px; padding: 10px; background: #FFFFFF; transition: all 0.3s;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    max-width: 120px; height: auto; border: 2px solid #ddd;
+    border-radius: 10px; padding: 10px; background: white; transition: all 0.3s;
 }
-.partner-logo-box:hover img { transform: scale(1.05); border-color: var(--orange); box-shadow: 0 8px 25px rgba(180, 245, 110, 0.4); }
-.partner-logo-box h5 { margin-top: 15px; font-size: 14px; font-weight: 700; color: #FFFFFF; }
-
-/* ── E-Paper ───────────────────────────────────────────────────── */
-.epaper-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-top: 30px; }
-.epaper-card {
-    background: #1D2432; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px;
-    padding: 26px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    transition: all 0.3s ease; min-height: 150px;
-    display: flex; flex-direction: column; justify-content: center;
-}
-.epaper-card:hover { transform: translateY(-6px); box-shadow: 0 10px 25px rgba(0,0,0,0.4); border-color: rgba(180, 245, 110, 0.5); }
-.epaper-card h3 { margin: 0 0 12px; font-size: 18px; font-weight: 700; color: #FFFFFF; }
-.epaper-card p  { margin: 0; font-size: 14px; color: var(--text-secondary); line-height: 1.5; }
-.card-link { text-decoration: none; color: inherit; display: block; }
+.partner-logo-box:hover img { transform: scale(1.05); border-color: var(--orange); }
+.partner-logo-box h5 { margin-top: 15px; font-size: 14px; font-weight: 600; color: #333; }
 
 /* ── Floating Buttons ──────────────────────────────────────────── */
 .whatsapp-float, .telegram-float, .chatbot-float {
@@ -1824,21 +1710,12 @@ footer .row > [class*='col-'] {
     
     <!-- HERO SECTION -->
     <section class="hero" id="heroSlider">
-        <div class="hero-inner">
-            <div class="hero-content">
-                <div class="hero-badge">GEN Z APPROVED</div>
-                <h1>YOUR FUTURE, <br><span class="hero-gradient-text">UNFILTERED.</span></h1>
-                <p>Ditch the boring brochures. Get the real tea on colleges, careers, and the vibes that actually matter.</p>
-                <div class="hero-buttons">
-                    <a href="{{ url_for('fyjc_rank') }}" class="btn btn-primary">Start Your Search Now 🚀</a>
-                    <a href="https://play.google.com/store/apps/details?id=co.mark.jdhkd&pcampaignid=web_share" class="btn btn-default">Guide Me</a>
-                </div>
-            </div>
-            <!-- Floating Images inside hero on right -->
-            <div style="position: absolute; right: 40px; bottom: 30px; display: flex; gap: 10px; align-items: flex-end;">
-                <div style="width: 100px; height: 140px; background: #262F40; border-radius: 12px; border: 2px solid #0B0F19; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.3); background-image: url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80'); background-size: cover; background-position: center;"></div>
-                <div style="width: 110px; height: 160px; background: #262F40; border-radius: 12px; border: 2px solid #0B0F19; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.3); background-image: url('https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80'); background-size: cover; background-position: center; margin-bottom: 20px;"></div>
-                <div style="width: 100px; height: 140px; background: #262F40; border-radius: 12px; border: 2px solid #0B0F19; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.3); background-image: url('https://images.unsplash.com/photo-1541339907198-e08756dedf3f?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80'); background-size: cover; background-position: center;"></div>
+        <div class="hero-content">
+            <h1>DTE Option Form Filling Is Now Made EASY</h1>
+            <p>Enter SML & GET Best Colleges & Branches</p>
+            <div class="hero-buttons">
+                <a href="{{ url_for('fyjc_rank') }}" class="btn btn-primary">PREDICT YOUR RANK</a>
+                <a href="https://play.google.com/store/apps/details?id=co.mark.jdhkd&pcampaignid=web_share" class="btn btn-default">DOWNLOAD APP</a>
             </div>
         </div>
     </section>
@@ -1853,48 +1730,25 @@ footer .row > [class*='col-'] {
     <!-- FEATURED ALERTS -->
     <section class="featured-alerts-section">
         <div class="container">
-            <h2 class="section-title">FEATURED <span class="orange-text">ALERTS</span></h2>
+            <h2 class="section-title"><span class="orange-text">FEATURED</span> ALERTS</h2>
+            <p class="section-subtitle">Latest News From Notice Board</p>
             <div class="featured-alert-grid">
-                
-                <div class="alert-box card-blue">
-                    <div class="meta-tag">Live Update • 2 hrs ago</div>
-                    <div class="icon-btn"><i class="fa fa-bullhorn"></i></div>
-                    <h3>MHT-CET 2026-27: Admission Process Started!</h3>
-                    <p>Everything you need to know about the upcoming schedules, hall tickets, and the new evaluation policy for the final stretch.</p>
-                    <button class="btn-read">Read Full Story</button>
+                <div class="alert-box">
+                    <h5><i class="fa fa-file-text-o"></i> MHT-CET 2026-27 Admission Process Started</h5>
+                    <small>Posted on: 2 days ago</small>
                 </div>
-
-                <div class="alert-box card-yellow">
-                    <h4>JEE Advanced 2026 Countdown</h4>
-                    <div class="countdown">
-                        <div class="time-box"><strong>12</strong><span>DAYS</span></div>
-                        <div class="time-box"><strong>04</strong><span>HRS</span></div>
-                        <div class="time-box"><strong>55</strong><span>MIN</span></div>
-                    </div>
-                    <button class="btn-dark">Register for Mock</button>
+                <div class="alert-box">
+                    <h5><i class="fa fa-graduation-cap"></i> Engineering Cut-offs Released for Round 1</h5>
+                    <small>Posted on: 3 days ago</small>
                 </div>
-
-                <div class="alert-box card-green">
-                    <i class="fa fa-bell-o"></i>
-                    <h4>Admission Deadlines</h4>
-                    <ul>
-                        <li>Engineering Cut-offs: Released (Round 1)</li>
-                        <li>IIT Bombay: Closing in 3 days</li>
-                        <li>BITS Pilani: Phase 2 Open</li>
-                    </ul>
+                <div class="alert-box">
+                    <h5><i class="fa fa-calendar"></i> JEE Advanced 2026 Registration Open</h5>
+                    <small>Posted on: 5 days ago</small>
                 </div>
-
-                <div class="alert-box card-grey">
-                    <h3>What's Trending?</h3>
-                    <p>NEET UG Counselling Schedule and Medical admissions are this month's most searched career paths.</p>
-                    <div class="tags">
-                        <span class="tag">#NEETUG</span>
-                        <span class="tag">#Counselling</span>
-                        <span class="tag">#Medical</span>
-                    </div>
-                    <i class="fa fa-line-chart large-icon"></i>
+                <div class="alert-box">
+                    <h5><i class="fa fa-book"></i> NEET UG Counselling Schedule Announced</h5>
+                    <small>Posted on: 1 week ago</small>
                 </div>
-
             </div>
         </div>
     </section>
@@ -2010,16 +1864,16 @@ footer .row > [class*='col-'] {
 <style>
     .partners-section {
         padding: 60px 0;
-        background-color: var(--bg-color);
-        font-family: 'Inter', sans-serif;
+        background-color: #f8f9fa;
+        font-family: 'Roboto', sans-serif;
         text-align: center;
         overflow: hidden; /* Hide the scrollbar */
     }
 
     .section-title {
-        font-weight: 800;
+        font-weight: 700;
         font-size: 2.5rem;
-        color: #FFFFFF;
+        color: #0d2d52;
         margin-bottom: 40px;
     }
 
@@ -2039,11 +1893,10 @@ footer .row > [class*='col-'] {
     .partner-logo-box {
         width: 250px;
         margin: 0 25px; /* Spacing between items */
-        background: #1D2432;
+        background: #fff;
         padding: 20px;
         border-radius: 12px;
-        border: 1px solid rgba(255,255,255,0.05);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -2062,7 +1915,7 @@ footer .row > [class*='col-'] {
     .partner-logo-box h5 {
         font-weight: 700;
         font-size: 1rem;
-        color: #FFFFFF;
+        color: #333;
         margin: 0;
     }
 </style>
@@ -2618,87 +2471,6 @@ footer .row > [class*='col-'] {
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/3.3.7/js/bootstrap.min.js"></script>
-
-    <!-- ══ DESIGN FIX OVERRIDES ══════════════════════════════════════
-         Placed last so they win the cascade over old duplicate CSS.
-         ══════════════════════════════════════════════════════════════ -->
-    <style>
-      /* 1. Correct palette — overrides old :root that mapped orange→#ff6600 */
-      :root {
-        --orange:     #B4F56E;
-        --dark-blue:  #B59DF8;
-        --bg-color:   #F4F6F8;
-        --text-primary:   #1E293B;
-        --text-secondary: #64748B;
-      }
-
-      /* 2. Section-title colour — partners local block set it to #fff globally */
-      .section-title                             { color: #1E293B; }
-      .top-searches    .section-title,
-      .partners-section .section-title,
-      .featured-alerts-section .section-title,
-      .epaper-section  .section-title,
-      .about-section   .section-title,
-      .testimonial-section .section-title        { color: #FFFFFF; }
-
-      /* 3. Dark section backgrounds — every section with dark cards gets a dark bg */
-      .featured-alerts-section { background: #0B0F19; border-top: none; }
-      .featured-alerts-section .section-subtitle { color: rgba(255,255,255,.45); }
-
-      .epaper-section  { background: #0B0F19; }
-      .epaper-section  .section-title  { color: #FFFFFF; }
-      .epaper-section  .section-subtitle { color: rgba(255,255,255,.45); }
-
-      .about-section   { background: #0B0F19; border-top: none; }
-      .about-section   .section-subtitle { color: rgba(255,255,255,.45); max-width: 760px; margin-left: auto; margin-right: auto; }
-
-      .testimonial-section { background: #0B0F19; border-top: none; }
-
-      /* 4. Info-box: correct accent colours */
-      .info-box            { border-top-color: #B4F56E; background: #1D2432; }
-      .info-box i          { color: #B4F56E; }
-      .info-box:hover      { border-top-color: #B59DF8; border-left-color: rgba(181,157,248,.2); border-right-color: rgba(181,157,248,.2); border-bottom-color: rgba(181,157,248,.2); }
-      .info-box:hover i    { color: #B59DF8; }
-
-      /* 5. Top searches accent */
-      .top-searches .section-title .orange-text { color: #B59DF8; }
-      .search-item i { color: #B59DF8; }
-      .search-item:hover { border-color: rgba(181,157,248,.4); box-shadow: 0 8px 24px rgba(181,157,248,.15); }
-
-      /* 6. Announcement bar */
-      .announcement-bar { border-left-color: #B4F56E; background: #fff; }
-      .announcement-bar i { color: #B4F56E; }
-
-      /* 7. Hero – mobile: hide colliding floating images, fix padding */
-      @media (max-width: 900px) {
-        .hero-inner { padding: 32px 28px; height: auto; min-height: 400px; }
-        .hero-inner > div[style*="position: absolute; right"] { display: none !important; }
-      }
-      @media (max-width: 640px) {
-        .hero-content h1 { font-size: 32px; letter-spacing: -1px; }
-        .hero-inner { min-height: 360px; }
-        .hero-buttons { flex-direction: column; gap: 10px; }
-        .hero-buttons .btn { min-width: auto; width: 100%; }
-        .hero { padding: 20px 12px; }
-      }
-
-      /* 8. Epaper card hover glow */
-      .epaper-card:hover { border-color: rgba(180,245,110,.4); box-shadow: 0 10px 30px rgba(0,0,0,.35); }
-
-      /* 9. Alert box cards hover */
-      .alert-box:hover { box-shadow: 0 12px 30px rgba(181,157,248,.18); }
-
-      /* 10. Body background */
-      body { background-color: #F4F6F8; }
-
-      /* 11. Subscribe / featured-in: scoped to avoid conflicts */
-      .subscribe-section h2    { color: #FFFFFF; }
-      .featured-section h2     { color: #1E293B; }
-      .section.soft            { background: #EEF2F7; }
-
-      /* 12. Chatbot float uses correct accent */
-      .chatbot-float { background: #B4F56E; color: #0B0F19; }
-    </style>
     </body>
     <script>
         
@@ -2761,7 +2533,7 @@ footer .row > [class*='col-'] {
             animateOnScroll(); // Run once on load
 
             // Hero auto slider (5 seconds)
-            var hero = document.querySelector('.hero-inner');
+            var hero = document.getElementById('heroSlider');
             var heroImages = [
                 "{{ url_for('static', filename='IITDELHI.jpg') }}",
                 "{{ url_for('static', filename='iit-roorkee.png') }}",
@@ -2773,7 +2545,7 @@ footer .row > [class*='col-'] {
                 var heroIndex = 0;
 
                 function setHeroImage(index) {
-                    hero.style.backgroundImage = "linear-gradient(rgba(11, 15, 25, 0.7), rgba(11, 15, 25, 0.95)), url('" + heroImages[index] + "')";
+                    hero.style.backgroundImage = "linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('" + heroImages[index] + "')";
                 }
 
                 setHeroImage(heroIndex);
@@ -3072,6 +2844,9 @@ document.getElementById("subscribeForm").addEventListener("submit", async functi
             btn.classList.add('open');
             btn.textContent = 'Hide Entrance Details ▴';
         }
+    };
+
         </script>
+
 </body>
 </html>
