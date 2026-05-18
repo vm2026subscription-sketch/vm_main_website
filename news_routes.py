@@ -14,7 +14,7 @@ try:
 except ImportError:
     feedparser = None
 
-from flask import Blueprint, jsonify, render_template, request
+from flask import Blueprint, jsonify, render_template, request, send_file
 
 # Category keywords for filtering
 CATEGORIES = {
@@ -402,3 +402,88 @@ def get_news():
         "count": len(all_news),
         "articles": all_news
     })
+
+
+def _scrape_article_body(url, timeout=6):
+    """Fetch full article text from a URL by extracting <p> tag content."""
+    try:
+        req = Request(url, headers={"User-Agent": "Mozilla/5.0 (compatible; VidyarthiMitra/1.0)"})
+        with urlopen(req, timeout=timeout) as resp:
+            html = resp.read().decode("utf-8", errors="ignore")
+        # Extract all <p> text
+        paragraphs = re.findall(r'<p[^>]*>(.*?)</p>', html, re.DOTALL | re.IGNORECASE)
+        texts = []
+        for p in paragraphs:
+            text = re.sub(r'<[^>]+>', '', p).strip()
+            if len(text) > 40:  # skip nav/footer snippets
+                texts.append(text)
+        return " ".join(texts[:30])  # first 30 paragraphs is plenty
+    except Exception:
+        return ""
+
+
+@news_bp.route("/news/download")
+def download_news():
+    """Download all news articles as an Excel file with full scraped body text."""
+    import io
+    import pandas as pd
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    articles = _get_all_news()
+
+    # Scrape full body for each article in parallel (max 15 threads, 6s timeout each)
+    bodies = {}
+    with ThreadPoolExecutor(max_workers=15) as pool:
+        future_map = {pool.submit(_scrape_article_body, a["link"]): i
+                      for i, a in enumerate(articles) if a.get("link")}
+        for future in as_completed(future_map):
+            idx = future_map[future]
+            try:
+                bodies[idx] = future.result()
+            except Exception:
+                bodies[idx] = ""
+
+    rows = []
+    for i, a in enumerate(articles):
+        date_str = a.get("date", "")
+        date_only = date_str[:10] if date_str else ""
+        time_only = date_str[11:16] if len(date_str) > 10 else ""
+        rows.append({
+            "Headline":    a.get("title", ""),
+            "Date":        date_only,
+            "Time":        time_only,
+            "Category":    a.get("category", ""),
+            "Source":      a.get("source", ""),
+            "Summary":     a.get("desc", ""),
+            "Full Body":   bodies.get(i, ""),
+            "Link":        a.get("link", ""),
+        })
+
+    df = pd.DataFrame(rows)
+
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="News")
+        ws = writer.sheets["News"]
+        col_widths = {"Headline": 55, "Date": 12, "Time": 8, "Category": 18,
+                      "Source": 22, "Summary": 50, "Full Body": 100, "Link": 70}
+        from openpyxl.styles import Font, PatternFill, Alignment
+        for col_cells in ws.columns:
+            header = col_cells[0].value
+            ws.column_dimensions[col_cells[0].column_letter].width = col_widths.get(header, 20)
+        for cell in ws[1]:
+            cell.font = Font(bold=True, color="FFFFFF")
+            cell.fill = PatternFill("solid", fgColor="D9252A")
+            cell.alignment = Alignment(horizontal="center")
+        for row in ws.iter_rows(min_row=2):
+            row[5].alignment = Alignment(wrap_text=True)  # Summary
+            row[6].alignment = Alignment(wrap_text=True)  # Full Body
+
+    output.seek(0)
+    filename = f"vidyarthi-mitra-news-{datetime.now().strftime('%Y-%m-%d')}.xlsx"
+    return send_file(
+        output,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        as_attachment=True,
+        download_name=filename,
+    )
