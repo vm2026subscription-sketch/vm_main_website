@@ -138,15 +138,18 @@ const EP = {
     return data;
   },
 
-  // Optimize Cloudinary image URLs: auto format, auto quality, resize width
+  // Optimize Cloudinary image URLs for thumbnails only; full-res pages are served as-is
   optimizeCloudinaryUrl(url, width = 400) {
     if (!url || typeof url !== 'string') return url;
-    // Only transform Cloudinary URLs (res.cloudinary.com)
     if (!url.includes('res.cloudinary.com')) return url;
-    // Avoid double-transforming (if /upload/f_auto already present)
-    if (url.includes('/f_auto')) return url;
-    // Insert transforms after /upload/ — f_auto picks WebP/AVIF, q_auto adjusts quality
-    return url.replace('/upload/', `/upload/f_auto,q_auto,w_${width},c_limit/`);
+    // Already transformed — don't double-apply
+    if (url.includes('/upload/f_') || url.includes('/upload/w_') || url.includes('/upload/fl_')) return url;
+    // Thumbnails only (≤200px): resize but keep lossless PNG — newspaper text must stay sharp
+    if (width <= 200) {
+      return url.replace('/upload/', `/upload/w_${width},c_limit,fl_lossless,f_png/`);
+    }
+    // Full-size page images: no resize, no lossy compression
+    return url.replace('/upload/', '/upload/fl_lossless,f_png/');
   },
 
   cacheDOM() {
