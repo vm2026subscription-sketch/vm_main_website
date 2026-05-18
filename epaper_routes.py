@@ -11,6 +11,29 @@ from werkzeug.utils import secure_filename
 
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "saurabhedict@gmail.com")
 
+# ── Cloudinary auto-config ─────────────────────────
+_CLOUDINARY_URL = os.getenv("CLOUDINARY_URL", "")
+if _CLOUDINARY_URL:
+    try:
+        import cloudinary
+        cloudinary.config(cloudinary_url=_CLOUDINARY_URL)
+    except Exception:
+        pass
+
+
+def _upload_to_cloudinary(file_bytes, filename):
+    """Upload bytes to Cloudinary. Returns secure_url string or raises."""
+    import io
+    import cloudinary.uploader
+    result = cloudinary.uploader.upload(
+        io.BytesIO(file_bytes),
+        folder="epaper",
+        public_id=os.path.splitext(filename)[0],
+        overwrite=True,
+        resource_type="image",
+    )
+    return result["secure_url"]
+
 
 def _require_admin():
     """Return redirect to login if user is not an admin, else None."""
@@ -270,19 +293,10 @@ def api_upload_epaper_image():
         file_bytes = image.read()
 
     # Cloudinary — persistent CDN storage (required on Vercel where filesystem is ephemeral)
-    if os.getenv("CLOUDINARY_URL"):
+    if _CLOUDINARY_URL:
         try:
-            import io
-            import cloudinary
-            import cloudinary.uploader
-            result = cloudinary.uploader.upload(
-                io.BytesIO(file_bytes),
-                folder="epaper",
-                use_filename=True,
-                unique_filename=True,
-                resource_type="image",
-            )
-            return jsonify({"success": True, "url": result["secure_url"]}), 201
+            url = _upload_to_cloudinary(file_bytes, filename)
+            return jsonify({"success": True, "url": url}), 201
         except Exception as e:
             return jsonify({"error": f"Cloudinary upload failed: {e}"}), 500
 
