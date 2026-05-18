@@ -101,6 +101,29 @@ const EPAdmin = {
       this.showToast('Page image cleared');
     });
 
+    // Auto Layout
+    const autoLayoutBtn   = document.getElementById('autoLayoutBtn');
+    const autoLayoutInput = document.getElementById('autoLayoutInput');
+    if (autoLayoutBtn && autoLayoutInput) {
+      autoLayoutBtn.addEventListener('click', () => {
+        const page = this.pages[this.currentPageIdx];
+        const imgBlocks = (page?.blocks || []).filter(
+          b => b.type !== 'shape' && b.image_url && b.image_url.length > 10
+        );
+        if (imgBlocks.length >= 1) {
+          this.autoLayoutFromExisting(imgBlocks);
+        } else {
+          autoLayoutInput.click();
+        }
+      });
+      autoLayoutInput.addEventListener('change', () => {
+        if (autoLayoutInput.files.length) {
+          this.autoLayoutImages(autoLayoutInput.files);
+          autoLayoutInput.value = '';
+        }
+      });
+    }
+
     // Thumbnail upload
     const imgUpload = document.getElementById('blockImageUpload');
     const imgInput = document.getElementById('blockImageInput');
@@ -1288,6 +1311,226 @@ const EPAdmin = {
     this.showBlockEditor(this.activeBlockIdx);
   },
 
+  // ── AI Auto Layout (Groq-powered) ───────────────────
+
+  // Upload new images → ask Groq for layout → apply
+  async autoLayoutImages(files) {
+    const images = Array.from(files).filter(f => f.type.startsWith('image/'));
+    if (!images.length) return;
+    const n = Math.min(images.length, 6);
+
+    const btn = document.getElementById('autoLayoutBtn');
+    const setBtn = (html) => { if (btn) { btn.disabled = !!html.includes('spin'); btn.innerHTML = html; } };
+    setBtn('<i class="fa fa-spinner fa-spin"></i> Uploading…');
+    this.showToast('Uploading ' + n + ' images…');
+
+    let urls;
+    try {
+      urls = await Promise.all(images.slice(0, n).map(f => this.uploadImage(f)));
+    } catch (e) {
+      this.showToast('Upload failed: ' + (e.message || 'error'));
+      setBtn('<i class="fa fa-magic"></i> AI Auto Layout');
+      return;
+    }
+
+    await this._runAILayout(urls, btn);
+  },
+
+  // Re-arrange images already on canvas using Groq AI (no re-upload)
+  async autoLayoutFromExisting(imgBlocks) {
+    const n = Math.min(imgBlocks.length, 6);
+    const urls = imgBlocks.slice(0, n).map(b => b.image_url);
+    const btn = document.getElementById('autoLayoutBtn');
+    await this._runAILayout(urls, btn);
+  },
+
+  // Shared: load image dims → call Groq → apply layout + separators
+  async _runAILayout(urls, btn) {
+    const setBtn = (html) => { if (btn) { btn.disabled = html.includes('spin'); btn.innerHTML = html; } };
+    setBtn('<i class="fa fa-spinner fa-spin"></i> AI thinking…');
+    this.showToast('Groq AI is computing the best layout…');
+
+    // Load natural dimensions of every image
+    let imageData;
+    try {
+      imageData = await Promise.all(urls.map(url => this._loadImageMeta(url)));
+    } catch (e) {
+      this.showToast('Could not load images: ' + e.message);
+      setBtn('<i class="fa fa-magic"></i> AI Auto Layout');
+      return;
+    }
+
+    // Ask Groq for layout positions
+    let layout;
+    try {
+      const res = await fetch('/api/epaper/admin/ai-layout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ images: imageData }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'AI layout failed');
+      layout = data.layout;
+    } catch (e) {
+      // Groq unavailable — fall back to hardcoded zones with aspect-ratio-correct heights
+      this.showToast('AI unavailable — using standard layout');
+      layout = this._getAutoLayout(imageData.length).map((pos, i) => {
+        const meta = imageData[i];
+        return { ...pos, h: Math.max(40, Math.round(pos.w * meta.h / meta.w)) };
+      });
+    }
+
+    // Apply to canvas
+    this._pushUndo();
+    let page = this.pages[this.currentPageIdx];
+    if (!page) { this.addPage(); page = this.pages[this.currentPageIdx]; }
+    page.blocks = [];
+
+    // Place image blocks using AI positions
+    layout.forEach((pos, i) => {
+      page.blocks.push({
+        id: Date.now() + i,
+        article_id: Date.now() + i,
+        headline: '', sub_headline: '', body_text: '', body_html: '',
+        category_label: '', image_url: imageData[i].url, gallery: [],
+        x: pos.x, y: pos.y, w: pos.w, h: pos.h,
+        border_width: 0, border_radius: 0, border_color: '#e41e26', border_style: 'solid',
+      });
+    });
+
+    // Auto-compute separator lines from the actual positions Groq chose
+    this._computeSeparators(layout).forEach((s, i) => {
+      page.blocks.push({ id: Date.now() + 1000 + i, ...s });
+    });
+
+    this.activeBlockIdx = 0;
+    this.renderCanvas();
+    this.showBlockEditor(0);
+    this.showToast('✅ Groq AI placed ' + urls.length + ' images — full content, no cropping!');
+    setBtn('<i class="fa fa-magic"></i> AI Auto Layout');
+  },
+
+  // Returns {url, w, h} by loading the image naturally
+  _loadImageMeta(url) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload  = () => resolve({ url, w: img.naturalWidth  || 800, h: img.naturalHeight || 600 });
+      img.onerror = () => resolve({ url, w: 800, h: 600 });
+      img.src = url;
+    });
+  },
+
+  // Dynamically compute red h-dividers and gray v-dividers from actual layout positions
+  _computeSeparators(layout) {
+    const W = this.CANVAS_W;
+    const RED = '#d9252a', GRAY = '#d1d5db';
+    const hl = (x, y, w, h, c = RED) => ({
+      type: 'shape', shape_type: 'line-h', x, y, w, h,
+      fill_color: c, stroke_color: c, stroke_width: 0, opacity: 100, no_fill: false, corner_radius: 0,
+    });
+    const vl = (x, y, w, h) => ({
+      type: 'shape', shape_type: 'line-v', x, y, w, h,
+      fill_color: GRAY, stroke_color: GRAY, stroke_width: 0, opacity: 100, no_fill: false, corner_radius: 0,
+    });
+
+    const shapes = [];
+    const TOLS = 14; // snap tolerance in px
+
+    // Horizontal separators: where a block's bottom ≈ another block's top
+    const hLines = new Set();
+    for (const a of layout) {
+      const aBot = a.y + a.h;
+      for (const b of layout) {
+        if (a === b) continue;
+        if (Math.abs(b.y - aBot) <= TOLS && b.y > a.y) {
+          hLines.add(Math.round((aBot + b.y) / 2));
+        }
+      }
+    }
+    hLines.forEach(y => shapes.push(hl(0, y, W, 3)));
+
+    // Vertical separators: where a block's right ≈ another block's left AND they overlap vertically
+    const vAdded = new Set();
+    for (const a of layout) {
+      const aRight = a.x + a.w;
+      for (const b of layout) {
+        if (a === b) continue;
+        if (Math.abs(b.x - aRight) <= TOLS && b.x > a.x) {
+          const overlapTop    = Math.max(a.y, b.y);
+          const overlapBottom = Math.min(a.y + a.h, b.y + b.h);
+          if (overlapBottom > overlapTop) {
+            const sx = Math.round((aRight + b.x) / 2);
+            const sy = overlapTop + 5;
+            const sh = overlapBottom - overlapTop - 10;
+            const key = `${sx}_${sy}`;
+            if (!vAdded.has(key) && sh > 10) {
+              vAdded.add(key);
+              shapes.push(vl(sx, sy, 2, sh));
+            }
+          }
+        }
+      }
+    }
+    return shapes;
+  },
+
+  // Returns [{x,y,w,h}] layout zones for n articles — newspaper front page style
+  _getAutoLayout(n) {
+    const W = this.CANVAS_W; // 800
+    const H = this.CANVAS_H; // 1131
+    const G = 5;             // gap between blocks
+
+    const layouts = {
+      1: [
+        { x: 0, y: 0, w: W, h: H },
+      ],
+      2: [
+        { x: 0, y: 0,   w: W, h: 563 },
+        { x: 0, y: 568, w: W, h: 563 },
+      ],
+      3: [
+        { x: 0,   y: 0,   w: 525, h: 560 },
+        { x: 530, y: 0,   w: 270, h: 560 },
+        { x: 0,   y: 565, w: W,   h: 566 },
+      ],
+      4: [
+        { x: 0,   y: 0,   w: W,   h: 360 },
+        { x: 0,   y: 365, w: 260, h: 766 },
+        { x: 265, y: 365, w: 265, h: 766 },
+        { x: 535, y: 365, w: 265, h: 766 },
+      ],
+      5: [
+        { x: 0,   y: 0,   w: 525, h: 530 },
+        { x: 530, y: 0,   w: 270, h: 260 },
+        { x: 530, y: 265, w: 270, h: 265 },
+        { x: 0,   y: 535, w: 395, h: 596 },
+        { x: 400, y: 535, w: 400, h: 596 },
+      ],
+      6: [
+        { x: 0,   y: 0,   w: W,   h: 330 },
+        { x: 0,   y: 335, w: 395, h: 380 },
+        { x: 400, y: 335, w: 400, h: 380 },
+        { x: 0,   y: 720, w: 260, h: 411 },
+        { x: 265, y: 720, w: 265, h: 411 },
+        { x: 535, y: 720, w: 265, h: 411 },
+      ],
+    };
+
+    if (layouts[n]) return layouts[n];
+
+    // Fallback: 3-column grid for n > 6
+    const cols = 3;
+    const rows = Math.ceil(n / cols);
+    const cellW = Math.round((W - G * (cols - 1)) / cols);
+    const cellH = Math.round((H - G * (rows - 1)) / rows);
+    return Array.from({ length: n }, (_, i) => ({
+      x: (i % cols) * (cellW + G),
+      y: Math.floor(i / cols) * (cellH + G),
+      w: cellW,
+      h: cellH,
+    }));
+  },
+
   addShape(shapeType) {
     let page = this.pages[this.currentPageIdx];
     if (!page) { this.addPage(); page = this.pages[this.currentPageIdx]; }
@@ -1563,6 +1806,19 @@ const EPAdmin = {
       const block = this.pages[this.currentPageIdx]?.blocks?.[this.activeBlockIdx];
       if (block) {
         block.image_url = imageUrl;
+        if (!isPdf) {
+          // Auto-resize block height to match image's natural aspect ratio (no white bars, no cropping)
+          const img = new Image();
+          img.onload = () => {
+            if (img.naturalWidth && img.naturalHeight) {
+              const newH = Math.round((block.w || 200) * img.naturalHeight / img.naturalWidth);
+              block.h = Math.max(40, Math.min(newH, this.CANVAS_H - (block.y || 0)));
+              this.renderCanvas();
+              this.updateSizeInputs();
+            }
+          };
+          img.src = imageUrl;
+        }
         this.renderCanvas();
         const label = document.getElementById('blockImageLabel');
         if (isPdf) {

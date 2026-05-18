@@ -78,7 +78,7 @@
     .epc-block{position:absolute;cursor:move;overflow:hidden;border:none;transition:box-shadow .15s;background:transparent;border-radius:0!important;}
     .epc-block:hover{box-shadow:0 0 0 1px rgba(228,30,38,.35);}
     .epc-block.active{box-shadow:0 0 0 2px var(--r),0 0 0 5px rgba(228,30,38,.2);}
-    .epc-block img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;user-select:none;border-radius:0!important;}
+    .epc-block img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;user-select:none;border-radius:0!important;background:transparent;}
     .epc-empty{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.5);font-size:28px;background:transparent;}
     .epc-label{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.8));padding:8px 10px 6px;color:#fff;pointer-events:none;}
     .epc-cat{font-size:8px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.7);display:block;}
@@ -315,6 +315,15 @@
                 <div style="font-size:11px;font-weight:800;color:#d9252a;">Vidyarthi Mitra</div>
               </div>
             </div>
+          </div>
+
+          <!-- Auto Layout -->
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;padding:10px 12px;background:#f5f3ff;border:1.5px dashed #7c3aed;border-radius:10px">
+            <button type="button" id="autoLayoutBtn" style="background:#7c3aed;color:#fff;border:none;border-radius:7px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px;white-space:nowrap">
+              <i class="fa fa-magic"></i> AI Auto Layout
+            </button>
+            <span style="font-size:11px;color:#6d28d9;font-weight:600">Groq AI places images with full content (no cropping). Uses existing canvas images, or click to upload new ones (1–6).</span>
+            <input type="file" id="autoLayoutInput" accept="image/*" multiple style="display:none">
           </div>
 
           <!-- Shape Toolbar -->
