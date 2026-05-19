@@ -13,7 +13,8 @@
       "Bash(Start-Sleep -Seconds 1)",
       "Bash(Write-Output \"killed\")",
       "Bash(.venv\\\\Scripts\\\\pip.exe install *)",
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "Bash(.venv\\\\Scripts\\\\python.exe -c \"import asyncio, edge_tts; voices = asyncio.run\\(edge_tts.list_voices\\(\\)\\); indian = [v for v in voices if v['Locale'].startswith\\(\\('hi-IN','mr-IN','gu-IN','pa-IN','bn-IN','ta-IN','te-IN','kn-IN','ml-IN','ur-IN','ur-PK','en-IN'\\)\\)]; [print\\(v['ShortName'], '-', v['Gender']\\) for v in sorted\\(indian, key=lambda x: x['Locale']\\)]\")"
     ]
   }
 }
