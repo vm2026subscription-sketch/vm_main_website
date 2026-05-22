@@ -25,10 +25,10 @@
 
     /* ── GEN-Z MODERN OVERRIDES ── */
     :root {
-      --orange: #b6ff5c; /* Neon Lime */
+      --orange: #ff6600; /* Neon Lime */
       --orange-light: #8ad628;
-      --orange-pale: rgba(182, 255, 92, 0.08);
-      --orange-mid: rgba(182, 255, 92, 0.2);
+      --orange-pale: rgba(255,102,0, 0.08);
+      --orange-mid: rgba(255,102,0, 0.2);
       --white: rgba(13, 22, 39, 0.65); /* Translucent glass */
       --off-white: #0a1128;
       --gray-50: #0a1128;
@@ -37,9 +37,9 @@
       --gray-500: #94a3b8;
       --gray-700: #cbd5e1;
       --dark: #ffffff;
-      --shadow-sm: 0 4px 20px rgba(182, 255, 92, 0.08);
-      --shadow-md: 0 8px 32px rgba(182, 255, 92, 0.12);
-      --shadow-lg: 0 20px 60px rgba(182, 255, 92, 0.16);
+      --shadow-sm: 0 4px 20px rgba(255,102,0, 0.08);
+      --shadow-md: 0 8px 32px rgba(255,102,0, 0.12);
+      --shadow-lg: 0 20px 60px rgba(255,102,0, 0.16);
     }
 
     body {
@@ -51,7 +51,7 @@
 
     /* ── HERO ────────────────────────────────────────────────── */
     .hero {
-      background: radial-gradient(circle at top right, rgba(182, 255, 92, 0.08), transparent 45%),
+      background: radial-gradient(circle at top right, rgba(255,102,0, 0.08), transparent 45%),
                   radial-gradient(circle at bottom left, rgba(255, 102, 0, 0.04), transparent 45%),
                   #0a1128 !important;
       border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
@@ -59,19 +59,19 @@
     }
 
     .hero::before {
-      background: radial-gradient(circle, rgba(182, 255, 92, 0.05) 0%, transparent 70%) !important;
+      background: radial-gradient(circle, rgba(255,102,0, 0.05) 0%, transparent 70%) !important;
     }
 
     .hero h1 {
       font-family: 'Poppins', sans-serif !important;
       font-weight: 800 !important;
-      background: linear-gradient(90deg, #b6ff5c, #ffffff);
+      background: linear-gradient(90deg, #ff6600, #ffffff);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
     .hero h1 em {
-      background: linear-gradient(90deg, #b6ff5c, #8ad628);
+      background: linear-gradient(90deg, #ff6600, #8ad628);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
@@ -81,17 +81,17 @@
     }
 
     .hero-label {
-      background: rgba(182, 255, 92, 0.1) !important;
-      color: #b6ff5c !important;
-      border: 1px solid rgba(182, 255, 92, 0.2);
+      background: rgba(255,102,0, 0.1) !important;
+      color: #ff6600 !important;
+      border: 1px solid rgba(255,102,0, 0.2);
       font-family: 'Inter', sans-serif;
       font-weight: 800;
     }
 
     .hero-actions .btn-primary {
-      background: #b6ff5c !important;
+      background: #ff6600 !important;
       color: #050a15 !important;
-      box-shadow: 0 4px 15px rgba(182, 255, 92, 0.25) !important;
+      box-shadow: 0 4px 15px rgba(255,102,0, 0.25) !important;
       font-family: 'Inter', sans-serif;
       font-weight: 800;
       border-radius: 12px !important;
@@ -100,7 +100,7 @@
     .hero-actions .btn-primary:hover {
       background: #8ad628 !important;
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(182, 255, 92, 0.4) !important;
+      box-shadow: 0 6px 20px rgba(255,102,0, 0.4) !important;
     }
 
     .hero-actions .btn-outline {
@@ -113,9 +113,9 @@
     }
 
     .hero-actions .btn-outline:hover {
-      border-color: #b6ff5c !important;
-      color: #b6ff5c !important;
-      background: rgba(182, 255, 92, 0.06) !important;
+      border-color: #ff6600 !important;
+      color: #ff6600 !important;
+      background: rgba(255,102,0, 0.06) !important;
     }
 
     /* ── HERO VISUAL PANEL ───────────────────────────────────── */
@@ -133,14 +133,14 @@
 
     .hero-stat:hover {
       transform: translateY(-3px);
-      border-color: rgba(182, 255, 92, 0.2);
-      box-shadow: 0 8px 25px rgba(182, 255, 92, 0.08);
+      border-color: rgba(255,102,0, 0.2);
+      box-shadow: 0 8px 25px rgba(255,102,0, 0.08);
     }
 
     .hero-stat-num {
       font-family: 'Poppins', sans-serif !important;
       font-weight: 800 !important;
-      color: #b6ff5c !important;
+      color: #ff6600 !important;
     }
 
     /* ── SEARCH SECTION ──────────────────────────────────────── */
@@ -178,7 +178,7 @@
     }
 
     .search-bar button {
-      background: #b6ff5c !important;
+      background: #ff6600 !important;
       color: #050a15 !important;
       font-family: 'Inter', sans-serif;
       font-weight: 800;
@@ -187,7 +187,7 @@
 
     .search-bar button:hover {
       background: #8ad628 !important;
-      box-shadow: 0 4px 15px rgba(182, 255, 92, 0.3);
+      box-shadow: 0 4px 15px rgba(255,102,0, 0.3);
     }
 
     .search-result-item {
@@ -205,8 +205,8 @@
     }
 
     .sri-level {
-      background: rgba(182, 255, 92, 0.1) !important;
-      color: #b6ff5c !important;
+      background: rgba(255,102,0, 0.1) !important;
+      color: #ff6600 !important;
     }
 
     /* ── STICKY FILTER BAR ──────────────────────────────────────────── */
@@ -226,12 +226,12 @@
     }
 
     .filter-tab:hover {
-      color: #b6ff5c !important;
+      color: #ff6600 !important;
     }
 
     .filter-tab.active {
-      color: #b6ff5c !important;
-      border-bottom-color: #b6ff5c !important;
+      color: #ff6600 !important;
+      border-bottom-color: #ff6600 !important;
       font-weight: 800 !important;
     }
 
@@ -246,14 +246,14 @@
     }
 
     .section-icon {
-      background: rgba(182, 255, 92, 0.06) !important;
-      border-color: rgba(182, 255, 92, 0.15) !important;
+      background: rgba(255,102,0, 0.06) !important;
+      border-color: rgba(255,102,0, 0.15) !important;
     }
 
     .section-label {
       font-family: 'Inter', sans-serif !important;
       font-weight: 800 !important;
-      color: #b6ff5c !important;
+      color: #ff6600 !important;
     }
 
     .section-title {
@@ -263,9 +263,9 @@
     }
 
     .section-count {
-      background: rgba(182, 255, 92, 0.1) !important;
-      color: #b6ff5c !important;
-      border: 1px solid rgba(182, 255, 92, 0.2);
+      background: rgba(255,102,0, 0.1) !important;
+      color: #ff6600 !important;
+      border: 1px solid rgba(255,102,0, 0.2);
     }
 
     /* ── EXAM GRID & CARDS ───────────────────────────────────── */
@@ -280,13 +280,13 @@
     }
 
     .exam-card::before {
-      background: #b6ff5c !important;
+      background: #ff6600 !important;
     }
 
     .exam-card:hover {
-      border-color: rgba(182, 255, 92, 0.25) !important;
+      border-color: rgba(255,102,0, 0.25) !important;
       transform: translateY(-6px) !important;
-      box-shadow: 0 15px 35px rgba(182, 255, 92, 0.12) !important;
+      box-shadow: 0 15px 35px rgba(255,102,0, 0.12) !important;
     }
 
     .exam-abbr {
@@ -297,7 +297,7 @@
     }
 
     .exam-card:hover .exam-abbr {
-      color: #b6ff5c !important;
+      color: #ff6600 !important;
     }
 
     .exam-body {
@@ -317,7 +317,7 @@
     }
 
     .exam-link {
-      color: #b6ff5c !important;
+      color: #ff6600 !important;
     }
 
     /* Level Badges */
@@ -337,7 +337,7 @@
 
     /* ── PREPARATION SECTION ─────────────────────────────────── */
     .prep-section {
-      background: radial-gradient(circle at center, rgba(182, 255, 92, 0.05), transparent 60%),
+      background: radial-gradient(circle at center, rgba(255,102,0, 0.05), transparent 60%),
                   linear-gradient(135deg, #0a1128 0%, #050a15 100%) !important;
       border-top: 1px solid rgba(255, 255, 255, 0.06);
       border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -366,10 +366,10 @@
     }
 
     .prep-card:hover {
-      background: rgba(182, 255, 92, 0.05) !important;
-      border-color: rgba(182, 255, 92, 0.25) !important;
+      background: rgba(255,102,0, 0.05) !important;
+      border-color: rgba(255,102,0, 0.25) !important;
       transform: translateY(-5px) !important;
-      box-shadow: 0 10px 25px rgba(182, 255, 92, 0.08) !important;
+      box-shadow: 0 10px 25px rgba(255,102,0, 0.08) !important;
     }
 
     /* ── CAREER SECTION ──────────────────────────────────────── */
@@ -396,10 +396,10 @@
     }
 
     .career-card:hover {
-      border-color: rgba(182, 255, 92, 0.25) !important;
-      color: #b6ff5c !important;
+      border-color: rgba(255,102,0, 0.25) !important;
+      color: #ff6600 !important;
       transform: translateY(-5px) !important;
-      box-shadow: 0 10px 25px rgba(182, 255, 92, 0.08) !important;
+      box-shadow: 0 10px 25px rgba(255,102,0, 0.08) !important;
     }
 
     /* ── FOOTER ──────────────────────────────────────────────── */
@@ -434,7 +434,7 @@
     }
     
     body.light-mode .hero {
-      background: radial-gradient(circle at top right, rgba(182, 255, 92, 0.2), transparent 45%),
+      background: radial-gradient(circle at top right, rgba(255,102,0, 0.2), transparent 45%),
                   radial-gradient(circle at bottom left, rgba(255, 102, 0, 0.1), transparent 45%),
                   #ffffff !important;
       border-bottom: 2px solid var(--orange) !important;
@@ -1175,9 +1175,9 @@
 
 <footer style="background:#0a1128;color:#94a3b8;padding:20px 24px;text-align:center;font-size:13px;margin-top:0;">
   <p>&copy; 2026 VidyarthiMitra.org - All Rights Reserved |
-    <a href="/terms" style="color:#b6ff5c;">Terms</a> |
-    <a href="/privacy" style="color:#b6ff5c;">Privacy</a> |
-    <a href="{{ url_for('contact') }}" style="color:#b6ff5c;">Contact Us</a>
+    <a href="/terms" style="color:#ff6600;">Terms</a> |
+    <a href="/privacy" style="color:#ff6600;">Privacy</a> |
+    <a href="{{ url_for('contact') }}" style="color:#ff6600;">Contact Us</a>
   </p>
 </footer>
 

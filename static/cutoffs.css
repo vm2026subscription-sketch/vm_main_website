@@ -528,7 +528,7 @@ body {
 
 /* --- GEN-Z DARK THEME OVERRIDES (CUTOFFS PAGE) --- */
 :root {
-  --primary: #b6ff5c !important;
+  --primary: #ff6600 !important;
   --primary-dark: #8ad628 !important;
   --text: #ffffff !important;
   --muted: #94a3b8 !important;
@@ -545,17 +545,17 @@ body {
 
 /* HERO SECTION */
 .cutoff-hero {
-  background: radial-gradient(circle at top right, rgba(182, 255, 92, 0.1), transparent 40%),
+  background: radial-gradient(circle at top right, rgba(255,102,0, 0.1), transparent 40%),
               radial-gradient(circle at bottom left, rgba(255, 102, 0, 0.05), transparent 40%),
               #0a1128 !important;
   border-bottom: 1px solid rgba(255,255,255,0.06) !important;
 }
-.hero-kicker { background: rgba(182, 255, 92, 0.1) !important; color: var(--primary) !important; }
+.hero-kicker { background: rgba(255,102,0, 0.1) !important; color: var(--primary) !important; }
 .cutoff-hero-content h2 { color: #fff !important; font-family: 'Poppins', sans-serif !important; }
 .cutoff-hero-content p { color: #cbd5e1 !important; }
 
 .btn-primary { background: var(--primary) !important; color: #050a15 !important; }
-.btn-primary:hover { background: var(--primary-dark) !important; box-shadow: 0 0 20px rgba(182, 255, 92, 0.4) !important; }
+.btn-primary:hover { background: var(--primary-dark) !important; box-shadow: 0 0 20px rgba(255,102,0, 0.4) !important; }
 
 /* FILTER BAR */
 .cutoff-filter-bar {
@@ -592,7 +592,7 @@ body {
 .predictor-form input::placeholder { color: rgba(255,255,255,0.4) !important; }
 .predictor-form input:focus, .predictor-form select:focus, .top20-filter-bar select:focus {
   border-color: var(--primary) !important;
-  box-shadow: 0 0 15px rgba(182, 255, 92, 0.2) !important;
+  box-shadow: 0 0 15px rgba(255,102,0, 0.2) !important;
   outline: none;
 }
 .predictor-form button, .top20-filter-bar button {
@@ -601,7 +601,7 @@ body {
 }
 .predictor-form button:hover, .top20-filter-bar button:hover {
   background: var(--primary-dark) !important;
-  box-shadow: 0 0 20px rgba(182, 255, 92, 0.3) !important;
+  box-shadow: 0 0 20px rgba(255,102,0, 0.3) !important;
 }
 
 /* TABLE */
@@ -632,7 +632,7 @@ body {
 /* ── LIGHT MODE OVERRIDES ────────────────────────────────────────── */
 body.light-mode { background: #f8fafc !important; color: #1e293b !important; }
 body.light-mode .cutoff-hero {
-  background: radial-gradient(circle at top right, rgba(182, 255, 92, 0.2), transparent 40%),
+  background: radial-gradient(circle at top right, rgba(255,102,0, 0.2), transparent 40%),
               radial-gradient(circle at bottom left, rgba(255, 102, 0, 0.1), transparent 40%),
               #ffffff !important;
   border-bottom: 2px solid var(--primary) !important;
@@ -640,7 +640,7 @@ body.light-mode .cutoff-hero {
 body.light-mode .hero-kicker { background: #e0f2fe !important; color: #0369a1 !important; }
 body.light-mode .cutoff-hero-content h2 { color: #0f172a !important; }
 body.light-mode .cutoff-hero-content p { color: #475569 !important; }
-body.light-mode .btn-primary { background: var(--primary) !important; color: #0f172a !important; box-shadow: 0 12px 26px rgba(182, 255, 92, 0.3) !important; }
+body.light-mode .btn-primary { background: var(--primary) !important; color: #0f172a !important; box-shadow: 0 12px 26px rgba(255,102,0, 0.3) !important; }
 body.light-mode .btn-outline { border-color: #cbd5e1 !important; color: #0f172a !important; }
 
 body.light-mode .cutoff-filter-bar { background: rgba(255, 255, 255, 0.8) !important; border-bottom-color: #e2e8f0 !important; }
@@ -667,7 +667,7 @@ body.light-mode .predictor-form input, body.light-mode .predictor-form select, b
 body.light-mode .predictor-form input::placeholder { color: #94a3b8 !important; }
 body.light-mode .predictor-form input:focus, body.light-mode .predictor-form select:focus, body.light-mode .top20-filter-bar select:focus {
   border-color: var(--primary) !important;
-  box-shadow: 0 0 15px rgba(182, 255, 92, 0.2) !important;
+  box-shadow: 0 0 15px rgba(255,102,0, 0.2) !important;
 }
 body.light-mode .predictor-form button, body.light-mode .top20-filter-bar button { background: var(--primary) !important; color: #0f172a !important; }
 

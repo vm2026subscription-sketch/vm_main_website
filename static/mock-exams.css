@@ -66,7 +66,7 @@ nav a.active, nav a:hover { color: #fff; }
 
 /* --- GEN-Z DARK THEME OVERRIDES (MOCK EXAMS PAGE) --- */
 :root {
-  --primary: #b6ff5c !important;
+  --primary: #ff6600 !important;
   --primary-dark: #8ad628 !important;
   --text: #ffffff !important;
   --muted: #94a3b8 !important;
@@ -83,7 +83,7 @@ body {
 
 /* HERO SECTION */
 .hero {
-  background: radial-gradient(circle at top right, rgba(182, 255, 92, 0.1), transparent 40%),
+  background: radial-gradient(circle at top right, rgba(255,102,0, 0.1), transparent 40%),
               radial-gradient(circle at bottom left, rgba(255, 102, 0, 0.05), transparent 40%),
               #0a1128 !important;
   border-bottom: 1px solid rgba(255,255,255,0.06) !important;
@@ -105,8 +105,8 @@ body {
 }
 .exam-card:hover {
   transform: translateY(-8px) scale(1.02) !important;
-  border-color: rgba(182, 255, 92, 0.5) !important;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(182, 255, 92, 0.15) !important;
+  border-color: rgba(255,102,0, 0.5) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255,102,0, 0.15) !important;
 }
 .card-inner h3 { transition: color 0.3s ease !important; }
 .exam-card:hover .card-inner h3 { color: var(--primary) !important; }
@@ -129,13 +129,13 @@ body {
 .stream-box p { color: #94a3b8 !important; }
 .stream-box:hover {
   transform: translateY(-8px) scale(1.02) !important;
-  border-color: rgba(182, 255, 92, 0.5) !important;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(182, 255, 92, 0.15) !important;
+  border-color: rgba(255,102,0, 0.5) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255,102,0, 0.15) !important;
 }
 .stream-icon {
-  background: rgba(182, 255, 92, 0.1) !important;
+  background: rgba(255,102,0, 0.1) !important;
   color: var(--primary) !important;
-  border: 1px solid rgba(182, 255, 92, 0.2) !important;
+  border: 1px solid rgba(255,102,0, 0.2) !important;
   border-radius: 12px !important;
 }
 
@@ -171,9 +171,9 @@ body {
 }
 .sub-form input::placeholder { color: rgba(255,255,255,0.4) !important; }
 .sub-form input:focus {
-  border-color: rgba(182, 255, 92, 0.5) !important;
+  border-color: rgba(255,102,0, 0.5) !important;
   outline: none;
-  box-shadow: 0 0 15px rgba(182, 255, 92, 0.1) !important;
+  box-shadow: 0 0 15px rgba(255,102,0, 0.1) !important;
 }
 .sub-form button {
   background: var(--primary) !important;
@@ -184,7 +184,7 @@ body {
 .sub-form button:hover {
   background: var(--primary-dark) !important;
   transform: scale(1.05) !important;
-  box-shadow: 0 0 20px rgba(182, 255, 92, 0.4) !important;
+  box-shadow: 0 0 20px rgba(255,102,0, 0.4) !important;
 }
 
 
@@ -195,7 +195,7 @@ body.light-mode {
 }
 
 body.light-mode .hero {
-  background: radial-gradient(circle at top right, rgba(182, 255, 92, 0.2), transparent 40%),
+  background: radial-gradient(circle at top right, rgba(255,102,0, 0.2), transparent 40%),
               radial-gradient(circle at bottom left, rgba(255, 102, 0, 0.1), transparent 40%),
               #ffffff !important;
   border-bottom: 2px solid var(--primary) !important;
@@ -212,7 +212,7 @@ body.light-mode .exam-card {
 }
 body.light-mode .exam-card:hover {
   border-color: var(--primary) !important;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 0 20px rgba(182, 255, 92, 0.2) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 0 20px rgba(255,102,0, 0.2) !important;
 }
 body.light-mode .card-inner h3 { color: #0f172a !important; }
 body.light-mode .exam-card:hover .card-inner h3 { color: #166534 !important; }
@@ -230,11 +230,11 @@ body.light-mode .stream-box {
 }
 body.light-mode .stream-box:hover {
   border-color: var(--primary) !important;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 0 20px rgba(182, 255, 92, 0.2) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 0 20px rgba(255,102,0, 0.2) !important;
 }
 body.light-mode .stream-box p { color: #64748b !important; }
 body.light-mode .stream-icon {
-  background: rgba(182, 255, 92, 0.2) !important;
+  background: rgba(255,102,0, 0.2) !important;
   color: #166534 !important;
   border-color: var(--primary) !important;
 }
@@ -262,7 +262,7 @@ body.light-mode .sub-form input {
   border-color: #cbd5e1 !important;
 }
 body.light-mode .sub-form input::placeholder { color: #94a3b8 !important; }
-body.light-mode .sub-form input:focus { border-color: var(--primary) !important; box-shadow: 0 0 15px rgba(182, 255, 92, 0.2) !important; }
+body.light-mode .sub-form input:focus { border-color: var(--primary) !important; box-shadow: 0 0 15px rgba(255,102,0, 0.2) !important; }
 body.light-mode .sub-form button {
   background: var(--primary) !important;
   color: #0f172a !important;
