@@ -195,3 +195,52 @@ body {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(255, 122, 0, 0.3);
 }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .exam-header {
+    padding: 50px 16px 90px;
+  }
+  .exam-header h1 {
+    font-size: clamp(1.8rem, 5vw, 2.5rem);
+  }
+  .filter-bar {
+    flex-direction: column;
+    margin: -40px 16px 30px;
+    padding: 18px;
+    gap: 12px;
+  }
+  .filter-bar input,
+  .filter-bar select {
+    width: 100%;
+  }
+  .navbar {
+    height: auto;
+    padding: 10px 0;
+  }
+  .nav-links {
+    gap: 14px;
+  }
+  .nav-links a {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .exam-header {
+    padding: 40px 14px 70px;
+  }
+  .logo {
+    font-size: 18px;
+  }
+  .btn-login {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+  .nav-links {
+    display: none;
+  }
+  .exam-card {
+    padding: 22px 18px;
+  }
+}

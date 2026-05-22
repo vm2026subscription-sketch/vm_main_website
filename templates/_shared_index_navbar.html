@@ -1,9 +1,11 @@
 <style>
+  /* ── TOP BAR ── */
   .vm-nav-topbar {
-    background: #3a3a3a;
-    color: #fff;
-    font-size: 13px;
+    background: #050a15;
+    color: #94a3b8;
+    font-size: 12px;
     padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
   }
 
   /* Hide legacy per-page navbars that follow the shared navbar to avoid duplicates */
@@ -16,9 +18,9 @@
 
   .vm-nav-topbar .vm-nav-inner,
   .vm-main-header .vm-nav-inner {
-    max-width: 100%;
-    margin: 0;
-    padding: 0 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 40px;
     box-sizing: border-box;
   }
 
@@ -30,196 +32,388 @@
   }
 
   .vm-nav-topbar a {
-    color: #fff;
+    color: #94a3b8;
     text-decoration: none;
-    margin-right: 15px;
-    font-weight: 500;
-  }
-
-  .vm-nav-topbar a:hover {
-    color: #ffd28a;
-  }
-
-  .vm-nav-right {
+    margin-right: 20px;
     font-weight: 600;
+    transition: color 0.2s ease;
+  }
+  .vm-nav-topbar a:hover { color: #b6ff5c; }
+  .vm-nav-right {
+    font-weight: 700;
     letter-spacing: 0.5px;
     white-space: nowrap;
-    padding-right: 20px;
+    color: #cbd5e1;
   }
+  .vm-nav-right span { color: #b6ff5c !important; }
 
+  /* ── MAIN HEADER GLASSMORPHISM ── */
   .vm-main-header {
-    background: #fff;
-    border-bottom: 1px solid #e6e6e6;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    background: rgba(5, 10, 21, 0.85); /* Sleek deep slate dark navy */
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     position: sticky;
     top: 0;
     z-index: 1000;
+    transition: all 0.3s ease;
   }
 
   .vm-main-header .vm-nav-inner {
-    min-height: 62px;
+    min-height: 80px; /* Elevated height for breathing room */
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 32px;
     justify-content: space-between;
-    flex-wrap: nowrap; /* keep brand + links on a single line */
+    flex-wrap: nowrap;
   }
 
+  /* ── BRAND LOGO ── */
   .vm-brand {
     display: inline-flex;
     align-items: center;
     flex: 0 0 auto;
-    margin-right: 8px;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
+  .vm-brand:hover { transform: scale(1.03); }
+  .vm-brand img { height: 46px; width: auto; display: block; }
 
-  .vm-brand img {
-    height: 40px;
-    width: auto;
-    display: block;
-  }
-
+  /* ── DECLUTTERED MAIN NAV LINKS ── */
   .vm-main-links {
-    margin-left: 0; /* allow it to flow under brand when wrapped */
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 28px; 
     flex: 1 1 auto;
-    flex-wrap: nowrap; /* default: keep single row and allow horizontal scroll on wide screens */
-    flex-basis: auto;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    justify-content: flex-start;
+    justify-content: center; /* Centered alignment for main links */
   }
 
-  /* On narrower viewports, let links wrap to a second row below the brand */
-  @media (max-width: 992px) {
-    .vm-main-links {
-      flex-wrap: wrap;
-      flex-basis: 100%;
-      overflow-x: visible;
-      justify-content: center;
-      gap: 6px;
-    }
-    .vm-main-links a { padding: 10px 8px; }
-    .vm-nav-toggle { display: inline-flex; }
-    /* hide links initially on medium screens, show when toggled */
-    .vm-main-header.vm-collapsed .vm-main-links { display: none; }
-    .vm-main-header .vm-main-links { transition: max-height 0.25s ease; }
-  }
-
-  .vm-main-links a {
-    color: #3b3b3b;
-    font-weight: 700;
-    padding: 10px 8px;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-    text-decoration: none;
-    position: relative;
-    white-space: nowrap;
-  }
-
-  .vm-main-links a::before {
-    content: "";
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    width: 0;
-    height: 2px;
-    background: #ff6600;
-    transform: translateX(-50%);
-    transition: width 0.25s ease;
-  }
-
-  .vm-main-links a:hover,
-  .vm-main-links a.vm-active {
-    color: #ff6600;
-  }
-
-  .vm-main-links a:hover::before,
-  .vm-main-links a.vm-active::before {
-    width: 100%;
-  }
-
-  .vm-badge-new {
-    background: #ffcc4d;
-    color: #111;
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-size: 9px;
-    font-weight: 700;
-    margin-left: 5px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    box-shadow: none;
-    animation: none;
-  }
-
-  .vm-main-links a i {
+  .vm-nav-item,
+  .vm-dropdown-trigger {
+    color: #cbd5e1;
+    font-weight: 600;
     font-size: 14px;
-  }
-
-  .vm-main-links a.vm-search {
-    margin-left: 2px;
-    padding-right: 4px;
-  }
-
-  /* nav toggle (hamburger) */
-  .vm-nav-toggle {
-    display: none;
-    background: transparent;
-    border: 1px solid rgba(0,0,0,0.06);
-    padding: 8px 10px;
-    border-radius: 6px;
+    letter-spacing: 0.3px;
+    text-transform: capitalize;
+    text-decoration: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: all 0.25s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    position: relative;
     cursor: pointer;
-    font-size: 18px;
-    margin-left: 8px;
   }
 
-  /* Auth button styles */
-  .vm-main-links a.nav-auth {
+  .vm-nav-item:hover,
+  .vm-dropdown-trigger:hover,
+  .vm-nav-item.vm-active {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  /* ── ELEGANT GLASSMORPHIC DROPDOWNS ── */
+  .vm-dropdown {
+    position: relative;
+    display: inline-block;
+  }
+
+  .vm-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: rgba(10, 17, 40, 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    border-radius: 16px;
+    padding: 10px;
+    min-width: 220px;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1010;
+  }
+
+  .vm-dropdown:hover .vm-dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(4px);
+  }
+
+  .vm-dropdown-menu a {
+    display: block;
+    color: #cbd5e1;
+    padding: 10px 16px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+  }
+
+  .vm-dropdown-menu a:hover {
+    background: rgba(182, 255, 92, 0.08);
+    color: #b6ff5c;
+    padding-left: 20px; /* Subtle slide-right effect */
+  }
+
+  .vm-chevron {
+    font-size: 10px;
+    transition: transform 0.3s ease;
+    opacity: 0.7;
+  }
+  .vm-dropdown:hover .vm-chevron {
+    transform: rotate(180deg);
+    opacity: 1;
+    color: #b6ff5c;
+  }
+
+  /* ── RIGHT-SIDE ACTIONS GROUP ── */
+  .vm-nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 0 0 auto;
+  }
+
+  /* Dedicated Clean Search Icon Container */
+  .vm-search-btn-container {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 8px 12px;
-    margin-left: 8px;
-    border-radius: 999px;
-    border: 1px solid transparent;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none;
+  }
+  .vm-search-btn-container:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(182, 255, 92, 0.3);
+    color: #b6ff5c;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(182, 255, 92, 0.15);
+  }
+
+  /* Hamburger Toggle for Mobile */
+  .vm-nav-toggle {
+    display: none;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+    padding: 10px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 20px;
+    transition: all 0.3s ease;
+    align-items: center;
+    justify-content: center;
+  }
+  .vm-nav-toggle:hover { background: rgba(255,255,255,0.1); }
+
+  /* Balanced Auth CTAs Group on Right */
+  .vm-auth-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* "Login" outline/link style */
+  .vm-btn-link {
+    color: #cbd5e1;
     font-weight: 700;
-    font-size: 13px;
-    line-height: 1;
+    font-size: 14px;
+    text-decoration: none;
+    padding: 10px 18px;
+    transition: all 0.25s ease;
+  }
+  .vm-btn-link:hover {
+    color: #ffffff;
+  }
+
+  /* "Register" solid primary button */
+  .vm-btn-solid {
+    background: #b6ff5c;
+    color: #050a15;
+    font-weight: 800;
+    font-size: 14px;
+    text-decoration: none;
+    padding: 10px 22px;
+    border-radius: 99px;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 15px rgba(182, 255, 92, 0.25);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     white-space: nowrap;
   }
-
-  .vm-main-links a.nav-register {
-    background: #ff6600;
-    color: #fff;
-    border-color: #ff6600;
+  .vm-btn-solid:hover {
+    background: #c2ff6b;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(182, 255, 92, 0.4);
   }
 
-  .vm-main-links a.nav-register:hover {
-    background: #e55a00;
-    color: #fff;
+  /* "Logout" outline button style */
+  .vm-btn-outline {
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.02);
+    font-weight: 700;
+    font-size: 14px;
+    text-decoration: none;
+    padding: 10px 22px;
+    border-radius: 99px;
+    transition: all 0.25s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+  }
+  .vm-btn-outline:hover {
+    border-color: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
   }
 
-  .vm-main-links a.nav-login {
-    background: #fff;
-    color: #ff6600;
-    border-color: rgba(255,102,0,0.25);
-    margin-left: auto; /* push auth buttons to the far right */
+  /* ── LIGHT THEME CONTRAST OVERRIDES ── */
+  body.light-mode .vm-main-header {
+    background: rgba(255, 255, 255, 0.85);
+    border-bottom-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
+  }
+  body.light-mode .vm-nav-item, 
+  body.light-mode .vm-dropdown-trigger {
+    color: #475569;
+  }
+  body.light-mode .vm-nav-item:hover, 
+  body.light-mode .vm-dropdown-trigger:hover, 
+  body.light-mode .vm-nav-item.vm-active {
+    color: #166534;
+    background: rgba(22, 101, 52, 0.06);
+  }
+  body.light-mode .vm-dropdown-menu {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+  }
+  body.light-mode .vm-dropdown-menu a {
+    color: #475569;
+  }
+  body.light-mode .vm-dropdown-menu a:hover {
+    background: rgba(22, 101, 52, 0.06);
+    color: #166534;
+  }
+  body.light-mode .vm-search-btn-container {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.08);
+    color: #475569;
+  }
+  body.light-mode .vm-search-btn-container:hover {
+    background: rgba(22, 101, 52, 0.06);
+    border-color: rgba(22, 101, 52, 0.3);
+    color: #166534;
+    box-shadow: 0 4px 15px rgba(22, 101, 52, 0.1);
+  }
+  body.light-mode .vm-btn-link {
+    color: #475569;
+  }
+  body.light-mode .vm-btn-link:hover {
+    color: #166534;
+  }
+  body.light-mode .vm-btn-solid {
+    background: #166534;
+    color: #ffffff;
+    box-shadow: 0 4px 15px rgba(22, 101, 52, 0.2);
+  }
+  body.light-mode .vm-btn-solid:hover {
+    background: #15803d;
+    box-shadow: 0 6px 20px rgba(22, 101, 52, 0.35);
+  }
+  body.light-mode .vm-btn-outline {
+    border-color: rgba(0, 0, 0, 0.15);
+    color: #475569;
+    background: rgba(0, 0, 0, 0.01);
+  }
+  body.light-mode .vm-btn-outline:hover {
+    border-color: #166534;
+    background: rgba(22, 101, 52, 0.05);
+    color: #166534;
+  }
+  body.light-mode .vm-nav-toggle {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.08);
+    color: #475569;
   }
 
-  .vm-main-links a.nav-login:hover {
-    background: rgba(255,102,0,0.06);
-    color: #e55a00;
+  /* ── RESPONSIVE MOBILE BAR ── */
+  @media (max-width: 992px) {
+    .vm-nav-toggle {
+      display: inline-flex;
+    }
+    .vm-main-header .vm-nav-inner {
+      flex-wrap: wrap;
+      padding: 16px 24px;
+    }
+    .vm-main-links {
+      display: none;
+      flex-direction: column;
+      width: 100%;
+      gap: 12px;
+      padding: 20px 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      margin-top: 10px;
+      align-items: stretch;
+      order: 3;
+    }
+    body.light-mode .vm-main-links {
+      border-top-color: rgba(0, 0, 0, 0.08);
+    }
+    .vm-main-header.vm-expanded .vm-main-links {
+      display: flex;
+    }
+    .vm-dropdown-menu {
+      position: static;
+      transform: none !important;
+      opacity: 1;
+      visibility: visible;
+      background: rgba(255, 255, 255, 0.02);
+      box-shadow: none;
+      border: none;
+      padding-left: 20px;
+      display: none;
+    }
+    body.light-mode .vm-dropdown-menu {
+      background: rgba(0, 0, 0, 0.02);
+    }
+    .vm-dropdown.vm-mobile-open .vm-dropdown-menu {
+      display: block;
+    }
+    .vm-nav-actions {
+      display: none;
+      width: 100%;
+      justify-content: space-between;
+      padding: 16px 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      order: 4;
+    }
+    body.light-mode .vm-nav-actions {
+      border-top-color: rgba(0, 0, 0, 0.08);
+    }
+    .vm-main-header.vm-expanded .vm-nav-actions {
+      display: flex;
+    }
   }
 
-  @media (max-width: 768px) {
-    .vm-main-links a.nav-auth { padding: 6px 8px; font-size: 12px; }
-    .vm-main-links a { padding: 12px 8px; font-size: 11px; }
-  }
-
+  /* ── GLASS SEARCH MODAL OVERRIDES ── */
   .vm-search-overlay {
     position: fixed;
     top: 0;
@@ -233,7 +427,7 @@
     flex-direction: column;
     gap: 10px;
     z-index: 2000;
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(8px);
   }
 
   .vm-search-overlay.vm-active {
@@ -243,37 +437,70 @@
   .vm-search-modal {
     width: 90%;
     max-width: 600px;
-    background: #fff;
-    border-radius: 10px;
-    padding: 18px;
+    background: rgba(10, 17, 40, 0.95) !important;
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 24px;
     display: flex;
     align-items: center;
-    gap: 10px;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+    gap: 12px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5) !important;
     position: relative;
+  }
+  body.light-mode .vm-search-modal {
+    background: #ffffff !important;
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1) !important;
   }
 
   .vm-search-modal input {
     flex: 1;
-    border: 1px solid #e5e7eb;
-    border-radius: 6px;
-    padding: 12px 14px;
-    font-size: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: #ffffff;
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: 15px;
     outline: none;
+    transition: all 0.3s ease;
+  }
+  body.light-mode .vm-search-modal input {
+    border-color: rgba(0, 0, 0, 0.15);
+    background: #f8fafc;
+    color: #0f172a;
+  }
+
+  .vm-search-modal input:focus {
+    border-color: #b6ff5c;
+    box-shadow: 0 0 10px rgba(182, 255, 92, 0.2);
+  }
+  body.light-mode .vm-search-modal input:focus {
+    border-color: #166534;
+    box-shadow: 0 0 10px rgba(22, 101, 52, 0.2);
   }
 
   .vm-search-modal button {
-    background: #ff6600;
+    background: #b6ff5c !important;
     border: none;
-    color: #fff;
-    border-radius: 6px;
-    padding: 12px 16px;
+    color: #050a15 !important;
+    border-radius: 10px;
+    padding: 14px 20px;
     font-size: 16px;
     cursor: pointer;
+    font-weight: 800;
+    transition: all 0.3s ease;
   }
-
+  body.light-mode .vm-search-modal button {
+    background: #166534 !important;
+    color: #ffffff !important;
+  }
   .vm-search-modal button:hover {
-    background: #e55a00;
+    background: #c2ff6b !important;
+    transform: translateY(-1px);
+  }
+  body.light-mode .vm-search-modal button:hover {
+    background: #15803d !important;
   }
 
   .vm-search-close {
@@ -292,82 +519,85 @@
     font-size: 12px;
     color: #d1d5db;
   }
-
-  @media (max-width: 768px) {
-    .vm-nav-topbar .vm-nav-inner {
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-    }
-
-    .vm-main-header .vm-nav-inner {
-      flex-direction: column;
-      align-items: center;
-      padding-top: 8px;
-    }
-
-    .vm-main-links {
-      width: 100%;
-      margin-left: 0;
-      padding-bottom: 4px;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 6px;
-    }
-
-    .vm-main-links a {
-      padding: 10px 8px;
-      font-size: 12px;
-    }
-
-    .vm-nav-right {
-      text-align: center;
-      margin-top: 6px;
-      padding-right: 0;
-    }
-  }
 </style>
 
+<!-- ── TOP BAR ── -->
 <div class="vm-nav-topbar">
   <div class="vm-nav-inner">
     <div>
       <a href="{{ url_for('blog') }}">Blog</a>
       <a href="{{ url_for('epaper.epaper_viewer') }}">E-Paper</a>
     </div>
-    <div class="vm-nav-right">विद्यार्थी मित्र<span style="color:#ffd28a;">.org</span></div>
+    <div class="vm-nav-right">विद्यार्थी मित्र<span style="color:#b6ff5c;">.org</span></div>
   </div>
 </div>
 
+<!-- ── MAIN NAVIGATION HEADER ── -->
 <header class="vm-main-header">
   <div class="vm-nav-inner">
+    <!-- Brand Logo -->
     <a class="vm-brand" href="{{ url_for('index') }}">
       <img src="{{ url_for('static', filename='logo.png') }}" alt="Vidyarthi Mitra">
     </a>
+
+    <!-- Hamburger menu toggle -->
     <button id="vmNavToggle" class="vm-nav-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+
+    <!-- Center Navigation Links (Decluttered with dropdowns) -->
     <nav class="vm-main-links" aria-label="Main navigation">
-      <a href="{{ url_for('index') }}" class="{% if request.endpoint == 'index' %}vm-active{% endif %}"><i class="fa fa-home"></i></a>
-      <a href="{{ url_for('universities') }}" class="{% if request.endpoint == 'universities' %}vm-active{% endif %}">Universities</a>
-      <a href="{{ url_for('colleges') }}" class="{% if request.endpoint == 'colleges' %}vm-active{% endif %}">Colleges</a>
-      <a href="{{ url_for('courses') }}" class="{% if request.endpoint == 'courses' %}vm-active{% endif %}">Courses</a>
-      <a href="{{ url_for('exams') }}" class="{% if request.endpoint == 'exams' %}vm-active{% endif %}">Entrance Exams</a>
-      <a href="{{ url_for('mock_exams') }}" class="{% if request.endpoint == 'mock_exams' %}vm-active{% endif %}">Mock Exams</a>
-      <a href="{{ url_for('cutoffs') }}" class="{% if request.endpoint == 'cutoffs' %}vm-active{% endif %}">Cut-offs</a>
-      <a href="{{ url_for('fyjc_rank') }}" class="{% if request.endpoint == 'fyjc_rank' %}vm-active{% endif %}">FYJC Rank</a>
-      <a href="{{ url_for('admissions') }}" class="{% if request.endpoint == 'admissions' %}vm-active{% endif %}">Admissions</a>
-      <a href="{{ url_for('news') }}" class="{% if request.endpoint == 'news' %}vm-active{% endif %}">News</a>
-      <a href="{{ url_for('epaper.epaper_viewer') }}" class="{% if request.endpoint in ('epaper', 'epaper.epaper_viewer') %}vm-active{% endif %}">E-Paper</a>
-      <a href="{{ url_for('guide_me') }}" class="{% if request.endpoint == 'guide_me' %}vm-active{% endif %}">Guide Me</a>
-      <a href="#" class="vm-search vm-search-trigger" aria-label="Search"><i class="fa fa-search"></i></a>
-      {% if session.get('auth_user') %}
-      <a href="{{ url_for('logout') }}" class="nav-auth nav-login">Logout</a>
-      {% else %}
-      <a href="{{ url_for('login') }}" class="nav-auth nav-login">Login</a>
-      <a href="{{ url_for('register') }}" class="nav-auth nav-register">Register</a>
-      {% endif %}
+      <a href="{{ url_for('index') }}" class="vm-nav-item {% if request.endpoint == 'index' %}vm-active{% endif %}">Home</a>
+
+      <!-- Dropdown 1: Institutes & Admissions -->
+      <div class="vm-dropdown">
+        <span class="vm-dropdown-trigger">Institutes &amp; Degrees <i class="fa fa-chevron-down vm-chevron"></i></span>
+        <div class="vm-dropdown-menu">
+          <a href="{{ url_for('universities') }}">Universities</a>
+          <a href="{{ url_for('colleges') }}">Colleges</a>
+          <a href="{{ url_for('courses') }}">Courses</a>
+          <a href="{{ url_for('admissions') }}">Admissions</a>
+        </div>
+      </div>
+
+      <!-- Dropdown 2: Exams & Cut-offs -->
+      <div class="vm-dropdown">
+        <span class="vm-dropdown-trigger">Exams &amp; Ranks <i class="fa fa-chevron-down vm-chevron"></i></span>
+        <div class="vm-dropdown-menu">
+          <a href="{{ url_for('exams') }}">Entrance Exams</a>
+          <a href="{{ url_for('mock_exams') }}">Mock Exams</a>
+          <a href="{{ url_for('cutoffs') }}">Cut-offs</a>
+          <a href="{{ url_for('fyjc_rank') }}">FYJC Rank Predictor</a>
+        </div>
+      </div>
+
+      <!-- Direct Links -->
+      <a href="{{ url_for('news') }}" class="vm-nav-item {% if request.endpoint == 'news' %}vm-active{% endif %}">News</a>
+      <a href="{{ url_for('guide_me') }}" class="vm-nav-item {% if request.endpoint == 'guide_me' %}vm-active{% endif %}">Guide Me</a>
     </nav>
+
+    <!-- Right Side Actions & Auth CTA Buttons -->
+    <div class="vm-nav-actions">
+      <!-- Search Trigger Container -->
+      <a href="#" class="vm-search-btn-container vm-search-trigger" aria-label="Search">
+        <i class="fa fa-search"></i>
+      </a>
+
+      <!-- Theme Switcher -->
+      <button id="themeToggle" class="vm-theme-toggle" aria-label="Toggle Theme">☀️</button>
+
+      <!-- Side-by-side Auth Actions -->
+      <div class="vm-auth-group">
+        {% if session.get('auth_user') %}
+          <a href="{{ url_for('logout') }}" class="vm-btn-outline">Logout</a>
+        {% else %}
+          <a href="{{ url_for('login') }}" class="vm-btn-link">Login</a>
+          <a href="{{ url_for('register') }}" class="vm-btn-solid">Register</a>
+        {% endif %}
+      </div>
+    </div>
   </div>
 </header>
 
+<!-- ── SEARCH MODAL OVERLAY ── -->
 <div class="vm-search-overlay" id="vmSearchOverlay">
   <div class="vm-search-modal">
     <input type="text" id="vmSearchInput" placeholder="Search: FYJC rank, cutoff, courses, exams...">
@@ -377,6 +607,7 @@
   <small class="vm-search-hint" id="vmSearchHint"></small>
 </div>
 
+<!-- ── SCRIPTS ── -->
 <script>
   (function () {
     var overlay = document.getElementById('vmSearchOverlay');
@@ -491,13 +722,11 @@
     try {
       var header = document.querySelector('.vm-main-header');
       if (!header) return;
-      // find sibling headers that come after the shared header
       var siblings = document.querySelectorAll('.vm-main-header ~ header');
       siblings.forEach(function(h){
         if (!h) return;
         var nav = h.querySelector('nav');
         if (!nav) return;
-        // if the header's nav looks like a full site nav (several links or bootstrap navbar), hide it
         var links = nav.querySelectorAll('a');
         if (links.length >= 4 || nav.classList.contains('navbar') ) {
           h.style.display = 'none';
@@ -518,17 +747,334 @@
 
     toggle.addEventListener('click', function(e){
       e.preventDefault();
-      var expanded = this.getAttribute('aria-expanded') === 'true';
-      this.setAttribute('aria-expanded', expanded ? 'false' : 'true');
-      header.classList.toggle('vm-collapsed');
+      header.classList.toggle('vm-expanded');
+      var expanded = header.classList.contains('vm-expanded');
+      this.setAttribute('aria-expanded', expanded ? 'true' : 'false');
     });
 
-    // ensure collapsed state is reset when resizing to large screens
+    // Mobile click handler to open dropdowns on mobile screen
+    document.querySelectorAll('.vm-dropdown-trigger').forEach(function(trigger) {
+      trigger.addEventListener('click', function(e) {
+        if (window.innerWidth <= 992) {
+          e.preventDefault();
+          var parent = this.parentElement;
+          parent.classList.toggle('vm-mobile-open');
+        }
+      });
+    });
+
+    // Ensure collapsed state is reset when resizing to large screens
     window.addEventListener('resize', function(){
       if (window.innerWidth > 992) {
-        header.classList.remove('vm-collapsed');
+        header.classList.remove('vm-expanded');
         if (toggle) toggle.setAttribute('aria-expanded','false');
-        links.style.display = '';
+        document.querySelectorAll('.vm-dropdown').forEach(function(d) {
+          d.classList.remove('vm-mobile-open');
+        });
+      }
+    });
+  })();
+</script>
+
+<style>
+  /* Theme Toggle Button Base */
+  .vm-theme-toggle {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #cbd5e1;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    margin-left: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .vm-theme-toggle:hover {
+    background: rgba(255,255,255,0.1);
+  }
+  body.light-mode .vm-theme-toggle {
+    border-color: rgba(0,0,0,0.1);
+    color: #475569;
+  }
+  body.light-mode .vm-theme-toggle:hover {
+    background: rgba(0,0,0,0.05);
+  }
+  @media (max-width: 992px) {
+    .vm-theme-toggle { margin-left: 0; margin-top: 8px; }
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+      // Load preference
+      if (localStorage.getItem('theme') === 'light') {
+        document.body.classList.add('light-mode');
+        themeToggle.textContent = '🌙';
+      } else {
+        themeToggle.textContent = '☀️';
+      }
+      
+      themeToggle.addEventListener('click', function() {
+        document.body.classList.toggle('light-mode');
+        var isLight = document.body.classList.contains('light-mode');
+        if (isLight) {
+          localStorage.setItem('theme', 'light');
+          themeToggle.textContent = '🌙';
+        } else {
+          localStorage.setItem('theme', 'dark');
+          themeToggle.textContent = '☀️';
+        }
+
+        // Notify chatbot iframe
+        var chatFrame = document.getElementById('vmChatFrame');
+        if (chatFrame && chatFrame.contentWindow) {
+          try {
+            chatFrame.contentWindow.postMessage({
+              type: 'theme-change',
+              theme: isLight ? 'light' : 'dark'
+            }, '*');
+          } catch (e) {}
+        }
+      });
+    }
+  });
+</script>
+
+<style>
+  .vm-chat-launcher {
+    position: fixed;
+    left: 24px;
+    bottom: 24px;
+    width: 60px;
+    height: 60px;
+    border: none;
+    border-radius: 50%;
+    background: #b6ff5c;
+    color: #050a15;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 30px rgba(182, 255, 92, 0.35);
+    z-index: 2200;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .vm-chat-launcher:hover {
+    transform: scale(1.1) translateY(-3px);
+    box-shadow: 0 14px 38px rgba(182, 255, 92, 0.5);
+  }
+  .vm-chat-launcher:active {
+    transform: scale(0.95);
+  }
+  .vm-chat-pulse {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: #b6ff5c;
+    opacity: 0;
+    z-index: -1;
+    animation: launcherPulse 2s infinite;
+  }
+  @keyframes launcherPulse {
+    0% { transform: scale(1); opacity: 0.45; }
+    100% { transform: scale(1.6); opacity: 0; }
+  }
+  .vm-chat-launcher .vm-chat-icon {
+    position: absolute;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+  }
+  .vm-chat-launcher .vm-chat-icon-robot {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+  .vm-chat-launcher .vm-chat-icon-close {
+    opacity: 0;
+    transform: scale(0) rotate(-90deg);
+  }
+  .vm-chat-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #ff6600;
+    color: #ffffff;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 2px 5px;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(255, 102, 0, 0.4);
+    border: 1px solid #ffffff;
+    transition: all 0.2s ease;
+  }
+
+  /* Active Open State */
+  .vm-chat-launcher.vm-active {
+    background: #ff4a4a;
+    box-shadow: 0 10px 30px rgba(255, 74, 74, 0.4);
+    color: #ffffff;
+  }
+  .vm-chat-launcher.vm-active .vm-chat-icon-robot {
+    opacity: 0;
+    transform: scale(0) rotate(90deg);
+  }
+  .vm-chat-launcher.vm-active .vm-chat-icon-close {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+  .vm-chat-launcher.vm-active .vm-chat-badge {
+    opacity: 0;
+    transform: scale(0);
+  }
+  .vm-chat-launcher.vm-active .vm-chat-pulse {
+    animation: none;
+    opacity: 0;
+  }
+
+  /* Light Theme Overrides */
+  body.light-mode .vm-chat-launcher {
+    background: #166534;
+    color: #ffffff;
+    box-shadow: 0 10px 30px rgba(22, 101, 52, 0.25);
+  }
+  body.light-mode .vm-chat-launcher:hover {
+    box-shadow: 0 14px 38px rgba(22, 101, 52, 0.4);
+  }
+  body.light-mode .vm-chat-pulse {
+    background: #166534;
+  }
+  body.light-mode .vm-chat-badge {
+    background: #166534;
+    border-color: #ffffff;
+  }
+  body.light-mode .vm-chat-launcher.vm-active {
+    background: #dc2626;
+    box-shadow: 0 10px 30px rgba(220, 38, 38, 0.3);
+  }
+
+  /* Frame Wrapper Styles */
+  .vm-chat-frame-wrap {
+    position: fixed;
+    left: 24px;
+    bottom: 96px;
+    width: min(390px, calc(100vw - 48px));
+    height: min(640px, calc(100vh - 140px));
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #ffffff;
+    z-index: 2200;
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.85) translateY(20px);
+    transform-origin: bottom left;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+  }
+  .vm-chat-frame-wrap.vm-open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: scale(1) translateY(0);
+  }
+  .vm-chat-frame {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: #fff;
+  }
+
+  @media (max-width: 640px) {
+    .vm-chat-frame-wrap {
+      left: 12px;
+      right: 12px;
+      width: auto;
+      height: 72vh;
+      bottom: 84px;
+      transform-origin: bottom center;
+    }
+    .vm-chat-launcher {
+      left: 12px;
+      bottom: 12px;
+    }
+  }
+</style>
+
+<div id="vmChatWrap" class="vm-chat-frame-wrap" aria-hidden="true">
+  <iframe
+    id="vmChatFrame"
+    class="vm-chat-frame"
+    src="{{ url_for('chatbot') }}"
+    title="Vidyarthi Mitra Chatbot"
+    loading="lazy"
+  ></iframe>
+</div>
+
+<button type="button" id="vmChatLauncher" class="vm-chat-launcher" aria-label="Open Unnati AI Chatbot">
+  <span class="vm-chat-pulse"></span>
+  
+  <!-- Robot Head Icon -->
+  <svg class="vm-chat-icon vm-chat-icon-robot" width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="3" y="8" width="18" height="12" rx="4" stroke="currentColor" stroke-width="2.2" fill="none" />
+    <path d="M2 12H3M21 12H22" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+    <path d="M12 5V8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+    <circle cx="12" cy="4" r="1.5" fill="currentColor" />
+    <circle cx="8" cy="14" r="1.8" fill="currentColor" />
+    <circle cx="16" cy="14" r="1.8" fill="currentColor" />
+    <path d="M9 17C10.5 18 13.5 18 15 17" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+  </svg>
+
+  <!-- Close Cross Icon -->
+  <svg class="vm-chat-icon vm-chat-icon-close" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18"></line>
+    <line x1="6" y1="6" x2="18" y2="18"></line>
+  </svg>
+
+  <span class="vm-chat-badge">AI</span>
+</button>
+
+<script>
+  (function () {
+    var launcher = document.getElementById('vmChatLauncher');
+    var wrap = document.getElementById('vmChatWrap');
+    var frame = document.getElementById('vmChatFrame');
+    if (!launcher || !wrap || !frame) return;
+
+    function openChat() {
+      wrap.classList.add('vm-open');
+      wrap.setAttribute('aria-hidden', 'false');
+      launcher.classList.add('vm-active');
+      var isLight = document.body.classList.contains('light-mode');
+      try {
+        frame.contentWindow.postMessage({ 
+          type: 'chatbot-open',
+          theme: isLight ? 'light' : 'dark'
+        }, '*');
+      } catch (e) {}
+    }
+
+    function closeChat() {
+      wrap.classList.remove('vm-open');
+      wrap.setAttribute('aria-hidden', 'true');
+      launcher.classList.remove('vm-active');
+    }
+
+    launcher.addEventListener('click', function(e) {
+      e.preventDefault();
+      if (wrap.classList.contains('vm-open')) {
+        closeChat();
+      } else {
+        openChat();
+      }
+    });
+
+    window.addEventListener('message', function (event) {
+      if (!event || !event.data) return;
+      if (event.data.type === 'chatbot-close') {
+        closeChat();
       }
     });
   })();

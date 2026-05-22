@@ -317,14 +317,7 @@
             </div>
           </div>
 
-          <!-- Auto Layout -->
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;padding:10px 12px;background:#f5f3ff;border:1.5px dashed #7c3aed;border-radius:10px">
-            <button type="button" id="autoLayoutBtn" style="background:#7c3aed;color:#fff;border:none;border-radius:7px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px;white-space:nowrap">
-              <i class="fa fa-magic"></i> AI Auto Layout
-            </button>
-            <span style="font-size:11px;color:#6d28d9;font-weight:600">Groq AI places images with full content (no cropping). Uses existing canvas images, or click to upload new ones (1–6).</span>
-            <input type="file" id="autoLayoutInput" accept="image/*" multiple style="display:none">
-          </div>
+
 
           <!-- Shape Toolbar -->
           <div class="epc-shape-toolbar">
@@ -423,6 +416,15 @@
               </div>
               <div style="display:flex;gap:6px;margin-top:8px">
                 <button type="button" class="epa-btn epa-btn-sm" onclick="EPAdmin.fitBlockToImage()"><i class="fa fa-expand"></i> Fit to image</button>
+              </div>
+            </div>
+
+            <!-- Page Link (all blocks) -->
+            <div class="epb-section" id="blockGotoSection">
+              <div class="epb-section-title"><i class="fa fa-link"></i> Page Link</div>
+              <div class="epa-form-group">
+                <label>Go to Page <span style="font-weight:400;color:var(--muted)">(click navigates viewer to this page)</span></label>
+                <input type="number" id="blkGotoPage" placeholder="Leave blank for no link" min="1" style="width:100%" oninput="EPAdmin.applyGotoPage()">
               </div>
             </div>
 

@@ -284,3 +284,11 @@ textarea {
     .avatar-column    { min-width: 100%; }
     .image-box        { width: 160px; height: 160px; }
 }
+
+@media (max-width: 480px) {
+    .orange-banner    { padding: 30px 16px; }
+    .orange-banner h1 { font-size: 1.5rem; letter-spacing: 0; }
+    .container        { padding: 0 14px 40px; }
+    .image-box        { width: 130px; height: 130px; }
+    .submit-btn       { width: 100%; font-size: 15px; }
+}

@@ -35,12 +35,16 @@ body {
     background: white;
     display: none;
     z-index: 999;
+    overflow-y: auto;
 }
 
 /* FORM BOX */
 .feedback-form {
-    width: 450px;
-    margin: 50px auto;
+    max-width: 450px;
+    width: 100%;
+    margin: 30px auto;
+    padding: 0 16px;
+    box-sizing: border-box;
 }
 
 /* LABELS */
@@ -95,4 +99,25 @@ body {
     padding: 12px 25px;
     border-radius: 8px;
     cursor: pointer;
+}
+
+/* RESPONSIVE */
+@media (max-width: 480px) {
+    .feedback-form {
+        margin: 16px auto;
+        padding: 0 12px;
+    }
+    .button-group {
+        flex-direction: column;
+        gap: 10px;
+    }
+    .submit-btn,
+    .cancel-btn {
+        width: 100%;
+        text-align: center;
+    }
+    .feedback-tab {
+        padding: 10px 6px;
+        font-size: 13px;
+    }
 }

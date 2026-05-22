@@ -38,6 +38,13 @@ body {
     .form-section { padding: 20px; }
 }
 
+@media (max-width: 480px) {
+    body { padding: 10px; }
+    .form-section { padding: 16px; border-radius: 10px; }
+    .form-title { font-size: 22px; }
+    .conditional-section { padding: 16px; }
+}
+
 .field {
     display: flex;
     flex-direction: column;

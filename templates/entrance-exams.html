@@ -13,16 +13,651 @@
   <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
 
   <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-<link rel="stylesheet" href="{{ url_for('static', filename='entrance-exams.css') }}">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
-<style>
-  .navbar { display: none; }
-</style>
+  <link rel="stylesheet" href="{{ url_for('static', filename='entrance-exams.css') }}">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <style>
+    .navbar { display: none; }
+
+    /* ── GEN-Z MODERN OVERRIDES ── */
+    :root {
+      --orange: #b6ff5c; /* Neon Lime */
+      --orange-light: #8ad628;
+      --orange-pale: rgba(182, 255, 92, 0.08);
+      --orange-mid: rgba(182, 255, 92, 0.2);
+      --white: rgba(13, 22, 39, 0.65); /* Translucent glass */
+      --off-white: #0a1128;
+      --gray-50: #0a1128;
+      --gray-100: rgba(255, 255, 255, 0.06);
+      --gray-300: rgba(255, 255, 255, 0.15);
+      --gray-500: #94a3b8;
+      --gray-700: #cbd5e1;
+      --dark: #ffffff;
+      --shadow-sm: 0 4px 20px rgba(182, 255, 92, 0.08);
+      --shadow-md: 0 8px 32px rgba(182, 255, 92, 0.12);
+      --shadow-lg: 0 20px 60px rgba(182, 255, 92, 0.16);
+    }
+
+    body {
+      background-color: #050a15 !important;
+      color: #ffffff !important;
+      font-family: 'Inter', sans-serif !important;
+      transition: background-color 0.4s ease, color 0.4s ease;
+    }
+
+    /* ── HERO ────────────────────────────────────────────────── */
+    .hero {
+      background: radial-gradient(circle at top right, rgba(182, 255, 92, 0.08), transparent 45%),
+                  radial-gradient(circle at bottom left, rgba(255, 102, 0, 0.04), transparent 45%),
+                  #0a1128 !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+      min-height: 85vh;
+    }
+
+    .hero::before {
+      background: radial-gradient(circle, rgba(182, 255, 92, 0.05) 0%, transparent 70%) !important;
+    }
+
+    .hero h1 {
+      font-family: 'Poppins', sans-serif !important;
+      font-weight: 800 !important;
+      background: linear-gradient(90deg, #b6ff5c, #ffffff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero h1 em {
+      background: linear-gradient(90deg, #b6ff5c, #8ad628);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-sub {
+      color: #94a3b8 !important;
+    }
+
+    .hero-label {
+      background: rgba(182, 255, 92, 0.1) !important;
+      color: #b6ff5c !important;
+      border: 1px solid rgba(182, 255, 92, 0.2);
+      font-family: 'Inter', sans-serif;
+      font-weight: 800;
+    }
+
+    .hero-actions .btn-primary {
+      background: #b6ff5c !important;
+      color: #050a15 !important;
+      box-shadow: 0 4px 15px rgba(182, 255, 92, 0.25) !important;
+      font-family: 'Inter', sans-serif;
+      font-weight: 800;
+      border-radius: 12px !important;
+    }
+
+    .hero-actions .btn-primary:hover {
+      background: #8ad628 !important;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(182, 255, 92, 0.4) !important;
+    }
+
+    .hero-actions .btn-outline {
+      border-color: rgba(255, 255, 255, 0.15) !important;
+      color: #ffffff !important;
+      background: rgba(255, 255, 255, 0.02) !important;
+      font-family: 'Inter', sans-serif;
+      font-weight: 800;
+      border-radius: 12px !important;
+    }
+
+    .hero-actions .btn-outline:hover {
+      border-color: #b6ff5c !important;
+      color: #b6ff5c !important;
+      background: rgba(182, 255, 92, 0.06) !important;
+    }
+
+    /* ── HERO VISUAL PANEL ───────────────────────────────────── */
+    .hero-visual-inner {
+      background: linear-gradient(135deg, rgba(13, 22, 39, 0.8) 0%, rgba(10, 17, 40, 0.9) 100%) !important;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    .hero-stat {
+      background: rgba(255, 255, 255, 0.03) !important;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      transition: all 0.3s ease;
+    }
+
+    .hero-stat:hover {
+      transform: translateY(-3px);
+      border-color: rgba(182, 255, 92, 0.2);
+      box-shadow: 0 8px 25px rgba(182, 255, 92, 0.08);
+    }
+
+    .hero-stat-num {
+      font-family: 'Poppins', sans-serif !important;
+      font-weight: 800 !important;
+      color: #b6ff5c !important;
+    }
+
+    /* ── SEARCH SECTION ──────────────────────────────────────── */
+    .search-section {
+      background: #050a15 !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 60px 80px !important;
+    }
+
+    .search-section::before {
+      display: none;
+    }
+
+    .search-inner h2 {
+      font-family: 'Poppins', sans-serif !important;
+      font-weight: 800 !important;
+      color: #ffffff !important;
+    }
+
+    .search-inner p {
+      color: #94a3b8 !important;
+    }
+
+    .search-bar {
+      background: rgba(255, 255, 255, 0.02) !important;
+      border: 1.5px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
+      border-radius: 16px !important;
+    }
+
+    .search-bar input {
+      background: transparent !important;
+      color: #ffffff !important;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .search-bar button {
+      background: #b6ff5c !important;
+      color: #050a15 !important;
+      font-family: 'Inter', sans-serif;
+      font-weight: 800;
+      transition: all 0.3s ease;
+    }
+
+    .search-bar button:hover {
+      background: #8ad628 !important;
+      box-shadow: 0 4px 15px rgba(182, 255, 92, 0.3);
+    }
+
+    .search-result-item {
+      background: rgba(13, 22, 39, 0.95) !important;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3) !important;
+    }
+
+    .sri-name {
+      color: #ffffff !important;
+    }
+
+    .sri-cat {
+      color: #94a3b8 !important;
+    }
+
+    .sri-level {
+      background: rgba(182, 255, 92, 0.1) !important;
+      color: #b6ff5c !important;
+    }
+
+    /* ── STICKY FILTER BAR ──────────────────────────────────────────── */
+    .filter-bar {
+      background: rgba(13, 22, 39, 0.65) !important;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+      padding: 0 80px !important;
+    }
+
+    .filter-tab {
+      color: #94a3b8 !important;
+      font-family: 'Inter', sans-serif !important;
+      font-weight: 600 !important;
+      transition: all 0.2s ease !important;
+    }
+
+    .filter-tab:hover {
+      color: #b6ff5c !important;
+    }
+
+    .filter-tab.active {
+      color: #b6ff5c !important;
+      border-bottom-color: #b6ff5c !important;
+      font-weight: 800 !important;
+    }
+
+    /* ── EXAM SECTIONS ───────────────────────────────────────── */
+    .exam-section {
+      background: #050a15 !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+    }
+
+    .exam-section:nth-child(even) {
+      background: #0a1128 !important;
+    }
+
+    .section-icon {
+      background: rgba(182, 255, 92, 0.06) !important;
+      border-color: rgba(182, 255, 92, 0.15) !important;
+    }
+
+    .section-label {
+      font-family: 'Inter', sans-serif !important;
+      font-weight: 800 !important;
+      color: #b6ff5c !important;
+    }
+
+    .section-title {
+      font-family: 'Poppins', sans-serif !important;
+      font-weight: 700 !important;
+      color: #ffffff !important;
+    }
+
+    .section-count {
+      background: rgba(182, 255, 92, 0.1) !important;
+      color: #b6ff5c !important;
+      border: 1px solid rgba(182, 255, 92, 0.2);
+    }
+
+    /* ── EXAM GRID & CARDS ───────────────────────────────────── */
+    .exam-card {
+      background: rgba(13, 22, 39, 0.65) !important;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.06) !important;
+      border-radius: 20px !important;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
+      transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease !important;
+    }
+
+    .exam-card::before {
+      background: #b6ff5c !important;
+    }
+
+    .exam-card:hover {
+      border-color: rgba(182, 255, 92, 0.25) !important;
+      transform: translateY(-6px) !important;
+      box-shadow: 0 15px 35px rgba(182, 255, 92, 0.12) !important;
+    }
+
+    .exam-abbr {
+      font-family: 'Poppins', sans-serif !important;
+      font-weight: 700 !important;
+      color: #ffffff !important;
+      transition: color 0.2s;
+    }
+
+    .exam-card:hover .exam-abbr {
+      color: #b6ff5c !important;
+    }
+
+    .exam-body {
+      color: #cbd5e1 !important;
+    }
+
+    .exam-name {
+      color: #94a3b8 !important;
+    }
+
+    .exam-conducting {
+      color: #94a3b8 !important;
+    }
+
+    .exam-footer-row {
+      border-top-color: rgba(255, 255, 255, 0.06) !important;
+    }
+
+    .exam-link {
+      color: #b6ff5c !important;
+    }
+
+    /* Level Badges */
+    .exam-level {
+      font-family: 'Inter', sans-serif !important;
+      font-weight: 800 !important;
+      border-radius: 20px !important;
+    }
+
+    .level-national { background: rgba(59, 130, 246, 0.1) !important; color: #60a5fa !important; }
+    .level-state    { background: rgba(249, 115, 22, 0.1) !important; color: #fb923c !important; }
+    .level-upsc     { background: rgba(168, 85, 247, 0.1) !important; color: #c084fc !important; }
+    .level-pg       { background: rgba(236, 72, 153, 0.1) !important; color: #f472b6 !important; }
+    .level-intl     { background: rgba(20, 184, 166, 0.1) !important; color: #2dd4bf !important; }
+    .level-defence  { background: rgba(239, 68, 68, 0.1) !important; color: #f87171 !important; }
+    .level-banking  { background: rgba(16, 185, 129, 0.1) !important; color: #34d399 !important; }
+
+    /* ── PREPARATION SECTION ─────────────────────────────────── */
+    .prep-section {
+      background: radial-gradient(circle at center, rgba(182, 255, 92, 0.05), transparent 60%),
+                  linear-gradient(135deg, #0a1128 0%, #050a15 100%) !important;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .prep-section::before {
+      display: none;
+    }
+
+    .prep-section h2 {
+      font-family: 'Poppins', sans-serif !important;
+      font-weight: 800 !important;
+      color: #ffffff !important;
+    }
+
+    .prep-section > p {
+      color: #94a3b8 !important;
+    }
+
+    .prep-card {
+      background: rgba(255, 255, 255, 0.02) !important;
+      border: 1px solid rgba(255, 255, 255, 0.06) !important;
+      border-radius: 20px !important;
+      transition: all 0.3s ease !important;
+      color: #ffffff !important;
+    }
+
+    .prep-card:hover {
+      background: rgba(182, 255, 92, 0.05) !important;
+      border-color: rgba(182, 255, 92, 0.25) !important;
+      transform: translateY(-5px) !important;
+      box-shadow: 0 10px 25px rgba(182, 255, 92, 0.08) !important;
+    }
+
+    /* ── CAREER SECTION ──────────────────────────────────────── */
+    .career-section {
+      background: #050a15 !important;
+    }
+
+    .sec-title {
+      font-family: 'Poppins', sans-serif !important;
+      font-weight: 800 !important;
+      color: #ffffff !important;
+    }
+
+    .sec-sub {
+      color: #94a3b8 !important;
+    }
+
+    .career-card {
+      background: rgba(13, 22, 39, 0.65) !important;
+      border: 1px solid rgba(255, 255, 255, 0.06) !important;
+      border-radius: 20px !important;
+      transition: all 0.3s ease !important;
+      color: #ffffff !important;
+    }
+
+    .career-card:hover {
+      border-color: rgba(182, 255, 92, 0.25) !important;
+      color: #b6ff5c !important;
+      transform: translateY(-5px) !important;
+      box-shadow: 0 10px 25px rgba(182, 255, 92, 0.08) !important;
+    }
+
+    /* ── FOOTER ──────────────────────────────────────────────── */
+    footer {
+      background: #0a1128 !important;
+      border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+      color: #94a3b8 !important;
+    }
+
+    /* ── LIGHT MODE OVERRIDES ────────────────────────────────────────── */
+    body.light-mode {
+      --orange: #166534;
+      --orange-light: #15803d;
+      --orange-pale: rgba(22, 101, 52, 0.06);
+      --orange-mid: rgba(22, 101, 52, 0.15);
+      --white: rgba(255, 255, 255, 0.8);
+      --off-white: #f8fafc;
+      --gray-50: #f8fafc;
+      --gray-100: #cbd5e1;
+      --gray-300: #cbd5e1;
+      --gray-500: #475569;
+      --gray-700: #0f172a;
+      --dark: #0f172a;
+      --shadow-sm: 0 4px 20px rgba(22, 101, 52, 0.06);
+      --shadow-md: 0 8px 32px rgba(22, 101, 52, 0.1);
+      --shadow-lg: 0 20px 60px rgba(22, 101, 52, 0.12);
+    }
+    
+    body.light-mode {
+      background-color: #f8fafc !important;
+      color: #0f172a !important;
+    }
+    
+    body.light-mode .hero {
+      background: radial-gradient(circle at top right, rgba(182, 255, 92, 0.2), transparent 45%),
+                  radial-gradient(circle at bottom left, rgba(255, 102, 0, 0.1), transparent 45%),
+                  #ffffff !important;
+      border-bottom: 2px solid var(--orange) !important;
+    }
+    
+    body.light-mode .hero h1 {
+      background: linear-gradient(90deg, #166534, #0f172a);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    body.light-mode .hero-sub {
+      color: #475569 !important;
+    }
+    
+    body.light-mode .hero-label {
+      background: rgba(22, 101, 52, 0.08) !important;
+      color: #166534 !important;
+      border-color: rgba(22, 101, 52, 0.2) !important;
+    }
+    
+    body.light-mode .hero-actions .btn-primary {
+      background: #166534 !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 15px rgba(22, 101, 52, 0.25) !important;
+    }
+    
+    body.light-mode .hero-actions .btn-primary:hover {
+      background: #15803d !important;
+    }
+    
+    body.light-mode .hero-actions .btn-outline {
+      border-color: #cbd5e1 !important;
+      color: #475569 !important;
+      background: #ffffff !important;
+    }
+    body.light-mode .hero-actions .btn-outline:hover {
+      border-color: #166534 !important;
+      color: #166534 !important;
+      background: rgba(22, 101, 52, 0.05) !important;
+    }
+    
+    body.light-mode .hero-visual-inner {
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05) !important;
+    }
+    
+    body.light-mode .hero-stat {
+      background: rgba(22, 101, 52, 0.05) !important;
+      border-color: rgba(22, 101, 52, 0.15) !important;
+    }
+    body.light-mode .hero-stat-num {
+      color: #166534 !important;
+    }
+    body.light-mode .hero-stat-lbl {
+      color: #15803d !important;
+      opacity: 1 !important;
+      font-weight: 600 !important;
+    }
+    
+    body.light-mode .search-section {
+      background: #ffffff !important;
+      border-bottom-color: #cbd5e1 !important;
+    }
+    body.light-mode .search-section h2 {
+      color: #0f172a !important;
+    }
+    body.light-mode .search-section p {
+      color: #475569 !important;
+    }
+    body.light-mode .search-bar {
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
+    }
+    body.light-mode .search-bar input {
+      color: #0f172a !important;
+    }
+    body.light-mode .search-bar button {
+      background: #166534 !important;
+      color: #ffffff !important;
+    }
+    body.light-mode .search-bar button:hover {
+      background: #15803d !important;
+    }
+    
+    body.light-mode .search-result-item {
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
+    }
+    body.light-mode .sri-name {
+      color: #0f172a !important;
+    }
+    body.light-mode .sri-cat {
+      color: #475569 !important;
+    }
+    body.light-mode .sri-level {
+      background: rgba(22, 101, 52, 0.08) !important;
+      color: #166534 !important;
+    }
+    
+    body.light-mode .filter-bar {
+      background: rgba(255, 255, 255, 0.8) !important;
+      border-bottom-color: #cbd5e1 !important;
+    }
+    body.light-mode .filter-tab {
+      color: #475569 !important;
+    }
+    body.light-mode .filter-tab:hover {
+      color: #166534 !important;
+    }
+    body.light-mode .filter-tab.active {
+      color: #166534 !important;
+      border-bottom-color: #166534 !important;
+    }
+    
+    body.light-mode .exam-section {
+      background: #ffffff !important;
+      border-bottom-color: #cbd5e1 !important;
+    }
+    body.light-mode .exam-section:nth-child(even) {
+      background: #f8fafc !important;
+    }
+    body.light-mode .section-icon {
+      background: rgba(22, 101, 52, 0.06) !important;
+      border-color: rgba(22, 101, 52, 0.15) !important;
+    }
+    body.light-mode .section-label {
+      color: #166534 !important;
+    }
+    body.light-mode .section-title {
+      color: #0f172a !important;
+    }
+    body.light-mode .section-count {
+      background: rgba(22, 101, 52, 0.08) !important;
+      color: #166534 !important;
+      border-color: rgba(22, 101, 52, 0.15) !important;
+    }
+    
+    body.light-mode .exam-card {
+      background: rgba(255, 255, 255, 0.85) !important;
+      border-color: #cbd5e1 !important;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02) !important;
+    }
+    body.light-mode .exam-card::before {
+      background: #166534 !important;
+    }
+    body.light-mode .exam-card:hover {
+      border-color: rgba(22, 101, 52, 0.25) !important;
+      box-shadow: 0 15px 35px rgba(22, 101, 52, 0.06) !important;
+    }
+    body.light-mode .exam-abbr {
+      color: #0f172a !important;
+    }
+    body.light-mode .exam-card:hover .exam-abbr {
+      color: #166534 !important;
+    }
+    body.light-mode .exam-body {
+      color: #475569 !important;
+    }
+    body.light-mode .exam-name {
+      color: #64748b !important;
+    }
+    body.light-mode .exam-conducting {
+      color: #64748b !important;
+    }
+    body.light-mode .exam-footer-row {
+      border-top-color: #cbd5e1 !important;
+    }
+    body.light-mode .exam-link {
+      color: #166534 !important;
+    }
+    
+    body.light-mode .prep-section {
+      background: radial-gradient(circle at center, rgba(22, 101, 52, 0.05), transparent 60%),
+                  linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+      border-top-color: #cbd5e1 !important;
+      border-bottom-color: #cbd5e1 !important;
+    }
+    body.light-mode .prep-section h2 {
+      color: #0f172a !important;
+    }
+    body.light-mode .prep-section > p {
+      color: #475569 !important;
+    }
+    body.light-mode .prep-card {
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #475569 !important;
+    }
+    body.light-mode .prep-card:hover {
+      background: rgba(22, 101, 52, 0.05) !important;
+      border-color: rgba(22, 101, 52, 0.25) !important;
+      color: #166534 !important;
+      box-shadow: 0 10px 25px rgba(22, 101, 52, 0.08) !important;
+    }
+    
+    body.light-mode .career-section {
+      background: #f8fafc !important;
+    }
+    body.light-mode .sec-title {
+      color: #0f172a !important;
+    }
+    body.light-mode .sec-sub {
+      color: #475569 !important;
+    }
+    body.light-mode .career-card {
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #475569 !important;
+    }
+    body.light-mode .career-card:hover {
+      border-color: rgba(22, 101, 52, 0.25) !important;
+      color: #166534 !important;
+      box-shadow: 0 10px 25px rgba(22, 101, 52, 0.08) !important;
+    }
+    
+    body.light-mode footer {
+      background: #ffffff !important;
+      border-top-color: #cbd5e1 !important;
+      color: #475569 !important;
+    }
+  </style>
 </head>
 <body>
 {% include '_shared_index_navbar.html' %}
@@ -34,7 +669,7 @@
   <div class="nav-links">
     <a href="{{ url_for('index') }}">Home</a>
     <a href="{{ url_for('colleges') }}">Colleges</a>
-   <a href="{{ url_for('cutoffs') }}">Cut-offs</a></li>
+    <a href="{{ url_for('cutoffs') }}">Cut-offs</a></li>
     <a href="#" class="nav-cta">Get Started Free</a>
   </div>
 </nav>
@@ -89,7 +724,7 @@
   </div>
 </section>
 
-<!-- ═══════════════════ FILTER TABS ═══════════════════ -->
+<!-- ═══════════════════ STICKY FILTER TABS ═══════════════════ -->
 <div class="filter-bar" id="exams">
   <div class="filter-tabs">
     <button class="filter-tab active" data-filter="all">All Exams</button>
@@ -538,11 +1173,11 @@
   </div>
 </section>
 
-<footer style="background:#1f2738;color:#c9d4e2;padding:20px 24px;text-align:center;font-size:13px;margin-top:0;">
+<footer style="background:#0a1128;color:#94a3b8;padding:20px 24px;text-align:center;font-size:13px;margin-top:0;">
   <p>&copy; 2026 VidyarthiMitra.org - All Rights Reserved |
-    <a href="/terms" style="color:#ff8a33;">Terms</a> |
-    <a href="/privacy" style="color:#ff8a33;">Privacy</a> |
-    <a href="{{ url_for('contact') }}" style="color:#ff8a33;">Contact Us</a>
+    <a href="/terms" style="color:#b6ff5c;">Terms</a> |
+    <a href="/privacy" style="color:#b6ff5c;">Privacy</a> |
+    <a href="{{ url_for('contact') }}" style="color:#b6ff5c;">Contact Us</a>
   </p>
 </footer>
 

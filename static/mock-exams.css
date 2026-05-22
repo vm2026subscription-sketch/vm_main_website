@@ -45,4 +45,228 @@ nav a.active, nav a:hover { color: #fff; }
 @media (max-width: 768px) {
   .sub-form { grid-template-columns: 1fr; }
   .stats-bar { grid-template-columns: 1fr; }
+  .hero { padding: 36px 16px 24px; }
+  .hero h1 { font-size: clamp(1.6rem, 5vw, 2.5rem); }
+  .exam-grid { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+  .stream-container { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+}
+
+@media (max-width: 480px) {
+  .hero { padding: 28px 14px 20px; }
+  .exam-grid { grid-template-columns: repeat(2, 1fr); }
+  .stream-container { grid-template-columns: 1fr; }
+  .stats-bar { margin: 14px; padding: 14px; }
+  .sub-card { padding: 16px; }
+  .sub-form input,
+  .sub-form button { border-radius: 8px !important; font-size: 14px; }
+  .nav-container { padding: 10px 14px; }
+  nav { gap: 10px; }
+  nav a { font-size: 13px; }
+}
+
+/* --- GEN-Z DARK THEME OVERRIDES (MOCK EXAMS PAGE) --- */
+:root {
+  --primary: #b6ff5c !important;
+  --primary-dark: #8ad628 !important;
+  --text: #ffffff !important;
+  --muted: #94a3b8 !important;
+  --bg-main: #050a15 !important;
+  --bg-card: rgba(13, 22, 39, 0.65) !important;
+}
+
+body {
+  background: var(--bg-main) !important;
+  color: var(--text) !important;
+  font-family: 'Inter', sans-serif !important;
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+/* HERO SECTION */
+.hero {
+  background: radial-gradient(circle at top right, rgba(182, 255, 92, 0.1), transparent 40%),
+              radial-gradient(circle at bottom left, rgba(255, 102, 0, 0.05), transparent 40%),
+              #0a1128 !important;
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+}
+.hero h1 { font-family: 'Poppins', sans-serif !important; color: #fff !important; }
+.hero h1 span { color: var(--primary) !important; }
+.hero p { color: #cbd5e1 !important; }
+
+/* EXAM CARDS */
+.exam-card {
+  background: var(--bg-card) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  color: #fff !important;
+}
+.exam-card:hover {
+  transform: translateY(-8px) scale(1.02) !important;
+  border-color: rgba(182, 255, 92, 0.5) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(182, 255, 92, 0.15) !important;
+}
+.card-inner h3 { transition: color 0.3s ease !important; }
+.exam-card:hover .card-inner h3 { color: var(--primary) !important; }
+
+/* STREAM SECTIONS */
+.section-head h2 { color: #fff !important; font-family: 'Poppins', sans-serif !important; }
+.section-head h2 span { color: var(--primary) !important; }
+.underline { background: var(--primary) !important; }
+
+.stream-box {
+  background: var(--bg-card) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  color: #fff !important;
+}
+.stream-box p { color: #94a3b8 !important; }
+.stream-box:hover {
+  transform: translateY(-8px) scale(1.02) !important;
+  border-color: rgba(182, 255, 92, 0.5) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(182, 255, 92, 0.15) !important;
+}
+.stream-icon {
+  background: rgba(182, 255, 92, 0.1) !important;
+  color: var(--primary) !important;
+  border: 1px solid rgba(182, 255, 92, 0.2) !important;
+  border-radius: 12px !important;
+}
+
+/* STATS BAR */
+.stats-bar {
+  background: var(--bg-card) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
+  border-radius: 20px !important;
+}
+.count { color: var(--primary) !important; font-family: 'Poppins', sans-serif !important; }
+.stat-item p { color: #cbd5e1 !important; }
+
+/* SUBSCRIBE SECTION */
+.sub-card {
+  background: var(--bg-card) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
+  color: #fff !important;
+}
+.sub-card h2 span { color: var(--primary) !important; }
+.sub-card p { color: #cbd5e1 !important; }
+.sub-form input {
+  background: rgba(255,255,255,0.05) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  border-radius: 100px !important;
+}
+.sub-form input::placeholder { color: rgba(255,255,255,0.4) !important; }
+.sub-form input:focus {
+  border-color: rgba(182, 255, 92, 0.5) !important;
+  outline: none;
+  box-shadow: 0 0 15px rgba(182, 255, 92, 0.1) !important;
+}
+.sub-form button {
+  background: var(--primary) !important;
+  color: #050a15 !important;
+  border-radius: 100px !important;
+  transition: all 0.3s ease !important;
+}
+.sub-form button:hover {
+  background: var(--primary-dark) !important;
+  transform: scale(1.05) !important;
+  box-shadow: 0 0 20px rgba(182, 255, 92, 0.4) !important;
+}
+
+
+/* -- LIGHT MODE OVERRIDES ------------------------------------------ */
+body.light-mode {
+  background: #f8fafc !important;
+  color: #1e293b !important;
+}
+
+body.light-mode .hero {
+  background: radial-gradient(circle at top right, rgba(182, 255, 92, 0.2), transparent 40%),
+              radial-gradient(circle at bottom left, rgba(255, 102, 0, 0.1), transparent 40%),
+              #ffffff !important;
+  border-bottom: 2px solid var(--primary) !important;
+}
+body.light-mode .hero h1 { color: #0f172a !important; }
+body.light-mode .hero h1 span { color: #166534 !important; }
+body.light-mode .hero p { color: #475569 !important; }
+
+body.light-mode .exam-card {
+  background: rgba(255, 255, 255, 0.8) !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04) !important;
+}
+body.light-mode .exam-card:hover {
+  border-color: var(--primary) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 0 20px rgba(182, 255, 92, 0.2) !important;
+}
+body.light-mode .card-inner h3 { color: #0f172a !important; }
+body.light-mode .exam-card:hover .card-inner h3 { color: #166534 !important; }
+body.light-mode .card-inner span { color: #475569 !important; }
+
+body.light-mode .section-head h2 { color: #0f172a !important; }
+body.light-mode .section-head h2 span { color: #166534 !important; }
+body.light-mode .underline { background: var(--primary) !important; }
+
+body.light-mode .stream-box {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04) !important;
+}
+body.light-mode .stream-box:hover {
+  border-color: var(--primary) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 0 20px rgba(182, 255, 92, 0.2) !important;
+}
+body.light-mode .stream-box p { color: #64748b !important; }
+body.light-mode .stream-icon {
+  background: rgba(182, 255, 92, 0.2) !important;
+  color: #166534 !important;
+  border-color: var(--primary) !important;
+}
+
+body.light-mode .stats-bar {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04) !important;
+}
+body.light-mode .count { color: #166534 !important; }
+body.light-mode .stat-item p { color: #475569 !important; }
+
+body.light-mode .sub-card {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04) !important;
+}
+body.light-mode .sub-card h2 span { color: #166534 !important; }
+body.light-mode .sub-card p { color: #475569 !important; }
+
+body.light-mode .sub-form input {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+body.light-mode .sub-form input::placeholder { color: #94a3b8 !important; }
+body.light-mode .sub-form input:focus { border-color: var(--primary) !important; box-shadow: 0 0 15px rgba(182, 255, 92, 0.2) !important; }
+body.light-mode .sub-form button {
+  background: var(--primary) !important;
+  color: #0f172a !important;
+}
+body.light-mode .sub-form button:hover {
+  background: var(--primary-dark) !important;
 }

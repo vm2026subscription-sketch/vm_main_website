@@ -5,79 +5,155 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ article.title }} | Career Article</title>
   <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #f8f7f4;
-      --paper: #ffffff;
-      --ink: #1e2026;
-      --muted: #5a6270;
-      --line: #e2e5eb;
-      --accent: #ff8c00;
-      --accent-ink: #ffffff;
+      --bg: #050a15;
+      --paper: rgba(13, 22, 39, 0.65);
+      --ink: #ffffff;
+      --muted: #94a3b8;
+      --line: rgba(255, 255, 255, 0.06);
+      --accent: #b6ff5c;
+      --accent-ink: #050a15;
     }
 
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: "Segoe UI", Tahoma, sans-serif;
+      font-family: "Inter", sans-serif;
       color: var(--ink);
-      background: radial-gradient(circle at top right, #e8f8f5 0%, transparent 42%), var(--bg);
+      background: radial-gradient(circle at top right, rgba(182, 255, 92, 0.08) 0%, transparent 42%), var(--bg);
       min-height: 100vh;
+      transition: background-color 0.4s ease, color 0.4s ease;
     }
 
     .wrap {
       width: min(860px, 92vw);
       margin: 48px auto;
       background: var(--paper);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border: 1px solid var(--line);
-      border-radius: 18px;
-      padding: 28px;
-      box-shadow: 0 12px 32px rgba(31, 43, 55, 0.08);
+      border-radius: 24px;
+      padding: 40px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3) !important;
+      transition: transform 0.3s ease, border-color 0.3s ease;
+    }
+    
+    .wrap:hover {
+      border-color: rgba(182, 255, 92, 0.25);
     }
 
     .meta {
       display: inline-block;
-      font-size: 12px;
-      letter-spacing: 0.08em;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.15em;
       text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 10px;
+      color: var(--accent);
+      margin-bottom: 12px;
+      border: 1px solid rgba(182, 255, 92, 0.2);
+      padding: 4px 12px;
+      border-radius: 20px;
+      background: rgba(182, 255, 92, 0.06);
     }
 
     h1 {
-      margin: 0 0 12px;
-      font-size: clamp(1.5rem, 2.6vw, 2.2rem);
-      line-height: 1.2;
+      margin: 0 0 24px;
+      font-family: 'Poppins', sans-serif;
+      font-weight: 800;
+      font-size: clamp(1.8rem, 3vw, 2.6rem);
+      line-height: 1.25;
+      background: linear-gradient(90deg, var(--accent), #ffffff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: inline-block;
     }
 
     p {
-      margin: 0;
+      margin: 0 0 20px;
       color: var(--muted);
-      line-height: 1.7;
-      font-size: 1rem;
+      line-height: 1.8;
+      font-size: 1.05rem;
     }
 
     .cta {
-      margin-top: 26px;
+      margin-top: 36px;
       display: flex;
-      gap: 12px;
+      gap: 14px;
       flex-wrap: wrap;
+      border-top: 1px solid var(--line);
+      padding-top: 24px;
     }
 
     .btn {
       text-decoration: none;
-      border-radius: 10px;
-      padding: 10px 14px;
-      font-weight: 600;
-      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px 22px;
+      font-weight: 700;
+      font-size: 14px;
+      border: 1.5px solid var(--line);
       color: var(--ink);
-      background: #fff;
+      background: rgba(255, 255, 255, 0.03);
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      transform: translateY(-2px);
     }
 
     .btn.primary {
       border-color: var(--accent);
       color: var(--accent-ink);
       background: var(--accent);
+      box-shadow: 0 4px 15px rgba(182, 255, 92, 0.25);
+    }
+    
+    .btn.primary:hover {
+      background: var(--accent);
+      opacity: 0.9;
+      box-shadow: 0 6px 20px rgba(182, 255, 92, 0.4);
+    }
+
+    /* ── LIGHT MODE OVERRIDES ────────────────────────────────────────── */
+    body.light-mode {
+      --bg: #f8fafc;
+      --paper: rgba(255, 255, 255, 0.8);
+      --ink: #0f172a;
+      --muted: #475569;
+      --line: #cbd5e1;
+      --accent: #166534;
+      --accent-ink: #ffffff;
+    }
+    
+    body.light-mode h1 {
+      background: linear-gradient(90deg, #166534, #0f172a);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    body.light-mode .meta {
+      background: rgba(22, 101, 52, 0.06);
+      border-color: rgba(22, 101, 52, 0.15);
+    }
+    
+    body.light-mode .btn.primary {
+      box-shadow: 0 4px 15px rgba(22, 101, 52, 0.2);
+    }
+    body.light-mode .btn.primary:hover {
+      box-shadow: 0 6px 20px rgba(22, 101, 52, 0.35);
+    }
+    
+    body.light-mode .btn:not(.primary) {
+      background: #ffffff;
+      color: #475569;
+    }
+    body.light-mode .btn:not(.primary):hover {
+      background: #f1f5f9;
     }
   </style>
 </head>
@@ -85,6 +161,7 @@
   {% include '_shared_index_navbar.html' %}
   <main class="wrap">
     <span class="meta">{{ article.category }}</span>
+    <br>
     <h1>{{ article.title }}</h1>
     {% for paragraph in article.paragraphs %}
     <p>{{ paragraph }}</p>
