@@ -5,7 +5,7 @@
 {% block page_styles %}
 <style>
     :root {
-        --primary: #b6ff5c;
+        --primary: #ff6600;
         --primary-dark: #8ad628;
         --text: #ffffff;
         --muted: #94a3b8;
@@ -56,8 +56,8 @@
     }
 
     .auth-visual:hover, .auth-card:hover {
-        border-color: rgba(182, 255, 92, 0.15);
-        box-shadow: 0 25px 60px rgba(182, 255, 92, 0.08);
+        border-color: rgba(255,102,0, 0.15);
+        box-shadow: 0 25px 60px rgba(255,102,0, 0.08);
     }
 
     .auth-visual {
@@ -66,7 +66,7 @@
         display: flex;
         color: #fff;
         background:
-            linear-gradient(140deg, rgba(5, 10, 21, 0.94), rgba(10, 17, 40, 0.72) 48%, rgba(182, 255, 92, 0.6)),
+            linear-gradient(140deg, rgba(5, 10, 21, 0.94), rgba(10, 17, 40, 0.72) 48%, rgba(255,102,0, 0.6)),
             url("{{ url_for('static', filename='IITDELHI.jpg') }}") center/cover;
     }
 
@@ -273,7 +273,7 @@
     .auth-mode-switch a.is-active {
         color: #050a15 !important;
         background: var(--auth-orange);
-        box-shadow: 0 4px 15px rgba(182, 255, 92, 0.3);
+        box-shadow: 0 4px 15px rgba(255,102,0, 0.3);
     }
 
     .auth-mode-switch a:hover:not(.is-active) {
@@ -337,8 +337,8 @@
         margin-top: 14px;
         padding: 14px;
         border-radius: 12px;
-        background: rgba(182, 255, 92, 0.06);
-        border: 1.5px dashed rgba(182, 255, 92, 0.35);
+        background: rgba(255,102,0, 0.06);
+        border: 1.5px dashed rgba(255,102,0, 0.35);
         color: var(--auth-orange);
         font-weight: 800;
         letter-spacing: 4px;
@@ -415,7 +415,7 @@
 
     .auth-input-wrap .form-control:focus {
         border-color: var(--auth-orange) !important;
-        box-shadow: 0 0 15px rgba(182, 255, 92, 0.2);
+        box-shadow: 0 0 15px rgba(255,102,0, 0.2);
         background: rgba(255,255,255,0.06);
         transform: translateY(-2px);
     }
@@ -500,7 +500,7 @@
         cursor: pointer;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        box-shadow: 0 8px 20px rgba(182, 255, 92, 0.25);
+        box-shadow: 0 8px 20px rgba(255,102,0, 0.25);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
@@ -509,7 +509,7 @@
         color: #050a15 !important;
         background: var(--auth-orange-dark);
         transform: translateY(-3px);
-        box-shadow: 0 12px 28px rgba(182, 255, 92, 0.45);
+        box-shadow: 0 12px 28px rgba(255,102,0, 0.45);
         outline: none;
     }
 
@@ -576,7 +576,7 @@
 
     body.light-mode .auth-visual {
         background:
-            linear-gradient(140deg, rgba(255,255,255,0.95), rgba(248,250,252,0.85) 48%, rgba(182, 255, 92, 0.5)),
+            linear-gradient(140deg, rgba(255,255,255,0.95), rgba(248,250,252,0.85) 48%, rgba(255,102,0, 0.5)),
             url("{{ url_for('static', filename='IITDELHI.jpg') }}") center/cover;
     }
 

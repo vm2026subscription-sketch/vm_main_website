@@ -954,7 +954,7 @@ body {
    GEN-Z DARK THEME OVERRIDES (NEWS PAGE)
 ══════════════════════════════════════════════════ */
 :root {
-  --primary: #b6ff5c !important;
+  --primary: #ff6600 !important;
   --primary-dark: #8ad628 !important;
   --text: #ffffff !important;
   --muted-text: #94a3b8 !important;
@@ -982,7 +982,7 @@ body {
 
 /* MASTHEAD */
 .masthead {
-  background: radial-gradient(circle at top right, rgba(182, 255, 92, 0.1), transparent 40%),
+  background: radial-gradient(circle at top right, rgba(255,102,0, 0.1), transparent 40%),
               radial-gradient(circle at bottom left, rgba(255, 102, 0, 0.05), transparent 40%),
               #0a1128 !important;
   border-bottom: 1px solid var(--border) !important;
@@ -996,7 +996,7 @@ body {
 }
 .masthead-search:focus-within {
   border-color: var(--primary) !important;
-  box-shadow: 0 0 15px rgba(182, 255, 92, 0.2) !important;
+  box-shadow: 0 0 15px rgba(255,102,0, 0.2) !important;
 }
 
 .cat-btn.active {
@@ -1014,7 +1014,7 @@ body {
   box-shadow: 0 10px 30px rgba(0,0,0,0.2) !important;
 }
 .hero-story-visual {
-  background: radial-gradient(circle at center, rgba(182, 255, 92, 0.15) 0%, transparent 70%), #0a1128 !important;
+  background: radial-gradient(circle at center, rgba(255,102,0, 0.15) 0%, transparent 70%), #0a1128 !important;
 }
 .hero-story-visual::after {
   background: linear-gradient(to right, transparent 50%, var(--bg-card)) !important;
@@ -1032,8 +1032,8 @@ body {
 }
 .news-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 30px rgba(182, 255, 92, 0.15) !important;
-  border-color: rgba(182, 255, 92, 0.3) !important;
+  box-shadow: 0 10px 30px rgba(255,102,0, 0.15) !important;
+  border-color: rgba(255,102,0, 0.3) !important;
 }
 .card-headline { color: #fff !important; font-family: 'Poppins', sans-serif !important; }
 .card-excerpt { color: var(--muted-text) !important; }
@@ -1060,9 +1060,9 @@ body {
   color: #fff !important;
   border-color: rgba(255,255,255,0.1) !important;
 }
-.nl-form input:focus { border-color: var(--primary) !important; box-shadow: 0 0 15px rgba(182, 255, 92, 0.2) !important; }
+.nl-form input:focus { border-color: var(--primary) !important; box-shadow: 0 0 15px rgba(255,102,0, 0.2) !important; }
 .nl-form button { background: var(--primary) !important; color: #050a15 !important; }
-.nl-form button:hover { background: var(--primary-dark) !important; box-shadow: 0 5px 15px rgba(182, 255, 92, 0.2) !important; }
+.nl-form button:hover { background: var(--primary-dark) !important; box-shadow: 0 5px 15px rgba(255,102,0, 0.2) !important; }
 
 /* MODAL */
 .modal {
@@ -1081,7 +1081,7 @@ body {
 
 /* BUTTONS / ELEMENTS */
 .btn-read-hero, .btn-load-more { background: var(--primary) !important; color: #050a15 !important; border: none !important; }
-.btn-read-hero:hover, .btn-load-more:hover { box-shadow: 0 5px 15px rgba(182, 255, 92, 0.3) !important; transform: translateY(-2px); }
+.btn-read-hero:hover, .btn-load-more:hover { box-shadow: 0 5px 15px rgba(255,102,0, 0.3) !important; transform: translateY(-2px); }
 .sec-count { background: var(--primary) !important; color: #050a15 !important; }
 
 /* TICKER */
@@ -1103,7 +1103,7 @@ body.light-mode {
 }
 
 body.light-mode .masthead {
-  background: radial-gradient(circle at top right, rgba(182, 255, 92, 0.2), transparent 40%),
+  background: radial-gradient(circle at top right, rgba(255,102,0, 0.2), transparent 40%),
               radial-gradient(circle at bottom left, rgba(255, 102, 0, 0.1), transparent 40%),
               #ffffff !important;
   border-bottom: 2px solid var(--primary) !important;
@@ -1129,7 +1129,7 @@ body.light-mode .hero-story, body.light-mode .news-card, body.light-mode .sideba
 }
 
 body.light-mode .hero-story-visual {
-  background: radial-gradient(circle at center, rgba(182, 255, 92, 0.2) 0%, transparent 70%), #f8fafc !important;
+  background: radial-gradient(circle at center, rgba(255,102,0, 0.2) 0%, transparent 70%), #f8fafc !important;
 }
 body.light-mode .hero-story-visual::after { background: linear-gradient(to right, transparent 50%, rgba(255,255,255,0.8)) !important; }
 body.light-mode .hero-story-content h2, body.light-mode .card-headline, body.light-mode .widget-title, body.light-mode .story-info h5, body.light-mode .modal-title { color: #0f172a !important; }

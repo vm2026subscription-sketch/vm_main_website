@@ -12,7 +12,7 @@
 {% block content %}
 <style>
   :root {
-    --primary: #b6ff5c;
+    --primary: #ff6600;
     --primary-dark: #8ad628;
     --text: #ffffff;
     --muted: #94a3b8;
@@ -30,7 +30,7 @@
 
   /* HERO SECTION */
   .blog-hero {
-    background: radial-gradient(circle at top right, rgba(182, 255, 92, 0.1), transparent 40%),
+    background: radial-gradient(circle at top right, rgba(255,102,0, 0.1), transparent 40%),
                 radial-gradient(circle at bottom left, rgba(255, 102, 0, 0.05), transparent 40%),
                 #0a1128 !important;
     border-bottom: 1px solid rgba(255,255,255,0.06) !important;
@@ -107,7 +107,7 @@
   .blog-select:focus, .blog-search-input:focus {
     border-color: var(--primary) !important;
     background: rgba(255, 255, 255, 0.06) !important;
-    box-shadow: 0 0 15px rgba(182, 255, 92, 0.2) !important;
+    box-shadow: 0 0 15px rgba(255,102,0, 0.2) !important;
   }
   
   .blog-select option {
@@ -151,8 +151,8 @@
   
   .blog-card:hover {
     transform: translateY(-6px) !important;
-    box-shadow: 0 15px 35px rgba(182, 255, 92, 0.12) !important;
-    border-color: rgba(182, 255, 92, 0.25) !important;
+    box-shadow: 0 15px 35px rgba(255,102,0, 0.12) !important;
+    border-color: rgba(255,102,0, 0.25) !important;
   }
   
   .blog-card-img {
@@ -210,14 +210,14 @@
     letter-spacing: 0.5px;
     text-decoration: none !important;
     width: fit-content;
-    box-shadow: 0 4px 15px rgba(182, 255, 92, 0.2) !important;
+    box-shadow: 0 4px 15px rgba(255,102,0, 0.2) !important;
     transition: all 0.3s ease !important;
   }
   
   .read-more-btn:hover {
     background: var(--primary-dark) !important;
     transform: translateY(-2px) !important;
-    box-shadow: 0 6px 20px rgba(182, 255, 92, 0.4) !important;
+    box-shadow: 0 6px 20px rgba(255,102,0, 0.4) !important;
   }
 
   /* CATEGORY TAGS */
@@ -247,7 +247,7 @@
   }
   
   body.light-mode .blog-hero {
-    background: radial-gradient(circle at top right, rgba(182, 255, 92, 0.2), transparent 40%),
+    background: radial-gradient(circle at top right, rgba(255,102,0, 0.2), transparent 40%),
                 radial-gradient(circle at bottom left, rgba(255, 102, 0, 0.1), transparent 40%),
                 #ffffff !important;
     border-bottom: 2px solid var(--primary) !important;

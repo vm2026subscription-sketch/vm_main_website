@@ -995,7 +995,7 @@ body {
 
 /* --- GEN-Z DARK THEME OVERRIDES (COURSES PAGE) --- */
 :root {
-  --primary: #b6ff5c !important;
+  --primary: #ff6600 !important;
   --primary-dark: #8ad628 !important;
   --text: #ffffff !important;
   --muted: #94a3b8 !important;
@@ -1012,7 +1012,7 @@ body, .site-main {
 
 /* SEARCH SECTION */
 .search-section {
-  background: radial-gradient(circle at top right, rgba(182, 255, 92, 0.1), transparent 40%),
+  background: radial-gradient(circle at top right, rgba(255,102,0, 0.1), transparent 40%),
               radial-gradient(circle at bottom left, rgba(255, 102, 0, 0.05), transparent 40%),
               #0a1128 !important;
   border-bottom: 1px solid rgba(255,255,255,0.06) !important;
@@ -1035,8 +1035,8 @@ body, .site-main {
   transition: border-color 0.3s ease !important;
 }
 .search-bar:focus-within {
-  border-color: rgba(182, 255, 92, 0.5) !important;
-  box-shadow: 0 8px 32px rgba(182, 255, 92, 0.1) !important;
+  border-color: rgba(255,102,0, 0.5) !important;
+  box-shadow: 0 8px 32px rgba(255,102,0, 0.1) !important;
 }
 .search-bar input {
   background: transparent !important;
@@ -1053,7 +1053,7 @@ body, .site-main {
 .search-bar button:hover {
   background: var(--primary-dark) !important;
   transform: scale(1.02) !important;
-  box-shadow: 0 0 20px rgba(182, 255, 92, 0.4) !important;
+  box-shadow: 0 0 20px rgba(255,102,0, 0.4) !important;
 }
 .search-bar .clear-search-btn {
   background: rgba(255,255,255,0.05) !important;
@@ -1068,7 +1068,7 @@ body, .site-main {
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 .search-suggestion-item { background: transparent !important; color: #fff !important; }
-.search-suggestion-item:hover, .search-suggestion-item.active { background: rgba(182, 255, 92, 0.1) !important; }
+.search-suggestion-item:hover, .search-suggestion-item.active { background: rgba(255,102,0, 0.1) !important; }
 .search-suggestion-type { background: rgba(255,255,255,0.1) !important; color: #cbd5e1 !important; border:none !important; }
 
 /* GLASSY CARDS */
@@ -1094,8 +1094,8 @@ body, .site-main {
 }
 .exam-card:hover {
   transform: translateY(-8px) scale(1.02) !important;
-  border-color: rgba(182, 255, 92, 0.5) !important;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(182, 255, 92, 0.15) !important;
+  border-color: rgba(255,102,0, 0.5) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255,102,0, 0.15) !important;
 }
 .exam-card:hover::before { opacity: 1; }
 .exam-card::after { display: none !important; }
@@ -1127,7 +1127,7 @@ body, .site-main {
 .exam-section { background: var(--bg-main) !important; border-bottom: none !important; }
 .exam-section:nth-child(even) { background: #070d1a !important; }
 .section-title { color: #fff !important; }
-.section-icon { background: rgba(182, 255, 92, 0.1) !important; border-color: rgba(182, 255, 92, 0.3) !important; color: var(--primary) !important; }
+.section-icon { background: rgba(255,102,0, 0.1) !important; border-color: rgba(255,102,0, 0.3) !important; color: var(--primary) !important; }
 .section-count { background: var(--primary) !important; color: #050a15 !important; }
 
 /* MODALS */
@@ -1146,10 +1146,10 @@ body, .site-main {
 .ctable td { color: #cbd5e1 !important; }
 .c-name { color: #fff !important; }
 .c-sub { color: #94a3b8 !important; }
-.c-badge { background: rgba(182, 255, 92, 0.1) !important; color: var(--primary) !important; }
+.c-badge { background: rgba(255,102,0, 0.1) !important; color: var(--primary) !important; }
 .c-fee { color: var(--primary) !important; }
 .c-view-btn { background: var(--primary) !important; color: #050a15 !important; }
-.c-view-btn:hover { background: var(--primary-dark) !important; box-shadow: 0 0 10px rgba(182, 255, 92, 0.3) !important; }
+.c-view-btn:hover { background: var(--primary-dark) !important; box-shadow: 0 0 10px rgba(255,102,0, 0.3) !important; }
 
 .dm-body { background: transparent !important; }
 .dm-field { background: rgba(255,255,255,0.03) !important; border: 1px solid rgba(255,255,255,0.05) !important; }
@@ -1159,7 +1159,7 @@ body, .site-main {
 /* -- LIGHT MODE OVERRIDES ------------------------------------------ */
 body.light-mode, body.light-mode .site-main { background: #f8fafc !important; color: #1e293b !important; }
 body.light-mode .search-section {
-  background: radial-gradient(circle at top right, rgba(182, 255, 92, 0.2), transparent 40%),
+  background: radial-gradient(circle at top right, rgba(255,102,0, 0.2), transparent 40%),
               radial-gradient(circle at bottom left, rgba(255, 102, 0, 0.1), transparent 40%),
               #ffffff !important;
   border-bottom: 1px solid #e2e8f0 !important;
@@ -1168,7 +1168,7 @@ body.light-mode .search-inner h2 { color: #0f172a !important; }
 body.light-mode .search-inner p { color: #475569 !important; }
 
 body.light-mode .search-bar { background: rgba(255, 255, 255, 0.7) !important; border-color: #cbd5e1 !important; }
-body.light-mode .search-bar:focus-within { border-color: var(--primary) !important; box-shadow: 0 8px 32px rgba(182, 255, 92, 0.2) !important; }
+body.light-mode .search-bar:focus-within { border-color: var(--primary) !important; box-shadow: 0 8px 32px rgba(255,102,0, 0.2) !important; }
 body.light-mode .search-bar input { color: #0f172a !important; }
 body.light-mode .search-bar input::placeholder { color: #94a3b8 !important; }
 body.light-mode .search-bar button { background: var(--primary) !important; color: #0f172a !important; }
@@ -1176,11 +1176,11 @@ body.light-mode .search-bar .clear-search-btn { background: #f1f5f9 !important; 
 
 body.light-mode .search-suggestions { background: rgba(255,255,255,0.9) !important; border-color: #e2e8f0 !important; }
 body.light-mode .search-suggestion-item { color: #0f172a !important; }
-body.light-mode .search-suggestion-item:hover { background: rgba(182, 255, 92, 0.2) !important; }
+body.light-mode .search-suggestion-item:hover { background: rgba(255,102,0, 0.2) !important; }
 body.light-mode .search-suggestion-type { background: #f1f5f9 !important; color: #475569 !important; }
 
 body.light-mode .exam-card { background: rgba(255, 255, 255, 0.8) !important; border-color: #e2e8f0 !important; }
-body.light-mode .exam-card:hover { border-color: var(--primary) !important; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 0 20px rgba(182, 255, 92, 0.2) !important; }
+body.light-mode .exam-card:hover { border-color: var(--primary) !important; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 0 20px rgba(255,102,0, 0.2) !important; }
 body.light-mode .exam-abbr { color: #0f172a !important; }
 body.light-mode .exam-card:hover .exam-abbr { color: #166534 !important; }
 body.light-mode .exam-body { color: #475569 !important; }
