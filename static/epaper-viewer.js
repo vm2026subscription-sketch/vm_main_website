@@ -276,16 +276,29 @@ const EP = {
       }
     });
 
-    // Viewer wheel zoom (Ctrl+scroll) + normal scroll passthrough
+    // Reset zoom when navigating away
+    window.addEventListener('pagehide', () => {
+      document.documentElement.style.zoom = '';
+      const paper = document.getElementById('epPaper');
+      if (paper) paper.style.zoom = '';
+      const container = document.getElementById('epPageContainer');
+      if (container) container.style.zoom = '';
+      const grid = document.getElementById('epBlockGrid');
+      if (grid) grid.style.zoom = '';
+    });
+
+    // Prevent browser zoom anywhere on the ePaper page; route ALL Ctrl+scroll to custom zoom
+    document.addEventListener('wheel', (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const delta = e.deltaY < 0 ? 0.1 : -0.1;
+        this.setZoom(this.zoom + delta);
+      }
+    }, { passive: false });
+
+    // Viewer wheel zoom (Ctrl+scroll handled above) + normal scroll passthrough
     const v = this.el.viewer;
     if (v) {
-      v.addEventListener('wheel', (e) => {
-        if (e.ctrlKey || e.metaKey) {
-          e.preventDefault();
-          const delta = e.deltaY < 0 ? 0.1 : -0.1;
-          this.setZoom(this.zoom + delta);
-        }
-      }, { passive: false });
 
       // Pinch-to-zoom on touch
       let _lastDist = null;
@@ -901,6 +914,14 @@ const EP = {
           }
 
           if (type === 'shape') {
+            const gotoPage = block.goto_page;
+            if (gotoPage) {
+              return `
+                <div style="${baseStyle}cursor:pointer;" onclick="EP.showPage(${gotoPage})" title="Go to page ${gotoPage}">
+                  ${this.buildShapeMarkup(block)}
+                </div>
+              `;
+            }
             return `
               <div style="${baseStyle}pointer-events:none;">
                 ${this.buildShapeMarkup(block)}
@@ -908,6 +929,7 @@ const EP = {
             `;
           }
 
+          const gotoPage = block.goto_page;
           const articleIndex = this.articles.push({
             ...block,
             headline: block.headline,
@@ -921,9 +943,12 @@ const EP = {
 
           // Optimize Cloudinary images: smaller width for card thumbnails
           const imgSrc = hasImg ? this.optimizeCloudinaryUrl(block.image_url, 400) : '';
+          const clickHandler = gotoPage
+            ? `onclick="EP.showPage(${gotoPage})" title="Go to page ${gotoPage}"`
+            : `onclick="EP.openArticle(${articleIndex})" title="${block.headline || ''}"`;
 
           return `
-            <div class="ep-block-card" onclick="EP.openArticle(${articleIndex})" title="${block.headline || ''}" style="${baseStyle}cursor:pointer;">
+            <div class="ep-block-card" ${clickHandler} style="${baseStyle}cursor:pointer;">
               ${hasImg ? `<img class="ep-block-img" src="${imgSrc}" alt="${block.headline || ''}" draggable="false" loading="lazy" style="width:100%;height:100%;object-fit:contain;display:block;">` : `
                 <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f3f4f6,#e5e7eb);color:#d1d5db;font-size:28px;">
                   <i class="fa fa-newspaper"></i>
@@ -966,30 +991,25 @@ const EP = {
 
   applyTransform() {
     const z = this.zoom;
+
+    // Clear any previously applied zoom on ep-paper or document (legacy approaches that
+    // broke position:fixed elements by causing body overflow under overflow:hidden).
+    document.documentElement.style.zoom = '';
+    const paper = document.getElementById('epPaper');
+    if (paper) paper.style.zoom = '';
+
+    // Clear legacy transform/margin overrides
+    if (this.el.viewer) this.el.viewer.style.justifyContent = '';
+
+    // Zoom only the page content containers (inside ep-viewer which has overflow:auto).
+    // ep-viewer absorbs the scaled size, so ep-paper and body never grow — keeping
+    // position:fixed elements (article panel, toolbar, pager) completely unaffected.
     const grid = document.getElementById('epBlockGrid');
-    const useGrid = grid && grid.style.display !== 'none';
-    const target = useGrid ? grid : this.el.pageContainer;
-    const viewer = this.el.viewer;
-    if (!target) return;
-
-    target.style.zoom = z;
-    target.style.transform = '';
-    target.style.marginBottom = '';
-
-    if (!viewer) return;
-
-    if (z > 1) {
-      // Zoomed in: switch to flex-start so the content doesn't clip on the left,
-      // then scroll to show the center of the zoomed content
-      viewer.style.justifyContent = 'flex-start';
-      requestAnimationFrame(() => {
-        const excess = viewer.scrollWidth - viewer.clientWidth;
-        if (excess > 0) viewer.scrollLeft = Math.round(excess / 2);
-      });
-    } else {
-      // Zoomed out or normal: let flexbox center the content
-      viewer.style.justifyContent = '';
-      viewer.scrollLeft = 0;
+    if (grid) { grid.style.zoom = z; grid.style.transform = ''; grid.style.marginBottom = ''; }
+    if (this.el.pageContainer) {
+      this.el.pageContainer.style.zoom = z;
+      this.el.pageContainer.style.transform = '';
+      this.el.pageContainer.style.marginBottom = '';
     }
   },
 

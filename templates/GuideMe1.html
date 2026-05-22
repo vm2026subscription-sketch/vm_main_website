@@ -6,29 +6,337 @@
   <title>Guide Me — Free Admission Guidance | VidyarthiMitra.org</title>
   <meta name="description" content="Get free personalized admission guidance, career aptitude testing, and counselling from VidyarthiMitra.org experts. Fill the form and we'll contact you within 24 hours.">
   <meta name="robots" content="index, follow">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='GuideMe1.css') }}" />
   <style>
+    :root {
+      --primary: #b6ff5c;
+      --primary-dark: #8ad628;
+      --text: #ffffff;
+      --muted: #94a3b8;
+      --bg-main: #050a15;
+      --bg-card: rgba(13, 22, 39, 0.65);
+      --border: rgba(255, 255, 255, 0.06);
+    }
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { height: 100%; }
-    body { font-family: 'Poppins', sans-serif; background: #f5f5f5; }
-    .back-btn { color: #f97316; text-decoration: none; font-weight: bold; display: inline-block; margin-bottom: 20px; }
-    .form-section { max-width: 800px; margin: 40px auto; padding: 20px; background: #fff; border-radius: 8px; }
-    .field { margin-bottom: 15px; }
-    .required { color: red; }
-    .conditional-section { margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px; }
-    input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; }
-    .btn { background: #22c55e; color: white; border: none; padding: 12px 25px; cursor: pointer; border-radius: 4px; margin-top: 10px; }
-    .flash-wrap { max-width: 800px; margin: 25px auto -15px; }
-    .flash {
-      padding: 10px 14px;
-      border-radius: 6px;
-      font-size: 14px;
-      margin-bottom: 10px;
-      border: 1px solid transparent;
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-main) !important;
+      color: var(--text) !important;
+      transition: background-color 0.4s ease, color 0.4s ease;
+      line-height: 1.6;
+      padding: 0 0 60px;
     }
-    .flash-success { background: #e7f8ee; color: #1f7a47; border-color: #bfe8cf; }
-    .flash-error { background: #fdeceb; color: #b42318; border-color: #f7c5c2; }
+
+    /* BACK BUTTON */
+    .back-btn {
+      color: var(--primary) !important;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 28px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .back-btn:hover {
+      color: var(--primary-dark) !important;
+      transform: translateX(-4px);
+    }
+
+    /* FORM SECTION CARD */
+    .form-section {
+      max-width: 800px;
+      margin: 60px auto 0;
+      padding: 48px;
+      background: var(--bg-card) !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 24px !important;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3) !important;
+      transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    }
+    
+    .form-section:hover {
+      border-color: rgba(182, 255, 92, 0.2) !important;
+      box-shadow: 0 25px 60px rgba(182, 255, 92, 0.08) !important;
+    }
+
+    .form-section h2 {
+      font-family: 'Poppins', sans-serif !important;
+      font-size: 26px !important;
+      font-weight: 800 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 1.5px !important;
+      background: linear-gradient(90deg, var(--primary), #ffffff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 32px !important;
+      display: inline-block;
+      position: relative;
+    }
+    
+    .form-section h2::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: -6px;
+      width: 60px;
+      height: 4px;
+      background: var(--primary);
+      border-radius: 2px;
+    }
+
+    /* GRID & FIELDS */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    
+    @media (max-width: 640px) {
+      .grid { grid-template-columns: 1fr; gap: 18px; }
+      .form-section { padding: 24px; margin: 30px auto; }
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 18px;
+    }
+    
+    .form-group {
+      margin-bottom: 24px;
+    }
+
+    label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .required {
+      color: #ff6b6b;
+      margin-left: 2px;
+      font-weight: bold;
+    }
+
+    /* INPUTS & SELECTS */
+    input, select, textarea {
+      width: 100%;
+      padding: 14px 18px;
+      margin-top: 6px;
+      background: rgba(255, 255, 255, 0.03) !important;
+      border: 1.5px solid rgba(255, 255, 255, 0.08) !important;
+      border-radius: 12px !important;
+      color: #ffffff !important;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      outline: none;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--primary) !important;
+      background: rgba(255, 255, 255, 0.06) !important;
+      box-shadow: 0 0 18px rgba(182, 255, 92, 0.2) !important;
+      transform: translateY(-2px);
+    }
+    
+    input::placeholder, textarea::placeholder {
+      color: rgba(255, 255, 255, 0.3) !important;
+    }
+
+    select option {
+      background-color: #0c1524 !important;
+      color: #ffffff !important;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 110px;
+    }
+
+    /* CONDITIONAL SECTIONS */
+    .conditional-section {
+      margin-top: 25px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+      padding-top: 25px;
+      animation: fadeInUp 0.4s ease both;
+    }
+    
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* SUBMIT BUTTON */
+    .btn {
+      display: block;
+      width: 100%;
+      background: var(--primary) !important;
+      color: #050a15 !important;
+      border: none !important;
+      padding: 15px 30px !important;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px !important;
+      font-weight: 800 !important;
+      border-radius: 12px !important;
+      cursor: pointer;
+      margin-top: 28px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 15px rgba(182, 255, 92, 0.25) !important;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .btn:hover {
+      background: var(--primary-dark) !important;
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(182, 255, 92, 0.45) !important;
+    }
+    .btn:active {
+      transform: translateY(-1px);
+    }
+
+    .form-footer-note {
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 16px;
+      opacity: 0.7;
+      letter-spacing: 0.5px;
+    }
+
+    /* FLASH MESSAGES */
+    .flash-wrap {
+      max-width: 800px;
+      margin: 40px auto -20px;
+      padding: 0 20px;
+    }
+    
+    .flash {
+      padding: 14px 20px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid transparent;
+      backdrop-filter: blur(8px);
+      animation: fadeInUp 0.3s ease both;
+    }
+    
+    .flash-success {
+      background: rgba(34, 197, 94, 0.1) !important;
+      color: #4ade80 !important;
+      border-color: rgba(34, 197, 94, 0.2) !important;
+    }
+    
+    .flash-error {
+      background: rgba(239, 68, 68, 0.1) !important;
+      color: #f87171 !important;
+      border-color: rgba(239, 68, 68, 0.2) !important;
+    }
+
+    /* ── LIGHT MODE OVERRIDES ────────────────────────────────────────── */
+    body.light-mode {
+      --bg-main: #f8fafc;
+      --bg-card: rgba(255, 255, 255, 0.8);
+      --text: #1e293b;
+      --muted: #475569;
+      --border: #cbd5e1;
+    }
+    
+    body.light-mode .back-btn {
+      color: #166534 !important;
+    }
+    body.light-mode .back-btn:hover {
+      color: #15803d !important;
+    }
+    
+    body.light-mode .form-section {
+      background: rgba(255, 255, 255, 0.8) !important;
+      border-color: #cbd5e1 !important;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.04) !important;
+    }
+    
+    body.light-mode .form-section:hover {
+      box-shadow: 0 20px 50px rgba(22, 101, 52, 0.06) !important;
+      border-color: var(--primary) !important;
+    }
+    
+    body.light-mode .form-section h2 {
+      background: linear-gradient(90deg, #166534, #0f172a);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    body.light-mode .form-section h2::after {
+      background: #166534;
+    }
+    
+    body.light-mode input, body.light-mode select, body.light-mode textarea {
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #0f172a !important;
+    }
+    
+    body.light-mode input:focus, body.light-mode select:focus, body.light-mode textarea:focus {
+      border-color: #166534 !important;
+      box-shadow: 0 0 15px rgba(22, 101, 52, 0.15) !important;
+      background: #ffffff !important;
+    }
+    
+    body.light-mode input::placeholder, body.light-mode textarea::placeholder {
+      color: #94a3b8 !important;
+    }
+    
+    body.light-mode select option {
+      background-color: #ffffff !important;
+      color: #0f172a !important;
+    }
+    
+    body.light-mode .conditional-section {
+      border-top-color: #e2e8f0 !important;
+    }
+    
+    body.light-mode .btn {
+      background: #166534 !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 15px rgba(22, 101, 52, 0.2) !important;
+    }
+    
+    body.light-mode .btn:hover {
+      background: #15803d !important;
+      box-shadow: 0 8px 25px rgba(22, 101, 52, 0.35) !important;
+    }
+    
+    body.light-mode .flash-success {
+      background: #f0fdf4 !important;
+      color: #166534 !important;
+      border-color: #bbf7d0 !important;
+    }
+    
+    body.light-mode .flash-error {
+      background: #fef2f2 !important;
+      color: #991b1b !important;
+      border-color: #fecaca !important;
+    }
   </style>
 </head>
 <body>
@@ -39,15 +347,24 @@
   {% if messages %}
     <div class="flash-wrap">
       {% for category, message in messages %}
-        <div class="flash flash-{{ category }}">{{ message }}</div>
+        <div class="flash flash-{{ category }}">
+          {% if category == 'success' %}
+            <i class="fa fa-circle-check"></i>
+          {% else %}
+            <i class="fa fa-circle-exclamation"></i>
+          {% endif %}
+          {{ message }}
+        </div>
       {% endfor %}
     </div>
   {% endif %}
 {% endwith %}
 
 <section class="form-section">
-  <a href="{{ url_for('index') }}" class="back-btn">← Back to Home</a>
-  <h2 style="color: orange; margin-bottom: 20px;">REGISTRATION FORM</h2>
+  <a href="{{ url_for('index') }}" class="back-btn"><i class="fa fa-arrow-left"></i> Back to Home</a>
+  <div>
+    <h2>REGISTRATION FORM</h2>
+  </div>
 
   <form action="{{ url_for('guide_me') }}" method="POST">
     <div class="grid">
@@ -83,15 +400,19 @@
     </div>
 
     <div id="careerSection" class="conditional-section" style="display: none;">
-      <label>I'M IN</label>
-      <select name="career_level">
-        <option value="">--Select--</option>
-        <option value="10th">10th</option>
-        <option value="12th">12th</option>
-        <option value="Graduate">Graduate</option>
-      </select>
-      <label>Any Message (Max 50 words)</label>
-      <textarea name="career_msg" placeholder="Any Message for us"></textarea>
+      <div class="field">
+        <label>I'M IN</label>
+        <select name="career_level">
+          <option value="">--Select--</option>
+          <option value="10th">10th</option>
+          <option value="12th">12th</option>
+          <option value="Graduate">Graduate</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Any Message (Max 50 words)</label>
+        <textarea name="career_msg" placeholder="Any Message for us"></textarea>
+      </div>
     </div>
 
     <div id="admissionSection" class="conditional-section" style="display: none;">
@@ -124,15 +445,19 @@
     </div>
 
     <div id="otherSection" class="conditional-section" style="display: none;">
-      <textarea name="other_msg" maxlength="250" placeholder="Any Message for us"></textarea>
+      <div class="field">
+        <label>Any Message (Max 250 words)</label>
+        <textarea name="other_msg" maxlength="250" placeholder="Any Message for us"></textarea>
+      </div>
     </div>
 
-    <button type="submit" class="btn" style="background:#ff6600;font-size:15px;padding:14px 30px;width:100%;border-radius:6px;letter-spacing:0.5px;">
-      &#128222; Submit — We'll Contact You on WhatsApp Within 24 Hours
+    <button type="submit" class="btn">
+      <i class="fa fa-paper-plane" style="margin-right: 6px;"></i> Submit — We'll Contact You on WhatsApp Within 24 Hours
     </button>
   </form>
-  <p style="font-size:12px;color:#888;text-align:center;margin-top:12px;">
-    Your information is secure and will only be used for guidance purposes.
+  
+  <p class="form-footer-note">
+    <i class="fa fa-lock" style="margin-right: 4px;"></i> Your information is secure and will only be used for guidance purposes.
   </p>
 </section>
 

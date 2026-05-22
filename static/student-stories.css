@@ -101,3 +101,56 @@ body {
   text-align: center;
   padding: 40px;
 }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .hero {
+    padding: 60px 20px 100px;
+    clip-path: ellipse(120% 100% at 50% 0%);
+  }
+  .hero h1 {
+    font-size: clamp(1.8rem, 5vw, 3.5rem);
+  }
+  .stories-container {
+    margin: -40px auto 60px;
+    gap: 20px;
+  }
+  .story-card {
+    padding: 28px 22px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero {
+    padding: 40px 16px 80px;
+    clip-path: ellipse(100% 100% at 50% 0%);
+  }
+  .hero h1 {
+    font-size: 1.8rem;
+  }
+  .stories-container {
+    margin: -30px auto 40px;
+    padding: 0 14px;
+    gap: 16px;
+  }
+  .story-card {
+    padding: 22px 16px;
+    border-radius: 16px;
+  }
+  .story-card h3 {
+    font-size: 1.25rem;
+  }
+  .tag {
+    font-size: 10px;
+    padding: 5px 10px;
+    top: 16px;
+    right: 16px;
+  }
+  .story-card button {
+    width: 100%;
+    padding: 11px 20px;
+  }
+  .footer {
+    padding: 30px 16px;
+  }
+}

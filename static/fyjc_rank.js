@@ -12,7 +12,6 @@ function updateTotal() {
   document.getElementById('progress-fill').style.width = (total / 500 * 100) + '%';
 }
 
-/* ── Collect & validate form ─────────────────────────────────────────────── */
 function collectForm() {
   const board    = document.getElementById('board').value;
   const category = document.getElementById('category').value;
@@ -30,11 +29,18 @@ function collectForm() {
     else marks.push(v);
   });
 
-  if (!board || !category || !division || !streamEl || !marksValid || marks.length !== 5) {
-    return null;
+  let errors = [];
+  if (!board) errors.push('SSC Board');
+  if (!category) errors.push('Category');
+  if (!division) errors.push('Division');
+  if (!marksValid || marks.length !== 5) errors.push('All 5 subject marks (must be 0–100)');
+  if (!streamEl) errors.push('Preferred Stream');
+
+  if (errors.length > 0) {
+    return { error: true, messages: errors, marksValid: marksValid && marks.length === 5 };
   }
 
-  return { board, category, division, pwd, stream: streamEl.value, marks };
+  return { error: false, board, category, division, pwd, stream: streamEl.value, marks };
 }
 
 /* ── Main predict function ───────────────────────────────────────────────── */
@@ -43,9 +49,13 @@ async function predict() {
   const errEl   = document.getElementById('marks-error');
   const btn     = document.getElementById('predict-btn');
 
-  if (!payload) {
-    errEl.style.display = 'block';
-    alert('⚠️ Please complete all required fields:\n• SSC Board\n• Category\n• Division\n• All 5 subject marks (0–100)\n• Preferred Stream');
+  if (payload.error) {
+    if (!payload.marksValid) {
+        errEl.style.display = 'block';
+    } else {
+        errEl.style.display = 'none';
+    }
+    alert('⚠️ Please complete the following required fields:\n• ' + payload.messages.join('\n• '));
     return;
   }
 

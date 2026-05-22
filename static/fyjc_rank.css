@@ -569,4 +569,274 @@ footer strong { color: rgba(255,255,255,.8); }
   .result-hero-rank { font-size: 44px; }
   .header-badge   { display: none; }
   .header-main    { padding: 16px 18px 18px; }
+  .colleges-card  { overflow-x: auto; }
+  table           { min-width: 480px; }
+}
+
+@media (max-width: 420px) {
+  .marks-row      { grid-template-columns: repeat(3, 1fr); }
+  .stream-options { grid-template-columns: 1fr; }
+  .stats-grid     { grid-template-columns: 1fr; }
+  .result-hero-rank { font-size: 36px; }
+  .header-text h1 { font-size: 18px; }
+  td, thead th    { padding: 8px 10px; font-size: 12px; }
+  .container      { padding: 20px 12px 40px; }
+  .form-body      { padding: 16px; }
+}
+
+/* --- GEN-Z DARK THEME OVERRIDES (FYJC RANK PAGE) --- */
+:root {
+  --primary: #b6ff5c !important;
+  --primary-dark: #8ad628 !important;
+  --text: #ffffff !important;
+  --muted: #94a3b8 !important;
+  --bg-main: #050a15 !important;
+  --bg-card: rgba(13, 22, 39, 0.65) !important;
+}
+
+body {
+  background: var(--bg-main) !important;
+  color: var(--text) !important;
+  font-family: 'Inter', sans-serif !important;
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+/* HEADER */
+header {
+  background: radial-gradient(circle at top right, rgba(182, 255, 92, 0.1), transparent 40%),
+              radial-gradient(circle at bottom left, rgba(255, 102, 0, 0.05), transparent 40%),
+              #0a1128 !important;
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+}
+.header-top { background: rgba(5, 10, 21, 0.8) !important; border-bottom: 1px solid rgba(255,255,255,0.06) !important; color: #cbd5e1 !important; }
+.header-text h1 { font-family: 'Poppins', sans-serif !important; color: #fff !important; }
+.header-text p { color: #94a3b8 !important; }
+.header-badge { border-color: rgba(182, 255, 92, 0.3) !important; color: var(--primary) !important; }
+
+/* INTRO CARD */
+.intro-card {
+  background: rgba(182, 255, 92, 0.05) !important;
+  border: 1px solid rgba(182, 255, 92, 0.2) !important;
+  border-left: 4px solid var(--primary) !important;
+  color: #cbd5e1 !important;
+  backdrop-filter: blur(12px) !important;
+}
+.intro-card strong { color: #fff !important; }
+
+/* FORM CARDS (Glassmorphism) */
+.form-card {
+  background: var(--bg-card) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
+}
+.form-section-title {
+  background: rgba(255,255,255,0.02) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+  color: #fff !important;
+  font-family: 'Poppins', sans-serif !important;
+}
+.form-section-title .step-badge {
+  background: var(--primary) !important;
+  color: #050a15 !important;
+}
+
+label { color: #fff !important; }
+.sub-hint, label .hint { color: #94a3b8 !important; }
+
+input[type="number"], select {
+  background-color: rgba(255,255,255,0.05) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+}
+input[type="number"]:focus, select:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 15px rgba(182, 255, 92, 0.2) !important;
+}
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23b6ff5c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 13px center !important;
+}
+
+/* MARKS TOTAL BAR */
+.marks-total-bar {
+  background: rgba(182, 255, 92, 0.05) !important;
+  border: 1.5px solid rgba(182, 255, 92, 0.2) !important;
+  backdrop-filter: blur(8px) !important;
+}
+.marks-total-bar .label { color: var(--primary) !important; }
+.total-number { color: #fff !important; }
+.total-denom { color: #94a3b8 !important; }
+.percent-badge { background: var(--primary) !important; color: #050a15 !important; }
+.marks-progress-fill { background: var(--primary) !important; }
+
+/* STREAM CARDS */
+.stream-card {
+  background: rgba(255,255,255,0.03) !important;
+  border: 1.5px solid rgba(255,255,255,0.1) !important;
+}
+.stream-card .s-name { color: #fff !important; }
+.stream-option input:checked + .stream-card {
+  border-color: var(--primary) !important;
+  background: rgba(182, 255, 92, 0.1) !important;
+  box-shadow: 0 0 0 3px rgba(182, 255, 92, 0.2) !important;
+}
+
+/* BUTTONS */
+.submit-btn {
+  background: var(--primary) !important;
+  color: #050a15 !important;
+  font-family: 'Poppins', sans-serif !important;
+}
+.submit-btn:hover {
+  background: var(--primary-dark) !important;
+  box-shadow: 0 7px 20px rgba(182, 255, 92, 0.3) !important;
+}
+.reset-btn {
+  background: rgba(255,255,255,0.05) !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  color: #fff !important;
+}
+.reset-btn:hover {
+  border-color: var(--primary) !important;
+  color: var(--primary) !important;
+}
+
+/* RESULTS SECTION */
+.result-hero {
+  background: var(--bg-card) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid var(--primary) !important;
+  box-shadow: 0 10px 30px rgba(182, 255, 92, 0.1) !important;
+  color: #fff !important;
+}
+.result-hero-rank { color: var(--primary) !important; }
+.result-pill { background: rgba(182, 255, 92, 0.1) !important; border-color: rgba(182, 255, 92, 0.2) !important; color: #fff !important; }
+.result-pill .dot { background: var(--primary) !important; }
+
+/* STATS GRID */
+.stat-card {
+  background: var(--bg-card) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2) !important;
+}
+.stat-value { color: var(--primary) !important; }
+.stat-label { color: #cbd5e1 !important; }
+
+/* COLLEGES TABLE */
+.colleges-card {
+  background: var(--bg-card) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+}
+.colleges-header {
+  background: rgba(182, 255, 92, 0.1) !important;
+  color: var(--primary) !important;
+  border-bottom: 1px solid rgba(182, 255, 92, 0.2) !important;
+}
+thead th { background: rgba(255,255,255,0.02) !important; color: #fff !important; border-bottom: 1px solid rgba(255,255,255,0.1) !important; }
+tbody tr { border-bottom: 1px solid rgba(255,255,255,0.03) !important; }
+tbody tr:hover { background: rgba(255,255,255,0.05) !important; }
+td { color: #cbd5e1 !important; }
+.college-name { color: #fff !important; }
+.college-loc { color: #94a3b8 !important; }
+
+/* DISCLAIMER */
+.disclaimer {
+  background: rgba(255, 107, 0, 0.1) !important;
+  border-color: rgba(255, 107, 0, 0.2) !important;
+  color: #ffb366 !important;
+}
+footer { background: var(--bg-main) !important; border-top: 1px solid rgba(255,255,255,0.06); }
+
+/* -- LIGHT MODE OVERRIDES ------------------------------------------ */
+body.light-mode { background: #f8fafc !important; color: #1e293b !important; }
+
+body.light-mode header {
+  background: radial-gradient(circle at top right, rgba(182, 255, 92, 0.2), transparent 40%),
+              radial-gradient(circle at bottom left, rgba(255, 102, 0, 0.1), transparent 40%),
+              #ffffff !important;
+  border-bottom: 2px solid var(--primary) !important;
+}
+body.light-mode .header-top { background: #f1f5f9 !important; color: #475569 !important; border-bottom-color: #e2e8f0 !important; }
+body.light-mode .header-text h1 { color: #0f172a !important; }
+body.light-mode .header-text p { color: #475569 !important; }
+body.light-mode .header-badge { border-color: var(--primary) !important; color: #166534 !important; background: rgba(182, 255, 92, 0.1) !important; }
+
+body.light-mode .intro-card {
+  background: rgba(182, 255, 92, 0.1) !important;
+  border-color: var(--primary) !important;
+  color: #166534 !important;
+}
+body.light-mode .intro-card strong { color: #0f172a !important; }
+
+body.light-mode .form-card, body.light-mode .colleges-card, body.light-mode .stat-card {
+  background: rgba(255, 255, 255, 0.8) !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.04) !important;
+}
+body.light-mode .form-section-title { background: #f1f5f9 !important; border-bottom-color: #e2e8f0 !important; color: #0f172a !important; }
+body.light-mode .form-section-title .step-badge { background: var(--primary) !important; color: #0f172a !important; }
+
+body.light-mode label { color: #0f172a !important; }
+body.light-mode .sub-hint, body.light-mode label .hint { color: #64748b !important; }
+
+body.light-mode input[type="number"], body.light-mode select {
+  background-color: #f8fafc !important; color: #0f172a !important; border-color: #cbd5e1 !important;
+}
+body.light-mode input[type="number"]:focus, body.light-mode select:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 15px rgba(182, 255, 92, 0.3) !important;
+}
+body.light-mode select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%230f172a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 13px center !important;
+}
+
+body.light-mode .marks-total-bar { background: rgba(182, 255, 92, 0.15) !important; border-color: var(--primary) !important; }
+body.light-mode .marks-total-bar .label { color: #166534 !important; }
+body.light-mode .total-number { color: #0f172a !important; }
+body.light-mode .total-denom { color: #475569 !important; }
+body.light-mode .percent-badge { background: var(--primary) !important; color: #0f172a !important; }
+
+body.light-mode .stream-card { background: #ffffff !important; border-color: #e2e8f0 !important; }
+body.light-mode .stream-card .s-name { color: #0f172a !important; }
+body.light-mode .stream-option input:checked + .stream-card { border-color: var(--primary) !important; background: rgba(182, 255, 92, 0.2) !important; }
+
+body.light-mode .submit-btn { background: var(--primary) !important; color: #0f172a !important; }
+body.light-mode .submit-btn:hover { background: var(--primary-dark) !important; box-shadow: 0 7px 20px rgba(182, 255, 92, 0.4) !important; }
+
+body.light-mode .result-hero { background: rgba(255, 255, 255, 0.95) !important; border-color: var(--primary) !important; color: #0f172a !important; }
+body.light-mode .result-hero-rank { color: #166534 !important; }
+body.light-mode .result-pill { background: rgba(182, 255, 92, 0.2) !important; border-color: var(--primary) !important; color: #0f172a !important; }
+
+body.light-mode .stat-value { color: #166534 !important; }
+body.light-mode .stat-label { color: #475569 !important; }
+
+body.light-mode .colleges-header { background: rgba(182, 255, 92, 0.2) !important; color: #166534 !important; border-bottom-color: var(--primary) !important; }
+body.light-mode thead th { background: #f1f5f9 !important; color: #0f172a !important; border-bottom-color: #e2e8f0 !important; }
+body.light-mode tbody tr { border-bottom-color: #e2e8f0 !important; }
+body.light-mode tbody tr:hover { background: #f8fafc !important; }
+body.light-mode td { color: #475569 !important; }
+body.light-mode .college-name { color: #0f172a !important; }
+
+body.light-mode .disclaimer { background: #fff7ed !important; border-color: #fed7aa !important; color: #9a3412 !important; }
+body.light-mode .reset-btn { background: #ffffff !important; border-color: #cbd5e1 !important; color: #0f172a !important; }
+body.light-mode .reset-btn:hover { border-color: var(--primary) !important; color: #166534 !important; }
+body.light-mode footer { background: #f8fafc !important; color: #475569 !important; border-top-color: #e2e8f0 !important; }
+body.light-mode footer strong { color: #0f172a !important; }
+
+/* Select Option Overrides */
+select option {
+  background-color: #050a15 !important;
+  color: #ffffff !important;
+}
+body.light-mode select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
 }

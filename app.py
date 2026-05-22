@@ -1562,10 +1562,17 @@ def epaper_pdf_proxy():
     if not raw_url:
         return jsonify({"error": "Missing url parameter."}), 400
 
+    _ALLOWED_HOSTS = {
+        "drive.google.com", "docs.google.com",
+        "drive.usercontent.google.com", "lh3.googleusercontent.com",
+    }
     try:
         parsed = urlparse(raw_url)
+        host = parsed.netloc.lower().lstrip("www.")
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:
             return jsonify({"error": "Invalid URL."}), 400
+        if host not in _ALLOWED_HOSTS:
+            return jsonify({"error": "Only Google Drive links are supported."}), 400
     except Exception:
         return jsonify({"error": "Invalid URL."}), 400
 
@@ -1974,31 +1981,6 @@ def api_top_cutoff_colleges():
         gender=gender or None,
     )
 
-
-@app.route("/api/coupons/validate", methods=["POST"])
-def api_coupons_validate():
-    payload = request.get_json(silent=True) or {}
-    code = str(payload.get("code", "")).strip()
-    if not code:
-        return jsonify({"success": False, "error": "Coupon code is required."}), 200
-    coupon = find_coupon(code)
-    if not coupon:
-        return jsonify({"success": False, "valid": False, "error": "Invalid coupon code."}), 200
-
-    # basic response with coupon info
-    try:
-        amount = int(float(coupon.get("amount_rupees", 0)))
-    except Exception:
-        amount = 0
-
-    return jsonify({
-        "success": True,
-        "valid": True,
-        "amount_rupees": amount,
-        "uses_remaining": coupon.get("uses_remaining"),
-        "message": coupon.get("message") or "Coupon valid.",
-    }), 200
-
     if error:
         return jsonify({"success": False, "error": error, "recommendations": []}), 200
 
@@ -2015,6 +1997,30 @@ def api_coupons_validate():
             "recommendations": recommendations,
         }
     )
+
+
+@app.route("/api/coupons/validate", methods=["POST"])
+def api_coupons_validate():
+    payload = request.get_json(silent=True) or {}
+    code = str(payload.get("code", "")).strip()
+    if not code:
+        return jsonify({"success": False, "error": "Coupon code is required."}), 200
+    coupon = find_coupon(code)
+    if not coupon:
+        return jsonify({"success": False, "valid": False, "error": "Invalid coupon code."}), 200
+
+    try:
+        amount = int(float(coupon.get("amount_rupees", 0)))
+    except Exception:
+        amount = 0
+
+    return jsonify({
+        "success": True,
+        "valid": True,
+        "amount_rupees": amount,
+        "uses_remaining": coupon.get("uses_remaining"),
+        "message": coupon.get("message") or "Coupon valid.",
+    }), 200
 
 
 @app.route("/api/cutoff-payment/order", methods=["POST"])
@@ -2963,7 +2969,7 @@ def build_chatbot_answer(question, language="en"):
     lines.append("- Next Step:")
     lines.append("  - Tell me the exact exam, course, college, or city you want to know about.")
     answer = "\n".join(lines)
-    return answer, sources
+    return answer, []
 
 
 @app.route("/chatbot")
@@ -3396,4 +3402,4 @@ def excel_upload():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='0.0.0.0', debug=True)
