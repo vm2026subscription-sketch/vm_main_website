@@ -1218,12 +1218,67 @@ const EPAdmin = {
     const tabs = document.getElementById('pageTabs');
     if (!tabs) return;
     tabs.innerHTML = this.pages.map((p, i) => `
-      <div class="epa-page-tab ${i === this.currentPageIdx ? 'active' : ''}" onclick="EPAdmin.openPage(${i})">
+      <div class="epa-page-tab ${i === this.currentPageIdx ? 'active' : ''}" data-idx="${i}">
         Page ${i + 1}
-        ${this.pages.length > 1 ? `<span onclick="event.stopPropagation(); EPAdmin.deletePage(${i})" style="margin-left:6px;cursor:pointer;opacity:.6">×</span>` : ''}
+        ${this.pages.length > 1 ? `<span class="epa-tab-del" data-idx="${i}" style="margin-left:6px;cursor:pointer;opacity:.6">×</span>` : ''}
       </div>
     `).join('') + `<div class="epa-page-add" onclick="EPAdmin.addPage()"><i class="fa fa-plus"></i> Add Page</div>`;
+
+    tabs.querySelectorAll('.epa-page-tab').forEach(tab => {
+      const i = parseInt(tab.dataset.idx);
+
+      tab.addEventListener('click', e => {
+        if (e.target.classList.contains('epa-tab-del')) {
+          EPAdmin.deletePage(parseInt(e.target.dataset.idx));
+        } else if (!EPAdmin._didDrag) {
+          EPAdmin.openPage(i);
+        }
+        EPAdmin._didDrag = false;
+      });
+
+      tab.draggable = true;
+
+      tab.addEventListener('dragstart', e => {
+        EPAdmin._dragSrcIdx = i;
+        EPAdmin._didDrag = false;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(i));
+        setTimeout(() => { tab.style.opacity = '0.4'; }, 0);
+      });
+
+      tab.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (i !== EPAdmin._dragSrcIdx) tab.classList.add('drag-over');
+      });
+
+      tab.addEventListener('dragleave', () => tab.classList.remove('drag-over'));
+
+      tab.addEventListener('drop', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        const src = EPAdmin._dragSrcIdx;
+        if (src == null || src === i) return;
+        EPAdmin._didDrag = true;
+        const moved = EPAdmin.pages.splice(src, 1)[0];
+        EPAdmin.pages.splice(i, 0, moved);
+        EPAdmin.pages.forEach((p, n) => p.page_number = n + 1);
+        EPAdmin.currentPageIdx = i;
+        EPAdmin._dragSrcIdx = null;
+        EPAdmin.renderPageTabs();
+        EPAdmin.renderCanvas();
+      });
+
+      tab.addEventListener('dragend', () => {
+        EPAdmin._dragSrcIdx = null;
+        tabs.querySelectorAll('.epa-page-tab').forEach(t => {
+          t.style.opacity = '';
+          t.classList.remove('drag-over');
+        });
+      });
+    });
   },
+
   openPage(idx) {
     this.currentPageIdx = idx; this.activeBlockIdx = null;
     this.renderPageTabs(); this.renderCanvas();

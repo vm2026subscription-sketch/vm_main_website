@@ -62,9 +62,11 @@
     .epa-header-controls h4 i{color:var(--r);}
 
     .epa-page-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
-    .epa-page-tab{padding:6px 14px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;transition:all .2s;}
+    .epa-page-tab{padding:6px 14px;border:1.5px solid var(--border);border-radius:8px;cursor:grab;font-size:12px;font-weight:600;transition:all .2s;user-select:none;}
+    .epa-page-tab:active{cursor:grabbing;}
     .epa-page-tab:hover{border-color:var(--r);}
     .epa-page-tab.active{border-color:var(--r);background:var(--r);color:#fff;}
+    .epa-page-tab.drag-over{border-color:var(--r);background:rgba(196,30,58,0.1);transform:scale(1.05);}
     .epa-page-add{padding:6px 12px;border:1.5px dashed var(--border);border-radius:8px;cursor:pointer;font-size:12px;color:var(--muted);}
     .epa-page-add:hover{border-color:var(--r);color:var(--r);}
 
