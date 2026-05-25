@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ job.title }} | Government Jobs | VidyarthiMitra.org</title>
+  <meta name="description" content="{{ job.organization }} — {{ job.post }}. {{ job.vacancy }} vacancies. Last date: {{ job.last_date }}. Apply at VidyarthiMitra.org">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='govt-jobs.css') }}">
+  <style>
+    .navbar { display: none; }
+    .gjd-wrap { max-width: 900px; margin: 0 auto; padding: 30px 20px 60px; }
+    .gjd-back { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: .85rem; text-decoration: none; margin-bottom: 24px; transition: color .2s; }
+    .gjd-back:hover { color: var(--primary); }
+    .gjd-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; padding: 32px; backdrop-filter: blur(10px); }
+    .gjd-header { display: flex; align-items: flex-start; gap: 18px; margin-bottom: 28px; }
+    .gjd-org-icon { width: 64px; height: 64px; border-radius: 16px; background: linear-gradient(135deg, var(--primary), var(--primary-d)); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: .9rem; color: #fff; flex-shrink: 0; letter-spacing: -.5px; }
+    .gjd-title-wrap { flex: 1; }
+    .gjd-title { font-family: 'Poppins', sans-serif; font-size: 1.4rem; font-weight: 800; color: #fff; line-height: 1.3; margin-bottom: 6px; }
+    .gjd-org { font-size: .9rem; color: var(--muted); }
+    .gjd-section { margin-bottom: 24px; }
+    .gjd-section-title { font-family: 'Poppins', sans-serif; font-size: .85rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .gjd-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .gjd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+    .gjd-item { background: rgba(255,255,255,.025); border-radius: 12px; padding: 14px 16px; }
+    .gjd-item-label { font-size: .7rem; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; font-weight: 600; margin-bottom: 6px; }
+    .gjd-item-value { font-size: .95rem; color: #e2e8f0; font-weight: 600; }
+    .gjd-item-value.accent { color: var(--primary); }
+    .gjd-item-value.urgent { color: #f87171; }
+    .gjd-post-box { background: rgba(255,255,255,.025); border-radius: 12px; padding: 16px; font-size: .9rem; color: var(--muted); line-height: 1.6; }
+    .gjd-post-box strong { color: #fff; }
+    .gjd-actions { display: flex; gap: 14px; margin-top: 28px; }
+    .gjd-btn-apply { flex: 1; background: var(--primary); color: #fff; border: none; border-radius: 12px; padding: 14px; font-size: .95rem; font-weight: 700; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background .2s, transform .15s; }
+    .gjd-btn-apply:hover { background: var(--primary-d); transform: translateY(-2px); }
+    .gjd-btn-back { flex: 0 0 auto; background: rgba(255,255,255,.05); border: 1.5px solid rgba(255,255,255,.12); color: #fff; border-radius: 12px; padding: 14px 24px; font-size: .95rem; font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 8px; transition: all .2s; }
+    .gjd-btn-back:hover { border-color: var(--primary); color: var(--primary); }
+    /* related */
+    .gjd-related { margin-top: 40px; }
+    .gjd-related-title { font-family: 'Poppins', sans-serif; font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 16px; }
+    .gjd-related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+    .gjd-rel-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 18px; text-decoration: none; display: block; transition: border-color .2s, transform .2s; }
+    .gjd-rel-card:hover { border-color: rgba(255,102,0,.4); transform: translateY(-3px); }
+    .gjd-rel-title { font-family: 'Poppins', sans-serif; font-size: .9rem; font-weight: 700; color: #fff; margin-bottom: 6px; }
+    .gjd-rel-card:hover .gjd-rel-title { color: var(--primary); }
+    .gjd-rel-meta { font-size: .78rem; color: var(--muted); }
+    /* light mode */
+    body.light-mode .gjd-card { background: #fff; border-color: #e2e8f0; }
+    body.light-mode .gjd-title { color: #0f172a; }
+    body.light-mode .gjd-item { background: #f8fafc; }
+    body.light-mode .gjd-item-value { color: #1e293b; }
+    body.light-mode .gjd-post-box { background: #f8fafc; }
+    body.light-mode .gjd-post-box strong { color: #0f172a; }
+    body.light-mode .gjd-rel-card { background: #fff; border-color: #e2e8f0; }
+    body.light-mode .gjd-rel-title { color: #0f172a; }
+    body.light-mode .gjd-btn-back { background: #f1f5f9; border-color: #cbd5e1; color: #334155; }
+    @media (max-width: 600px) { .gjd-header { flex-direction: column; } .gjd-grid { grid-template-columns: 1fr 1fr; } .gjd-actions { flex-direction: column; } }
+  </style>
+</head>
+<body>
+  {% include '_shared_index_navbar.html' %}
+
+  <div class="gjd-wrap">
+    <a class="gjd-back" href="{{ url_for('govt_jobs') }}">
+      <i class="fa fa-arrow-left"></i> Back to Government Jobs
+    </a>
+
+    <div class="gjd-card">
+      <div class="gjd-header">
+        <div class="gjd-org-icon">{{ job.short_org }}</div>
+        <div class="gjd-title-wrap">
+          <div class="gjd-title">{{ job.title }}</div>
+          <div class="gjd-org">{{ job.organization }}</div>
+          {% if job.badge %}
+          <span class="gj-badge {{ job.badge }}" style="margin-top:8px;display:inline-block;">{{ job.badge | upper }}</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="gjd-section">
+        <div class="gjd-section-title"><i class="fa fa-briefcase"></i> Post Details</div>
+        <div class="gjd-post-box"><strong>Post:</strong> {{ job.post }}</div>
+      </div>
+
+      <div class="gjd-section">
+        <div class="gjd-section-title"><i class="fa fa-info-circle"></i> Key Information</div>
+        <div class="gjd-grid">
+          <div class="gjd-item">
+            <div class="gjd-item-label"><i class="fa fa-users fa-xs"></i> Vacancies</div>
+            <div class="gjd-item-value accent">
+              {% if job.vacancy > 0 %}{{ "{:,}".format(job.vacancy) }}{% else %}As per notification{% endif %}
+            </div>
+          </div>
+          <div class="gjd-item">
+            <div class="gjd-item-label"><i class="fa fa-calendar fa-xs"></i> Last Date</div>
+            <div class="gjd-item-value urgent">
+              {% set parts = job.last_date.split('-') %}
+              {{ parts[2] }}/{{ parts[1] }}/{{ parts[0] }}
+            </div>
+          </div>
+          <div class="gjd-item">
+            <div class="gjd-item-label"><i class="fa fa-rupee-sign fa-xs"></i> Salary / Pay Scale</div>
+            <div class="gjd-item-value">{{ job.salary }}</div>
+          </div>
+          <div class="gjd-item">
+            <div class="gjd-item-label"><i class="fa fa-user-clock fa-xs"></i> Age Limit</div>
+            <div class="gjd-item-value">{{ job.age }}</div>
+          </div>
+          <div class="gjd-item">
+            <div class="gjd-item-label"><i class="fa fa-map-marker-alt fa-xs"></i> State / Region</div>
+            <div class="gjd-item-value">{{ job.state }}</div>
+          </div>
+          <div class="gjd-item">
+            <div class="gjd-item-label"><i class="fa fa-tag fa-xs"></i> Category</div>
+            <div class="gjd-item-value" style="text-transform:capitalize;">{{ job.category }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="gjd-section">
+        <div class="gjd-section-title"><i class="fa fa-graduation-cap"></i> Qualification</div>
+        <div class="gjd-post-box">{{ job.qualification }}</div>
+      </div>
+
+      <div class="gjd-actions">
+        <a class="gjd-btn-back" href="{{ url_for('govt_jobs') }}">
+          <i class="fa fa-arrow-left"></i> All Jobs
+        </a>
+        <a class="gjd-btn-apply" href="{{ job.apply_url }}" target="_blank" rel="noopener">
+          <i class="fa fa-external-link-alt"></i> Apply Now on Official Website
+        </a>
+      </div>
+    </div>
+
+    {% if related %}
+    <div class="gjd-related">
+      <div class="gjd-related-title">Related Jobs</div>
+      <div class="gjd-related-grid">
+        {% for r in related %}
+        <a class="gjd-rel-card" href="{{ url_for('govt_job_detail', job_id=r.id) }}">
+          <div class="gjd-rel-title">{{ r.title }}</div>
+          <div class="gjd-rel-meta">
+            {{ r.organization }} &nbsp;·&nbsp;
+            {% set p = r.last_date.split('-') %}{{ p[2] }}/{{ p[1] }}/{{ p[0] }}
+            {% if r.vacancy > 0 %}&nbsp;·&nbsp; {{ "{:,}".format(r.vacancy) }} vacancies{% endif %}
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <footer style="background:#0a1128;color:#64748b;padding:20px;text-align:center;font-size:13px;border-top:1px solid rgba(255,255,255,.06);">
+    <p>&copy; 2026 VidyarthiMitra.org &nbsp;|&nbsp;
+      <a href="/terms" style="color:#ff6600;">Terms</a> &nbsp;|&nbsp;
+      <a href="/privacy" style="color:#ff6600;">Privacy</a>
+    </p>
+  </footer>
+</body>
+</html>
