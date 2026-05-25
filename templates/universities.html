@@ -277,14 +277,14 @@
             color: #0f172a;
         }
         body.light-mode .state-item input {
-            accent-color: #166534;
+            accent-color: #c2410c;
         }
         body.light-mode .uni-card:hover {
             border-color: var(--primary);
             box-shadow: 0 12px 30px rgba(255,102,0, 0.25);
         }
         body.light-mode .uni-card:hover .uni-title {
-            color: #166534;
+            color: #c2410c;
         }
         body.light-mode .uni-logo {
             background: #ffffff;
@@ -595,14 +595,14 @@
             color: #0f172a;
         }
         body.light-mode .state-item input {
-            accent-color: #166534;
+            accent-color: #c2410c;
         }
         body.light-mode .uni-card:hover {
             border-color: var(--primary);
             box-shadow: 0 12px 30px rgba(255,102,0, 0.25);
         }
         body.light-mode .uni-card:hover .uni-title {
-            color: #166534;
+            color: #c2410c;
         }
         body.light-mode .uni-logo {
             background: #ffffff;
@@ -745,7 +745,10 @@
                         <a class="uni-card" href="{{ url_for('university_detail', slug=university.slug) }}"
                             data-state="{{ university.state }}" data-city="{{ university.location }}"
                             data-type="{{ university.type }}" data-stream="{{ university.stream }}">
-                            <img class="uni-logo" src="{{ university.logo_url }}" alt="{{ university.name }}">
+                            <img class="uni-logo"
+                                 src="{{ university.logo_url }}"
+                                 loading="lazy" onerror="this.onerror=null; this.src='/static/logo.png';"
+                                 alt="{{ university.name }}">
                             <div>
                                 <h2 class="uni-title">{{ university.name }}</h2>
                                 <div class="chips">

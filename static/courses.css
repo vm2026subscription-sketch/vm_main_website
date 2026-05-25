@@ -996,7 +996,7 @@ body {
 /* --- GEN-Z DARK THEME OVERRIDES (COURSES PAGE) --- */
 :root {
   --primary: #ff6600 !important;
-  --primary-dark: #8ad628 !important;
+  --primary-dark: #e05500 !important;
   --text: #ffffff !important;
   --muted: #94a3b8 !important;
   --bg-main: #050a15 !important;
@@ -1182,7 +1182,7 @@ body.light-mode .search-suggestion-type { background: #f1f5f9 !important; color:
 body.light-mode .exam-card { background: rgba(255, 255, 255, 0.8) !important; border-color: #e2e8f0 !important; }
 body.light-mode .exam-card:hover { border-color: var(--primary) !important; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 0 20px rgba(255,102,0, 0.2) !important; }
 body.light-mode .exam-abbr { color: #0f172a !important; }
-body.light-mode .exam-card:hover .exam-abbr { color: #166534 !important; }
+body.light-mode .exam-card:hover .exam-abbr { color: #c2410c !important; }
 body.light-mode .exam-body { color: #475569 !important; }
 body.light-mode .exam-name { color: #64748b !important; }
 body.light-mode .exam-footer-row { border-top-color: #e2e8f0 !important; }
@@ -1191,7 +1191,7 @@ body.light-mode .exam-level { background: rgba(0,0,0,0.05) !important; }
 
 body.light-mode .filter-bar { background: rgba(255, 255, 255, 0.8) !important; border-bottom-color: #e2e8f0 !important; }
 body.light-mode .filter-tab { color: #64748b !important; }
-body.light-mode .filter-tab:hover, body.light-mode .filter-tab.active { color: #166534 !important; border-bottom-color: var(--primary) !important; }
+body.light-mode .filter-tab:hover, body.light-mode .filter-tab.active { color: #c2410c !important; border-bottom-color: var(--primary) !important; }
 
 body.light-mode .exam-section { background: #f8fafc !important; }
 body.light-mode .exam-section:nth-child(even) { background: #f1f5f9 !important; }

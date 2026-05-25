@@ -36,7 +36,7 @@ function handleSubscribe() {
   }
 
   statusEl.textContent = 'Thanks! You are subscribed for early access.';
-  statusEl.style.color = '#16a34a';
+  statusEl.style.color = '#f97316';
   emailEl.value = '';
   mobileEl.value = '';
 }

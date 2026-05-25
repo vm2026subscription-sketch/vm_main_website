@@ -21,7 +21,7 @@
   --border-focus: #ff7a00;
   --error:        #dc2626;
   --error-bg:     #fef2f2;
-  --success:      #16a34a;
+  --success:      #f97316;
   --success-bg:   #f0fdf4;
   --radius:       12px;
   --font-display: 'Playfair Display', Georgia, serif;
@@ -284,7 +284,7 @@ button[type="submit"]:disabled {
   align-items: flex-start;
   gap: 1rem;
   background: var(--success-bg);
-  border: 1.5px solid #bbf7d0;
+  border: 1.5px solid #fed7aa;
   border-radius: var(--radius);
   padding: 1.3rem 1.4rem;
   margin-top: 1.4rem;
@@ -302,7 +302,7 @@ button[type="submit"]:disabled {
 
 .success-message p {
   font-size: 0.88rem;
-  color: #166534;
+  color: #c2410c;
 }
 
 .success-message a {

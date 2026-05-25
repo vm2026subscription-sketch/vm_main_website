@@ -363,7 +363,7 @@ function renderAllCards(data) {
     }
     .modal-tag.result    { background:#fce8e8; color:#c0392b; }
     .modal-tag.exam      { background:#e8f4fd; color:#1558a7; }
-    .modal-tag.admission { background:#e6fdf4; color:#0d7a4e; }
+    .modal-tag.admission { background:#fff7ed; color:#b45309; }
     .modal-tag.career    { background:#fff0e6; color:#c2560a; }
     #modalTitle {
       font-family: 'Poppins', sans-serif;

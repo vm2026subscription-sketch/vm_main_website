@@ -67,7 +67,7 @@ nav a.active, nav a:hover { color: #fff; }
 /* --- GEN-Z DARK THEME OVERRIDES (MOCK EXAMS PAGE) --- */
 :root {
   --primary: #ff6600 !important;
-  --primary-dark: #8ad628 !important;
+  --primary-dark: #e05500 !important;
   --text: #ffffff !important;
   --muted: #94a3b8 !important;
   --bg-main: #050a15 !important;
@@ -201,7 +201,7 @@ body.light-mode .hero {
   border-bottom: 2px solid var(--primary) !important;
 }
 body.light-mode .hero h1 { color: #0f172a !important; }
-body.light-mode .hero h1 span { color: #166534 !important; }
+body.light-mode .hero h1 span { color: #c2410c !important; }
 body.light-mode .hero p { color: #475569 !important; }
 
 body.light-mode .exam-card {
@@ -215,11 +215,11 @@ body.light-mode .exam-card:hover {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 0 20px rgba(255,102,0, 0.2) !important;
 }
 body.light-mode .card-inner h3 { color: #0f172a !important; }
-body.light-mode .exam-card:hover .card-inner h3 { color: #166534 !important; }
+body.light-mode .exam-card:hover .card-inner h3 { color: #c2410c !important; }
 body.light-mode .card-inner span { color: #475569 !important; }
 
 body.light-mode .section-head h2 { color: #0f172a !important; }
-body.light-mode .section-head h2 span { color: #166534 !important; }
+body.light-mode .section-head h2 span { color: #c2410c !important; }
 body.light-mode .underline { background: var(--primary) !important; }
 
 body.light-mode .stream-box {
@@ -235,7 +235,7 @@ body.light-mode .stream-box:hover {
 body.light-mode .stream-box p { color: #64748b !important; }
 body.light-mode .stream-icon {
   background: rgba(255,102,0, 0.2) !important;
-  color: #166534 !important;
+  color: #c2410c !important;
   border-color: var(--primary) !important;
 }
 
@@ -244,7 +244,7 @@ body.light-mode .stats-bar {
   border-color: #e2e8f0 !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04) !important;
 }
-body.light-mode .count { color: #166534 !important; }
+body.light-mode .count { color: #c2410c !important; }
 body.light-mode .stat-item p { color: #475569 !important; }
 
 body.light-mode .sub-card {
@@ -253,7 +253,7 @@ body.light-mode .sub-card {
   color: #0f172a !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04) !important;
 }
-body.light-mode .sub-card h2 span { color: #166534 !important; }
+body.light-mode .sub-card h2 span { color: #c2410c !important; }
 body.light-mode .sub-card p { color: #475569 !important; }
 
 body.light-mode .sub-form input {

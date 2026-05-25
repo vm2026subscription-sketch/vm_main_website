@@ -10,6 +10,7 @@ import sqlite3
 import secrets
 import smtplib
 import time
+from datetime import datetime
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, quote, unquote, urljoin, urlparse, urlencode
 from urllib.request import Request, urlopen
@@ -23,6 +24,11 @@ except ImportError:
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
 from dotenv import load_dotenv
 from werkzeug.security import check_password_hash, generate_password_hash
+try:
+    from flask_compress import Compress as _FlaskCompress
+    _has_compress = True
+except ImportError:
+    _has_compress = False
 try:
     from psycopg2 import connect
     from psycopg2.extras import Json, execute_values
@@ -41,8 +47,15 @@ from supabase import create_client
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = "vidyarthi-mitra-dev-key"
+app.secret_key = os.environ.get("SECRET_KEY", "vidyarthi-mitra-dev-key-change-in-production")
 app.config["MAX_CONTENT_LENGTH"] = 60 * 1024 * 1024  # 60 MB upload limit
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+# Enable SECURE cookies only when not running locally
+if os.environ.get("FLASK_ENV") == "production" or os.environ.get("RENDER"):
+    app.config["SESSION_COOKIE_SECURE"] = True
+if _has_compress:
+    _FlaskCompress(app)
 AUTH_DB_PATH = os.path.join(app.root_path, "auth_users.db")
 
 COURSES_DB_URL = (
@@ -553,7 +566,7 @@ def get_razorpay_config():
 def create_razorpay_order(amount_paise, receipt, notes=None):
     config = get_razorpay_config()
     if config is None:
-        raise RuntimeError("Razorpay test keys are not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in .env.")
+        raise RuntimeError("Payment service is temporarily unavailable. Please try again later or contact support.")
 
     payload = json.dumps(
         {
@@ -1196,58 +1209,62 @@ def ensure_upload_table_exists(connection_url, table_name):
             )
 
 
+def _favicon(domain):
+    return f"https://www.google.com/s2/favicons?sz=128&domain={domain}"
+
+
 UNIVERSITIES_DATA = [
     # Maharashtra
-    {"slug": "savitribai-phule-pune-university", "name": "Savitribai Phule Pune University", "location": "Pune", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "19", "logo_url": "/static/logo.png"},
-    {"slug": "university-of-mumbai", "name": "University of Mumbai", "location": "Mumbai", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "45", "logo_url": "/static/logo.png"},
-    {"slug": "rtm-nagpur-university", "name": "Rashtrasant Tukadoji Maharaj Nagpur University", "location": "Nagpur", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "74", "logo_url": "/static/logo.png"},
-    {"slug": "symbiosis-international", "name": "Symbiosis International (Deemed University)", "location": "Pune", "state": "Maharashtra", "type": "Deemed", "stream": "Management", "nirf": "17", "logo_url": "/static/logo.png"},
-    {"slug": "mit-wpu", "name": "MIT World Peace University", "location": "Pune", "state": "Maharashtra", "type": "Private", "stream": "Technology", "nirf": "96", "logo_url": "/static/logo.png"},
-    {"slug": "nmims-mumbai", "name": "NMIMS University", "location": "Mumbai", "state": "Maharashtra", "type": "Private", "stream": "Management", "nirf": "49", "logo_url": "/static/logo.png"},
-    {"slug": "dr-babasaheb-ambedkar-marathwada", "name": "Dr. Babasaheb Ambedkar Marathwada University", "location": "Aurangabad", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
-    {"slug": "shivaji-university-kolhapur", "name": "Shivaji University Kolhapur", "location": "Kolhapur", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
-    {"slug": "solapur-university", "name": "Solapur University", "location": "Solapur", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
-    {"slug": "sant-gadge-baba-amravati", "name": "Sant Gadge Baba Amravati University", "location": "Amravati", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
-    {"slug": "dr-bamu-open", "name": "YCMOU (Yashwantrao Chavan Maharashtra Open University)", "location": "Nashik", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
-    {"slug": "bharati-vidyapeeth", "name": "Bharati Vidyapeeth (Deemed University)", "location": "Pune", "state": "Maharashtra", "type": "Deemed", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
+    {"slug": "savitribai-phule-pune-university", "name": "Savitribai Phule Pune University", "location": "Pune", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "19", "source_url": "https://www.unipune.ac.in", "logo_url": _favicon("unipune.ac.in")},
+    {"slug": "university-of-mumbai", "name": "University of Mumbai", "location": "Mumbai", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "45", "source_url": "https://mu.ac.in", "logo_url": _favicon("mu.ac.in")},
+    {"slug": "rtm-nagpur-university", "name": "Rashtrasant Tukadoji Maharaj Nagpur University", "location": "Nagpur", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "74", "source_url": "https://nagpuruniversity.ac.in", "logo_url": _favicon("nagpuruniversity.ac.in")},
+    {"slug": "symbiosis-international", "name": "Symbiosis International (Deemed University)", "location": "Pune", "state": "Maharashtra", "type": "Deemed", "stream": "Management", "nirf": "17", "source_url": "https://siu.edu.in", "logo_url": _favicon("siu.edu.in")},
+    {"slug": "mit-wpu", "name": "MIT World Peace University", "location": "Pune", "state": "Maharashtra", "type": "Private", "stream": "Technology", "nirf": "96", "source_url": "https://mitwpu.edu.in", "logo_url": _favicon("mitwpu.edu.in")},
+    {"slug": "nmims-mumbai", "name": "NMIMS University", "location": "Mumbai", "state": "Maharashtra", "type": "Private", "stream": "Management", "nirf": "49", "source_url": "https://www.nmims.edu", "logo_url": _favicon("nmims.edu")},
+    {"slug": "dr-babasaheb-ambedkar-marathwada", "name": "Dr. Babasaheb Ambedkar Marathwada University", "location": "Aurangabad", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "N/A", "source_url": "https://bamu.ac.in", "logo_url": _favicon("bamu.ac.in")},
+    {"slug": "shivaji-university-kolhapur", "name": "Shivaji University Kolhapur", "location": "Kolhapur", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "N/A", "source_url": "https://www.unishivaji.ac.in", "logo_url": _favicon("unishivaji.ac.in")},
+    {"slug": "solapur-university", "name": "Solapur University", "location": "Solapur", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "N/A", "source_url": "https://su.digitaluniversity.ac", "logo_url": _favicon("su.digitaluniversity.ac")},
+    {"slug": "sant-gadge-baba-amravati", "name": "Sant Gadge Baba Amravati University", "location": "Amravati", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "N/A", "source_url": "https://www.sgbau.ac.in", "logo_url": _favicon("sgbau.ac.in")},
+    {"slug": "dr-bamu-open", "name": "YCMOU (Yashwantrao Chavan Maharashtra Open University)", "location": "Nashik", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "N/A", "source_url": "https://ycmou.ac.in", "logo_url": _favicon("ycmou.ac.in")},
+    {"slug": "bharati-vidyapeeth", "name": "Bharati Vidyapeeth (Deemed University)", "location": "Pune", "state": "Maharashtra", "type": "Deemed", "stream": "General", "nirf": "N/A", "source_url": "https://www.bharatividyapeeth.edu", "logo_url": _favicon("bharatividyapeeth.edu")},
     # Delhi / NCR
-    {"slug": "delhi-university", "name": "University of Delhi", "location": "Delhi", "state": "Delhi", "type": "Government", "stream": "General", "nirf": "11", "logo_url": "/static/logo.png"},
-    {"slug": "jnu-delhi", "name": "Jawaharlal Nehru University", "location": "Delhi", "state": "Delhi", "type": "Government", "stream": "General", "nirf": "2", "logo_url": "/static/logo.png"},
-    {"slug": "jamia-millia-islamia", "name": "Jamia Millia Islamia", "location": "Delhi", "state": "Delhi", "type": "Government", "stream": "General", "nirf": "12", "logo_url": "/static/logo.png"},
-    {"slug": "amity-university-noida", "name": "Amity University", "location": "Noida", "state": "Uttar Pradesh", "type": "Private", "stream": "Technology", "nirf": "54", "logo_url": "/static/logo.png"},
+    {"slug": "delhi-university", "name": "University of Delhi", "location": "Delhi", "state": "Delhi", "type": "Government", "stream": "General", "nirf": "11", "source_url": "https://www.du.ac.in", "logo_url": _favicon("du.ac.in")},
+    {"slug": "jnu-delhi", "name": "Jawaharlal Nehru University", "location": "Delhi", "state": "Delhi", "type": "Government", "stream": "General", "nirf": "2", "source_url": "https://www.jnu.ac.in", "logo_url": _favicon("jnu.ac.in")},
+    {"slug": "jamia-millia-islamia", "name": "Jamia Millia Islamia", "location": "Delhi", "state": "Delhi", "type": "Government", "stream": "General", "nirf": "12", "source_url": "https://www.jmi.ac.in", "logo_url": _favicon("jmi.ac.in")},
+    {"slug": "amity-university-noida", "name": "Amity University", "location": "Noida", "state": "Uttar Pradesh", "type": "Private", "stream": "Technology", "nirf": "54", "source_url": "https://www.amity.edu", "logo_url": _favicon("amity.edu")},
     # Karnataka
-    {"slug": "bangalore-university", "name": "Bangalore University", "location": "Bangalore", "state": "Karnataka", "type": "Government", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
-    {"slug": "manipal-academy", "name": "Manipal Academy of Higher Education", "location": "Manipal", "state": "Karnataka", "type": "Deemed", "stream": "Medical", "nirf": "8", "logo_url": "/static/logo.png"},
-    {"slug": "christ-university", "name": "CHRIST (Deemed University)", "location": "Bangalore", "state": "Karnataka", "type": "Deemed", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
+    {"slug": "bangalore-university", "name": "Bangalore University", "location": "Bangalore", "state": "Karnataka", "type": "Government", "stream": "General", "nirf": "N/A", "source_url": "https://bangaloreuniversity.ac.in", "logo_url": _favicon("bangaloreuniversity.ac.in")},
+    {"slug": "manipal-academy", "name": "Manipal Academy of Higher Education", "location": "Manipal", "state": "Karnataka", "type": "Deemed", "stream": "Medical", "nirf": "8", "source_url": "https://manipal.edu", "logo_url": _favicon("manipal.edu")},
+    {"slug": "christ-university", "name": "CHRIST (Deemed University)", "location": "Bangalore", "state": "Karnataka", "type": "Deemed", "stream": "General", "nirf": "N/A", "source_url": "https://christuniversity.in", "logo_url": _favicon("christuniversity.in")},
     # Tamil Nadu
-    {"slug": "anna-university", "name": "Anna University", "location": "Chennai", "state": "Tamil Nadu", "type": "Government", "stream": "Technology", "nirf": "7", "logo_url": "/static/logo.png"},
-    {"slug": "vit-vellore", "name": "Vellore Institute of Technology", "location": "Vellore", "state": "Tamil Nadu", "type": "Deemed", "stream": "Technology", "nirf": "10", "logo_url": "/static/logo.png"},
-    {"slug": "madras-university", "name": "University of Madras", "location": "Chennai", "state": "Tamil Nadu", "type": "Government", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
+    {"slug": "anna-university", "name": "Anna University", "location": "Chennai", "state": "Tamil Nadu", "type": "Government", "stream": "Technology", "nirf": "7", "source_url": "https://www.annauniv.edu", "logo_url": _favicon("annauniv.edu")},
+    {"slug": "vit-vellore", "name": "Vellore Institute of Technology", "location": "Vellore", "state": "Tamil Nadu", "type": "Deemed", "stream": "Technology", "nirf": "10", "source_url": "https://vit.ac.in", "logo_url": _favicon("vit.ac.in")},
+    {"slug": "madras-university", "name": "University of Madras", "location": "Chennai", "state": "Tamil Nadu", "type": "Government", "stream": "General", "nirf": "N/A", "source_url": "https://www.unom.ac.in", "logo_url": _favicon("unom.ac.in")},
     # Rajasthan
-    {"slug": "bits-pilani", "name": "Birla Institute of Technology & Science (BITS) Pilani", "location": "Pilani", "state": "Rajasthan", "type": "Deemed", "stream": "Technology", "nirf": "26", "logo_url": "/static/logo.png"},
-    {"slug": "university-of-rajasthan", "name": "University of Rajasthan", "location": "Jaipur", "state": "Rajasthan", "type": "Government", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
+    {"slug": "bits-pilani", "name": "Birla Institute of Technology & Science (BITS) Pilani", "location": "Pilani", "state": "Rajasthan", "type": "Deemed", "stream": "Technology", "nirf": "26", "source_url": "https://www.bits-pilani.ac.in", "logo_url": _favicon("bits-pilani.ac.in")},
+    {"slug": "university-of-rajasthan", "name": "University of Rajasthan", "location": "Jaipur", "state": "Rajasthan", "type": "Government", "stream": "General", "nirf": "N/A", "source_url": "https://www.uniraj.ac.in", "logo_url": _favicon("uniraj.ac.in")},
     # Madhya Pradesh
-    {"slug": "davv-indore", "name": "Devi Ahilya Vishwavidyalaya (DAVV)", "location": "Indore", "state": "Madhya Pradesh", "type": "Government", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
+    {"slug": "davv-indore", "name": "Devi Ahilya Vishwavidyalaya (DAVV)", "location": "Indore", "state": "Madhya Pradesh", "type": "Government", "stream": "General", "nirf": "N/A", "source_url": "https://www.dauniv.ac.in", "logo_url": _favicon("dauniv.ac.in")},
     # West Bengal
-    {"slug": "jadavpur-university", "name": "Jadavpur University", "location": "Kolkata", "state": "West Bengal", "type": "Government", "stream": "Technology", "nirf": "5", "logo_url": "/static/logo.png"},
-    {"slug": "university-of-calcutta", "name": "University of Calcutta", "location": "Kolkata", "state": "West Bengal", "type": "Government", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
+    {"slug": "jadavpur-university", "name": "Jadavpur University", "location": "Kolkata", "state": "West Bengal", "type": "Government", "stream": "Technology", "nirf": "5", "source_url": "https://jadavpuruniversity.in", "logo_url": _favicon("jadavpuruniversity.in")},
+    {"slug": "university-of-calcutta", "name": "University of Calcutta", "location": "Kolkata", "state": "West Bengal", "type": "Government", "stream": "General", "nirf": "N/A", "source_url": "https://www.caluniv.ac.in", "logo_url": _favicon("caluniv.ac.in")},
     # Gujarat
-    {"slug": "gujarat-university", "name": "Gujarat University", "location": "Ahmedabad", "state": "Gujarat", "type": "Government", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
-    {"slug": "nirma-university", "name": "Nirma University", "location": "Ahmedabad", "state": "Gujarat", "type": "Private", "stream": "Technology", "nirf": "N/A", "logo_url": "/static/logo.png"},
+    {"slug": "gujarat-university", "name": "Gujarat University", "location": "Ahmedabad", "state": "Gujarat", "type": "Government", "stream": "General", "nirf": "N/A", "source_url": "https://www.gujaratuniversity.ac.in", "logo_url": _favicon("gujaratuniversity.ac.in")},
+    {"slug": "nirma-university", "name": "Nirma University", "location": "Ahmedabad", "state": "Gujarat", "type": "Private", "stream": "Technology", "nirf": "N/A", "source_url": "https://nirmauni.ac.in", "logo_url": _favicon("nirmauni.ac.in")},
     # Andhra Pradesh / Telangana
-    {"slug": "osmania-university", "name": "Osmania University", "location": "Hyderabad", "state": "Telangana", "type": "Government", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
-    {"slug": "university-of-hyderabad", "name": "University of Hyderabad", "location": "Hyderabad", "state": "Telangana", "type": "Government", "stream": "General", "nirf": "6", "logo_url": "/static/logo.png"},
+    {"slug": "osmania-university", "name": "Osmania University", "location": "Hyderabad", "state": "Telangana", "type": "Government", "stream": "General", "nirf": "N/A", "source_url": "https://osmania.ac.in", "logo_url": _favicon("osmania.ac.in")},
+    {"slug": "university-of-hyderabad", "name": "University of Hyderabad", "location": "Hyderabad", "state": "Telangana", "type": "Government", "stream": "General", "nirf": "6", "source_url": "https://www.uohyd.ac.in", "logo_url": _favicon("uohyd.ac.in")},
     # Punjab / Haryana
-    {"slug": "panjab-university", "name": "Panjab University", "location": "Chandigarh", "state": "Punjab", "type": "Government", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
-    {"slug": "kurukshetra-university", "name": "Kurukshetra University", "location": "Kurukshetra", "state": "Haryana", "type": "Government", "stream": "General", "nirf": "N/A", "logo_url": "/static/logo.png"},
+    {"slug": "panjab-university", "name": "Panjab University", "location": "Chandigarh", "state": "Punjab", "type": "Government", "stream": "General", "nirf": "N/A", "source_url": "https://puchd.ac.in", "logo_url": _favicon("puchd.ac.in")},
+    {"slug": "kurukshetra-university", "name": "Kurukshetra University", "location": "Kurukshetra", "state": "Haryana", "type": "Government", "stream": "General", "nirf": "N/A", "source_url": "https://kuk.ac.in", "logo_url": _favicon("kuk.ac.in")},
     # Uttar Pradesh
-    {"slug": "bhu-varanasi", "name": "Banaras Hindu University", "location": "Varanasi", "state": "Uttar Pradesh", "type": "Government", "stream": "General", "nirf": "3", "logo_url": "/static/logo.png"},
-    {"slug": "aligarh-muslim-university", "name": "Aligarh Muslim University", "location": "Aligarh", "state": "Uttar Pradesh", "type": "Government", "stream": "General", "nirf": "9", "logo_url": "/static/logo.png"},
-    # Others
-    {"slug": "iit-bombay", "name": "IIT Bombay", "location": "Mumbai", "state": "Maharashtra", "type": "Government", "stream": "Technology", "nirf": "3", "logo_url": "/static/logo.png"},
-    {"slug": "iit-delhi", "name": "IIT Delhi", "location": "Delhi", "state": "Delhi", "type": "Government", "stream": "Technology", "nirf": "2", "logo_url": "/static/logo.png"},
-    {"slug": "iit-madras", "name": "IIT Madras", "location": "Chennai", "state": "Tamil Nadu", "type": "Government", "stream": "Technology", "nirf": "1", "logo_url": "/static/logo.png"},
-    {"slug": "aiims-delhi", "name": "AIIMS New Delhi", "location": "Delhi", "state": "Delhi", "type": "Government", "stream": "Medical", "nirf": "1", "logo_url": "/static/logo.png"},
+    {"slug": "bhu-varanasi", "name": "Banaras Hindu University", "location": "Varanasi", "state": "Uttar Pradesh", "type": "Government", "stream": "General", "nirf": "3", "source_url": "https://www.bhu.ac.in", "logo_url": _favicon("bhu.ac.in")},
+    {"slug": "aligarh-muslim-university", "name": "Aligarh Muslim University", "location": "Aligarh", "state": "Uttar Pradesh", "type": "Government", "stream": "General", "nirf": "9", "source_url": "https://www.amu.ac.in", "logo_url": _favicon("amu.ac.in")},
+    # Premier Institutes
+    {"slug": "iit-bombay", "name": "IIT Bombay", "location": "Mumbai", "state": "Maharashtra", "type": "Government", "stream": "Technology", "nirf": "3", "source_url": "https://www.iitb.ac.in", "logo_url": _favicon("iitb.ac.in")},
+    {"slug": "iit-delhi", "name": "IIT Delhi", "location": "Delhi", "state": "Delhi", "type": "Government", "stream": "Technology", "nirf": "2", "source_url": "https://home.iitd.ac.in", "logo_url": _favicon("iitd.ac.in")},
+    {"slug": "iit-madras", "name": "IIT Madras", "location": "Chennai", "state": "Tamil Nadu", "type": "Government", "stream": "Technology", "nirf": "1", "source_url": "https://www.iitm.ac.in", "logo_url": _favicon("iitm.ac.in")},
+    {"slug": "aiims-delhi", "name": "AIIMS New Delhi", "location": "Delhi", "state": "Delhi", "type": "Government", "stream": "Medical", "nirf": "1", "source_url": "https://www.aiims.edu", "logo_url": _favicon("aiims.edu")},
 ]
 
 
@@ -1319,140 +1336,140 @@ ARTICLES = [
     {
         "id": 1,
         "title": "Career in Engineering After 12th",
-        "desc": "Modern civil engineering is being reshaped by digital twins and smart materials. Engineers now deploy sensor-embedded concrete that self-reports stress fractures before they become critical failures. AI-driven structural analysis reduces design iteration cycles from weeks to hours. Modular construction techniques are slashing build times on urban housing projects globally. Sustainability mandates are pushing firms to adopt low-carbon steel and recycled aggregates at scale. The convergence of BIM software and real-time IoT monitoring is creating infrastructure that actively communicates its health. The future of engineering is not just about building structures, but about creating intelligent systems that adapt and evolve with the needs of society. As we look ahead, engineers will play a pivotal role in designing resilient cities, developing renewable energy solutions, and pioneering innovations that will shape the world for generations to come.",
+        "desc": "Engineering is one of the most sought-after career paths for Science (PCM) students in India. After Class 12, you can pursue B.Tech or BE in branches like Computer Science, Mechanical, Civil, Electrical, or Electronics. Admission is through JEE Main for NITs and IITs (via JEE Advanced), and MHT-CET for Maharashtra colleges. Top branches by placement and salary include CSE, AI & Data Science, and Electronics. Starting salaries at top companies range from ₹6–25 LPA for fresh graduates. Choosing the right college and branch based on your percentile, interests, and placement records is key to a strong engineering career.",
         "category": "engineering",
         "href": "engineering-details.html",
     },
     {
         "id": 2,
         "title": "Medical Careers Without MBBS",
-        "desc": "Precision medicine tailors treatment to an individual's genetic blueprint, moving healthcare away from one-size-fits-all protocols. Advances in whole-genome sequencing have made it possible to predict disease susceptibility decades before symptoms appear. Oncologists now match cancer therapies to specific tumor mutations rather than organ of origin. Pharmacogenomics is reducing adverse drug reactions by identifying patients who metabolize medications differently. Liquid biopsies—detecting cancer DNA in the bloodstream—are enabling earlier diagnosis with a simple blood draw. The integration of AI pathology tools is accelerating rare-disease diagnosis that once took years.Best alternatives like BDS, BAMS, Nursing & more.",
+        "desc": "Not everyone who clears NEET gets into MBBS — but there are excellent healthcare careers available without it. BDS (Dentistry), BAMS (Ayurveda), BHMS (Homeopathy), B.Pharm (Pharmacy), B.Sc Nursing, BPT (Physiotherapy), and BMLT (Medical Lab Technology) are all respected professions with good job prospects. Many of these courses are available through NEET score-based admissions or state-level entrance exams. The Indian healthcare sector is growing rapidly, creating strong demand for paramedical and allied health professionals. Starting salaries range from ₹3–8 LPA and grow significantly with experience and specialization.",
         "category": "medical",
         "href": "medical-details.html",
     },
     {
         "id": 3,
         "title": "MBA vs PGDM - Which is Better?",
-        "desc": "Compare syllabus, colleges, fees and placements.The shift to hybrid work has fundamentally altered how managers build culture, accountability, and trust. Research shows asynchronous communication improves deep-work productivity but risks eroding spontaneous collaboration. Effective leaders now design explicit rituals—weekly video stand-ups, virtual coffee chats—to replicate hallway serendipity. Performance measurement is migrating from input metrics (hours logged) to outcome metrics (deliverables completed). Psychological safety has emerged as the single strongest predictor of high-performing remote teams. Organizations investing in digital-first documentation report faster onboarding and fewer knowledge silos across time zones.",
+        "desc": "MBA (Master of Business Administration) is a university-affiliated degree, while PGDM (Post Graduate Diploma in Management) is offered by autonomous institutes like IIMs and XLRI. Both are highly valued by employers. IIM PGDMs are considered among the best management qualifications in India, with average placements of ₹20–35 LPA. MBA from top state universities or private colleges offers more affordable fees (₹2–10 lakh) compared to IIM PGDM (₹20–25 lakh). CAT is the primary entrance exam for IIMs; MAT, XAT, and CMAT are alternatives for other colleges. Choose based on your target college, career goal, and budget.",
         "category": "management",
         "href": "mba-details.html",
     },
     {
         "id": 4,
         "title": "Top Government Jobs After Graduation",
-        "desc": "SSC, Banking, UPSC, State services explained.Governments worldwide are deploying technology platforms to streamline citizen services and cut bureaucratic friction. Estonia's digital identity system allows residents to vote, file taxes, and access medical records entirely online. AI-driven permit processing in Singapore has reduced approval wait times from months to days. Open data mandates are enabling civic technologists to build tools that hold public officials accountable. Challenges remain around digital exclusion—millions of citizens lack the connectivity or literacy to benefit. Cybersecurity frameworks for critical national infrastructure are being stress-tested as state-sponsored attacks grow more sophisticated. The future of government jobs will require a blend of public service ethos and digital fluency to navigate this evolving landscape.",
+        "desc": "Government jobs in India offer job security, good pay, and prestige. After graduation, top opportunities include UPSC Civil Services (IAS, IPS, IFS), SSC CGL for central government posts, IBPS PO/Clerk for banking, State PSC exams, and Railways (RRB NTPC, Group D). SSC CGL salary starts at ₹25,000–50,000/month; IAS officers earn ₹56,000–2.5 lakh/month plus allowances. Preparation requires 1–2 years of dedicated study. Coaching is available in cities like Pune, Delhi, and Mumbai. Setting a clear target exam and following a structured study plan are the most important success factors.",
         "category": "government",
         "href": "government-details.html",
     },
     {
         "id": 5,
         "title": "Future Skills Engineers Must Learn",
-        "desc": "AI, Data Science, Cyber Security & Automation.Mechanical engineering is one of the broadest disciplines, covering the design and analysis of everything from microelectromechanical systems to jet turbines. Professionals apply thermodynamics, fluid mechanics, and materials science to solve real-world problems in automotive, aerospace, energy, and consumer products. CAD proficiency—SolidWorks, CATIA, or NX—combined with FEA simulation skills defines the modern mechanical engineer's toolkit. The electric vehicle revolution is creating enormous demand for engineers specializing in battery thermal management, powertrain design, and lightweight structures. Additive manufacturing is transforming prototyping and low-volume production, requiring engineers to rethink design constraints that existed for centuries. Chartered and professional engineering accreditation significantly enhances career mobility across international markets.",
+        "desc": "The engineering job market is evolving rapidly, and technical degrees alone are no longer enough. Employers in 2025 prioritize engineers who can work with AI/ML tools, write Python or SQL, understand cloud platforms (AWS, Azure), and apply data analytics to real problems. Cybersecurity awareness is essential across all engineering domains as software enters physical systems. Communication, project management, and teamwork skills are consistently rated as differentiators in placement interviews. Certifications from platforms like Coursera, NPTEL, and Google are widely recognized. Engineers who pair domain expertise with these cross-disciplinary skills command 20–40% higher starting salaries.",
         "category": "engineering",
         "href": "future-skills-details.html",
     },
     {
         "id": 6,
         "title": "Careers in Digital Marketing",
-        "desc": "SEO, Social Media, Performance Marketing & scope.Human resource management sits at the strategic center of modern organizations, responsible for talent acquisition, development, retention, and compliance. The discipline has evolved far beyond hiring and payroll—today's HR leaders own diversity and inclusion strategy, organizational design, and workforce analytics. People analytics tools allow HR professionals to predict attrition, measure engagement, and quantify the ROI of learning and development programs. Employment law expertise is non-negotiable as organizations navigate remote work regulations, non-compete enforcement, and AI-in-hiring compliance. HR business partner roles embed professionals directly within business units, aligning people strategy with commercial objectives in real time. A CIPD, SHRM, or equivalent professional qualification signals credibility, though demonstrated commercial impact matters most at the senior level. The future of HR will require a blend of emotional intelligence, data literacy, and strategic acumen to build resilient organizations in an era of rapid change.",
+        "desc": "Digital marketing is one of the fastest-growing career fields in India, with every business — from startups to corporates — investing heavily in online presence. Key roles include SEO Specialist, Social Media Manager, Performance Marketer (Google/Meta Ads), Content Strategist, and Email Marketing Manager. No specific degree is mandatory; certifications from Google, HubSpot, and Meta are widely accepted. Freelancers can earn ₹20,000–1 lakh/month; agency roles start at ₹3–5 LPA and grow to ₹15–25 LPA at senior levels. Short-term courses (3–6 months) from NIIT, UpGrad, or Coursera can launch a career quickly with a strong portfolio.",
         "category": "management",
         "href": "digital-marketing-details.html",
     },
     {
         "id": 7,
         "title": "Careers in Aviation",
-        "desc": "Explore careers as a pilot, cabin crew, or in aviation management.The aviation industry accounts for roughly 2.5% of global CO₂ emissions and faces mounting pressure to decarbonize. Sustainable aviation fuels (SAF) derived from agricultural waste can cut lifecycle emissions by up to 80% compared to fossil jet fuel. Airbus and Boeing are both testing hydrogen-powered demonstrators targeting commercial entry before 2035. Electric regional aircraft are already flying short routes in Scandinavia, proving the technology's near-term viability. Aerodynamic innovations—blended wing bodies and natural laminar flow wings—promise double-digit efficiency gains. Carbon offset programs, while controversial, are bridging the gap until next-generation propulsion matures.",
+        "desc": "Aviation offers exciting career paths beyond just piloting. Commercial Pilot License (CPL) training takes 18–24 months and costs ₹35–60 lakh, but offers starting salaries of ₹1.5–3 lakh/month. Cabin crew roles require Class 12 pass, good communication, and height/weight eligibility — starting at ₹25,000–60,000/month. Airport management, Air Traffic Control (ATC via AAI recruitment), aircraft maintenance engineering (AME), and aviation logistics are strong ground-based options. DGCA regulates all aviation training in India. Indigo, Air India, and IndiGo are major domestic recruiters. Growth in Indian aviation — India is set to be the world's 3rd largest aviation market — means strong long-term demand.",
         "category": "aviation",
         "href": "aviation-details.html",
     },
     {
         "id": 8,
         "title": "Careers in Law",
-        "desc": "Discover the various fields of law and career paths for law graduates.Artificial intelligence is automating contract review, due diligence, and legal research tasks that once consumed thousands of billable hours. Large language models can surface relevant case law across jurisdictions in seconds, dramatically leveling the playing field for smaller firms. Predictive analytics tools now estimate litigation outcomes with accuracy that rivals experienced practitioners. Ethical questions are intensifying around AI-generated legal advice and the unauthorized practice of law. Courts in multiple countries have begun issuing guidance on the use of AI-drafted filings, requiring explicit disclosure. The legal profession is responding with new bar association frameworks that balance innovation with client protection. The future of lawyering will require a blend of traditional legal expertise and digital literacy to navigate this rapidly evolving landscape.",
+        "desc": "A career in law begins with a 5-year integrated BA LLB or BBA LLB after Class 12, or a 3-year LLB after graduation. CLAT is the national entrance exam for National Law Universities (NLUs) — top NLUs like NLSIU Bangalore and NLU Delhi have average placements of ₹12–20 LPA. Specializations include Corporate Law, Criminal Law, Intellectual Property Rights (IPR), Family Law, and Constitutional Law. Lawyers can work in litigation, corporate legal teams, law firms, judiciary (judicial services exam), or public policy. The Bar Council of India governs enrollment. Internships at law firms during college are critical to building a strong career foundation.",
         "category": "law",
         "href": "law-details.html",
     },
     {
         "id": 9,
         "title": "Careers in Hotel Management",
-        "desc": "Explore the hospitality industry and careers in hotel management.Project managers are the connective tissue of organizations, responsible for delivering complex initiatives on time, within budget, and to agreed quality standards. The PMP certification from PMI and the PRINCE2 framework are globally recognized credentials that open doors across industries from construction to software. Agile and Scrum methodologies have reshaped project management in technology firms, privileging iterative delivery over rigid waterfall planning. Risk identification and stakeholder communication are consistently cited as the competencies that separate average from exceptional project managers. Software tools—Jira, Asana, MS Project—are table stakes; the real differentiator is judgment under uncertainty and the ability to navigate competing priorities. Senior project managers frequently transition into program management, where they oversee portfolios of interdependent projects at the organizational level.",
+        "desc": "Hotel Management is a professional course that opens doors to the booming hospitality and tourism industry. The top entrance exam is NCHMCT JEE for central government hotel management institutes; state-level exams exist for other colleges. Specializations include Food & Beverage, Front Office, Housekeeping, and Event Management. Starting salaries at 5-star hotels range from ₹15,000–30,000/month, growing significantly with experience and international postings. Top recruiters include Taj Hotels, Marriott, Hyatt, OYO, and ITC Hotels. Tourism is a priority sector under India's government initiatives, creating sustained job growth. Soft skills, language proficiency, and presentation are as important as technical knowledge in this field.",
         "category": "management",
         "href": "hotel-management-details.html",
     },
     {
         "id": 10,
         "title": "Careers in Fashion Designing",
-        "desc": "Learn about the creative world of fashion and design careers.Fashion designing blends artistic creativity with technical skill to shape how the world dresses. Designers work across haute couture, ready-to-wear, and fast fashion, each demanding distinct competencies. Core skills include sketching, pattern making, textile knowledge, and proficiency with CAD tools like CLO 3D. Top fashion capitals—Milan, Paris, New York, and Mumbai—remain hotbeds of opportunity, though digital-first brands are opening remote roles globally. Sustainable fashion is the field's fastest-growing niche, with brands under intense pressure to reduce waste and ethical sourcing. A portfolio, internship experience, and a strong social media presence matter as much as a formal degree. The future of fashion design will require a blend of creativity, technical expertise, and a deep understanding of consumer trends to succeed in this dynamic industry.",
+        "desc": "Fashion designing is a creative career that combines art, textiles, and business. In India, NIFT (National Institute of Fashion Technology) is the premier institution, with entrance through the NIFT entrance exam. Other top colleges include Pearl Academy, NID, and Symbiosis Institute of Design. Specializations include Apparel Design, Accessory Design, Textile Design, and Fashion Communication. Graduates work with brands like Fabindia, Myntra, and global luxury labels, or launch independent labels. Starting salaries range from ₹3–6 LPA; experienced designers and brand founders earn significantly more. A strong portfolio of original work is the most important asset for landing top roles in this industry.",
         "category": "creative",
         "href": "fashion-designing-details.html",
     },
     {
         "id": 11,
         "title": "Careers in Data Science",
-        "desc": "Dive into the world of data and learn about careers in data science.Electrical engineers design the systems that generate, transmit, and consume power—and increasingly, the electronics embedded in every device we use. Power electronics specialists are at the heart of the renewable energy transition, designing inverters for solar farms and high-voltage direct current transmission lines. Embedded systems engineers program microcontrollers and FPGAs that run everything from medical implants to automotive safety systems. Semiconductor design, dominated by companies like TSMC, NVIDIA, and ASML, offers some of the highest-paying and technically demanding roles in engineering. Signal processing expertise is foundational for careers in telecommunications, radar, audio engineering, and medical imaging. The Internet of Things is blurring boundaries between electrical and software engineering, rewarding professionals who are comfortable in both domains.",
+        "desc": "Data Science is among the highest-paying tech careers in India, with demand far outpacing supply. The role involves analyzing large datasets to extract business insights using Python, R, SQL, and machine learning libraries like Scikit-learn and TensorFlow. Entry-level data analyst roles start at ₹4–8 LPA; senior data scientists and ML engineers earn ₹15–40 LPA at top companies like Google, Flipkart, and Razorpay. A B.Tech in CS, Statistics, or Mathematics is a common entry path, though many transition from other fields via online courses. IIT and IIM offer postgraduate programs in data science. Building projects on Kaggle and GitHub is the most effective way to stand out to employers.",
         "category": "technology",
         "href": "data-science-details.html",
     },
     {
         "id": 12,
         "title": "Careers in Blockchain",
-        "desc": "Explore the revolutionary technology of blockchain and its career prospects.Blockchain technology underpins cryptocurrencies but its applications now span supply chain, healthcare records, digital identity, and smart contracts. Developers fluent in Solidity, Rust, or Go are building decentralized applications that remove the need for central intermediaries. Financial institutions and logistics giants are hiring blockchain architects to redesign back-office settlement systems. NFT marketplaces and DeFi protocols created an entirely new layer of product and legal careers over the past four years. Regulatory clarity—advancing in the EU and US—is opening institutional capital to the sector and stabilizing job demand. Security auditing is a premium niche: smart contract vulnerabilities have cost the industry billions, driving urgent demand for skilled auditors. The future of blockchain careers will require a blend of cryptographic expertise, software engineering, and an understanding of decentralized governance models.",
+        "desc": "Blockchain technology is expanding beyond cryptocurrency into supply chain, healthcare, finance, and digital identity. In India, companies like TCS, Infosys, and Wipro are building blockchain practices, alongside crypto startups. Key roles include Blockchain Developer (Solidity, Rust), Smart Contract Auditor, Blockchain Architect, and Web3 Product Manager. Salaries for blockchain developers start at ₹8–12 LPA and go up to ₹30+ LPA for experienced architects. Certifications from platforms like Coursera (IBM Blockchain) and ConsenSys Academy are recognized by employers. A foundation in computer science, cryptography, and distributed systems is essential. The sector is volatile, so diversifying skills across traditional software engineering and blockchain is a smart career strategy.",
         "category": "technology",
         "href": "blockchain-details.html",
     },
     {
         "id": 13,
         "title": "Careers in Machine Learning",
-        "desc": "Get into the exciting field of AI and Machine Learning.Machine learning engineers design, train, and deploy the models that power recommendation engines, medical diagnostics, autonomous vehicles, and generative AI. The role demands fluency in deep learning frameworks such as PyTorch and TensorFlow, along with strong mathematical foundations in linear algebra and probability. MLOps—the discipline of deploying and monitoring models in production—has emerged as a critical specialization as companies struggle to move prototypes into reliable systems. Research roles at labs like DeepMind, OpenAI, and academic institutions push the frontier of model architecture and alignment. Entry paths include postgraduate degrees, Kaggle competition rankings, and open-source contributions to prominent repositories. The field evolves so rapidly that continuous self-study is non-negotiable for long-term career health.",
+        "desc": "Machine Learning (ML) engineers build the AI systems powering everything from Google Search to medical diagnostics. Core skills include Python, linear algebra, statistics, and deep learning frameworks like PyTorch and TensorFlow. In India, top ML roles at companies like Google, Amazon, and unicorn startups pay ₹15–50 LPA. Entry paths include B.Tech/M.Tech in CS or AI, or transitioning via postgraduate programs at IITs or through intensive online bootcamps. MLOps — deploying and maintaining ML models in production — is a rapidly growing specialization. Kaggle competitions, research paper co-authorship, and open-source contributions significantly accelerate career growth. The field evolves quickly, making continuous learning non-negotiable.",
         "category": "technology",
         "href": "machine-learning-details.html",
     },
     {
         "id": 14,
         "title": "Careers in Cloud Computing",
-        "desc": "Learn about cloud technologies and the career opportunities in this domain.Cloud computing has become the backbone of modern enterprise IT, creating sustained demand for architects, DevOps engineers, and security specialists. AWS, Microsoft Azure, and Google Cloud certifications serve as practical credentials that hiring managers actively prioritize over academic qualifications. Infrastructure-as-code tools—Terraform, Ansible, Kubernetes—are now baseline expectations in most mid-to-senior cloud roles. FinOps, the practice of optimizing cloud spending, is an emerging specialty as organizations discover they are overpaying for underutilized resources. Multi-cloud strategy skills are increasingly valuable as enterprises diversify vendor dependencies after high-profile outages. Remote work is the default in cloud roles, with distributed teams spanning multiple continents managing global infrastructure from laptops",
+        "desc": "Cloud computing skills are among the most in-demand in the Indian IT industry. Every major enterprise is migrating to AWS, Microsoft Azure, or Google Cloud, creating massive demand for Cloud Engineers, DevOps Engineers, and Cloud Architects. AWS certifications (Solutions Architect, SysOps) and Azure certifications are actively sought by recruiters at TCS, Infosys, HCL, and tech startups. Starting salaries range from ₹5–10 LPA; senior cloud architects earn ₹25–50 LPA. Skills in Kubernetes, Docker, Terraform, and CI/CD pipelines are baseline requirements for most roles. Cloud roles are largely remote-friendly. B.Tech graduates with cloud certifications frequently outpace peers who rely only on their degree in placement interviews.",
         "category": "technology",
         "href": "cloud-computing-details.html",
     },
     {
         "id": 15,
         "title": "Careers in Architecture",
-        "desc": "Discover the field of architecture and the path to becoming an architect.Architecture merges structural engineering, environmental science, and visual design to shape the spaces where people live, work, and gather. Licensure requires completing an accredited degree, a multi-year internship, and passing the Architect Registration Examination in most jurisdictions. BIM software—primarily Autodesk Revit and ArchiCAD—has become the industry standard, replacing hand drafting entirely in commercial practice. Sustainable design and LEED certification expertise are increasingly required as building codes tighten around energy efficiency globally. Parametric design tools like Grasshopper allow architects to generate and test complex organic forms that were impossible to build a generation ago. Interior design, urban planning, and landscape architecture offer adjacent career paths for those whose interests extend beyond building envelopes.",
+        "desc": "Architecture blends creative design with structural engineering to shape buildings, cities, and public spaces. In India, a B.Arch degree (5 years) is the entry qualification, with admission through NATA or JEE Paper 2. Top colleges include SPA Delhi, CEPT Ahmedabad, and IIT Kharagpur Architecture. Architects work in construction firms, urban planning departments, real estate, interior design, and government bodies like CPWD. Starting salaries range from ₹3–6 LPA; experienced architects and firm partners earn significantly more. AutoCAD, Revit, SketchUp, and 3ds Max are essential software tools. India's rapid urbanization and smart cities mission are generating strong long-term demand for qualified architects.",
         "category": "creative",
         "href": "architecture-details.html",
     },
     {
         "id": 16,
         "title": "Careers in Robotics",
-        "desc": "Explore the exciting field of robotics and automation.Humanoid robots have crossed from science fiction into production lines, with Tesla, Figure, and Agility Robotics deploying bipedal machines in warehouses. Designed to operate in spaces built for humans, these robots can climb stairs, handle irregular objects, and work alongside people without cage barriers. Foundation models trained on vast human motion datasets allow robots to generalize new tasks from a handful of demonstrations. Battery energy density remains the key bottleneck limiting operational runtime to four to eight hours. Labor economists are hotly debating displacement versus augmentation effects, with early data suggesting net job creation in robot-adjacent roles. The next frontier is dexterous manipulation—teaching robots the fine motor skills needed in surgery and electronics assembly.",
+        "desc": "Robotics is a multidisciplinary field combining mechanical engineering, electronics, and computer science to design intelligent machines. In India, B.Tech programs in Robotics and Automation are offered at VIT, Amity, and several NITs. Core skills include embedded systems programming (C, Python, ROS), control systems, and computer vision. Job roles include Robotics Engineer, Automation Specialist, and Research Scientist at companies like ISRO, DRDO, Tata Motors, and multinational automation firms. Starting salaries range from ₹4–10 LPA in India; international roles pay significantly more. The manufacturing, agriculture, healthcare, and defence sectors are all rapidly adopting robotics. Participating in robotics competitions like e-Yantra and RoboSoft builds a strong portfolio for placements.",
         "category": "robotics",
         "href": "robotics-details.html",
     },
     {
         "id": 17,
         "title": "Careers in Cybersecurity",
-        "desc": "Protect digital systems and data from cyber threats.Ransomware attacks cost organizations globally an estimated $20 billion annually, with healthcare and critical infrastructure the most frequent targets. Nation-state groups now license ransomware-as-a-service toolkits to criminal affiliates, blurring the line between geopolitical conflict and organized crime. Zero-trust architecture—which assumes no user or device is inherently trusted—is fast becoming the security baseline for enterprise networks. Multi-factor authentication and endpoint detection response tools have proven to reduce breach severity significantly. Cyber insurance premiums have tripled in three years as carriers tighten coverage terms and exclusions. International cooperation on ransomware attribution remains hampered by jurisdictional and diplomatic obstacles.",
+        "desc": "Cybersecurity is one of the fastest-growing and highest-paying IT fields globally, with a massive talent shortage in India. Roles include Ethical Hacker (Penetration Tester), SOC Analyst, Security Architect, and Incident Responder. Certifications like CEH (Certified Ethical Hacker), CompTIA Security+, OSCP, and CISSP are widely recognized by employers. Top recruiters include TCS, Wipro, Infosys, banks, and government agencies like CERT-In and NIC. Starting salaries range from ₹5–10 LPA; senior professionals earn ₹20–50 LPA. B.Tech in CS or IT is a common entry path, with many professionals transitioning via online certifications. India's Digital India mission and banking sector digitization are driving sustained demand for cybersecurity talent.",
         "category": "cybersecurity",
         "href": "cybersecurity-details.html",
     },
     {
         "id": 18,
         "title": "Careers in UI/UX Design",
-        "desc": "Design user-friendly and engaging digital experiences.Accessibility has shifted from a compliance checkbox to a recognized driver of product quality and market reach. WCAG 3.0 guidelines are expanding coverage beyond screen readers to include cognitive load, motion sensitivity, and low-literacy users. Inclusive design sprints that involve disabled users from day one consistently uncover usability issues invisible to homogeneous teams. Apple's Dynamic Type and Google's Material You demonstrate how accessibility features—larger text, high contrast modes—become beloved by all users. Legal exposure is rising as ADA and European Accessibility Act enforcement actions against digital products multiply. Designers who can audit and remediate accessibility issues command a measurable salary premium in the current market.",
+        "desc": "UI/UX Design focuses on creating intuitive and visually appealing digital experiences for apps and websites. It is one of the most accessible tech-adjacent careers — no coding degree required, though basic HTML/CSS knowledge helps. Core tools include Figma, Adobe XD, and Protopie; user research, wireframing, and usability testing are essential skills. In India, UI/UX designers are hired by startups, product companies, and agencies. Starting salaries range from ₹4–8 LPA; senior designers and design leads earn ₹15–30 LPA. Building a strong Behance or Dribbble portfolio with case studies is the primary path to getting hired. Short courses from Google, Coursera, and DesignBoat are widely respected alternatives to formal degrees.",
         "category": "ui-ux-design",
         "href": "ui-ux-design-details.html",
     },
     {
         "id": 19,
         "title": "Careers in Renewable Energy",
-        "desc": "Work on sustainable energy solutions for the future.Grid-scale battery storage is the missing piece that makes intermittent wind and solar dispatchable around the clock. Lithium iron phosphate (LFP) batteries have seen a 90% cost reduction over the past decade, making utility-scale projects economically compelling. Australia's Hornsdale Power Reserve demonstrated that large batteries could stabilize grid frequency faster than any conventional power plant. Flow batteries and compressed air storage are emerging as complementary technologies for multi-day energy buffering. Vehicle-to-grid (V2G) programs are turning electric car fleets into distributed storage assets during peak demand. Analysts project that global battery storage capacity will exceed 1,500 GWh by 2030, fundamentally changing how grids are operated. The transition to renewable energy will require a massive expansion of the energy workforce, with new roles in project development, grid integration, and maintenance of advanced energy systems.",
+        "desc": "India aims to achieve 500 GW of renewable energy capacity by 2030, creating enormous job opportunities in solar, wind, and EV sectors. Careers include Solar Energy Engineer, Wind Turbine Technician, Energy Auditor, EV Systems Engineer, and Grid Integration Specialist. B.Tech in Electrical, Mechanical, or Environmental Engineering provides a strong foundation; specialized M.Tech in Renewable Energy is also available at IITs and NITs. Top recruiters include NTPC, Adani Green, Tata Power, ReNew Power, and Mahindra Electric. Starting salaries range from ₹4–8 LPA; project managers and engineers with international certifications earn ₹15–25 LPA. Government schemes like PM KUSUM and the National Solar Mission are creating both public and private sector opportunities across India.",
         "category": "renewable-energy",
         "href": "renewable-energy-details.html",
     },
     {
         "id": 20,
         "title": "Careers in Genetic Engineering",
-        "desc": "Explore the fascinating world of genetic manipulation and its applications.CRISPR-Cas9 gene editing has moved from a laboratory curiosity to an approved therapeutic platform in under a decade. The FDA's 2023 approval of Casgevy for sickle cell disease marked a historic milestone for in-vivo genetic medicine. Scientists are now developing base editing and prime editing variants that make single-letter DNA corrections with minimal off-target effects. Agricultural applications include drought-resistant crops and disease-tolerant livestock engineered without introducing foreign DNA, sidestepping many regulatory hurdles. Ethical debates around germline editing—changes that would be inherited by future generations—remain unresolved internationally. The cost of CRISPR therapies, currently exceeding $2 million per patient, is the primary barrier to broad adoption. As the technology matures, we can expect to see a proliferation of genetic engineering careers in research, clinical development, bioinformatics, and regulatory affairs.",
+        "desc": "Genetic Engineering is a cutting-edge field applying molecular biology and biotechnology to modify living organisms for medical, agricultural, and industrial applications. In India, B.Tech in Biotechnology or Genetic Engineering is offered at VIT, SRM, Amity, and IIT Madras. Core skills include molecular cloning, CRISPR gene editing, bioinformatics, and cell culture techniques. Career paths include Research Scientist, Bioprocess Engineer, Clinical Research Associate, and Regulatory Affairs Specialist. Top employers include CSIR labs, ICMR institutes, Biocon, Dr. Reddy's, and multinational pharma companies. Starting salaries range from ₹3–7 LPA; research positions at premier institutions and abroad pay significantly more. A Master's degree (M.Sc or M.Tech) or PhD significantly boosts career prospects in this research-intensive field.",
         "category": "genetic-engineering",
         "href": "genetic-engineering-details.html",
     },
@@ -2381,10 +2398,28 @@ def news():
         category_labels=category_labels,
     )
 
+EXAM_UPDATES_DATA = [
+    {"category": "engineering", "title": "JEE Main 2026 Session 1 Registration", "desc": "Application window open at jeemain.nta.nic.in. Eligibility: PCM in Class 12 with 75% (65% for SC/ST). Exam date: January 2026."},
+    {"category": "engineering", "title": "MHT-CET 2026 Registration", "desc": "State-level PCM and PCB group registration open at cetcell.mahacet.org. Exam expected April–May 2026."},
+    {"category": "engineering", "title": "JEE Advanced 2026 Eligibility", "desc": "Top 2.5 lakh JEE Main qualifiers eligible. Conducted by IIT Delhi. Registration opens post JEE Main result."},
+    {"category": "engineering", "title": "GATE 2026 Notification", "desc": "Graduate Aptitude Test in Engineering for M.Tech admissions and PSU recruitment. 30 test papers across engineering disciplines."},
+    {"category": "medical", "title": "NEET UG 2026 Information Bulletin", "desc": "Single entrance for MBBS, BDS, BAMS, BHMS. Registration at neet.nta.nic.in. Eligibility: 50% PCB in Class 12."},
+    {"category": "medical", "title": "NEET PG 2026 Schedule", "desc": "Postgraduate medical entrance for MD/MS/PG Diploma. Conducted by NBE. Registration expected January 2026."},
+    {"category": "law", "title": "CLAT 2026 Registration Open", "desc": "Common Law Admission Test for 24 National Law Universities. Online registration at consortiumofnlus.ac.in."},
+    {"category": "law", "title": "LSAT India 2026", "desc": "Law School Admission Test for private law colleges. Multiple test windows available. Score valid for 1 year."},
+    {"category": "management", "title": "CAT 2026 Registration", "desc": "Common Admission Test for IIMs and 1200+ B-schools. Conducted by IIM Calcutta. Application opens August 2026."},
+    {"category": "management", "title": "MAT 2026 (May Session)", "desc": "Management Aptitude Test for MBA/PGDM admissions. CBT and PBT modes available. 600+ colleges accept MAT score."},
+    {"category": "management", "title": "XAT 2026 Notification", "desc": "Xavier Aptitude Test for XLRI and 150+ B-schools. Conducted in January. Decision Making section unique to XAT."},
+    {"category": "design", "title": "NID DAT 2026 Prelims", "desc": "National Institute of Design Design Aptitude Test for B.Des admissions. Paper-based studio test with practical assignments."},
+    {"category": "design", "title": "UCEED 2026", "desc": "Undergraduate Common Entrance Exam for Design (IIT Bombay, IIT Delhi, IIT Guwahati, IIITDM Jabalpur). January exam."},
+    {"category": "defense", "title": "NDA (I) 2026 Notification", "desc": "National Defence Academy exam for Army, Navy, Air Force after Class 12. Age: 16.5–19.5 years. UPSC conducts it twice a year."},
+    {"category": "defense", "title": "CDS (I) 2026 Notification", "desc": "Combined Defence Services exam for IMA, INA, AFA, OTA. Eligibility: graduation. Conducted by UPSC in February."},
+]
+
+
 @app.route('/exam-updates')
-def home():
-    # This looks inside the 'templates' folder automatically
-    return render_template('exam-updates.html')
+def exam_updates():
+    return render_template('exam-updates.html', exams=EXAM_UPDATES_DATA)
 
 @app.route("/articles")
 @app.route("/career-articles")
@@ -2473,21 +2508,130 @@ def submit_story():
     return render_template('submit_story.html')
 
 
+# ── Shared notification email + JSON file helpers ─────────────────────────────
+def _send_notification_email(subject, body, to_email=None):
+    smtp_host     = get_env_value("OTP_SMTP_HOST", "SMTP_HOST")
+    smtp_port_raw = get_env_value("OTP_SMTP_PORT", "SMTP_PORT", default="587")
+    smtp_username = get_env_value("OTP_SMTP_USERNAME", "SMTP_USER")
+    smtp_password = get_env_value("OTP_SMTP_PASSWORD", "SMTP_PASS")
+    from_email    = get_env_value("OTP_FROM_EMAIL", "SMTP_FROM_EMAIL", default=smtp_username)
+    admin_email   = get_env_value("ADMIN_EMAIL", default="vm2026.subscription@gmail.com")
+    use_tls       = get_env_value("OTP_SMTP_USE_TLS", "SMTP_USE_TLS", default="1").lower() not in {"0", "false", "no"}
+    if not smtp_host or not from_email:
+        return False
+    try:
+        smtp_port = int(smtp_port_raw)
+    except ValueError:
+        smtp_port = 587
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    msg["From"]    = from_email
+    msg["To"]      = to_email or admin_email
+    msg.set_content(body)
+    with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as s:
+        if use_tls:
+            s.starttls()
+        if smtp_username:
+            s.login(smtp_username, smtp_password)
+        s.send_message(msg)
+    return True
+
+
+_STORIES_FILE = os.path.join(os.path.dirname(__file__), 'data', 'stories.json')
+
+def _load_stories():
+    try:
+        with open(_STORIES_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+def _save_stories(stories):
+    os.makedirs(os.path.dirname(_STORIES_FILE), exist_ok=True)
+    with open(_STORIES_FILE, 'w', encoding='utf-8') as f:
+        json.dump(stories, f, ensure_ascii=False, indent=2)
+
+@app.route('/api/submit-story', methods=['POST'])
+def api_submit_story():
+    data = request.get_json(silent=True) or {}
+    name  = str(data.get('name', '')).strip()
+    email = str(data.get('email', '')).strip()
+    exam  = str(data.get('exam', '')).strip()
+    story = str(data.get('story', '')).strip()
+
+    if not name or not email or not exam or not story:
+        return jsonify({'success': False, 'error': 'All fields are required.'}), 400
+    if len(story) < 50:
+        return jsonify({'success': False, 'error': 'Story must be at least 50 characters.'}), 400
+    if len(story) > 2000:
+        return jsonify({'success': False, 'error': 'Story must not exceed 2000 characters.'}), 400
+
+    entry = {
+        'id': int(datetime.utcnow().timestamp() * 1000),
+        'name': name, 'email': email, 'exam': exam, 'story': story,
+        'submitted_at': datetime.utcnow().isoformat() + 'Z',
+        'status': 'pending',
+    }
+    try:
+        stories = _load_stories()
+        stories.append(entry)
+        _save_stories(stories)
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Could not save story: {e}'}), 500
+
+    try:
+        _send_notification_email(
+            subject=f'New Student Story from {name}',
+            body=f'Name: {name}\nEmail: {email}\nExam: {exam}\n\nStory:\n{story}'
+        )
+    except Exception:
+        pass
+
+    return jsonify({'success': True, 'message': 'Story submitted successfully!'}), 201
+
+
+_FEEDBACK_FILE  = os.path.join(os.path.dirname(__file__), 'data', 'feedback.json')
+
+def _append_json_file(filepath, entry):
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    except Exception:
+        data = []
+    data.append(entry)
+    with open(filepath, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
 @app.route("/feedback", methods=["GET", "POST"])
 def feedback():
     if request.method == "POST":
-        required_fields = [
-            "u_name",
-            "u_mobile",
-            "u_email",
-            "u_designation",
-            "u_feedback",
-        ]
-        missing_fields = [field for field in required_fields if not request.form.get(field, "").strip()]
-
+        required_fields = ["u_name", "u_mobile", "u_email", "u_designation", "u_feedback"]
+        missing_fields = [f for f in required_fields if not request.form.get(f, "").strip()]
         if missing_fields:
             flash("Please fill all required fields before submitting.", "error")
             return render_template("feedback.html")
+
+        entry = {
+            'submitted_at': datetime.utcnow().isoformat() + 'Z',
+            'name':        request.form.get('u_name', '').strip(),
+            'mobile':      request.form.get('u_mobile', '').strip(),
+            'email':       request.form.get('u_email', '').strip(),
+            'designation': request.form.get('u_designation', '').strip(),
+            'feedback':    request.form.get('u_feedback', '').strip(),
+        }
+        try:
+            _append_json_file(_FEEDBACK_FILE, entry)
+        except Exception:
+            pass
+        try:
+            _send_notification_email(
+                subject=f"New Feedback from {entry['name']}",
+                body=f"Name: {entry['name']}\nMobile: {entry['mobile']}\nEmail: {entry['email']}\nDesignation: {entry['designation']}\n\nFeedback:\n{entry['feedback']}"
+            )
+        except Exception:
+            pass
 
         flash("Feedback submitted successfully. Thank you!", "success")
         return redirect(url_for("feedback"))
@@ -2998,16 +3142,38 @@ def api_chatbot_query():
     )
 
 
+_GUIDEME_FILE = os.path.join(os.path.dirname(__file__), 'data', 'guideme_requests.json')
+
 @app.route("/guideme", methods=["GET", "POST"])
 @app.route("/guide-me", methods=["GET", "POST"])
 def guide_me():
     if request.method == "POST":
         required_fields = ["full_name", "whatsapp", "email", "address", "requirement_type"]
-        missing_fields = [field for field in required_fields if not request.form.get(field, "").strip()]
-
+        missing_fields = [f for f in required_fields if not request.form.get(f, "").strip()]
         if missing_fields:
             flash("Please complete all required Guide Me form fields.", "error")
             return render_template("GuideMe1.html")
+
+        entry = {
+            'submitted_at':    datetime.utcnow().isoformat() + 'Z',
+            'name':            request.form.get('full_name', '').strip(),
+            'whatsapp':        request.form.get('whatsapp', '').strip(),
+            'email':           request.form.get('email', '').strip(),
+            'address':         request.form.get('address', '').strip(),
+            'requirement':     request.form.get('requirement_type', '').strip(),
+            'details':         request.form.get('details', '').strip(),
+        }
+        try:
+            _append_json_file(_GUIDEME_FILE, entry)
+        except Exception:
+            pass
+        try:
+            _send_notification_email(
+                subject=f"New Guide Me Request from {entry['name']}",
+                body=f"Name: {entry['name']}\nWhatsApp: {entry['whatsapp']}\nEmail: {entry['email']}\nAddress: {entry['address']}\nRequirement: {entry['requirement']}\n\nDetails:\n{entry['details']}"
+            )
+        except Exception:
+            pass
 
         flash("Guide Me form submitted successfully.", "success")
         return redirect(url_for("guide_me"))
@@ -3043,35 +3209,99 @@ def join_us():
 def contact():
     return render_template("contact-us.html")
 
+_CONTACT_FILE = os.path.join(os.path.dirname(__file__), 'data', 'contact_messages.json')
+
 @app.route('/send-message', methods=['POST'])
 def send_message():
-    data = request.get_json()
-    name    = data.get('name', '').strip()
-    phone   = data.get('phone', '').strip()
-    email   = data.get('email', '').strip()
-    subject = data.get('subject', '').strip()
-    message = data.get('message', '').strip()
- 
-    # Basic validation
+    data    = request.get_json(silent=True) or {}
+    name    = str(data.get('name', '')).strip()
+    phone   = str(data.get('phone', '')).strip()
+    email   = str(data.get('email', '')).strip()
+    subject = str(data.get('subject', '')).strip()
+    message = str(data.get('message', '')).strip()
+
     if not name or not email or not message:
         return jsonify({'success': False, 'error': 'Name, email, and message are required.'}), 400
- 
-    # ----------------------------------------------------------------
-    # TODO: Add your email sending logic here, e.g. Flask-Mail / SMTP
-    # Example:
-    #   send_email(to='contact@vidyarthimitra.org',
-    #              subject=f"[{subject}] from {name}",
-    #              body=message)
-    # ----------------------------------------------------------------
- 
-    print(f"\n📩 New Contact Form Submission")
-    print(f"   Name   : {name}")
-    print(f"   Phone  : {phone}")
-    print(f"   Email  : {email}")
-    print(f"   Subject: {subject}")
-    print(f"   Message: {message}\n")
- 
+
+    entry = {
+        'submitted_at': datetime.utcnow().isoformat() + 'Z',
+        'name': name, 'phone': phone, 'email': email,
+        'subject': subject, 'message': message,
+    }
+    try:
+        _append_json_file(_CONTACT_FILE, entry)
+    except Exception:
+        pass
+
+    try:
+        _send_notification_email(
+            subject=f"[Contact] {subject or 'New message'} from {name}",
+            body=f"Name: {name}\nPhone: {phone}\nEmail: {email}\nSubject: {subject}\n\nMessage:\n{message}",
+            to_email=email  # also CC the sender's email as reply-to reference
+        )
+    except Exception:
+        pass
+
     return jsonify({'success': True, 'message': 'Your message has been received. We will get back to you shortly.'}), 200
+
+
+_SUBSCRIBERS_FILE = os.path.join(os.path.dirname(__file__), 'data', 'subscribers.json')
+
+@app.route('/subscribe', methods=['POST'])
+def subscribe():
+    name  = str(request.form.get('name',  '') or request.get_json(silent=True, force=True) and request.get_json(silent=True, force=True).get('name', '') or '').strip()
+    email = str(request.form.get('email', '') or '').strip()
+    if not email:
+        data = request.get_json(silent=True) or {}
+        name  = str(data.get('name',  name)).strip()
+        email = str(data.get('email', '')).strip()
+    if not email:
+        return jsonify({'success': False, 'error': 'Email is required.'}), 400
+    entry = {
+        'subscribed_at': datetime.utcnow().isoformat() + 'Z',
+        'name': name,
+        'email': email,
+    }
+    try:
+        _append_json_file(_SUBSCRIBERS_FILE, entry)
+    except Exception:
+        pass
+    try:
+        _send_notification_email(
+            subject=f"[Subscribe] New subscriber: {email}",
+            body=f"Name: {name}\nEmail: {email}",
+        )
+    except Exception:
+        pass
+    if request.is_json:
+        return jsonify({'success': True, 'message': 'Thank you for subscribing!'})
+    from flask import flash, redirect
+    flash('Thank you for subscribing!', 'success')
+    return redirect(request.referrer or '/')
+
+
+_BLOGS_FILE = os.path.join(os.path.dirname(__file__), 'data', 'blogs.json')
+
+@app.route('/api/blogs')
+def api_blogs():
+    category = request.args.get('category', '').strip().lower()
+    search = request.args.get('search', '').strip().lower()
+    try:
+        with open(_BLOGS_FILE, 'r', encoding='utf-8') as f:
+            blogs = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        blogs = []
+    if category and category != 'all':
+        blogs = [b for b in blogs if b.get('category', '').lower() == category]
+    if search:
+        blogs = [
+            b for b in blogs
+            if search in b.get('title', '').lower()
+            or search in b.get('summary', '').lower()
+            or search in b.get('full', '').lower()
+        ]
+    return jsonify(blogs)
+
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -3401,5 +3631,53 @@ def excel_upload():
     )
 
 
+@app.route('/robots.txt')
+def robots_txt():
+    from flask import Response
+    content = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Disallow: /admin\n"
+        "Disallow: /api/\n"
+        "Disallow: /excel-upload\n"
+        "Disallow: /api/vmadmin/\n"
+        f"Sitemap: https://vidyarthimitra.org/sitemap.xml\n"
+    )
+    return Response(content, mimetype='text/plain')
+
+
+@app.route('/sitemap.xml')
+def sitemap_xml():
+    from flask import Response
+    from datetime import date
+    today = date.today().isoformat()
+    base = "https://vidyarthimitra.org"
+    static_pages = [
+        ('/', '1.0', 'daily'),
+        ('/colleges', '0.9', 'weekly'),
+        ('/universities', '0.9', 'weekly'),
+        ('/cutoffs', '0.9', 'daily'),
+        ('/entrance-exams', '0.9', 'weekly'),
+        ('/mock-exams', '0.8', 'weekly'),
+        ('/exam-updates', '0.8', 'weekly'),
+        ('/articles', '0.8', 'weekly'),
+        ('/blogs', '0.8', 'weekly'),
+        ('/news', '0.8', 'daily'),
+        ('/courses', '0.8', 'weekly'),
+        ('/guide-me', '0.7', 'monthly'),
+        ('/contact', '0.6', 'monthly'),
+        ('/about', '0.6', 'monthly'),
+        ('/epaper', '0.7', 'daily'),
+    ]
+    urls = '\n'.join(
+        f'  <url><loc>{base}{path}</loc><lastmod>{today}</lastmod>'
+        f'<changefreq>{freq}</changefreq><priority>{pri}</priority></url>'
+        for path, pri, freq in static_pages
+    )
+    xml = f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{urls}\n</urlset>'
+    return Response(xml, mimetype='application/xml')
+
+
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', debug=True)
+    debug = os.environ.get("FLASK_ENV") != "production"
+    app.run(host='0.0.0.0', debug=debug)
