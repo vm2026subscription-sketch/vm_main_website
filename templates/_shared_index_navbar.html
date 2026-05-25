@@ -613,6 +613,7 @@
       <a href="{{ url_for('news') }}" class="vm-nav-item {% if request.endpoint == 'news' %}vm-active{% endif %}">News</a>
       <a href="{{ url_for('guide_me') }}" class="vm-nav-item {% if request.endpoint == 'guide_me' %}vm-active{% endif %}">Guide Me</a>
       <a href="{{ url_for('epaper.epaper_viewer') }}" class="vm-nav-item {% if request.blueprint == 'epaper' %}vm-active{% endif %}">E-Paper</a>
+      <a href="{{ url_for('govt_jobs') }}" class="vm-nav-item {% if request.endpoint == 'govt_jobs' or request.endpoint == 'govt_job_detail' %}vm-active{% endif %}">Govt Jobs</a>
     </nav>
 
     <!-- Right Side Actions & Auth CTA Buttons -->

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Government Jobs 2025-26 | Sarkari Naukri | VidyarthiMitra.org</title>
+  <meta name="description" content="Latest government job notifications 2025-26 — SSC, Banking, Railway, UPSC, Defence, Teaching, PSC. Vacancy details, last date, eligibility and apply links.">
+  <meta name="keywords" content="government jobs 2025, sarkari naukri, SSC CGL 2025, IBPS PO 2025, Railway Jobs, UPSC, teaching jobs, police jobs, Maharashtra govt jobs">
+  <meta property="og:title" content="Government Jobs 2025-26 | VidyarthiMitra.org">
+  <meta property="og:description" content="Latest Sarkari Naukri — SSC, Banking, Railway, Defence and more. Vacancy, last date, eligibility all in one place.">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='govt-jobs.css') }}">
+  <style>.navbar { display: none; }</style>
+</head>
+<body>
+  {% include '_shared_index_navbar.html' %}
+
+  <!-- HERO -->
+  <div class="gj-hero">
+    <h1><i class="fa-solid fa-landmark" style="margin-right:10px;"></i>Government Jobs 2025–26</h1>
+    <p>Latest Sarkari Naukri — Vacancy, Last Date &amp; Apply Links updated daily</p>
+    <span class="gj-total-badge">{{ jobs | length }}+ Active Notifications</span>
+  </div>
+
+  <!-- FILTER BAR -->
+  <div class="gj-filterbar">
+    <div class="gj-filterbar-inner">
+      <input type="text" class="gj-search" id="gjSearch" placeholder="Search jobs, org, post...">
+      <select class="gj-state-select" id="gjState">
+        <option value="all">All States</option>
+        {% for s in states %}
+        <option value="{{ s }}">{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <!-- CATEGORY TABS -->
+  <div class="gj-cats" id="gjCats">
+    <button class="gj-cat-btn active" data-cat="all">
+      <i class="fa-solid fa-grid-2"></i> All <span class="cnt">{{ jobs | length }}</span>
+    </button>
+    {% for cat in categories %}
+    <button class="gj-cat-btn" data-cat="{{ cat.value }}">
+      <i class="{{ cat.icon }}"></i> {{ cat.label }}
+      <span class="cnt">{{ cat.count }}</span>
+    </button>
+    {% endfor %}
+  </div>
+
+  <!-- RESULTS HEADER -->
+  <div class="gj-results-header">
+    <p class="gj-count">Showing <span id="gjVisible">{{ jobs | length }}</span> of <span>{{ jobs | length }}</span> notifications</p>
+    <select class="gj-sort" id="gjSort">
+      <option value="latest">Sort: Latest First</option>
+      <option value="vacancy">Sort: Most Vacancies</option>
+      <option value="deadline">Sort: Deadline Soon</option>
+    </select>
+  </div>
+
+  <!-- JOB GRID -->
+  <div class="gj-grid" id="gjGrid">
+    {% for job in jobs %}
+    <div class="gj-card"
+         data-cat="{{ job.category }}"
+         data-state="{{ job.state }}"
+         data-vacancy="{{ job.vacancy }}"
+         data-date="{{ job.last_date }}"
+         data-search="{{ job.title | lower }} {{ job.organization | lower }} {{ job.post | lower }} {{ job.category }}">
+
+      <div class="gj-card-header">
+        <div class="gj-org-icon">{{ job.short_org }}</div>
+        <div class="gj-card-title-wrap">
+          <div class="gj-card-title">{{ job.title }}</div>
+          <div class="gj-card-org">{{ job.organization }}</div>
+        </div>
+        {% if job.badge %}
+        <span class="gj-badge {{ job.badge }}">{{ job.badge | upper }}</span>
+        {% endif %}
+      </div>
+
+      <div class="gj-post">
+        <i class="fa-solid fa-briefcase fa-xs"></i>
+        <span>{{ job.post }}</span>
+      </div>
+
+      <div class="gj-details">
+        <div class="gj-detail-item">
+          <span class="gj-detail-label"><i class="fa fa-users fa-xs"></i> Vacancies</span>
+          <span class="gj-detail-value vacancies">
+            {% if job.vacancy > 0 %}{{ "{:,}".format(job.vacancy) }}{% else %}As per notification{% endif %}
+          </span>
+        </div>
+        <div class="gj-detail-item">
+          <span class="gj-detail-label"><i class="fa fa-calendar fa-xs"></i> Last Date</span>
+          <span class="gj-detail-value urgent">
+            {% set parts = job.last_date.split('-') %}
+            {{ parts[2] }}/{{ parts[1] }}/{{ parts[0] }}
+          </span>
+        </div>
+        <div class="gj-detail-item">
+          <span class="gj-detail-label"><i class="fa fa-rupee-sign fa-xs"></i> Salary</span>
+          <span class="gj-detail-value" style="font-size:.8rem;">{{ job.salary }}</span>
+        </div>
+        <div class="gj-detail-item">
+          <span class="gj-detail-label"><i class="fa fa-user-clock fa-xs"></i> Age Limit</span>
+          <span class="gj-detail-value" style="font-size:.8rem;">{{ job.age }}</span>
+        </div>
+      </div>
+
+      <div class="gj-qual">
+        <i class="fa-solid fa-graduation-cap fa-xs"></i>
+        <span>{{ job.qualification }}</span>
+      </div>
+
+      <div class="gj-card-footer">
+        <a class="gj-btn-details" href="{{ url_for('govt_job_detail', job_id=job.id) }}">
+          <i class="fa fa-info-circle"></i> Details
+        </a>
+        <a class="gj-btn-apply" href="{{ job.apply_url }}" target="_blank" rel="noopener">
+          Apply Now <i class="fa fa-arrow-right fa-xs"></i>
+        </a>
+      </div>
+
+    </div>
+    {% endfor %}
+
+    <div class="gj-no-results" id="gjNoResults" style="display:none;">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <p>No jobs found. Try different filters or search.</p>
+    </div>
+  </div>
+
+  <footer style="background:#0a1128;color:#64748b;padding:20px;text-align:center;font-size:13px;border-top:1px solid rgba(255,255,255,.06);">
+    <p>&copy; 2026 VidyarthiMitra.org &nbsp;|&nbsp;
+      <a href="/terms" style="color:#ff6600;">Terms</a> &nbsp;|&nbsp;
+      <a href="/privacy" style="color:#ff6600;">Privacy</a>
+    </p>
+  </footer>
+
+  <script>
+  (function() {
+    const grid      = document.getElementById('gjGrid');
+    const search    = document.getElementById('gjSearch');
+    const stateEl   = document.getElementById('gjState');
+    const sortEl    = document.getElementById('gjSort');
+    const catBtns   = document.querySelectorAll('.gj-cat-btn');
+    const visCount  = document.getElementById('gjVisible');
+    const noRes     = document.getElementById('gjNoResults');
+
+    let activeCat   = 'all';
+    let activeState = 'all';
+    let activeQuery = '';
+    let activeSort  = 'latest';
+
+    function getCards() { return Array.from(grid.querySelectorAll('.gj-card')); }
+
+    function applyFilters() {
+      const cards = getCards();
+      let visible = 0;
+
+      cards.forEach(card => {
+        const catMatch   = activeCat === 'all' || card.dataset.cat === activeCat;
+        const stateMatch = activeState === 'all' || card.dataset.state === activeState;
+        const qMatch     = !activeQuery || card.dataset.search.includes(activeQuery);
+
+        if (catMatch && stateMatch && qMatch) {
+          card.style.display = '';
+          visible++;
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      visCount.textContent = visible;
+      noRes.style.display  = visible === 0 ? 'block' : 'none';
+    }
+
+    function sortCards() {
+      const cards = getCards();
+      cards.sort((a, b) => {
+        if (activeSort === 'vacancy') {
+          return parseInt(b.dataset.vacancy) - parseInt(a.dataset.vacancy);
+        }
+        if (activeSort === 'deadline') {
+          return a.dataset.date.localeCompare(b.dataset.date);
+        }
+        // latest: reverse order (last card = latest by default)
+        return 0;
+      });
+      cards.forEach(c => grid.insertBefore(c, noRes));
+      applyFilters();
+    }
+
+    catBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        catBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeCat = btn.dataset.cat;
+        applyFilters();
+      });
+    });
+
+    let searchTimer;
+    search.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        activeQuery = search.value.toLowerCase().trim();
+        applyFilters();
+      }, 280);
+    });
+
+    stateEl.addEventListener('change', () => {
+      activeState = stateEl.value;
+      applyFilters();
+    });
+
+    sortEl.addEventListener('change', () => {
+      activeSort = sortEl.value;
+      sortCards();
+    });
+
+  })();
+  </script>
+</body>
+</html>

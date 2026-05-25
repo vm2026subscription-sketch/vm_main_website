@@ -3311,6 +3311,49 @@ def api_blogs():
     return jsonify(blogs)
 
 
+_GOVT_JOBS_FILE = os.path.join(os.path.dirname(__file__), 'data', 'govt_jobs.json')
+
+GOVT_JOB_CATEGORIES = [
+    {"value": "ssc",      "label": "SSC",      "icon": "fa-solid fa-file-alt"},
+    {"value": "banking",  "label": "Banking",  "icon": "fa-solid fa-building-columns"},
+    {"value": "railway",  "label": "Railway",  "icon": "fa-solid fa-train"},
+    {"value": "defence",  "label": "Defence",  "icon": "fa-solid fa-shield-halved"},
+    {"value": "teaching", "label": "Teaching", "icon": "fa-solid fa-chalkboard-teacher"},
+    {"value": "psc",      "label": "PSC/UPSC", "icon": "fa-solid fa-landmark"},
+    {"value": "police",   "label": "Police",   "icon": "fa-solid fa-shield"},
+    {"value": "others",   "label": "Others",   "icon": "fa-solid fa-briefcase"},
+]
+
+@app.route('/govt-jobs')
+def govt_jobs():
+    try:
+        with open(_GOVT_JOBS_FILE, 'r', encoding='utf-8') as f:
+            jobs = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        jobs = []
+    states = sorted({j['state'] for j in jobs})
+    categories = []
+    for cat in GOVT_JOB_CATEGORIES:
+        count = sum(1 for j in jobs if j['category'] == cat['value'])
+        if count > 0:
+            categories.append({**cat, 'count': count})
+    return render_template('govt-jobs.html', jobs=jobs, states=states, categories=categories)
+
+
+@app.route('/govt-jobs/<int:job_id>')
+def govt_job_detail(job_id):
+    try:
+        with open(_GOVT_JOBS_FILE, 'r', encoding='utf-8') as f:
+            jobs = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        jobs = []
+    job = next((j for j in jobs if j['id'] == job_id), None)
+    if job is None:
+        return redirect(url_for('govt_jobs'))
+    related = [j for j in jobs if j['category'] == job['category'] and j['id'] != job_id][:3]
+    return render_template('govt-job-detail.html', job=job, related=related)
+
+
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
