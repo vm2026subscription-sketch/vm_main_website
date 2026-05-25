@@ -48,7 +48,7 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "vidyarthi-mitra-dev-key-change-in-production")
-app.config["MAX_CONTENT_LENGTH"] = 60 * 1024 * 1024  # 60 MB upload limit
+app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024  # 200 MB upload limit
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 # Enable SECURE cookies only when not running locally
@@ -56,6 +56,14 @@ if os.environ.get("FLASK_ENV") == "production" or os.environ.get("RENDER"):
     app.config["SESSION_COOKIE_SECURE"] = True
 if _has_compress:
     _FlaskCompress(app)
+
+@app.errorhandler(413)
+def request_too_large(e):
+    return jsonify({
+        'success': False,
+        'error': 'File too large. Maximum upload size is 200 MB. Please compress your PDF and try again.'
+    }), 413
+
 AUTH_DB_PATH = os.path.join(app.root_path, "auth_users.db")
 
 COURSES_DB_URL = (
