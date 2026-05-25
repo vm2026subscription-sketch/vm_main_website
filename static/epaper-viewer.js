@@ -11,7 +11,7 @@ const EP = {
   minZoom: 1,
   maxZoom: 3,
   isDragging: false,
-  dragStart: { x: 0, y: 0 },
+  dragStart: { x: 0, y: 0, scrollLeft: 0, scrollTop: 0 },
   panOffset: { x: 0, y: 0 },
   editions: [],
   pages: [],
@@ -23,10 +23,10 @@ const EP = {
   ttsPlaying: false,
 
   footerLinksDefault: [
-    { key: 'search',    icon: 'fa fa-magnifying-glass', url: '/epaper' },
-    { key: 'whatsapp',  icon: 'fab fa-whatsapp',        url: 'https://wa.me/?text=Vidyarthi%20Mitra%20E-Paper' },
-    { key: 'facebook',  icon: 'fab fa-facebook-f',      url: 'https://www.facebook.com/' },
-    { key: 'x',         icon: 'fab fa-x-twitter',       url: 'https://x.com/' },
+    { key: 'search', icon: 'fa fa-magnifying-glass', url: '/epaper' },
+    { key: 'whatsapp', icon: 'fab fa-whatsapp', url: 'https://wa.me/?text=Vidyarthi%20Mitra%20E-Paper' },
+    { key: 'facebook', icon: 'fab fa-facebook-f', url: 'https://www.facebook.com/' },
+    { key: 'x', icon: 'fab fa-x-twitter', url: 'https://x.com/' },
   ],
 
   // DOM refs
@@ -44,6 +44,7 @@ const EP = {
     this.startAutoRefreshPoll();
     // Load news sidebar
     this.loadNewsSidebar();
+
   },
 
   async loadLatestEdition() {
@@ -250,14 +251,50 @@ const EP = {
     this.el.fitPage?.addEventListener('click', () => this.setZoom(1));
     this.el.fullscreen?.addEventListener('click', () => this.toggleFullscreen());
 
+    // Drag-to-pan when zoomed in
+    const viewer = this.el.viewer;
+    if (viewer) {
+      viewer.addEventListener('mousedown', (e) => {
+        if (this.zoom <= 1) return;
+        if (e.button !== 0) return;
+        this.isDragging = true;
+        this.dragStart = { x: e.clientX, y: e.clientY, scrollLeft: viewer.scrollLeft, scrollTop: viewer.scrollTop };
+        viewer.classList.add('is-panning');
+        e.preventDefault();
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!this.isDragging) return;
+        const dx = e.clientX - this.dragStart.x;
+        const dy = e.clientY - this.dragStart.y;
+        viewer.scrollLeft = this.dragStart.scrollLeft - dx;
+        viewer.scrollTop = this.dragStart.scrollTop - dy;
+      });
+
+      document.addEventListener('mouseup', () => {
+        if (!this.isDragging) return;
+        this.isDragging = false;
+        viewer.classList.remove('is-panning');
+      });
+
+      viewer.addEventListener('mouseleave', () => {
+        if (this.isDragging) {
+          this.isDragging = false;
+          viewer.classList.remove('is-panning');
+        }
+      });
+    }
+
     // Scroll buttons — scroll amount scales with zoom level
     this.el.scrollUp?.addEventListener('click', () => {
       const viewer = this.el.viewer;
       if (viewer) viewer.scrollBy({ top: -(250 * this.zoom), behavior: 'smooth' });
+      window.scrollBy({ top: -(250 * this.zoom), behavior: 'smooth' });
     });
     this.el.scrollDown?.addEventListener('click', () => {
       const viewer = this.el.viewer;
       if (viewer) viewer.scrollBy({ top: 250 * this.zoom, behavior: 'smooth' });
+      window.scrollBy({ top: 250 * this.zoom, behavior: 'smooth' });
     });
 
     // Thumbnail strip
@@ -329,7 +366,7 @@ const EP = {
       tab.addEventListener('click', () => this.switchAiTab(tab.dataset.tab));
     });
 
- // TTS / Voice Player
+    // TTS / Voice Player
     this.el.ttsStartBtn?.addEventListener('click', () => this.voicePlay());
     this.el.voiceVolBtn?.addEventListener('click', () => this.voiceToggleMute());
     this.el.artBackFromPlayer?.addEventListener('click', () => this.closeArticle());
@@ -392,6 +429,21 @@ const EP = {
     // Calendar nav
     document.getElementById('epCalPrev')?.addEventListener('click', () => this.calendarNav(-1));
     document.getElementById('epCalNext')?.addEventListener('click', () => this.calendarNav(1));
+
+    // Share Toolbar Menu dropdown toggle
+    const shareBtn = document.getElementById('epShareBtn');
+    const shareDropdown = document.getElementById('epShareDropdown');
+    if (shareBtn && shareDropdown) {
+      shareBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        shareDropdown.classList.toggle('show');
+      });
+      document.addEventListener('click', (e) => {
+        if (!shareDropdown.contains(e.target) && !shareBtn.contains(e.target)) {
+          shareDropdown.classList.remove('show');
+        }
+      });
+    }
   },
 
   // ── Header ──
@@ -496,7 +548,7 @@ const EP = {
       const key = item?.key || '';
       const target = base.find(link => link.key === key);
       if (target) {
-        if (item.url)  target.url  = item.url;
+        if (item.url) target.url = item.url;
         if (item.icon) target.icon = item.icon;
       } else if (item?.url) {
         base.push({ key: key || 'link', url: item.url, icon: item.icon || 'fa fa-link' });
@@ -509,8 +561,8 @@ const EP = {
     if (!this.el.footerLinks) return;
     const links = this.resolveFooterLinks(rawLinks);
     this.el.footerLinks.innerHTML = links.map(item => {
-      const href  = item.url  || '#';
-      const label = item.key  || 'link';
+      const href = item.url || '#';
+      const label = item.key || 'link';
       return `<a class="ep-footer-link" href="${href}" target="_blank" rel="noopener" aria-label="${label}"><i class="${item.icon}"></i></a>`;
     }).join('');
   },
@@ -548,14 +600,14 @@ const EP = {
   },
 
   renderCalendar() {
-    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     if (this.el.calTitle) this.el.calTitle.textContent = `${months[this.calendarMonth]} ${this.calendarYear}`;
 
     const grid = this.el.calGrid;
     if (!grid) return;
     grid.innerHTML = '';
 
-    const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     dayNames.forEach(d => {
       const el = document.createElement('div');
       el.className = 'ep-cal-day-name';
@@ -746,7 +798,7 @@ const EP = {
     this.applyTransform();
     this.updatePager();
 
-     const page = this.pages[this.currentPage - 1];
+    const page = this.pages[this.currentPage - 1];
     if (!page) return;
 
     this.updatePageHeader(page, this.currentPage);
@@ -758,7 +810,7 @@ const EP = {
     if (page.blocks && page.blocks.length > 0) {
       // Hide legacy elements
       if (this.el.pageContainer) this.el.pageContainer.style.display = 'none';
-      this.renderBlockGrid(page.blocks, viewer, page.page_image_url || '');
+      this.renderBlockGrid(page.blocks, viewer, page.page_image_url || page.image_path || '');
     } else if (page.page_image_url) {
       const isPdf = page.page_image_url.toLowerCase().endsWith('.pdf');
       if (this.el.pageContainer) this.el.pageContainer.style.display = '';
@@ -814,16 +866,16 @@ const EP = {
 
   getBlockType(block) {
     if (block?.type === 'divider') return 'divider';
-    if (block?.type === 'shape')   return 'shape';
+    if (block?.type === 'shape') return 'shape';
     return 'article';
   },
 
   buildShapeMarkup(block) {
-    const fill   = block.no_fill ? 'none' : (block.fill_color   || '#cccccc');
+    const fill = block.no_fill ? 'none' : (block.fill_color || '#cccccc');
     const stroke = block.stroke_color || '#111827';
-    const sw     = block.stroke_width || 0;
-    const op     = (block.opacity ?? 100) / 100;
-    const cr     = block.corner_radius || 0;
+    const sw = block.stroke_width || 0;
+    const op = (block.opacity ?? 100) / 100;
+    const cr = block.corner_radius || 0;
     switch (block.shape_type) {
       case 'rect':
         return `<div style="width:100%;height:100%;background:${fill};border:${sw}px solid ${sw > 0 ? stroke : 'transparent'};border-radius:${cr}%;opacity:${op};box-sizing:border-box;"></div>`;
@@ -892,71 +944,67 @@ const EP = {
     grid.innerHTML = `
       <div class="ep-canvas-viewer" style="position:relative;width:100%;padding-bottom:${aspectRatio}%;${bgStyle}">
         ${blocks.map((block) => {
-          const type = this.getBlockType(block);
-          const hasImg = block.image_url && block.image_url.length > 10;
-          const x = ((block.x || 0) / CANVAS_W * 100).toFixed(2);
-          const y = ((block.y || 0) / canvasH * 100).toFixed(2);
-          const w = ((block.w || 200) / CANVAS_W * 100).toFixed(2);
-          const h = ((block.h || 150) / canvasH * 100).toFixed(2);
-          const bw = block.border_width ?? 0;
-          const br = block.border_radius ?? 0;
-          const bc = block.border_color || '#e41e26';
-          const bs = block.border_style || 'solid';
-          const borderCSS = type === 'article' && bw > 0 ? `border:${bw}px ${bs} ${bc};` : '';
-          const baseStyle = `position:absolute;left:${x}%;top:${y}%;width:${w}%;height:${h}%;border-radius:${br}px;${borderCSS}overflow:hidden;`;
+      const type = this.getBlockType(block);
+      const hasImg = block.image_url && block.image_url.length > 10;
+      const x = ((block.x || 0) / CANVAS_W * 100).toFixed(2);
+      const y = ((block.y || 0) / canvasH * 100).toFixed(2);
+      const w = ((block.w || 200) / CANVAS_W * 100).toFixed(2);
+      const h = ((block.h || 150) / canvasH * 100).toFixed(2);
+      const bw = block.border_width ?? 0;
+      const br = block.border_radius ?? 0;
+      const bc = block.border_color || '#e41e26';
+      const bs = block.border_style || 'solid';
+      const borderCSS = type === 'article' && bw > 0 ? `border:${bw}px ${bs} ${bc};` : '';
+      const baseStyle = `position:absolute;left:${x}%;top:${y}%;width:${w}%;height:${h}%;border-radius:${br}px;${borderCSS}overflow:hidden;`;
 
-          if (type === 'divider') {
-            return `
+      if (type === 'divider') {
+        return `
               <div class="ep-block-divider-card" style="${baseStyle}">
                 ${this.buildDividerMarkup(block)}
               </div>
             `;
-          }
+      }
 
-          if (type === 'shape') {
-            const gotoPage = block.goto_page;
-            if (gotoPage) {
-              return `
+      if (type === 'shape') {
+        const gotoPage = block.goto_page;
+        if (gotoPage) {
+          return `
                 <div style="${baseStyle}cursor:pointer;" onclick="EP.showPage(${gotoPage})" title="Go to page ${gotoPage}">
                   ${this.buildShapeMarkup(block)}
                 </div>
               `;
-            }
-            return `
+        }
+        return `
               <div style="${baseStyle}pointer-events:none;">
                 ${this.buildShapeMarkup(block)}
               </div>
             `;
-          }
+      }
 
-          const gotoPage = block.goto_page;
-          const articleIndex = this.articles.push({
-            ...block,
-            headline: block.headline,
-            sub_headline: block.sub_headline,
-            body_text: block.body_text,
-            body_html: block.body_html || '',
-            category_label: block.category_label,
-            article_image_url: block.image_url,
-            gallery: block.gallery || [],
-          }) - 1;
+      const gotoPage = block.goto_page;
+      const articleIndex = this.articles.push({
+        ...block,
+        headline: block.headline,
+        sub_headline: block.sub_headline,
+        body_text: block.body_text,
+        body_html: block.body_html || '',
+        category_label: block.category_label,
+        article_image_url: block.image_url,
+        gallery: block.gallery || [],
+      }) - 1;
 
-          // Optimize Cloudinary images: smaller width for card thumbnails
-          const imgSrc = hasImg ? this.optimizeCloudinaryUrl(block.image_url, 400) : '';
-          const clickHandler = gotoPage
-            ? `onclick="EP.showPage(${gotoPage})" title="Go to page ${gotoPage}"`
-            : `onclick="EP.openArticle(${articleIndex})" title="${block.headline || ''}"`;
+      // Optimize Cloudinary images: smaller width for card thumbnails
+      const imgSrc = hasImg ? this.optimizeCloudinaryUrl(block.image_url, 400) : '';
+      const clickHandler = gotoPage
+        ? `onclick="EP.showPage(${gotoPage})" title="Go to page ${gotoPage}"`
+        : `onclick="EP.openArticle(${articleIndex})" title="${block.headline || ''}"`;
 
-          return `
+      return `
             <div class="ep-block-card" ${clickHandler} style="${baseStyle}cursor:pointer;">
-              ${hasImg ? `<img class="ep-block-img" src="${imgSrc}" alt="${block.headline || ''}" draggable="false" loading="lazy" style="width:100%;height:100%;object-fit:contain;display:block;">` : `
-                <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f3f4f6,#e5e7eb);color:#d1d5db;font-size:28px;">
-                  <i class="fa fa-newspaper"></i>
-                </div>
-              `}
+              ${hasImg ? `<img class="ep-block-img" src="${imgSrc}" alt="${block.headline || ''}" draggable="false" loading="lazy" style="width:100%;height:100%;object-fit:contain;display:block;">` : ''}
             </div>
           `;
-        }).join('')}
+    }).join('')}
       </div>
     `;
   },
@@ -982,11 +1030,53 @@ const EP = {
 
   // ── Zoom ──
   setZoom(level) {
-    this.zoom = Math.max(this.minZoom, Math.min(this.maxZoom, level));
+    const oldZoom = this.zoom;
+    const newZoom = Math.max(this.minZoom, Math.min(this.maxZoom, level));
+    if (oldZoom === newZoom) return;
+
+    // Determine the scroll container and viewport dimensions
+    const isFullscreen = document.body.classList.contains('ep-fullscreen');
+    const scrollContainer = isFullscreen && this.el.viewer ? this.el.viewer : window;
+    
+    const clientW = scrollContainer === window ? window.innerWidth : scrollContainer.clientWidth;
+    const clientH = scrollContainer === window ? window.innerHeight : scrollContainer.clientHeight;
+    
+    // Find the center of the screen
+    const screenCenterX = clientW / 2;
+    const screenCenterY = clientH / 2;
+
+    // Find where the screen center is relative to the pageContainer BEFORE zoom
+    const containerRectBefore = this.el.pageContainer.getBoundingClientRect();
+    
+    // Calculate the ratio (0 to 1) of where the screen center intersects the container
+    const ratioX = (screenCenterX - containerRectBefore.left) / containerRectBefore.width;
+    const ratioY = (screenCenterY - containerRectBefore.top) / containerRectBefore.height;
+
+    // Apply zoom
+    this.zoom = newZoom;
     this.applyTransform();
+
+    // After applying transform, recalculate container layout
+    const containerRectAfter = this.el.pageContainer.getBoundingClientRect();
+    
+    // Find where that same ratio point is NOW on the screen
+    const newPointXOnScreen = containerRectAfter.left + (containerRectAfter.width * ratioX);
+    const newPointYOnScreen = containerRectAfter.top + (containerRectAfter.height * ratioY);
+    
+    // Calculate how much we need to scroll to bring that point back to screenCenter
+    const diffX = newPointXOnScreen - screenCenterX;
+    const diffY = newPointYOnScreen - screenCenterY;
+    
+    if (scrollContainer === window) {
+      window.scrollBy({ left: diffX, top: diffY, behavior: 'auto' });
+    } else {
+      scrollContainer.scrollLeft += diffX;
+      scrollContainer.scrollTop += diffY;
+    }
+
     // Reflect button disabled state
     if (this.el.zoomOut) this.el.zoomOut.disabled = this.zoom <= this.minZoom;
-    if (this.el.zoomIn)  this.el.zoomIn.disabled  = this.zoom >= this.maxZoom;
+    if (this.el.zoomIn) this.el.zoomIn.disabled = this.zoom >= this.maxZoom;
   },
 
   applyTransform() {
@@ -998,26 +1088,38 @@ const EP = {
     const paper = document.getElementById('epPaper');
     if (paper) paper.style.zoom = '';
 
-    // Clear legacy transform/margin overrides
-    if (this.el.viewer) this.el.viewer.style.justifyContent = '';
+    // Adjust justifyContent and pan cursor dynamically
+    if (this.el.viewer) {
+      if (z > 1) {
+        this.el.viewer.style.justifyContent = 'flex-start';
+        this.el.viewer.classList.add('can-pan');
+      } else {
+        this.el.viewer.style.justifyContent = 'center';
+        this.el.viewer.classList.remove('can-pan');
+      }
+    }
 
-    // Zoom only the page content containers (inside ep-viewer which has overflow:auto).
-    // ep-viewer absorbs the scaled size, so ep-paper and body never grow — keeping
-    // position:fixed elements (article panel, toolbar, pager) completely unaffected.
+    // Zoom inside the scroll container (paper-viewer-container) by adjusting width natively
     const grid = document.getElementById('epBlockGrid');
-    if (grid) { grid.style.zoom = z; grid.style.transform = ''; grid.style.marginBottom = ''; }
-    if (this.el.pageContainer) {
-      this.el.pageContainer.style.zoom = z;
-      this.el.pageContainer.style.transform = '';
-      this.el.pageContainer.style.marginBottom = '';
+    const container = this.el.pageContainer;
+
+    if (grid) {
+      grid.style.zoom = '';
+      grid.style.width = `${z * 100}%`;
+      grid.style.maxWidth = z > 1 ? `${z * 860}px` : '';
+    }
+    if (container) {
+      container.style.zoom = '';
+      container.style.width = `${z * 100}%`;
+      container.style.maxWidth = 'none';
     }
   },
 
   toggleFullscreen() {
+    const reader = document.getElementById('epReaderContainer');
     if (!document.fullscreenElement) {
       document.body.classList.add('ep-fullscreen');
-      // Request fullscreen on documentElement so masthead, toolbar and nav are all visible
-      document.documentElement.requestFullscreen?.();
+      reader?.requestFullscreen?.();
     } else {
       document.body.classList.remove('ep-fullscreen');
       document.exitFullscreen?.();
@@ -1060,9 +1162,9 @@ const EP = {
         <div class="ep-thumb-card ${isActive ? 'active' : ''}" onclick="EP.showPage(${i + 1})">
           <div class="ep-thumb-label">Page ${i + 1}</div>
           ${thumbUrl
-            ? `<img class="ep-thumb-img" src="${thumbUrl}" alt="Page ${i + 1}" loading="lazy">`
-            : `<div class="ep-thumb-placeholder"><i class="fa fa-newspaper"></i></div>`
-          }
+          ? `<img class="ep-thumb-img" src="${thumbUrl}" alt="Page ${i + 1}" loading="lazy">`
+          : `<div class="ep-thumb-placeholder"><i class="fa fa-newspaper"></i></div>`
+        }
         </div>
       `;
     }).join('');
@@ -1114,7 +1216,7 @@ const EP = {
       if (gallery.length > 0) {
         galHTML = '<div class="ep-article-gallery-full">';
         gallery.forEach((img, i) => {
-          galHTML += `<img src="${img}" alt="Image ${i+1}" class="ep-gallery-full-img" loading="lazy" onload="this.classList.add('loaded')" onclick="EP.openGalleryViewer(${index}, ${i})">`;
+          galHTML += `<img src="${img}" alt="Image ${i + 1}" class="ep-gallery-full-img" loading="lazy" onload="this.classList.add('loaded')" onclick="EP.openGalleryViewer(${index}, ${i})">`;
         });
         galHTML += '</div>';
       }
@@ -1128,7 +1230,7 @@ const EP = {
 
     // Save originals for translation restore
     this._origArticleTitle = art.headline || '';
-    this._origArticleHTML  = this.el.articleText ? this.el.articleText.innerHTML : '';
+    this._origArticleHTML = this.el.articleText ? this.el.articleText.innerHTML : '';
 
     // Reset AI tabs
     this.switchAiTab(null);
@@ -1244,7 +1346,7 @@ const EP = {
     // Restore originals on Auto
     if (!lang) {
       if (this.el.articleTitle) this.el.articleTitle.textContent = this._origArticleTitle || '';
-      if (this.el.articleText)  this.el.articleText.innerHTML  = this._origArticleHTML  || '';
+      if (this.el.articleText) this.el.articleText.innerHTML = this._origArticleHTML || '';
       this.showToast('Restored original language');
       return;
     }
@@ -1277,7 +1379,7 @@ const EP = {
       const bData = bRes.ok ? await bRes.json() : {};
 
       const newTitle = hData.translated_text || headline;
-      const newBody  = bData.translated_text || bodyText;
+      const newBody = bData.translated_text || bodyText;
 
       if (this.el.articleTitle) this.el.articleTitle.textContent = newTitle;
       if (this.el.articleText) {
@@ -1314,8 +1416,8 @@ const EP = {
     const devanagari = (text.match(/[\u0900-\u097F]/g) || []).length;
     const total = text.length;
     if (devanagari / total > 0.3) {
-      const marathiWords = ['\u0906\u0939\u0947','\u0928\u093E\u0939\u0940','\u0906\u0923\u093F','\u092E\u0932\u093E','\u0906\u092A\u0923','\u0939\u094B\u0924\u0947','\u0915\u0947\u0932\u0947','\u091D\u093E\u0932\u0947','\u092E\u094D\u0939\u0923\u093E\u0932\u0947','\u092E\u0939\u093E\u0930\u093E\u0937\u094D\u091F\u094D\u0930'];
-      const hindiWords   = ['\u0939\u0948','\u0928\u0939\u0940\u0902','\u0914\u0930','\u0925\u093E','\u0939\u0948\u0902','\u092F\u0939','\u0915\u0939\u093E','\u092C\u0924\u093E\u092F\u093E','\u0907\u0938\u0938\u0947'];
+      const marathiWords = ['\u0906\u0939\u0947', '\u0928\u093E\u0939\u0940', '\u0906\u0923\u093F', '\u092E\u0932\u093E', '\u0906\u092A\u0923', '\u0939\u094B\u0924\u0947', '\u0915\u0947\u0932\u0947', '\u091D\u093E\u0932\u0947', '\u092E\u094D\u0939\u0923\u093E\u0932\u0947', '\u092E\u0939\u093E\u0930\u093E\u0937\u094D\u091F\u094D\u0930'];
+      const hindiWords = ['\u0939\u0948', '\u0928\u0939\u0940\u0902', '\u0914\u0930', '\u0925\u093E', '\u0939\u0948\u0902', '\u092F\u0939', '\u0915\u0939\u093E', '\u092C\u0924\u093E\u092F\u093E', '\u0907\u0938\u0938\u0947'];
       const mr = marathiWords.filter(w => text.includes(w)).length;
       const hi = hindiWords.filter(w => text.includes(w)).length;
       return mr > hi ? 'mr-IN' : 'hi-IN';
@@ -1517,9 +1619,9 @@ const EP = {
     // Convert ₹ amounts to Hindi words
     t = t.replace(/₹\s?(\d[\d,]*)/g, (_, num) => {
       const n = parseInt(num.replace(/,/g, ''));
-      if (n >= 10000000) return `${(n/10000000).toFixed(1)} करोड़ रुपये`;
-      if (n >= 100000) return `${(n/100000).toFixed(1)} लाख रुपये`;
-      if (n >= 1000) return `${(n/1000).toFixed(0)} हज़ार रुपये`;
+      if (n >= 10000000) return `${(n / 10000000).toFixed(1)} करोड़ रुपये`;
+      if (n >= 100000) return `${(n / 100000).toFixed(1)} लाख रुपये`;
+      if (n >= 1000) return `${(n / 1000).toFixed(0)} हज़ार रुपये`;
       return `${n} रुपये`;
     });
 
@@ -1551,8 +1653,8 @@ const EP = {
 
     // Read from the currently DISPLAYED text (may already be translated)
     const displayedTitle = this.el.articleTitle?.textContent || '';
-    const displayedBody  = (this.el.articleText?.innerText || this.el.articleText?.textContent || '')
-                            .replace(/[\r\n]+/g, ' ').replace(/ +/g, ' ').trim();
+    const displayedBody = (this.el.articleText?.innerText || this.el.articleText?.textContent || '')
+      .replace(/[\r\n]+/g, ' ').replace(/ +/g, ' ').trim();
     const rawText = (displayedTitle + '। ' + displayedBody).trim() || this._getArticleText();
     if (!rawText) { this.showToast('No text to read'); return; }
 
@@ -1579,7 +1681,7 @@ const EP = {
 
     // Step: Generate TTS Audio directly (skip LLM for speed)
     this.showToast('🎙️ Generating voice...');
-    
+
     // If rate wasn't set by LLM, set it by user default
     if (rateStr === '+0%' && this._voice.rate !== 1) {
       const pct = Math.round((this._voice.rate - 1) * 100);
@@ -1865,92 +1967,177 @@ const EP = {
   },
 
   // ── Save Edition as PDF ──
-  async savePDF() {
-    if (!this.pages.length) {
-      this.showToast('No edition pages available');
-      return;
-    }
-    const originalPage = this.currentPage;
-    const originalZoom = this.zoom;
-    const captures = [];
-    const viewer = document.getElementById('epPaper') || this.el.viewer || document.body;
-    if (!viewer) {
-      this.showToast('PDF export is unavailable right now');
-      return;
-    }
-
-    try {
-      for (let pageNum = 1; pageNum <= this.pages.length; pageNum++) {
-        this.showPage(pageNum);
-        this.setZoom(1);
-        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-
-        if (typeof window.html2canvas !== 'function') {
-          throw new Error('html2canvas unavailable');
+  // ── Helper: wait for page images to load ──
+  async waitPageToLoad() {
+    return new Promise(resolve => {
+      const grid = document.getElementById('epBlockGrid');
+      if (grid && grid.style.display !== 'none') {
+        const imgs = Array.from(grid.querySelectorAll('img.ep-block-img'));
+        if (imgs.length === 0) {
+          setTimeout(resolve, 300);
+          return;
         }
-
-        const canvas = await window.html2canvas(viewer, {
-          backgroundColor: '#ffffff',
-          useCORS: true,
-          scale: Math.max(2, Math.min(3, (window.devicePixelRatio || 1.5) * 1.5)),
+        let loadedCount = 0;
+        const checkResolve = () => {
+          loadedCount++;
+          if (loadedCount === imgs.length) resolve();
+        };
+        imgs.forEach(img => {
+          if (img.complete) {
+            checkResolve();
+          } else {
+            img.addEventListener('load', checkResolve, { once: true });
+            img.addEventListener('error', checkResolve, { once: true });
+          }
         });
-        captures.push(canvas.toDataURL('image/png'));
+        setTimeout(resolve, 3000); // 3s fallback limit
+      } else {
+        const img = document.getElementById('epPageImg');
+        if (img && img.style.display !== 'none' && img.src) {
+          if (img.complete) {
+            resolve();
+          } else {
+            img.addEventListener('load', () => resolve(), { once: true });
+            img.addEventListener('error', () => resolve(), { once: true });
+            setTimeout(resolve, 3000); // 3s fallback limit
+          }
+        } else {
+          setTimeout(resolve, 300);
+        }
       }
+    });
+  },
+
+  // ── Helper: show full screen progress loader ──
+  showPdfLoader(show, text = '') {
+    let loader = document.getElementById('epPdfLoader');
+    if (!loader) {
+      loader = document.createElement('div');
+      loader.id = 'epPdfLoader';
+      loader.style.cssText = `
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 15, 18, 0.96);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+        backdrop-filter: blur(8px);
+      `;
+      loader.innerHTML = `
+        <div style="text-align: center; color: #fff; font-family: var(--ep-font);">
+          <div style="width: 64px; height: 64px; border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid var(--ep-orange); border-radius: 50%; animation: epSpin 1s linear infinite; margin: 0 auto 24px;"></div>
+          <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 8px; letter-spacing: 0.5px;">Generating Edition PDF</h3>
+          <p id="epPdfLoaderText" style="color: rgba(255,255,255,0.6); font-size: 14px;">Preparing pages...</p>
+        </div>
+      `;
+      document.body.appendChild(loader);
+    }
+
+    if (show) {
+      loader.style.opacity = '1';
+      loader.style.pointerEvents = 'auto';
+      const textEl = document.getElementById('epPdfLoaderText');
+      if (textEl) textEl.textContent = text;
+    } else {
+      loader.style.opacity = '0';
+      loader.style.pointerEvents = 'none';
+    }
+  },
+
+  // ── Save Edition as PDF ──
+  savePDF() {
+    this.compilePDF();
+  },
+
+  async compilePDF() {
+    if (!this.pages.length) { this.showToast('No edition pages available'); return; }
+    if (typeof window.jspdf === 'undefined') { this.showToast('PDF library not loaded, please refresh'); return; }
+
+    this.showPdfLoader(true, `Loading images (0/${this.pages.length})...`);
+
+    // Load one page image as dataURL (CORS-safe canvas draw)
+    const loadImgDataUrl = (url) => new Promise(resolve => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      const tryDraw = () => {
+        try {
+          const c = document.createElement('canvas');
+          c.width = img.naturalWidth || 800;
+          c.height = img.naturalHeight || 1131;
+          c.getContext('2d').drawImage(img, 0, 0);
+          resolve({ dataUrl: c.toDataURL('image/jpeg', 0.9), w: c.width, h: c.height });
+        } catch (e) {
+          resolve(null); // CORS taint — will fall back to html2canvas
+        }
+      };
+      img.onload = tryDraw;
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+
+    // Capture current rendered page via html2canvas (fallback for pages without background image)
+    const captureDOM = async (pageNum) => {
+      this.showPage(pageNum);
+      this.setZoom(1);
+      await this.waitPageToLoad();
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      if (typeof window.html2canvas !== 'function') return null;
+      const el = document.querySelector('.ep-canvas-viewer') || document.getElementById('epBlockGrid') || document.getElementById('epPaper');
+      if (!el) return null;
+      const canvas = await window.html2canvas(el, { backgroundColor: '#ffffff', useCORS: true, scale: 1.5, logging: false });
+      return { dataUrl: canvas.toDataURL('image/jpeg', 0.88), w: canvas.width, h: canvas.height };
+    };
+
+    const originalPage = this.currentPage;
+    try {
+      // Load all image-backed pages in parallel
+      const urlMap = this.pages.map(p => p.page_image_url || p.image_path || '');
+      const urlResults = await Promise.all(
+        urlMap.map((url, i) => {
+          if (!url) return Promise.resolve(null);
+          return loadImgDataUrl(url).then(r => { this.showPdfLoader(true, `Loading images (${i + 1}/${this.pages.length})...`); return r; });
+        })
+      );
+
+      this.showPdfLoader(true, 'Compiling PDF...');
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const W = 210, H = 297;
+      let firstPage = true;
+
+      for (let i = 0; i < this.pages.length; i++) {
+        let r = urlResults[i];
+        if (!r) {
+          // No image URL or CORS failed — capture DOM
+          this.showPdfLoader(true, `Rendering page ${i + 1} of ${this.pages.length}...`);
+          r = await captureDOM(i + 1);
+        }
+        if (!r) continue;
+        if (!firstPage) pdf.addPage();
+        firstPage = false;
+        const ar = r.w / r.h;
+        const pa = W / H;
+        let iw = W, ih = H, ix = 0, iy = 0;
+        if (ar > pa) { ih = W / ar; iy = (H - ih) / 2; }
+        else { iw = H * ar; ix = (W - iw) / 2; }
+        pdf.addImage(r.dataUrl, 'JPEG', ix, iy, iw, ih, undefined, 'FAST');
+      }
+
+      const title = this.currentEdition?.name || 'Vidyarthi Mitra E-Paper';
+      pdf.save(`${title}.pdf`);
+      this.showToast('PDF downloaded!');
     } catch (err) {
-      console.error('Edition PDF capture failed:', err);
-      this.showToast('PDF export failed');
-      return;
+      console.error('PDF export failed:', err);
+      this.showToast('PDF export failed: ' + err.message);
     } finally {
-      if (originalPage) this.showPage(originalPage);
-      this.setZoom(originalZoom);
+      this.showPdfLoader(false);
+      this.showPage(originalPage);
     }
-
-    const win = window.open('', '_blank');
-    if (!win) {
-      this.showToast('Allow popups to save PDF');
-      return;
-    }
-
-    const title = this.currentEdition?.name || 'Vidyarthi Mitra E-Paper';
-    const pagesHtml = captures.map((src, index) => `
-      <section class="pdf-page">
-        <img src="${src}" alt="Page ${index + 1}">
-      </section>
-    `).join('');
-
-    win.document.write(`<!DOCTYPE html><html><head>
-      <meta charset="utf-8">
-      <title>${title.replace(/</g, '&lt;')}</title>
-      <style>
-        @page { size: A4 portrait; margin: 0; }
-        * { box-sizing: border-box; }
-        html, body { margin: 0; padding: 0; width: 210mm; min-height: 297mm; background: #fff; }
-        body { font-family: Arial, sans-serif; }
-        .pdf-page {
-          width: 210mm;
-          height: 297mm;
-          page-break-after: always;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: #fff;
-          overflow: hidden;
-        }
-        .pdf-page:last-child { page-break-after: auto; }
-        .pdf-page img {
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
-          display: block;
-        }
-      </style>
-    </head><body>${pagesHtml}
-      <script>
-        window.onload = function () { setTimeout(function () { window.print(); }, 300); };
-      </script>
-    </body></html>`);
-    win.document.close();
-    this.showToast('📄 Opening print dialog for full edition PDF');
   },
 
   // ── Share ──
@@ -1969,6 +2156,29 @@ const EP = {
     if (urls[platform]) window.open(urls[platform], '_blank', 'width=600,height=400');
     else { navigator.clipboard?.writeText(url); this.showToast('Link copied!'); }
     this.trackEvent('share', { platform, article: title });
+  },
+
+  shareEdition(platform) {
+    const title = this.currentEdition?.name || document.title || 'Vidyarthi Mitra E-Paper';
+    const url = window.location.href;
+    const text = encodeURIComponent(title + ' - ' + url);
+
+    const urls = {
+      whatsapp: `https://wa.me/?text=${text}`,
+      twitter: `https://twitter.com/intent/tweet?text=${text}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+    };
+
+    if (urls[platform]) {
+      window.open(urls[platform], '_blank', 'width=600,height=400');
+    } else {
+      navigator.clipboard?.writeText(url);
+      this.showToast('Link copied!');
+    }
+    this.trackEvent('share_edition', { platform, edition: title });
+
+    // Close the dropdown after selection
+    document.getElementById('epShareDropdown')?.classList.remove('show');
   },
 
   // ── GA4 Analytics ──
@@ -2037,8 +2247,8 @@ const EP = {
           <a class="ep-news-card" href="${a.link || '#'}" target="_blank" rel="noopener">
             <div class="ep-news-card-thumb">
               ${thumb
-                ? `<img src="${thumb}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='<div class=ep-news-card-thumb-placeholder><i class=\\'fa fa-newspaper\\'></i></div>'">`
-                : '<div class="ep-news-card-thumb-placeholder"><i class="fa fa-newspaper"></i></div>'}
+            ? `<img src="${thumb}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='<div class=ep-news-card-thumb-placeholder><i class=\\'fa fa-newspaper\\'></i></div>'">`
+            : '<div class="ep-news-card-thumb-placeholder"><i class="fa fa-newspaper"></i></div>'}
             </div>
             <div class="ep-news-card-body">
               <div class="ep-news-card-cat">${catLabel}</div>
@@ -2068,4 +2278,8 @@ const EP = {
 
 // Initialize on DOM ready
 window.EP = EP;
-document.addEventListener('DOMContentLoaded', () => EP.init());
+document.addEventListener('DOMContentLoaded', () => {
+  if (window._epInitialized) return;
+  window._epInitialized = true;
+  EP.init();
+});

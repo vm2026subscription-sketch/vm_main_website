@@ -15,7 +15,7 @@
   --border:    #e5e7eb;
   --paper:     #fefefe;
   --red:       #dc2626;
-  --green:     #16a34a;
+  --green:     #f97316;
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
   --shadow-md: 0 4px 20px rgba(0,0,0,0.10);
   --shadow-lg: 0 12px 40px rgba(0,0,0,0.14);
@@ -429,7 +429,7 @@ body {
   overflow: hidden;
 }
 .card-thumb.bg-exam      { background: linear-gradient(135deg, #ede9fe, #ddd6fe); }
-.card-thumb.bg-result    { background: linear-gradient(135deg, #dcfce7, #bbf7d0); }
+.card-thumb.bg-result    { background: linear-gradient(135deg, #fff7ed, #fed7aa); }
 .card-thumb.bg-govt      { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
 .card-thumb.bg-scholar   { background: linear-gradient(135deg, #fef3c7, #fde68a); }
 .card-thumb.bg-admission { background: linear-gradient(135deg, #ffe4d6, #ffc8a8); }
@@ -955,7 +955,7 @@ body {
 ══════════════════════════════════════════════════ */
 :root {
   --primary: #ff6600 !important;
-  --primary-dark: #8ad628 !important;
+  --primary-dark: #e05500 !important;
   --text: #ffffff !important;
   --muted-text: #94a3b8 !important;
   --bg-main: #050a15 !important;
@@ -1119,7 +1119,7 @@ body.light-mode .masthead-search i { color: #475569 !important; }
 
 body.light-mode .cat-nav { border-top-color: #e2e8f0 !important; }
 body.light-mode .cat-btn { color: #475569 !important; }
-body.light-mode .cat-btn.active { color: #166534 !important; border-bottom-color: var(--primary) !important; }
+body.light-mode .cat-btn.active { color: #c2410c !important; border-bottom-color: var(--primary) !important; }
 body.light-mode .cat-btn:hover { color: #0f172a !important; }
 
 body.light-mode .hero-story, body.light-mode .news-card, body.light-mode .sidebar-widget, body.light-mode .modal {
@@ -1149,10 +1149,10 @@ body.light-mode .modal-cat-badge, body.light-mode .story-category, body.light-mo
 }
 
 body.light-mode .modal-btn.secondary { border-color: #cbd5e1 !important; color: #0f172a !important; }
-body.light-mode .modal-btn.secondary:hover { border-color: var(--primary) !important; color: #166534 !important; }
+body.light-mode .modal-btn.secondary:hover { border-color: var(--primary) !important; color: #c2410c !important; }
 
 body.light-mode .btn-action { border-color: #cbd5e1 !important; color: #475569 !important; }
-body.light-mode .btn-action:hover { border-color: var(--primary) !important; color: #166534 !important; }
+body.light-mode .btn-action:hover { border-color: var(--primary) !important; color: #c2410c !important; }
 
 body.light-mode .tag-pill { background: #f1f5f9 !important; border-color: #cbd5e1 !important; color: #475569 !important; }
 body.light-mode .tag-pill:hover { background: var(--primary) !important; border-color: var(--primary) !important; color: #0f172a !important; }

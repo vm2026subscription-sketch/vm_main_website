@@ -325,6 +325,76 @@ def api_upload_epaper_image():
 
 
 
+@epaper_bp.route("/api/epaper/admin/pdf-to-pages", methods=["POST"])
+def api_pdf_to_pages():
+    pdf_file = request.files.get("pdf")
+    if not pdf_file or not pdf_file.filename:
+        return jsonify({"error": "PDF file required"}), 400
+    if not pdf_file.filename.lower().endswith(".pdf"):
+        return jsonify({"error": "Only PDF files accepted"}), 400
+
+    try:
+        import fitz  # PyMuPDF
+    except ImportError:
+        return jsonify({"error": "PyMuPDF not installed. Run: pip install PyMuPDF"}), 500
+
+    try:
+        pdf_bytes = pdf_file.read()
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    except Exception as e:
+        return jsonify({"error": f"Could not open PDF: {e}"}), 400
+
+    dpi = 120
+    mat = fitz.Matrix(dpi / 72, dpi / 72)
+
+    use_tmp = not os.path.exists(EPAPER_UPLOAD_DIR)
+    if use_tmp:
+        os.makedirs(EPAPER_TMP_UPLOAD_DIR, exist_ok=True)
+    else:
+        os.makedirs(EPAPER_UPLOAD_DIR, exist_ok=True)
+
+    ts = datetime.now().strftime("%Y%m%d%H%M%S")
+
+    # Render all pages to JPEG bytes first (JPEG ~5x smaller than PNG → faster upload)
+    pages_data = []
+    for i, page in enumerate(doc):
+        pix = page.get_pixmap(matrix=mat, alpha=False)
+        img_bytes = pix.tobytes("jpeg", jpg_quality=88)
+        pages_data.append((i, img_bytes, f"pdf_page_{ts}_{i+1}.jpg"))
+    doc.close()
+
+    if _CLOUDINARY_URL:
+        # Upload all pages in parallel
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        results = [None] * len(pages_data)
+
+        def _upload_page(item):
+            idx, img_bytes, filename = item
+            url = _upload_to_cloudinary(img_bytes, filename)
+            return idx, url
+
+        with ThreadPoolExecutor(max_workers=6) as ex:
+            futures = {ex.submit(_upload_page, item): item[0] for item in pages_data}
+            for fut in as_completed(futures):
+                idx, url = fut.result()
+                results[idx] = url
+
+        page_urls = results
+    else:
+        page_urls = []
+        save_dir = EPAPER_TMP_UPLOAD_DIR if use_tmp else EPAPER_UPLOAD_DIR
+        for i, img_bytes, filename in pages_data:
+            filepath = os.path.join(save_dir, filename)
+            with open(filepath, "wb") as f:
+                f.write(img_bytes)
+            if use_tmp:
+                page_urls.append(f"/api/epaper/uploads/{filename}")
+            else:
+                page_urls.append(f"/static/uploads/epaper/{filename}")
+
+    return jsonify({"success": True, "pages": page_urls}), 200
+
+
 @epaper_bp.route("/api/epaper/uploads/<filename>")
 def api_serve_tmp_upload(filename):
     """Serve images saved to /tmp (Vercel fallback)."""

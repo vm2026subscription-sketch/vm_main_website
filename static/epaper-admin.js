@@ -707,6 +707,19 @@ const EPAdmin = {
       }
     }
 
+    // Click/drag on empty area — if page has a background image, start draw-to-hotspot
+    const hasPageImage = !!(page?.page_image_url || page?.image_path);
+    if (hasPageImage) {
+      this.activeBlockIdx = null;
+      this.renderCanvas();
+      document.getElementById('blockEditor').style.display = 'none';
+      document.getElementById('noBlockMsg').style.display = 'block';
+      this._drawStart = { mx, my, scale };
+      this._drawing = true;
+      e.preventDefault();
+      return;
+    }
+
     // Click empty area → deselect
     this.activeBlockIdx = null;
     this.renderCanvas();
@@ -715,6 +728,29 @@ const EPAdmin = {
   },
 
   onCanvasMouseMove(e) {
+    if (this._drawing && this._drawStart) {
+      const canvas = document.getElementById('pageCanvas');
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const scale = rect.width / this.CANVAS_W;
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const x0 = this._drawStart.mx / scale;
+      const y0 = this._drawStart.my / scale;
+      const x1 = mx / scale;
+      const y1 = my / scale;
+      this._drawRect = {
+        x: Math.round(Math.min(x0, x1)),
+        y: Math.round(Math.min(y0, y1)),
+        w: Math.round(Math.abs(x1 - x0)),
+        h: Math.round(Math.abs(y1 - y0)),
+      };
+      // Update preview overlay (canvas innerHTML is stable — no renderCanvas call needed)
+      let pr = canvas.querySelector('.epc-draw-preview');
+      if (!pr) { pr = document.createElement('div'); pr.className = 'epc-draw-preview'; canvas.appendChild(pr); }
+      pr.style.cssText = `position:absolute;left:${this._drawRect.x * scale}px;top:${this._drawRect.y * scale}px;width:${this._drawRect.w * scale}px;height:${this._drawRect.h * scale}px;border:2px dashed #ff6600;background:rgba(255,102,0,.08);pointer-events:none;box-sizing:border-box;z-index:999;`;
+      return;
+    }
     if (!this.dragging && !this.resizing) return;
     const canvas = document.getElementById('pageCanvas');
     if (!canvas) return;
@@ -823,6 +859,34 @@ const EPAdmin = {
   },
 
   onCanvasMouseUp() {
+    if (this._drawing) {
+      this._drawing = false;
+      const canvas = document.getElementById('pageCanvas');
+      if (canvas) { const pr = canvas.querySelector('.epc-draw-preview'); if (pr) pr.remove(); }
+      const r = this._drawRect;
+      this._drawRect = null;
+      this._drawStart = null;
+      if (r && r.w > 20 && r.h > 20) {
+        // Create a new article block at the drawn position
+        const page = this.pages[this.currentPageIdx];
+        if (!page) return;
+        if (!page.blocks) page.blocks = [];
+        this._pushUndo();
+        page.blocks.push({
+          id: Date.now(),
+          article_id: Date.now(),
+          headline: '', sub_headline: '', body_text: '', body_html: '',
+          category_label: '', image_url: '', gallery: [],
+          x: r.x, y: r.y, w: r.w, h: r.h,
+          border_width: 1, border_radius: 0, border_color: '#e41e26', border_style: 'solid',
+        });
+        this.activeBlockIdx = page.blocks.length - 1;
+        this.renderCanvas();
+        this.showBlockEditor(this.activeBlockIdx);
+        this.showToast('Hotspot created — fill in article details');
+      }
+      return;
+    }
     this.dragging = false;
     this.resizing = false;
     this.resizeStart = null;
@@ -972,7 +1036,7 @@ const EPAdmin = {
     list.innerHTML = this.editions.slice().sort((a, b) => b.date.localeCompare(a.date)).map(ed => {
       const isPublished = ed.published !== false;
       const pubBadge = isPublished
-        ? `<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">✓ Published</span>`
+        ? `<span style="background:#fff7ed;color:#c2410c;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">✓ Published</span>`
         : `<span style="background:#fef9c3;color:#854d0e;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">Draft</span>`;
       return `
         <div class="epa-edition-card">
@@ -1675,6 +1739,39 @@ const EPAdmin = {
       this.showToast(isPdf ? 'PDF uploaded' : 'Page image uploaded');
     } catch (e) {
       alert(e.message || 'Upload failed');
+    }
+  },
+
+  async handlePdfToPages(file) {
+    if (!file || file.type !== 'application/pdf') return;
+    const statusEl = document.getElementById('pdfToPageStatus');
+    if (statusEl) { statusEl.style.display = ''; statusEl.textContent = 'Uploading PDF…'; }
+    try {
+      const fd = new FormData();
+      fd.append('pdf', file);
+      const res = await fetch('/api/epaper/admin/pdf-to-pages', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Conversion failed');
+      const urls = data.pages || [];
+      if (!urls.length) throw new Error('No pages returned');
+      this._pushUndo();
+      // Replace all current pages with PDF pages
+      this.pages = urls.map((url, i) => ({
+        page_number: i + 1,
+        category: i === 0 ? 'मुख पृष्ठ' : 'News',
+        date_range: '',
+        page_image_url: url,
+        image_path: url,
+        blocks: [],
+      }));
+      this.currentPageIdx = 0;
+      this.renderPageTabs();
+      this.openPage(0);
+      if (statusEl) { statusEl.textContent = `${urls.length} pages imported!`; setTimeout(() => { statusEl.style.display = 'none'; }, 3000); }
+      this.showToast(`${urls.length} pages imported from PDF`);
+    } catch (e) {
+      if (statusEl) { statusEl.textContent = `Error: ${e.message}`; }
+      this.showToast('PDF import failed: ' + e.message);
     }
   },
 

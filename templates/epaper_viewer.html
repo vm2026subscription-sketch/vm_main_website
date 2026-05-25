@@ -60,10 +60,10 @@
   </div>
 
   <!-- ── MAIN CONTENT ── -->
-  <div class="ep-main" id="epMain">
+  <div class="ep-main layout-container" id="epMain">
 
     <!-- ── NEWS SIDEBAR ── -->
-    <aside class="ep-news-sidebar" id="epNewsSidebar">
+    <aside class="ep-news-sidebar sidebar-container" id="epNewsSidebar">
       <div class="ep-news-sidebar-header">
         <i class="fa fa-bolt"></i>
         <span>Latest News</span>
@@ -87,70 +87,81 @@
       <a class="ep-news-sidebar-more" href="/news" target="_blank">View all news →</a>
     </aside>
 
-    <div class="ep-paper" id="epPaper">
-      <div class="ep-masthead">
-        <div class="ep-masthead-img" id="epMastheadImg">
-          <span class="ep-masthead-placeholder">Header image</span>
+    <!-- ── READER CONTAINER (fullscreen target) ── -->
+    <div class="ep-reader-container" id="epReaderContainer">
+      <div class="ep-paper" id="epPaper">
+        <div class="ep-masthead">
+          <div class="ep-masthead-img" id="epMastheadImg">
+            <span class="ep-masthead-placeholder">Header image</span>
+          </div>
+        </div>
+
+        <!-- Page Viewer -->
+        <div class="ep-viewer paper-viewer-container" id="epViewer">
+          <div class="ep-page-container" id="epPageContainer">
+            <img class="ep-page-img" id="epPageImg" src="" alt="E-Paper Page" draggable="false">
+            <div id="epHotspots" style="position:absolute;inset:0;"></div>
+          </div>
+
+          <!-- Empty state -->
+          <div id="epEmptyState" style="display:none; text-align:center; padding:80px 24px;">
+            <i class="fa fa-newspaper" style="font-size:56px;color:#4b5563;display:block;margin-bottom:16px"></i>
+            <h2 style="font-size:20px;color:#6b7280;margin-bottom:8px;font-weight:700">कोई संस्करण उपलब्ध नहीं</h2>
+            <p style="color:#4b5563;font-size:13px;line-height:1.7">इस तारीख के लिए E-Paper उपलब्ध नहीं है।<br>कैलेंडर से कोई अन्य तारीख चुनें।</p>
+          </div>
+        </div>
+
+        <div class="ep-paper-footer">
+          <div class="ep-footer-dots" aria-hidden="true">
+            <span class="ep-dot d1"></span>
+            <span class="ep-dot d2"></span>
+            <span class="ep-dot d3"></span>
+            <span class="ep-dot d4"></span>
+            <span class="ep-dot d5"></span>
+            <span class="ep-dot d6"></span>
+          </div>
+          <div class="ep-footer-links" id="epFooterLinks"></div>
         </div>
       </div>
 
-      <!-- Page Viewer -->
-      <div class="ep-viewer" id="epViewer">
-        <div class="ep-page-container" id="epPageContainer">
-          <img class="ep-page-img" id="epPageImg" src="" alt="E-Paper Page" draggable="false">
-          <div id="epHotspots" style="position:absolute;inset:0;"></div>
+      <!-- ── FLOATING TOOLBAR ── -->
+      <div class="ep-toolbar">
+        <button class="ep-tool-btn" id="epZoomIn" title="Zoom In" type="button"><i class="fa fa-plus"></i></button>
+        <button class="ep-tool-btn" id="epZoomOut" title="Zoom Out" type="button"><i class="fa fa-minus"></i></button>
+        <div class="ep-tool-divider"></div>
+        <button class="ep-tool-btn" id="epFitPage" title="Fit Page" type="button"><i class="fa fa-expand-arrows-alt"></i></button>
+        <button class="ep-tool-btn" id="epFullscreen" title="Fullscreen" type="button"><i class="fa fa-expand"></i></button>
+        <div class="ep-tool-divider"></div>
+        <button class="ep-tool-btn" id="epScrollUp" title="Scroll Up" type="button"><i class="fa fa-arrow-up"></i></button>
+        <button class="ep-tool-btn" id="epScrollDown" title="Scroll Down" type="button"><i class="fa fa-arrow-down"></i></button>
+        <div class="ep-tool-divider"></div>
+        <div class="ep-share-container">
+          <button class="ep-tool-btn" id="epShareBtn" title="Share" type="button"><i class="fa fa-share-alt"></i></button>
+          <div class="ep-share-dropdown" id="epShareDropdown">
+            <button class="ep-share-dropdown-item" onclick="EP.shareEdition('whatsapp')"><i class="fab fa-whatsapp" style="color:#25d366"></i> WhatsApp</button>
+            <button class="ep-share-dropdown-item" onclick="EP.shareEdition('twitter')"><i class="fab fa-x-twitter"></i> Twitter / X</button>
+            <button class="ep-share-dropdown-item" onclick="EP.shareEdition('facebook')"><i class="fab fa-facebook" style="color:#1877f2"></i> Facebook</button>
+            <button class="ep-share-dropdown-item" onclick="EP.shareEdition('copy')"><i class="fa fa-link"></i> Copy Link</button>
+          </div>
         </div>
-
-        <!-- Empty state -->
-        <div id="epEmptyState" style="display:none; text-align:center; padding:80px 24px;">
-          <i class="fa fa-newspaper" style="font-size:56px;color:#4b5563;display:block;margin-bottom:16px"></i>
-          <h2 style="font-size:20px;color:#6b7280;margin-bottom:8px;font-weight:700">कोई संस्करण उपलब्ध नहीं</h2>
-          <p style="color:#4b5563;font-size:13px;line-height:1.7">इस तारीख के लिए E-Paper उपलब्ध नहीं है।<br>कैलेंडर से कोई अन्य तारीख चुनें।</p>
-        </div>
+        <div class="ep-tool-divider"></div>
+        <button class="ep-tool-btn" id="epSavePdfBtn" onclick="EP.savePDF()" title="Save Edition as PDF" type="button"><i class="fa fa-file-pdf"></i></button>
       </div>
 
-      <div class="ep-paper-footer">
-        <div class="ep-footer-dots" aria-hidden="true">
-          <span class="ep-dot d1"></span>
-          <span class="ep-dot d2"></span>
-          <span class="ep-dot d3"></span>
-          <span class="ep-dot d4"></span>
-          <span class="ep-dot d5"></span>
-          <span class="ep-dot d6"></span>
-        </div>
-        <div class="ep-footer-links" id="epFooterLinks"></div>
+      <!-- ── PAGE NAVIGATION ── -->
+      <div class="ep-pager">
+        <button class="ep-pager-btn" id="epPrevPage" title="Previous Page"><i class="fa fa-chevron-left"></i></button>
+        <span class="ep-pager-info" id="epPageInfo">1 / 1</span>
+        <button class="ep-pager-btn" id="epNextPage" title="Next Page"><i class="fa fa-chevron-right"></i></button>
+      </div>
+
+      <!-- ── THUMBNAIL STRIP ── -->
+      <div class="ep-thumb-strip" id="epThumbStrip">
+        <button class="ep-thumb-nav-btn" id="epThumbLeft" title="Scroll left"><i class="fa fa-chevron-left"></i></button>
+        <div class="ep-thumb-scroll" id="epThumbScroll"></div>
+        <button class="ep-thumb-nav-btn" id="epThumbRight" title="Scroll right"><i class="fa fa-chevron-right"></i></button>
       </div>
     </div>
-  </div>
-
-  <!-- ── FLOATING TOOLBAR ── -->
-  <div class="ep-toolbar">
-    <button class="ep-tool-btn" id="epZoomIn" title="Zoom In" type="button"><i class="fa fa-plus"></i></button>
-    <button class="ep-tool-btn" id="epZoomOut" title="Zoom Out" type="button"><i class="fa fa-minus"></i></button>
-    <div class="ep-tool-divider"></div>
-    <button class="ep-tool-btn" id="epFitPage" title="Fit Page" type="button"><i class="fa fa-expand-arrows-alt"></i></button>
-    <button class="ep-tool-btn" id="epFullscreen" title="Fullscreen" type="button"><i class="fa fa-expand"></i></button>
-    <div class="ep-tool-divider"></div>
-    <button class="ep-tool-btn" id="epScrollUp" title="Scroll Up" type="button"><i class="fa fa-arrow-up"></i></button>
-    <button class="ep-tool-btn" id="epScrollDown" title="Scroll Down" type="button"><i class="fa fa-arrow-down"></i></button>
-    <div class="ep-tool-divider"></div>
-    <button class="ep-tool-btn" onclick="EP.shareArticle('copy')" title="Share" type="button"><i class="fa fa-share-alt"></i></button>
-    <div class="ep-tool-divider"></div>
-    <button class="ep-tool-btn" id="epSavePdfBtn" onclick="EP.savePDF()" title="Save Edition as PDF" type="button"><i class="fa fa-file-pdf"></i></button>
-  </div>
-
-  <!-- ── PAGE NAVIGATION ── -->
-  <div class="ep-pager">
-    <button class="ep-pager-btn" id="epPrevPage" title="Previous Page"><i class="fa fa-chevron-left"></i></button>
-    <span class="ep-pager-info" id="epPageInfo">1 / 1</span>
-    <button class="ep-pager-btn" id="epNextPage" title="Next Page"><i class="fa fa-chevron-right"></i></button>
-  </div>
-
-  <!-- ── THUMBNAIL STRIP ── -->
-  <div class="ep-thumb-strip" id="epThumbStrip">
-    <button class="ep-thumb-nav-btn" id="epThumbLeft" title="Scroll left"><i class="fa fa-chevron-left"></i></button>
-    <div class="ep-thumb-scroll" id="epThumbScroll"></div>
-    <button class="ep-thumb-nav-btn" id="epThumbRight" title="Scroll right"><i class="fa fa-chevron-right"></i></button>
   </div>
 
   <!-- ── DATE PICKER ── -->
@@ -327,6 +338,7 @@
   <div class="ep-toast" id="epToast"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="{{ url_for('static', filename='epaper-viewer.js') }}"></script>
 
   <!-- PWA Service Worker -->

@@ -74,8 +74,9 @@
     .epc-layout{display:grid;grid-template-columns:1fr 360px;gap:16px;}
     .epc-canvas-wrap{background:#e5e7eb;border-radius:12px;padding:12px;overflow:hidden;}
     .epc-canvas{position:relative;width:800px;height:1131px;background:#fff;margin:0 auto;box-shadow:0 4px 24px rgba(0,0,0,.12);transform-origin:top center;border:1px solid #d1d5db;}
-    .epc-canvas.has-page-image{background-size:100% 100%;background-position:center;background-repeat:no-repeat;}
+    .epc-canvas.has-page-image{background-size:100% 100%;background-position:center;background-repeat:no-repeat;cursor:crosshair;}
     .epc-canvas.has-page-image::before{content:'';position:absolute;inset:0;background:rgba(255,255,255,.08);pointer-events:none;}
+    .epc-canvas.has-page-image .epc-block{cursor:move;}
 
     .epc-block{position:absolute;cursor:move;overflow:hidden;border:none;transition:box-shadow .15s;background:transparent;border-radius:0!important;}
     .epc-block:hover{box-shadow:0 0 0 1px rgba(228,30,38,.35);}
@@ -209,7 +210,7 @@
     <a href="/epaper-viewer"><i class="fa fa-eye"></i> View</a>
     <a href="/"><i class="fa fa-arrow-left"></i> Site</a>
     <span style="color:rgba(255,255,255,.7);font-size:12px;margin-left:8px;">
-      <i class="fa fa-circle-check" style="color:#4ade80;"></i>
+      <i class="fa fa-circle-check" style="color:#fdba74;"></i>
       Logged in as <strong style="color:#fff;">{{ admin_user.get('email', '') }}</strong>
     </span>
     <a href="/logout" style="background:rgba(255,255,255,.15);padding:5px 12px;border-radius:6px;font-size:12px;"><i class="fa fa-sign-out-alt"></i> Logout</a>
@@ -282,6 +283,20 @@
         </button>
       </div>
       <div class="epa-page-tabs" id="pageTabs"></div>
+
+      <!-- PDF → Auto Pages -->
+      <div style="margin-bottom:14px;padding:12px 14px;background:#fff8f0;border:1.5px solid #ff6600;border-radius:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+          <div style="font-size:13px;font-weight:700;color:#cc4400;margin-bottom:2px"><i class="fa fa-file-pdf"></i> Upload PDF → Auto-create pages</div>
+          <div style="font-size:11px;color:#664422">Export from Canva as PDF, upload here — all pages auto-imported as page images</div>
+        </div>
+        <label style="cursor:pointer">
+          <input type="file" id="pdfToPageInput" accept=".pdf,application/pdf" style="display:none" onchange="EPAdmin.handlePdfToPages(this.files[0]); this.value=''">
+          <span class="epa-btn epa-btn-primary" style="pointer-events:none;background:#ff6600;border-color:#ff6600"><i class="fa fa-upload"></i> Choose PDF</span>
+        </label>
+        <div id="pdfToPageStatus" style="font-size:12px;color:#664422;display:none"></div>
+      </div>
+
       <div class="epa-card" style="margin:0 0 14px;padding:14px;background:#fafafa">
         <h2 style="font-size:14px;margin-bottom:10px"><i class="fa fa-image"></i> Newspaper Page Image</h2>
         <div class="epa-form-row" style="grid-template-columns:1fr auto;align-items:end;margin-bottom:0">

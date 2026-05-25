@@ -587,7 +587,7 @@ footer strong { color: rgba(255,255,255,.8); }
 /* --- GEN-Z DARK THEME OVERRIDES (FYJC RANK PAGE) --- */
 :root {
   --primary: #ff6600 !important;
-  --primary-dark: #8ad628 !important;
+  --primary-dark: #e05500 !important;
   --text: #ffffff !important;
   --muted: #94a3b8 !important;
   --bg-main: #050a15 !important;
@@ -765,12 +765,12 @@ body.light-mode header {
 body.light-mode .header-top { background: #f1f5f9 !important; color: #475569 !important; border-bottom-color: #e2e8f0 !important; }
 body.light-mode .header-text h1 { color: #0f172a !important; }
 body.light-mode .header-text p { color: #475569 !important; }
-body.light-mode .header-badge { border-color: var(--primary) !important; color: #166534 !important; background: rgba(255,102,0, 0.1) !important; }
+body.light-mode .header-badge { border-color: var(--primary) !important; color: #c2410c !important; background: rgba(255,102,0, 0.1) !important; }
 
 body.light-mode .intro-card {
   background: rgba(255,102,0, 0.1) !important;
   border-color: var(--primary) !important;
-  color: #166534 !important;
+  color: #c2410c !important;
 }
 body.light-mode .intro-card strong { color: #0f172a !important; }
 
@@ -799,7 +799,7 @@ body.light-mode select {
 }
 
 body.light-mode .marks-total-bar { background: rgba(255,102,0, 0.15) !important; border-color: var(--primary) !important; }
-body.light-mode .marks-total-bar .label { color: #166534 !important; }
+body.light-mode .marks-total-bar .label { color: #c2410c !important; }
 body.light-mode .total-number { color: #0f172a !important; }
 body.light-mode .total-denom { color: #475569 !important; }
 body.light-mode .percent-badge { background: var(--primary) !important; color: #0f172a !important; }
@@ -812,13 +812,13 @@ body.light-mode .submit-btn { background: var(--primary) !important; color: #0f1
 body.light-mode .submit-btn:hover { background: var(--primary-dark) !important; box-shadow: 0 7px 20px rgba(255,102,0, 0.4) !important; }
 
 body.light-mode .result-hero { background: rgba(255, 255, 255, 0.95) !important; border-color: var(--primary) !important; color: #0f172a !important; }
-body.light-mode .result-hero-rank { color: #166534 !important; }
+body.light-mode .result-hero-rank { color: #c2410c !important; }
 body.light-mode .result-pill { background: rgba(255,102,0, 0.2) !important; border-color: var(--primary) !important; color: #0f172a !important; }
 
-body.light-mode .stat-value { color: #166534 !important; }
+body.light-mode .stat-value { color: #c2410c !important; }
 body.light-mode .stat-label { color: #475569 !important; }
 
-body.light-mode .colleges-header { background: rgba(255,102,0, 0.2) !important; color: #166534 !important; border-bottom-color: var(--primary) !important; }
+body.light-mode .colleges-header { background: rgba(255,102,0, 0.2) !important; color: #c2410c !important; border-bottom-color: var(--primary) !important; }
 body.light-mode thead th { background: #f1f5f9 !important; color: #0f172a !important; border-bottom-color: #e2e8f0 !important; }
 body.light-mode tbody tr { border-bottom-color: #e2e8f0 !important; }
 body.light-mode tbody tr:hover { background: #f8fafc !important; }
@@ -827,7 +827,7 @@ body.light-mode .college-name { color: #0f172a !important; }
 
 body.light-mode .disclaimer { background: #fff7ed !important; border-color: #fed7aa !important; color: #9a3412 !important; }
 body.light-mode .reset-btn { background: #ffffff !important; border-color: #cbd5e1 !important; color: #0f172a !important; }
-body.light-mode .reset-btn:hover { border-color: var(--primary) !important; color: #166534 !important; }
+body.light-mode .reset-btn:hover { border-color: var(--primary) !important; color: #c2410c !important; }
 body.light-mode footer { background: #f8fafc !important; color: #475569 !important; border-top-color: #e2e8f0 !important; }
 body.light-mode footer strong { color: #0f172a !important; }
 
