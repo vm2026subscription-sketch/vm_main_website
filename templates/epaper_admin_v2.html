@@ -513,6 +513,18 @@
       <div id="editionsList"><div class="epa-empty">Loading...</div></div>
     </div>
 
+    <!-- Backup History -->
+    <div class="epa-card" id="backupSection" style="display:none;">
+      <h2 style="display:flex;align-items:center;justify-content:space-between;">
+        <span><i class="fa fa-history" style="color:#ff6600;"></i> Backup History</span>
+        <button onclick="EPAdmin.closeBackupPanel()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;">&times;</button>
+      </h2>
+      <p style="font-size:13px;color:#64748b;margin-bottom:16px;">
+        Har baar "Save All Changes" click karne pe yahan ek backup save hota hai. Kisi bhi purani copy ko 1 click mein restore karo.
+      </p>
+      <div id="backupList"><div class="epa-empty">Loading backups...</div></div>
+    </div>
+
   </div>
 
   <!-- ── Add Page Modal ── -->

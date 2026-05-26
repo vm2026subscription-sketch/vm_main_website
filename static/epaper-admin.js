@@ -1047,9 +1047,12 @@ const EPAdmin = {
             <span style="color:var(--muted);font-size:12px">${ed.total_pages || 0} pages</span>
             ${pubBadge}
           </div>
-          <div class="epa-edition-actions" style="display:flex;gap:6px;flex-shrink:0;">
+          <div class="epa-edition-actions" style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;">
             <button class="epa-btn epa-btn-sm epa-btn-primary" onclick="EPAdmin.editEdition('${ed.date}', '${ed.language || 'Hindi'}')">
               <i class="fa fa-edit"></i> Edit
+            </button>
+            <button class="epa-btn epa-btn-sm" style="background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;" onclick="EPAdmin.openBackupPanel('${ed.date}', '${ed.language || 'Hindi'}')">
+              <i class="fa fa-history"></i> Restore
             </button>
             <button class="epa-btn epa-btn-sm ${isPublished ? 'epa-btn-danger' : 'epa-btn-success'}"
               onclick="EPAdmin.togglePublish('${ed.date}', ${!isPublished}, '${ed.language || 'Hindi'}')">
@@ -1062,6 +1065,68 @@ const EPAdmin = {
         </div>
       `;
     }).join('');
+  },
+
+  async openBackupPanel(date, lang) {
+    const section = document.getElementById('backupSection');
+    const listEl  = document.getElementById('backupList');
+    if (!section || !listEl) return;
+    section.style.display = 'block';
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    listEl.innerHTML = '<div class="epa-empty"><i class="fa fa-spinner fa-spin"></i> Loading backups...</div>';
+
+    try {
+      const res = await fetch(`/api/epaper/admin/backups?date=${encodeURIComponent(date)}&lang=${encodeURIComponent(lang)}`);
+      const data = await res.json();
+      const backups = data.backups || [];
+      if (!backups.length) {
+        listEl.innerHTML = '<div class="epa-empty">Koi backup nahi mila. Abhi "Save All Changes" click karo — pehla backup ban jaayega.</div>';
+        return;
+      }
+      listEl.innerHTML = backups.map((b, i) => {
+        const dt = new Date(b.saved_at);
+        const dateStr = dt.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+        const timeStr = dt.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+        return `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:8px;background:${i===0?'#fff7ed':'#fff'};">
+            <div>
+              <div style="font-weight:700;font-size:14px;color:#0f172a;">${b.name || b.date} <span style="font-weight:400;color:#64748b;font-size:12px;">(${b.language})</span></div>
+              <div style="font-size:12px;color:#64748b;margin-top:3px;">
+                <i class="fa fa-clock"></i> ${dateStr} at ${timeStr}
+                &nbsp;·&nbsp; <i class="fa fa-file"></i> ${b.pages} pages
+                ${i===0 ? ' &nbsp;<span style="background:#fff7ed;color:#c2410c;padding:1px 7px;border-radius:6px;font-size:11px;font-weight:700;">Latest</span>' : ''}
+              </div>
+            </div>
+            <button class="epa-btn epa-btn-sm epa-btn-success" onclick="EPAdmin.restoreBackup(${b.id}, '${b.name || b.date}')">
+              <i class="fa fa-undo"></i> Restore
+            </button>
+          </div>`;
+      }).join('');
+    } catch (e) {
+      listEl.innerHTML = '<div class="epa-empty" style="color:#ef4444;">Backup load nahi hua. Dobara try karo.</div>';
+    }
+  },
+
+  closeBackupPanel() {
+    const section = document.getElementById('backupSection');
+    if (section) section.style.display = 'none';
+  },
+
+  async restoreBackup(backupId, name) {
+    if (!confirm(`"${name}" ko restore karein? Current edition ki jagah yeh version aa jaayega.`)) return;
+    try {
+      const res = await fetch(`/api/epaper/admin/backups/${backupId}/restore`, { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        this.showToast('✅ ' + (data.message || 'Edition restore ho gayi!'));
+        this.closeBackupPanel();
+        this.loadEditions();
+      } else {
+        alert('Restore failed: ' + (data.error || 'Unknown error'));
+      }
+    } catch (e) {
+      alert('Network error: ' + e.message);
+    }
   },
 
   async togglePublish(date, publish, lang) {
