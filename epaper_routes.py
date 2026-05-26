@@ -1,13 +1,36 @@
 """
 E-Paper routes — edition/page/article APIs + AI features
 """
+import asyncio
+import hashlib
+import io
 import json
 import os
+import queue as _queue
 import re
+import sys
+import threading
 from datetime import datetime
 
-from flask import Blueprint, jsonify, render_template, request, redirect, url_for, send_file, session
+from flask import Blueprint, jsonify, render_template, request, redirect, url_for, send_file, session, Response, stream_with_context
 from werkzeug.utils import secure_filename
+
+# ── In-memory caches ──────────────────────────────────────
+_tts_cache: dict = {}     # cache_key → bytes
+_TTS_CACHE_MAX = 30
+
+_trans_cache: dict = {}   # cache_key → translated_text
+_TRANS_CACHE_MAX = 80
+
+def _tts_cache_key(text, voice, rate, pitch):
+    return hashlib.md5(f"{text}|{voice}|{rate}|{pitch}".encode("utf-8")).hexdigest()
+
+def _trans_cache_key(text, target):
+    return hashlib.md5(f"{text[:4000]}|{target}".encode("utf-8")).hexdigest()
+
+def _evict(cache, max_size):
+    while len(cache) >= max_size:
+        del cache[next(iter(cache))]
 
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "saurabhedict@gmail.com")
 
@@ -86,7 +109,53 @@ def _pg_ensure_table(conn):
             VALUES ('editions', '[]'::jsonb)
             ON CONFLICT (id) DO NOTHING
         """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS epaper_edition_backups (
+                id SERIAL PRIMARY KEY,
+                edition_date TEXT NOT NULL,
+                edition_language TEXT NOT NULL,
+                edition_name TEXT,
+                pages_count INTEGER DEFAULT 0,
+                saved_at TIMESTAMPTZ DEFAULT NOW(),
+                snapshot JSONB NOT NULL
+            )
+        """)
     conn.commit()
+
+
+def _save_edition_backup(edition):
+    """Save a snapshot of one edition to the backup table. Keeps last 30 per edition."""
+    if not _pg_url():
+        return
+    try:
+        conn = _pg_connect()
+        _pg_ensure_table(conn)
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO epaper_edition_backups
+                    (edition_date, edition_language, edition_name, pages_count, snapshot)
+                VALUES (%s, %s, %s, %s, %s::jsonb)
+            """, (
+                edition.get("date", ""),
+                edition.get("language", ""),
+                edition.get("name", ""),
+                len(edition.get("pages", [])),
+                json.dumps(edition, ensure_ascii=False),
+            ))
+            # Keep only last 30 backups per (date, language)
+            cur.execute("""
+                DELETE FROM epaper_edition_backups
+                WHERE id IN (
+                    SELECT id FROM epaper_edition_backups
+                    WHERE edition_date = %s AND edition_language = %s
+                    ORDER BY saved_at DESC
+                    OFFSET 30
+                )
+            """, (edition.get("date", ""), edition.get("language", "")))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"[epaper] Backup save failed (non-fatal): {e}")
 
 
 # ── File fallback helpers ───────────────────────────
@@ -574,6 +643,11 @@ def api_create_edition():
         _save_editions(editions)
     except Exception as exc:
         return jsonify({"error": f"Save failed: {exc}"}), 500
+
+    # Auto-backup after every successful save
+    saved_edition = existing if existing else editions[-1]
+    _save_edition_backup(saved_edition)
+
     return jsonify({"success": True}), 201
 
 
@@ -633,6 +707,11 @@ def api_translate():
     if not text:
         return jsonify({"error": "No text provided."}), 400
 
+    # Check cache first
+    ck = _trans_cache_key(text, target)
+    if ck in _trans_cache:
+        return jsonify({"translated_text": _trans_cache[ck]})
+
     lang_names = {
         'hi': 'Hindi', 'mr': 'Marathi', 'en': 'English',
         'bn': 'Bengali', 'ta': 'Tamil', 'te': 'Telugu',
@@ -640,6 +719,35 @@ def api_translate():
     }
     target_name = lang_names.get(target, target)
 
+    def _save_cache(translated):
+        _evict(_trans_cache, _TRANS_CACHE_MAX)
+        _trans_cache[ck] = translated
+
+    # ── Fast path: deep_translator (Google Translate, no API key, near-instant) ──
+    try:
+        from deep_translator import GoogleTranslator
+        chunks, start = [], 0
+        while start < len(text):
+            end = min(start + 4500, len(text))
+            if end < len(text):
+                for sep in ('। ', '. ', '\n', ' '):
+                    pos = text.rfind(sep, start, end)
+                    if pos > start:
+                        end = pos + len(sep)
+                        break
+            chunks.append(text[start:end].strip())
+            start = end
+        translated_chunks = [
+            GoogleTranslator(source="auto", target=target).translate(c) or c
+            for c in chunks if c
+        ]
+        result = "\n\n".join(translated_chunks)
+        _save_cache(result)
+        return jsonify({"translated_text": result})
+    except Exception:
+        pass
+
+    # ── Fallback: Groq LLM (higher quality but slower) ──
     api_key = os.getenv("GROQ_API_KEY")
     if api_key:
         try:
@@ -661,32 +769,12 @@ def api_translate():
                 max_tokens=2000,
             )
             translated = response.choices[0].message.content.strip()
+            _save_cache(translated)
             return jsonify({"translated_text": translated})
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
+        except Exception:
+            pass
 
-    # Fallback: deep_translator
-    try:
-        from deep_translator import GoogleTranslator
-        chunks, start = [], 0
-        while start < len(text):
-            end = min(start + 4500, len(text))
-            if end < len(text):
-                for sep in ('। ', '. ', '\n', ' '):
-                    pos = text.rfind(sep, start, end)
-                    if pos > start:
-                        end = pos + len(sep)
-                        break
-            chunks.append(text[start:end].strip())
-            start = end
-        translated_chunks = [
-            GoogleTranslator(source="auto", target=target).translate(c) or c
-            for c in chunks if c
-        ]
-        return jsonify({"translated_text": "\n\n".join(translated_chunks)})
-    except Exception as e:
-        return jsonify({"error": f"Translation failed: {str(e)}"}), 500
+    return jsonify({"error": "Translation failed."}), 500
 
 
 # ── AI: Summarize ──────────────────────────────────
@@ -838,83 +926,8 @@ Return ONLY valid JSON — no markdown, no extra text:
 
 
 # ── AI: TTS (Edge Neural Voices — Real Indian Anchor) ──
-@epaper_bp.route("/api/epaper/tts", methods=["POST"])
-def api_tts():
-    """Server-side TTS using Microsoft Edge Neural voices.
-    Returns MP3 audio with natural Indian news anchor voice.
-    """
-    import asyncio
-    import io
-
-    data = request.get_json(silent=True) or {}
-    text = data.get("text", "").strip()
-    voice = data.get("voice", "")  # optional override
-    rate = data.get("rate", "+0%")  # e.g. "+10%", "-5%"
-    pitch = data.get("pitch", "+0Hz")  # e.g. "+5Hz", "-5Hz"
-
-    if not text:
-        return jsonify({"error": "No text provided."}), 400
-
-    text = text[:5000]
-
-    # ── Language detection ──────────────────────────────────────────────────
-    devanagari_chars = len(re.findall(r'[ऀ-ॿ]', text))
-    devanagari_ratio = devanagari_chars / max(len(text), 1)
-
-    MARATHI_WORDS = [
-        'आहे', 'नाही', 'आणि', 'मला', 'आपण', 'होते', 'केले', 'झाले',
-        'त्यांनी', 'म्हणाले', 'यावर', 'यामुळे', 'सांगितले', 'महाराष्ट्र',
-        'पुणे', 'मुंबई', 'नागपूर', 'ठाणे', 'सरकार', 'विद्यार्थी'
-    ]
-    HINDI_WORDS = [
-        'है', 'नहीं', 'और', 'था', 'हैं', 'यह', 'हो', 'उन्होंने',
-        'कहा', 'इससे', 'इसलिए', 'बताया', 'राज्य', 'सरकार'
-    ]
-    marathi_hits = sum(1 for w in MARATHI_WORDS if w in text)
-    hindi_hits = sum(1 for w in HINDI_WORDS if w in text)
-
-    if not voice:
-        if devanagari_ratio > 0.3:
-            if marathi_hits > hindi_hits:
-                voice = "mr-IN-ManoharNeural"
-                if rate == "+0%": rate = "-2%"
-                if pitch == "+0Hz": pitch = "+2Hz"
-            else:
-                voice = "hi-IN-MadhurNeural"
-                if rate == "+0%": rate = "-2%"
-                if pitch == "+0Hz": pitch = "+2Hz"
-        else:
-            voice = "en-IN-PrabhatNeural"
-            if rate == "+0%": rate = "-2%"
-            if pitch == "+0Hz": pitch = "+1Hz"
-    else:
-        _voice_defaults = {
-            "hi-IN-MadhurNeural":   ("-2%", "+2Hz"),
-            "hi-IN-SwaraNeural":    ("-1%", "+1Hz"),
-            "mr-IN-ManoharNeural":  ("-2%", "+2Hz"),
-            "mr-IN-AarohiNeural":   ("-1%", "+1Hz"),
-            "gu-IN-NiranjanNeural": ("-2%", "+2Hz"),
-            "gu-IN-DhwaniNeural":   ("-1%", "+1Hz"),
-            "bn-IN-BashkarNeural":  ("-2%", "+2Hz"),
-            "bn-IN-TanishaaNeural": ("-1%", "+1Hz"),
-            "ta-IN-ValluvarNeural": ("-2%", "+2Hz"),
-            "ta-IN-PallaviNeural":  ("-1%", "+1Hz"),
-            "te-IN-MohanNeural":    ("-2%", "+2Hz"),
-            "te-IN-ShrutiNeural":   ("-1%", "+1Hz"),
-            "kn-IN-GaganNeural":    ("-2%", "+2Hz"),
-            "kn-IN-SapnaNeural":    ("-1%", "+1Hz"),
-            "ml-IN-MidhunNeural":   ("-2%", "+2Hz"),
-            "ml-IN-SobhanaNeural":  ("-1%", "+1Hz"),
-            "ur-IN-SalmanNeural":   ("-2%", "+2Hz"),
-            "ur-PK-AsadNeural":     ("-2%", "+2Hz"),
-            "ur-PK-UzmaNeural":     ("-1%", "+1Hz"),
-            "en-IN-PrabhatNeural":  ("-2%", "+1Hz"),
-            "en-IN-NeerjaNeural":   ("-1%", "+1Hz"),
-        }
-        if voice in _voice_defaults and rate == "+0%" and pitch == "+0Hz":
-            rate, pitch = _voice_defaults[voice]
-
-    # ── Server-side text preprocessing for natural delivery ─────────────────
+def _preprocess_tts_text(text):
+    """Shared text preprocessing for natural TTS delivery."""
     _abbr_map = {
         'JEE': 'जे ई ई', 'NEET': 'नीट', 'IIT': 'आई आई टी',
         'IIM': 'आई आई एम', 'NIT': 'एन आई टी',
@@ -933,44 +946,140 @@ def api_tts():
         if n >= 1000: return f"{n/1000:.0f} हज़ार रुपये"
         return f"{n} रुपये"
     text = re.sub(r'₹\s?(\d[\d,]*)', _rupee_to_words, text)
-
     text = re.sub(r'(\d+)%', r'\1 प्रतिशत', text)
     text = re.sub(r'।\s*', '। ... ', text)
     text = re.sub(r'\.\s+', '. ... ', text)
+    return text
+
+
+def _resolve_voice(text, voice, rate, pitch):
+    """Auto-detect voice from text language if not specified."""
+    devanagari_ratio = len(re.findall(r'[ऀ-ॿ]', text)) / max(len(text), 1)
+    MARATHI_WORDS = ['आहे', 'नाही', 'आणि', 'मला', 'आपण', 'होते', 'केले', 'झाले',
+                     'त्यांनी', 'म्हणाले', 'महाराष्ट्र', 'पुणे', 'मुंबई', 'नागपूर']
+    HINDI_WORDS = ['है', 'नहीं', 'और', 'था', 'हैं', 'यह', 'हो', 'उन्होंने', 'कहा', 'बताया']
+    marathi_hits = sum(1 for w in MARATHI_WORDS if w in text)
+    hindi_hits = sum(1 for w in HINDI_WORDS if w in text)
+
+    if not voice:
+        if devanagari_ratio > 0.3:
+            voice = "mr-IN-ManoharNeural" if marathi_hits > hindi_hits else "hi-IN-MadhurNeural"
+            if rate == "+0%": rate = "-2%"
+            if pitch == "+0Hz": pitch = "+2Hz"
+        else:
+            voice = "en-IN-PrabhatNeural"
+            if rate == "+0%": rate = "-2%"
+            if pitch == "+0Hz": pitch = "+1Hz"
+    else:
+        _defaults = {
+            "hi-IN-MadhurNeural": ("-2%", "+2Hz"), "hi-IN-SwaraNeural": ("-1%", "+1Hz"),
+            "mr-IN-ManoharNeural": ("-2%", "+2Hz"), "mr-IN-AarohiNeural": ("-1%", "+1Hz"),
+            "gu-IN-NiranjanNeural": ("-2%", "+2Hz"), "gu-IN-DhwaniNeural": ("-1%", "+1Hz"),
+            "bn-IN-BashkarNeural": ("-2%", "+2Hz"), "bn-IN-TanishaaNeural": ("-1%", "+1Hz"),
+            "ta-IN-ValluvarNeural": ("-2%", "+2Hz"), "ta-IN-PallaviNeural": ("-1%", "+1Hz"),
+            "te-IN-MohanNeural": ("-2%", "+2Hz"), "te-IN-ShrutiNeural": ("-1%", "+1Hz"),
+            "kn-IN-GaganNeural": ("-2%", "+2Hz"), "kn-IN-SapnaNeural": ("-1%", "+1Hz"),
+            "ml-IN-MidhunNeural": ("-2%", "+2Hz"), "ml-IN-SobhanaNeural": ("-1%", "+1Hz"),
+            "ur-IN-SalmanNeural": ("-2%", "+2Hz"), "ur-PK-AsadNeural": ("-2%", "+2Hz"),
+            "ur-PK-UzmaNeural": ("-1%", "+1Hz"), "en-IN-PrabhatNeural": ("-2%", "+1Hz"),
+            "en-IN-NeerjaNeural": ("-1%", "+1Hz"),
+        }
+        if voice in _defaults and rate == "+0%" and pitch == "+0Hz":
+            rate, pitch = _defaults[voice]
 
     if isinstance(rate, (int, float)):
         pct = int((rate - 1) * 100)
         rate = f"+{pct}%" if pct >= 0 else f"{pct}%"
+    return voice, rate, pitch
 
-    async def _generate_audio():
+
+def _stream_edge_tts(text, voice, rate, pitch, cache_key):
+    """Generator that streams edge_tts audio chunks and caches the full result."""
+    q = _queue.Queue()
+    collected = []
+
+    async def _async():
         import edge_tts
-        communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
-        audio_data = b""
-        async for chunk in communicate.stream():
-            if chunk["type"] == "audio":
-                audio_data += chunk["data"]
-        return audio_data
+        try:
+            communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    q.put(chunk["data"])
+        except Exception as exc:
+            q.put(exc)
+        finally:
+            q.put(None)
 
-    try:
-        import sys
+    def _run_thread():
         if sys.platform == "win32":
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            audio_bytes = loop.run_until_complete(_generate_audio())
+            loop.run_until_complete(_async())
         finally:
             loop.close()
             asyncio.set_event_loop(None)
 
-        if not audio_bytes:
-            return jsonify({"error": "TTS generation failed."}), 500
+    t = threading.Thread(target=_run_thread, daemon=True)
+    t.start()
 
+    while True:
+        try:
+            item = q.get(timeout=30)
+        except _queue.Empty:
+            break
+        if item is None:
+            break
+        if isinstance(item, Exception):
+            raise item
+        collected.append(item)
+        yield item
+
+    # Cache full audio after streaming completes
+    if collected and cache_key:
+        full = b"".join(collected)
+        _evict(_tts_cache, _TTS_CACHE_MAX)
+        _tts_cache[cache_key] = full
+
+
+@epaper_bp.route("/api/epaper/tts", methods=["POST"])
+def api_tts():
+    """Server-side TTS using Microsoft Edge Neural voices — streams MP3 progressively."""
+    data = request.get_json(silent=True) or {}
+    text = data.get("text", "").strip()
+    voice = data.get("voice", "")
+    rate = data.get("rate", "+0%")
+    pitch = data.get("pitch", "+0Hz")
+
+    if not text:
+        return jsonify({"error": "No text provided."}), 400
+
+    text = text[:5000]
+    text = _preprocess_tts_text(text)
+    voice, rate, pitch = _resolve_voice(text, voice, rate, pitch)
+
+    ck = _tts_cache_key(text, voice, rate, pitch)
+
+    # ── Serve from cache instantly ──────────────────────────────────────────
+    if ck in _tts_cache:
         return send_file(
-            io.BytesIO(audio_bytes),
+            io.BytesIO(_tts_cache[ck]),
             mimetype="audio/mpeg",
             as_attachment=False,
             download_name="tts_audio.mp3",
+        )
+
+    # ── Stream from edge_tts (client starts playing on first chunk) ─────────
+    try:
+        return Response(
+            stream_with_context(_stream_edge_tts(text, voice, rate, pitch, ck)),
+            mimetype="audio/mpeg",
+            headers={
+                "Cache-Control": "no-store",
+                "X-Content-Type-Options": "nosniff",
+                "Transfer-Encoding": "chunked",
+            },
         )
     except Exception as e:
         import traceback
@@ -989,3 +1098,80 @@ def api_tts_voices():
         {"id": "en-IN-PrabhatNeural", "name": "Prabhat (English Male)",  "lang": "en", "gender": "male",   "style": "News Anchor"},
         {"id": "en-IN-NeerjaNeural",  "name": "Neerja (English Female)", "lang": "en", "gender": "female", "style": "Professional"},
     ]})
+
+
+# ── Backup: list backups for an edition ───────────────
+@epaper_bp.route("/api/epaper/admin/backups")
+def api_list_backups():
+    if not _pg_url():
+        return jsonify({"backups": []})
+    date = request.args.get("date", "")
+    lang = request.args.get("lang", "")
+    try:
+        conn = _pg_connect()
+        _pg_ensure_table(conn)
+        with conn.cursor() as cur:
+            if date and lang:
+                cur.execute("""
+                    SELECT id, edition_date, edition_language, edition_name,
+                           pages_count, saved_at
+                    FROM epaper_edition_backups
+                    WHERE edition_date = %s AND edition_language = %s
+                    ORDER BY saved_at DESC LIMIT 30
+                """, (date, lang))
+            else:
+                cur.execute("""
+                    SELECT DISTINCT ON (edition_date, edition_language)
+                           id, edition_date, edition_language, edition_name,
+                           pages_count, saved_at
+                    FROM epaper_edition_backups
+                    ORDER BY edition_date DESC, edition_language, saved_at DESC
+                    LIMIT 50
+                """)
+            rows = cur.fetchall()
+        conn.close()
+        backups = [
+            {"id": r[0], "date": r[1], "language": r[2], "name": r[3],
+             "pages": r[4], "saved_at": r[5].isoformat() if r[5] else ""}
+            for r in rows
+        ]
+        return jsonify({"backups": backups})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ── Backup: restore a specific backup ─────────────────
+@epaper_bp.route("/api/epaper/admin/backups/<int:backup_id>/restore", methods=["POST"])
+def api_restore_backup(backup_id):
+    if not _pg_url():
+        return jsonify({"error": "Database not configured"}), 500
+    try:
+        conn = _pg_connect()
+        _pg_ensure_table(conn)
+        with conn.cursor() as cur:
+            cur.execute("SELECT snapshot FROM epaper_edition_backups WHERE id = %s", (backup_id,))
+            row = cur.fetchone()
+        if not row:
+            conn.close()
+            return jsonify({"error": "Backup not found"}), 404
+        edition = row[0]
+        if isinstance(edition, str):
+            edition = json.loads(edition)
+
+        editions = _load_editions()
+        editions = [e for e in editions
+                    if not (e.get("date") == edition.get("date")
+                            and e.get("language") == edition.get("language"))]
+        editions.append(edition)
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO epaper_editions_store (id, data, updated_at)
+                VALUES ('editions', %s::jsonb, NOW())
+                ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()
+            """, (json.dumps(editions, ensure_ascii=False),))
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True,
+                        "message": f"Edition {edition.get('date')} ({edition.get('language')}) restored!"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

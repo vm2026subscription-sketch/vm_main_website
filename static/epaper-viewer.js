@@ -1642,7 +1642,7 @@ const EP = {
   async voicePlay() {
     if (!this.currentArticle) return;
 
-    // If already paused, just resume from current position
+    // Resume from pause
     if (this._voice.paused && this._voice.audio) {
       this._voice.audio.play();
       this._voice.paused = false;
@@ -1651,96 +1651,85 @@ const EP = {
       return;
     }
 
-    // Read from the currently DISPLAYED text (may already be translated)
     const displayedTitle = this.el.articleTitle?.textContent || '';
     const displayedBody = (this.el.articleText?.innerText || this.el.articleText?.textContent || '')
       .replace(/[\r\n]+/g, ' ').replace(/ +/g, ' ').trim();
     const rawText = (displayedTitle + '। ' + displayedBody).trim() || this._getArticleText();
     if (!rawText) { this.showToast('No text to read'); return; }
 
-    // Stop any existing playback
+    // Cancel any in-flight request before starting a new one
+    if (this._voice.abortController) {
+      this._voice.abortController.abort();
+      this._voice.abortController = null;
+    }
+
     this.voiceStop();
     this._voice.loading = true;
+    this._voice.abortController = new AbortController();
 
-    // Show voice bar immediately
     if (this.el.voiceBar) this.el.voiceBar.classList.add('loading', 'topbar');
     if (this.el.voiceTitle) this.el.voiceTitle.textContent = displayedTitle || this.currentArticle.headline || 'Article';
     if (this.el.ttsStartBtn) { this.el.ttsStartBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> <span>Loading...</span>'; this.el.ttsStartBtn.classList.add('loading'); }
     this._voiceUpdatePlayIcon();
-
-    // Prepare sentence spans for highlight
     this._prepareHighlight();
 
-    // Text is already in the right language (translated by _translatePanelForVoice)
-    let textToRead = rawText;
+    let textToRead = this._preprocessTTSText(rawText);
     let rateStr = '+0%';
     let pitchStr = '+0Hz';
-
-    // Inline text preprocessing (fast, no LLM needed)
-    textToRead = this._preprocessTTSText(textToRead);
-
-    // Step: Generate TTS Audio directly (skip LLM for speed)
-    this.showToast('🎙️ Generating voice...');
-
-    // If rate wasn't set by LLM, set it by user default
     if (rateStr === '+0%' && this._voice.rate !== 1) {
       const pct = Math.round((this._voice.rate - 1) * 100);
       rateStr = pct >= 0 ? `+${pct}%` : `${pct}%`;
     }
-
-    this._voice.text = textToRead; // Store what we are actually reading
+    this._voice.text = textToRead;
 
     try {
       const res = await fetch('/api/epaper/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: textToRead, voice: this._voice.selectedVoice || '', rate: rateStr, pitch: pitchStr }),
+        signal: this._voice.abortController.signal,
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || 'TTS request failed');
       }
 
-      const audioBlob = await res.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = new Audio(audioUrl);
+      // Try progressive streaming via MediaSource (plays on first chunk, ~300ms)
+      // Fallback to full blob if MediaSource unavailable (Safari)
+      let audio;
+      const canStream = typeof MediaSource !== 'undefined'
+        && MediaSource.isTypeSupported('audio/mpeg')
+        && res.body;
+
+      if (canStream) {
+        audio = await this._createStreamingAudio(res, this._voice.abortController.signal);
+      } else {
+        const blob = await res.blob();
+        audio = new Audio(URL.createObjectURL(blob));
+      }
+
+      // Guard: stop was called while we were loading
+      if (!this._voice.loading) { audio.pause(); return; }
+
       this._voice.audio = audio;
-
-      audio.addEventListener('loadedmetadata', () => {
-        this._voice.loading = false;
-        if (this.el.voiceDuration) this.el.voiceDuration.textContent = this._formatTime(audio.duration || 0);
-        this._voiceUpdatePlayIcon();
-      });
-
-      audio.addEventListener('timeupdate', () => {
-        this._voiceUpdateUI();
-        this._highlightAt(audio.currentTime, audio.duration);
-      });
-
-      audio.addEventListener('ended', () => {
-        this._clearHighlight();
-        this._voiceFinished();
-      });
-
-      audio.addEventListener('error', (e) => {
-        console.warn('Audio error:', e);
-        this.showToast('Audio playback error');
-        this._voiceFinished();
-      });
-
+      this._attachAudioListeners(audio);
       await audio.play();
+
       if (this.el.voiceBar) this.el.voiceBar.classList.remove('loading');
       this._voice.playing = true;
       this._voice.paused = false;
       this._voice.loading = false;
+      this._voice.abortController = null;
       if (this.el.ttsStartBtn) { this.el.ttsStartBtn.innerHTML = '<i class="fa fa-play"></i> <span>Play</span>'; this.el.ttsStartBtn.classList.remove('loading'); }
       this._voiceUpdatePlayIcon();
       this.showToast('🔊 Now playing');
       this.trackEvent('voice_play', { article: this.currentArticle?.headline, voice: this._voice.selectedVoice || 'auto' });
 
     } catch (err) {
+      if (err.name === 'AbortError') return; // intentionally cancelled
       console.error('TTS Error:', err);
       this._voice.loading = false;
+      this._voice.abortController = null;
       if (this.el.ttsStartBtn) { this.el.ttsStartBtn.innerHTML = '<i class="fa fa-play"></i> <span>Play</span>'; this.el.ttsStartBtn.classList.remove('loading'); }
       if (this.el.voiceBar) this.el.voiceBar.classList.remove('loading', 'topbar');
       if (this.el.ttsPrompt) this.el.ttsPrompt.style.display = '';
@@ -1748,6 +1737,90 @@ const EP = {
       this.showToast('Voice generation failed. Try again.');
       this._voiceUpdatePlayIcon();
     }
+  },
+
+  // Attach standard listeners to an Audio element
+  _attachAudioListeners(audio) {
+    audio.addEventListener('loadedmetadata', () => {
+      this._voice.loading = false;
+      if (this.el.voiceDuration) this.el.voiceDuration.textContent = this._formatTime(audio.duration || 0);
+      this._voiceUpdatePlayIcon();
+    });
+    audio.addEventListener('timeupdate', () => {
+      this._voiceUpdateUI();
+      this._highlightAt(audio.currentTime, audio.duration);
+    });
+    audio.addEventListener('ended', () => { this._clearHighlight(); this._voiceFinished(); });
+    audio.addEventListener('error', () => {
+      this.showToast('Audio playback error');
+      this._voiceFinished();
+    });
+  },
+
+  // Build a streaming Audio element using MediaSource — starts playing on first chunk
+  _createStreamingAudio(res, signal) {
+    return new Promise((resolve, reject) => {
+      const ms = new MediaSource();
+      const audioUrl = URL.createObjectURL(ms);
+      const audio = new Audio(audioUrl);
+      audio.preload = 'auto';
+
+      let resolved = false;
+      const timer = setTimeout(() => reject(new Error('MediaSource timeout')), 15000);
+
+      ms.addEventListener('sourceopen', async () => {
+        let sb;
+        try {
+          sb = ms.addSourceBuffer('audio/mpeg');
+          sb.mode = 'sequence';
+        } catch (e) {
+          clearTimeout(timer);
+          reject(e);
+          return;
+        }
+
+        const reader = res.body.getReader();
+        let closed = false;
+
+        const endStream = () => {
+          if (closed) return;
+          closed = true;
+          try { ms.endOfStream(); } catch (_) {}
+        };
+
+        const appendNext = async () => {
+          if (signal?.aborted) { endStream(); return; }
+          let chunk;
+          try {
+            chunk = await reader.read();
+          } catch (e) {
+            endStream();
+            return;
+          }
+          if (chunk.done) { endStream(); return; }
+
+          if (sb.updating) {
+            await new Promise(r => sb.addEventListener('updateend', r, { once: true }));
+          }
+          if (ms.readyState !== 'open') return;
+          try {
+            sb.appendBuffer(chunk.value);
+          } catch (e) {
+            endStream();
+            return;
+          }
+
+          if (!resolved) {
+            resolved = true;
+            clearTimeout(timer);
+            resolve(audio);
+          }
+        };
+
+        sb.addEventListener('updateend', () => { if (!closed) appendNext(); });
+        appendNext();
+      }, { once: true });
+    });
   },
 
   _voiceFinished() {
@@ -1797,6 +1870,11 @@ const EP = {
 
   // Stop and hide voice bar
   voiceStop() {
+    // Cancel any pending TTS fetch
+    if (this._voice.abortController) {
+      this._voice.abortController.abort();
+      this._voice.abortController = null;
+    }
     const audio = this._voice.audio;
     if (audio) {
       audio.pause();
