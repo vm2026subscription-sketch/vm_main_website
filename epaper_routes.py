@@ -685,11 +685,13 @@ def api_get_edition_admin(date):
 @epaper_bp.route("/api/epaper/admin/edition/<date>", methods=["DELETE"])
 def api_delete_edition(date):
     lang = request.args.get("lang", None)
+    if not lang:
+        return jsonify({"error": "Language parameter required for deletion."}), 400
     editions = _load_editions()
-    if lang:
-        editions = [e for e in editions if not (e["date"] == date and e.get("language", "Hindi") == lang)]
-    else:
-        editions = [e for e in editions if e["date"] != date]
+    original_count = len(editions)
+    editions = [e for e in editions if not (e["date"] == date and e.get("language", "Hindi") == lang)]
+    if len(editions) == original_count:
+        return jsonify({"error": f"No edition found for date={date} lang={lang}"}), 404
     try:
         _save_editions(editions)
     except Exception as exc:

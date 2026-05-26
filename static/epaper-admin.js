@@ -34,10 +34,42 @@ const EPAdmin = {
 
   _undoStack: [],
   _guides: [],
+  _isDirty: false,
+  _autoSaveTimer: null,
+  _autoSaving: false,
+
+  _markDirty() {
+    this._isDirty = true;
+    this._updateAutoSaveStatus('● Unsaved changes', '#f59e0b');
+  },
+
+  _updateAutoSaveStatus(text, color) {
+    const el = document.getElementById('autoSaveStatus');
+    if (el) { el.textContent = text; el.style.color = color || '#94a3b8'; }
+  },
+
+  _startAutoSave() {
+    this._stopAutoSave();
+    this._isDirty = false;
+    this._updateAutoSaveStatus('', '#94a3b8');
+    this._autoSaveTimer = setInterval(() => this._autoSaveTick(), 60000);
+  },
+
+  _stopAutoSave() {
+    if (this._autoSaveTimer) { clearInterval(this._autoSaveTimer); this._autoSaveTimer = null; }
+  },
+
+  async _autoSaveTick() {
+    if (!this._isDirty || this._autoSaving) return;
+    const date = document.getElementById('edDate')?.value;
+    if (!date) return;
+    await this.saveEdition({ silent: true });
+  },
 
   _pushUndo() {
     this._undoStack.push(JSON.parse(JSON.stringify({ pages: this.pages, editionMeta: this.editionMeta })));
     if (this._undoStack.length > 50) this._undoStack.shift();
+    this._markDirty();
   },
 
   undo() {
@@ -86,6 +118,15 @@ const EPAdmin = {
     document.getElementById('editionForm')?.addEventListener('submit', e => { e.preventDefault(); this.saveEdition(); });
     document.getElementById('blockForm')?.addEventListener('submit', e => { e.preventDefault(); this.saveBlock(); });
     document.getElementById('deleteEditionBtn')?.addEventListener('click', () => this.deleteEdition());
+    ['edName', 'edLang', 'edStatus'].forEach(id => {
+      document.getElementById(id)?.addEventListener('input', () => { if (this._autoSaveTimer) this._markDirty(); });
+      document.getElementById(id)?.addEventListener('change', () => { if (this._autoSaveTimer) this._markDirty(); });
+    });
+    // Start autosave when a date is entered for a new edition
+    document.getElementById('edDate')?.addEventListener('change', () => {
+      const date = document.getElementById('edDate').value;
+      if (date && !this._autoSaveTimer) this._startAutoSave();
+    });
     document.getElementById('pageImageInput')?.addEventListener('change', e => {
       const file = e.target.files?.[0];
       if (file) this.handlePageImage(file);
@@ -1216,21 +1257,27 @@ const EPAdmin = {
       document.getElementById('deleteEditionBtn').style.display = 'inline-flex';
       this.renderPageTabs();
       this.openPage(0);
+      this._startAutoSave();
       document.getElementById('builderSection').scrollIntoView({ behavior: 'smooth' });
     } catch (e) { alert('Error loading edition'); }
   },
 
-  async saveEdition() {
+  async saveEdition(opts = {}) {
+    const silent = opts.silent || false;
+    if (this._autoSaving) return;
+    if (silent) this._autoSaving = true;
+
     const date = document.getElementById('edDate').value;
     const name = document.getElementById('edName').value;
     const lang = document.getElementById('edLang').value;
     const status = document.getElementById('edStatus').value;
-    if (!date) { alert('Date required'); return; }
+    if (!date) { if (!silent) alert('Date required'); if (silent) this._autoSaving = false; return; }
     this.syncEditionMetaFromInputs();
     try {
       await this.ensureUploadedImages();
     } catch (e) {
-      alert(e.message || 'Image upload failed');
+      if (!silent) alert(e.message || 'Image upload failed');
+      if (silent) this._autoSaving = false;
       return;
     }
 
@@ -1277,13 +1324,30 @@ const EPAdmin = {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (res.ok) { this.showToast('✅ Edition saved!'); this.loadEditions(); }
-      else {
+      if (res.ok) {
+        this._isDirty = false;
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        this._updateAutoSaveStatus(`✓ Saved ${timeStr}`, '#22c55e');
+        if (silent) {
+          this.showToast(`✅ Auto-saved at ${timeStr}`);
+        } else {
+          this.showToast('✅ Edition saved!');
+        }
+        this.loadEditions();
+      } else {
         let msg = `Save failed (${res.status})`;
         try { const e = await res.json(); msg = e.error || msg; } catch {}
-        alert(msg);
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        this._updateAutoSaveStatus(`Auto-save failed ${timeStr}`, '#ef4444');
+        if (!silent) alert(msg);
       }
-    } catch (e) { alert('Network error: ' + e.message); }
+    } catch (e) {
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      this._updateAutoSaveStatus(`Auto-save failed ${timeStr}`, '#ef4444');
+      if (!silent) alert('Network error: ' + e.message);
+    } finally {
+      if (silent) this._autoSaving = false;
+    }
   },
 
   async deleteEdition() {
@@ -1293,6 +1357,8 @@ const EPAdmin = {
     const langParam = `?lang=${encodeURIComponent(lang)}`;
     try {
       await fetch(`/api/epaper/admin/edition/${this.currentEdition.date}${langParam}`, { method: 'DELETE' });
+      this._stopAutoSave();
+      this._isDirty = false;
       this.currentEdition = null; this.pages = [];
       document.getElementById('builderSection').style.display = 'none';
       this.loadEditions(); this.showToast('Deleted');
