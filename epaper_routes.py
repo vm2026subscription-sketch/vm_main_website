@@ -1172,6 +1172,6 @@ def api_restore_backup(backup_id):
         conn.commit()
         conn.close()
         return jsonify({"success": True,
-                        "message": f"Edition {edition.get('date')} ({edition.get('language')}) restored!"})
+                        "message": f"Edition {edition.get('date')} ({edition.get('language')}) restored successfully!"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
