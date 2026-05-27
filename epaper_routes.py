@@ -3,6 +3,7 @@ E-Paper routes — edition/page/article APIs + AI features
 """
 import asyncio
 import hashlib
+import hmac
 import io
 import json
 import os
@@ -33,6 +34,21 @@ def _evict(cache, max_size):
         del cache[next(iter(cache))]
 
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "saurabhedict@gmail.com")
+
+# ── Epaper admin credentials ──────────────────────
+_EPAPER_ADMIN_USER = "admin"
+_EPAPER_ADMIN_PASS = "vm2026"
+_EPAPER_ADMIN_SESSION_KEY = "epaper_admin_auth"
+
+def _is_epaper_admin():
+    return session.get(_EPAPER_ADMIN_SESSION_KEY) is True
+
+def _require_epaper_admin():
+    if _is_epaper_admin():
+        return None
+    if request.is_json or request.path.startswith("/api/"):
+        return jsonify({"error": "Unauthorized. Please log in to epaper admin."}), 401
+    return redirect(url_for("epaper.epaper_admin_login", next=request.full_path))
 
 # ── Cloudinary auto-config ─────────────────────────
 _CLOUDINARY_URL = os.getenv("CLOUDINARY_URL", "")
@@ -327,9 +343,41 @@ def epaper_viewer(date=None, page=1):
                            initial_edition_json=initial_edition_json)
 
 
-# ── Admin Page (Region Mapper) ─────────────────────
+# ── Epaper Admin Login / Logout ───────────────────
+@epaper_bp.route("/epaper-admin/login", methods=["GET", "POST"])
+def epaper_admin_login():
+    if _is_epaper_admin():
+        return redirect(url_for("epaper.epaper_admin_v2"))
+    error = None
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        user_ok = hmac.compare_digest(username, _EPAPER_ADMIN_USER)
+        pass_ok = hmac.compare_digest(password, _EPAPER_ADMIN_PASS)
+        if user_ok and pass_ok:
+            session[_EPAPER_ADMIN_SESSION_KEY] = True
+            session.permanent = True
+            next_url = request.args.get("next") or url_for("epaper.epaper_admin_v2")
+            # strip query string artifacts
+            if "?" in next_url:
+                next_url = next_url.split("?")[0]
+            return redirect(next_url)
+        error = "Invalid username or password."
+    return render_template("epaper_admin_login.html", error=error)
+
+
+@epaper_bp.route("/epaper-admin/logout")
+def epaper_admin_logout():
+    session.pop(_EPAPER_ADMIN_SESSION_KEY, None)
+    return redirect(url_for("epaper.epaper_admin_login"))
+
+
+# ── Admin Page ────────────────────────────────────
 @epaper_bp.route("/epaper-admin")
 def epaper_admin_v2():
+    guard = _require_epaper_admin()
+    if guard is not None:
+        return guard
     admin_user = session.get("auth_user", {})
     return render_template("epaper_admin_v2.html", admin_user=admin_user)
 
@@ -339,6 +387,8 @@ EPAPER_TMP_UPLOAD_DIR = os.path.join(tempfile.gettempdir(), "epaper_uploads")
 
 @epaper_bp.route("/api/epaper/admin/upload-image", methods=["POST"])
 def api_upload_epaper_image():
+    guard = _require_epaper_admin()
+    if guard is not None: return guard
     image = request.files.get("image") or request.files.get("file")
     if not image or not image.filename:
         return jsonify({"error": "file required"}), 400
@@ -396,6 +446,8 @@ def api_upload_epaper_image():
 
 @epaper_bp.route("/api/epaper/admin/pdf-to-pages", methods=["POST"])
 def api_pdf_to_pages():
+    guard = _require_epaper_admin()
+    if guard is not None: return guard
     pdf_file = request.files.get("pdf")
     if not pdf_file or not pdf_file.filename:
         return jsonify({"error": "PDF file required"}), 400
@@ -528,6 +580,8 @@ def api_latest_edition():
 # ── API: Publish / Unpublish edition ─────────────
 @epaper_bp.route("/api/epaper/admin/edition/<date>/publish", methods=["POST"])
 def api_publish_edition(date):
+    guard = _require_epaper_admin()
+    if guard is not None: return guard
     data = request.get_json(silent=True) or {}
     published = bool(data.get("published", True))
     lang = request.args.get("lang", None)
@@ -603,6 +657,8 @@ def api_article(article_id):
 # ── API: Create / Update edition (Admin) ───────────
 @epaper_bp.route("/api/epaper/admin/edition", methods=["POST"])
 def api_create_edition():
+    guard = _require_epaper_admin()
+    if guard is not None: return guard
     data = request.get_json(silent=True) or {}
     date_str = data.get("date", "")
     if not re.match(r"\d{4}-\d{2}-\d{2}$", date_str):
@@ -654,6 +710,8 @@ def api_create_edition():
 # ── API: Get edition (admin — no published filter) ────
 @epaper_bp.route("/api/epaper/admin/edition/<date>", methods=["GET"])
 def api_get_edition_admin(date):
+    guard = _require_epaper_admin()
+    if guard is not None: return guard
     if not re.match(r"\d{4}-\d{2}-\d{2}$", date):
         return jsonify({"error": "Invalid date format"}), 400
     lang = request.args.get("lang", None)
@@ -684,6 +742,8 @@ def api_get_edition_admin(date):
 # ── API: Delete edition ───────────────────────────
 @epaper_bp.route("/api/epaper/admin/edition/<date>", methods=["DELETE"])
 def api_delete_edition(date):
+    guard = _require_epaper_admin()
+    if guard is not None: return guard
     lang = request.args.get("lang", None)
     if not lang:
         return jsonify({"error": "Language parameter required for deletion."}), 400
@@ -1105,6 +1165,8 @@ def api_tts_voices():
 # ── Backup: list backups for an edition ───────────────
 @epaper_bp.route("/api/epaper/admin/backups")
 def api_list_backups():
+    guard = _require_epaper_admin()
+    if guard is not None: return guard
     if not _pg_url():
         return jsonify({"backups": []})
     date = request.args.get("date", "")
@@ -1145,6 +1207,8 @@ def api_list_backups():
 # ── Backup: restore a specific backup ─────────────────
 @epaper_bp.route("/api/epaper/admin/backups/<int:backup_id>/restore", methods=["POST"])
 def api_restore_backup(backup_id):
+    guard = _require_epaper_admin()
+    if guard is not None: return guard
     if not _pg_url():
         return jsonify({"error": "Database not configured"}), 500
     try:
