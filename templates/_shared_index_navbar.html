@@ -86,6 +86,7 @@
     gap: 12px;
     justify-content: space-between;
     flex-wrap: nowrap;
+    position: relative;
   }
 
   /* ── BRAND LOGO ── */
@@ -106,8 +107,9 @@
     display: flex;
     align-items: center;
     gap: 2px;
-    flex: 1 1 auto;
-    justify-content: center; /* Centered alignment for main links */
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
   }
 
   .vm-nav-item,
@@ -413,6 +415,8 @@
       margin-top: 10px;
       align-items: stretch;
       order: 3;
+      position: static;
+      transform: none;
     }
     body.light-mode .vm-main-links {
       border-top-color: rgba(0, 0, 0, 0.08);
