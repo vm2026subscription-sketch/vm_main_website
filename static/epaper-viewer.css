@@ -3119,36 +3119,77 @@ body.epaper-body.has-masthead .ep-masthead-placeholder {
 }
 
 @keyframes epSpin {
-  0% {
-    transform: rotate(0deg);
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ══════════════════════════════════════════════════
+   MOBILE UX IMPROVEMENTS
+   ══════════════════════════════════════════════════ */
+
+/* Disable iOS double-tap browser zoom on the viewer — we handle it in JS */
+.ep-viewer {
+  touch-action: manipulation;
+}
+
+/* Page image fade-in when loading */
+.ep-page-img {
+  transition: opacity 0.12s ease;
+}
+
+/* ── Swipe hint (first visit, mobile only) ── */
+.ep-swipe-hint {
+  display: none;
+  position: absolute;
+  bottom: 158px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.65);
+  color: rgba(255, 255, 255, 0.9);
+  padding: 7px 18px;
+  border-radius: 24px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 50;
+  letter-spacing: 0.3px;
+  gap: 7px;
+  align-items: center;
+}
+
+.ep-swipe-hint i {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.ep-swipe-hint.ep-swipe-hint-visible {
+  display: flex;
+  animation: ep-hint-fade 2.8s ease forwards;
+}
+
+@keyframes ep-hint-fade {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(6px); }
+  15%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+  70%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@media (max-width: 768px) {
+  /* Larger touch targets for thumb strip navigation */
+  .ep-thumb-nav-btn {
+    min-width: 36px;
+    padding: 0 10px;
   }
 
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.ep-share-dropdown-item:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-}
-
-.ep-share-dropdown-item i {
-  width: 16px;
-  text-align: center;
-}
-
-/* ── PDF Generation Progress Loader ── */
-#epPdfLoader {
-  transition: opacity 0.3s ease;
-}
-
-@keyframes epSpin {
-  0% {
-    transform: rotate(0deg);
+  /* Page image takes full available width on mobile */
+  .ep-page-container {
+    width: 100%;
   }
 
-  100% {
-    transform: rotate(360deg);
+  /* Pager buttons easier to tap */
+  .ep-pager-btn {
+    min-width: 44px;
+    min-height: 44px;
   }
 }

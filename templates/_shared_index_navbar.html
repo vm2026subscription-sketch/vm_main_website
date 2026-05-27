@@ -793,9 +793,32 @@
 
     toggle.addEventListener('click', function(e){
       e.preventDefault();
+      e.stopPropagation();
       header.classList.toggle('vm-expanded');
       var expanded = header.classList.contains('vm-expanded');
       this.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      this.textContent = expanded ? '✕' : '☰';
+    });
+
+    // Close menu when clicking outside the header
+    document.addEventListener('click', function(e) {
+      if (header.classList.contains('vm-expanded') && !header.contains(e.target)) {
+        header.classList.remove('vm-expanded');
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.textContent = '☰';
+        document.querySelectorAll('.vm-dropdown').forEach(function(d) {
+          d.classList.remove('vm-mobile-open');
+        });
+      }
+    });
+
+    // Close menu when a nav link is clicked (navigating away)
+    links.querySelectorAll('a.vm-nav-item').forEach(function(a) {
+      a.addEventListener('click', function() {
+        header.classList.remove('vm-expanded');
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.textContent = '☰';
+      });
     });
 
     // Mobile click handler to open dropdowns on mobile screen
@@ -809,11 +832,11 @@
       });
     });
 
-    // Ensure collapsed state is reset when resizing to large screens
+    // Reset to desktop state on resize
     window.addEventListener('resize', function(){
       if (window.innerWidth > 992) {
         header.classList.remove('vm-expanded');
-        if (toggle) toggle.setAttribute('aria-expanded','false');
+        if (toggle) { toggle.setAttribute('aria-expanded','false'); toggle.textContent = '☰'; }
         document.querySelectorAll('.vm-dropdown').forEach(function(d) {
           d.classList.remove('vm-mobile-open');
         });

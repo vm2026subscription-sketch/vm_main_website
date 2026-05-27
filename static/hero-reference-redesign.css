@@ -948,6 +948,7 @@ footer {
 @media (max-width: 600px) {
     .hero {
         margin: 8px 10px 0 !important;
+        width: calc(100% - 20px) !important;
         border-radius: 18px !important;
         min-height: 0 !important;
         height: auto !important;
