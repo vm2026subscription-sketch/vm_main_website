@@ -44,7 +44,21 @@ const EP = {
     this.startAutoRefreshPoll();
     // Load news sidebar
     this.loadNewsSidebar();
+    // Show swipe hint on first mobile visit
+    this._initSwipeHint();
 
+  },
+
+  _initSwipeHint() {
+    if (window.innerWidth > 768) return;
+    if (localStorage.getItem('ep_swipe_known')) return;
+    const hint = document.getElementById('epSwipeHint');
+    if (!hint) return;
+    hint.classList.add('ep-swipe-hint-visible');
+    hint.addEventListener('animationend', () => {
+      hint.style.display = 'none';
+      localStorage.setItem('ep_swipe_known', '1');
+    }, { once: true });
   },
 
   async loadLatestEdition() {
@@ -356,6 +370,44 @@ const EP = {
         }
       }, { passive: true });
       v.addEventListener('touchend', () => { _lastDist = null; }, { passive: true });
+    }
+
+    // Swipe left/right to change pages (single finger, only when not zoomed)
+    {
+      const rc = document.getElementById('epReaderContainer');
+      let _swX = null, _swY = null;
+      if (rc) {
+        rc.addEventListener('touchstart', (e) => {
+          if (e.touches.length !== 1) return;
+          _swX = e.touches[0].clientX;
+          _swY = e.touches[0].clientY;
+        }, { passive: true });
+        rc.addEventListener('touchend', (e) => {
+          if (_swX === null) return;
+          if (this.zoom > 1) { _swX = null; return; }
+          const dx = e.changedTouches[0].clientX - _swX;
+          const dy = e.changedTouches[0].clientY - _swY;
+          _swX = null;
+          if (Math.abs(dx) < 55 || Math.abs(dx) <= Math.abs(dy) * 1.3) return;
+          dx < 0 ? this.changePage(1) : this.changePage(-1);
+        }, { passive: true });
+      }
+    }
+
+    // Double-tap on viewer to toggle zoom in/out
+    {
+      let _lastTap = 0;
+      const vEl = this.el.viewer;
+      if (vEl) {
+        vEl.addEventListener('touchend', (e) => {
+          if (e.changedTouches.length !== 1) return;
+          const now = Date.now();
+          if (now - _lastTap < 300) {
+            this.setZoom(this.zoom > 1.1 ? 1 : 2.5);
+          }
+          _lastTap = now;
+        }, { passive: true });
+      }
     }
 
     // Article panel back
