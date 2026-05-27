@@ -664,12 +664,34 @@ def api_create_edition():
     if not re.match(r"\d{4}-\d{2}-\d{2}$", date_str):
         return jsonify({"error": "date required (YYYY-MM-DD)."}), 400
 
-    editions = _load_editions()
     lang_str = data.get("language", "Hindi")
-
-    # If date or language was changed in the editor, remove the old entry first
     original_date = data.get("original_date", "")
     original_lang = data.get("original_lang", "")
+
+    # ── Single DB connection for load + save (avoids two round-trips) ──
+    conn = None
+    if _pg_url():
+        try:
+            conn = _pg_connect()
+            _pg_ensure_table(conn)
+            with conn.cursor() as cur:
+                cur.execute("SELECT data FROM epaper_editions_store WHERE id = 'editions'")
+                row = cur.fetchone()
+            editions = row[0] if row else []
+            if isinstance(editions, str):
+                editions = json.loads(editions)
+            if not editions:
+                editions = _load_editions_from_file()
+        except Exception as e:
+            print(f"[epaper] DB load in save failed: {e}")
+            try: conn.close()
+            except: pass
+            conn = None
+            editions = _load_editions_from_file()
+    else:
+        editions = _load_editions_from_file()
+
+    # If date/lang changed, remove old entry first
     if original_date and (original_date != date_str or original_lang != lang_str):
         editions = [e for e in editions
                     if not (e["date"] == original_date and e.get("language", "Hindi") == original_lang)]
@@ -703,15 +725,27 @@ def api_create_edition():
             "created_at": datetime.now().isoformat(),
         })
 
+    saved_edition = existing if existing else editions[-1]
+
     try:
-        _save_editions(editions)
+        if conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO epaper_editions_store (id, data, updated_at)
+                    VALUES ('editions', %s::jsonb, NOW())
+                    ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()
+                """, (json.dumps(editions, ensure_ascii=False),))
+            conn.commit()
+            conn.close()
+        else:
+            _save_editions_to_file(editions)
     except Exception as exc:
+        if conn:
+            try: conn.close()
+            except: pass
         return jsonify({"error": f"Save failed: {exc}"}), 500
 
-    # Auto-backup after every successful save
-    saved_edition = existing if existing else editions[-1]
     _save_edition_backup(saved_edition)
-
     return jsonify({"success": True}), 201
 
 
