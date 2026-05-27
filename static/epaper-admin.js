@@ -1252,6 +1252,8 @@ const EPAdmin = {
       document.getElementById('edName').value = data.name || '';
       document.getElementById('edLang').value = data.language || 'Hindi';
       document.getElementById('edStatus').value = (data.published !== false) ? 'published' : 'draft';
+      this._originalDate = data.date;
+      this._originalLang = data.language || 'Hindi';
       if (!this.pages.length) this.addPage();
       document.getElementById('builderSection').style.display = 'block';
       document.getElementById('deleteEditionBtn').style.display = 'inline-flex';
@@ -1319,6 +1321,11 @@ const EPAdmin = {
       })),
     };
 
+    if (this._originalDate && (this._originalDate !== date || this._originalLang !== lang)) {
+      payload.original_date = this._originalDate;
+      payload.original_lang = this._originalLang;
+    }
+
     try {
       const res = await fetch('/api/epaper/admin/edition', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1326,6 +1333,8 @@ const EPAdmin = {
       });
       if (res.ok) {
         this._isDirty = false;
+        this._originalDate = date;
+        this._originalLang = lang;
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         this._updateAutoSaveStatus(`✓ Saved ${timeStr}`, '#22c55e');
         if (silent) {

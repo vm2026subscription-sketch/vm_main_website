@@ -666,6 +666,14 @@ def api_create_edition():
 
     editions = _load_editions()
     lang_str = data.get("language", "Hindi")
+
+    # If date or language was changed in the editor, remove the old entry first
+    original_date = data.get("original_date", "")
+    original_lang = data.get("original_lang", "")
+    if original_date and (original_date != date_str or original_lang != lang_str):
+        editions = [e for e in editions
+                    if not (e["date"] == original_date and e.get("language", "Hindi") == original_lang)]
+
     existing = next(
         (e for e in editions if e["date"] == date_str and e.get("language", "Hindi") == lang_str),
         None,
