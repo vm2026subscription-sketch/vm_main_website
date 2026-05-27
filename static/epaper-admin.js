@@ -37,6 +37,7 @@ const EPAdmin = {
   _isDirty: false,
   _autoSaveTimer: null,
   _autoSaving: false,
+  _copiedPage: null,
 
   _markDirty() {
     this._isDirty = true;
@@ -312,12 +313,20 @@ const EPAdmin = {
   async handleMastheadImage(file) {
     if (!file?.type.startsWith('image/')) return;
     this._pushUndo();
-    // Store as data URL directly — avoids server filesystem write (works on Vercel)
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
+      // Show preview instantly with data URL, then replace with CDN URL in background
       this.editionMeta.masthead_image_url = e.target.result;
       this.renderMastheadPreview();
-      this.showToast('Header image ready');
+      this.showToast('Uploading header image…');
+      try {
+        const url = await this.uploadDataUrl(e.target.result, 'masthead.png');
+        this.editionMeta.masthead_image_url = url;
+        this.renderMastheadPreview();
+        this.showToast('Header image ready');
+      } catch (_) {
+        this.showToast('Header image ready (will upload on save)');
+      }
     };
     reader.readAsDataURL(file);
   },
@@ -1441,12 +1450,16 @@ const EPAdmin = {
   renderPageTabs() {
     const tabs = document.getElementById('pageTabs');
     if (!tabs) return;
+    const pasteBtn = this._copiedPage
+      ? `<div class="epa-page-add" onclick="EPAdmin.pastePage()" style="background:rgba(255,102,0,.15);border-color:rgba(255,102,0,.45);color:#ff6600;" title="Paste copied page into this edition"><i class="fa fa-paste"></i> Paste Page</div>`
+      : '';
     tabs.innerHTML = this.pages.map((p, i) => `
       <div class="epa-page-tab ${i === this.currentPageIdx ? 'active' : ''}" data-idx="${i}">
         Page ${i + 1}
-        ${this.pages.length > 1 ? `<span class="epa-tab-del" data-idx="${i}" style="margin-left:6px;cursor:pointer;opacity:.6">×</span>` : ''}
+        <span class="epa-tab-copy" data-idx="${i}" title="Copy this page" style="margin-left:6px;cursor:pointer;opacity:.55;font-size:11px;">⧉</span>
+        ${this.pages.length > 1 ? `<span class="epa-tab-del" data-idx="${i}" style="margin-left:3px;cursor:pointer;opacity:.6">×</span>` : ''}
       </div>
-    `).join('') + `<div class="epa-page-add" onclick="EPAdmin.addPage()"><i class="fa fa-plus"></i> Add Page</div>`;
+    `).join('') + `<div class="epa-page-add" onclick="EPAdmin.addPage()"><i class="fa fa-plus"></i> Add Page</div>` + pasteBtn;
 
     tabs.querySelectorAll('.epa-page-tab').forEach(tab => {
       const i = parseInt(tab.dataset.idx);
@@ -1454,6 +1467,8 @@ const EPAdmin = {
       tab.addEventListener('click', e => {
         if (e.target.classList.contains('epa-tab-del')) {
           EPAdmin.deletePage(parseInt(e.target.dataset.idx));
+        } else if (e.target.classList.contains('epa-tab-copy')) {
+          EPAdmin.copyPage(parseInt(e.target.dataset.idx));
         } else if (!EPAdmin._didDrag) {
           EPAdmin.openPage(i);
         }
@@ -1543,6 +1558,33 @@ const EPAdmin = {
     if (catEl) page.category = catEl.value;
     if (drEl) page.date_range = drEl.value;
     this._refreshPageHeaderPreview();
+  },
+
+  copyPage(idx) {
+    const page = this.pages[idx];
+    if (!page) return;
+    this._copiedPage = JSON.parse(JSON.stringify(page));
+    this.renderPageTabs();
+    this.showToast('📋 Page copied — open any edition and click "Paste Page"');
+  },
+
+  pastePage() {
+    if (!this._copiedPage) return;
+    this._pushUndo();
+    const clone = JSON.parse(JSON.stringify(this._copiedPage));
+    clone.page_number = this.pages.length + 1;
+    // Reassign IDs to avoid duplicates
+    if (clone.blocks) {
+      clone.blocks = clone.blocks.map(b => ({
+        ...b,
+        id: Date.now() + Math.floor(Math.random() * 1e6),
+        article_id: Date.now() + Math.floor(Math.random() * 1e6),
+      }));
+    }
+    this.pages.push(clone);
+    this.renderPageTabs();
+    this.openPage(this.pages.length - 1);
+    this.showToast('✅ Page pasted!');
   },
 
   // ══════ BLOCK CRUD ══════
@@ -1818,36 +1860,47 @@ const EPAdmin = {
   },
 
   async ensureUploadedImages() {
-    // Upload masthead if still a local data URL (not yet on Cloudinary)
+    const uploads = [];
+
     if (this.editionMeta.masthead_image_url?.startsWith('data:image/')) {
-      this.editionMeta.masthead_image_url = await this.uploadDataUrl(
-        this.editionMeta.masthead_image_url, 'masthead.png'
-      );
+      const dataUrl = this.editionMeta.masthead_image_url;
+      uploads.push(this.uploadDataUrl(dataUrl, 'masthead.png').then(url => {
+        this.editionMeta.masthead_image_url = url;
+      }));
     }
+
     for (const page of this.pages) {
-      if (page.page_image_url?.startsWith('data:image/') || page.page_image_url?.startsWith('data:application/pdf')) {
-        const ext = page.page_image_url.startsWith('data:application/pdf') ? 'pdf' : 'png';
-        page.page_image_url = await this.uploadDataUrl(page.page_image_url, `page-${page.page_number}.${ext}`);
-        page.image_path = page.page_image_url;
+      const pageDataUrl = page.page_image_url?.startsWith('data:') ? page.page_image_url
+        : page.image_path?.startsWith('data:') ? page.image_path : null;
+      if (pageDataUrl) {
+        const ext = pageDataUrl.startsWith('data:application/pdf') ? 'pdf' : 'png';
+        const p = page;
+        uploads.push(this.uploadDataUrl(pageDataUrl, `page-${p.page_number}.${ext}`).then(url => {
+          p.page_image_url = url; p.image_path = url;
+        }));
       }
-      if (page.image_path?.startsWith('data:image/') || page.image_path?.startsWith('data:application/pdf')) {
-        const ext = page.image_path.startsWith('data:application/pdf') ? 'pdf' : 'png';
-        page.image_path = await this.uploadDataUrl(page.image_path, `page-${page.page_number}.${ext}`);
-        page.page_image_url = page.image_path;
-      }
+
       for (const block of (page.blocks || [])) {
         if (block.image_url?.startsWith('data:image/')) {
-          block.image_url = await this.uploadDataUrl(block.image_url, `article-${block.article_id || block.id}.png`);
+          const b = block, dataUrl = b.image_url;
+          uploads.push(this.uploadDataUrl(dataUrl, `article-${b.article_id || b.id}.png`).then(url => {
+            b.image_url = url;
+          }));
         }
         if (Array.isArray(block.gallery)) {
-          for (let i = 0; i < block.gallery.length; i++) {
-            if (block.gallery[i]?.startsWith('data:image/')) {
-              block.gallery[i] = await this.uploadDataUrl(block.gallery[i], `gallery-${block.article_id || block.id}-${i}.png`);
+          block.gallery.forEach((img, i) => {
+            if (img?.startsWith('data:image/')) {
+              const b = block, idx = i;
+              uploads.push(this.uploadDataUrl(img, `gallery-${b.article_id || b.id}-${idx}.png`).then(url => {
+                b.gallery[idx] = url;
+              }));
             }
-          }
+          });
         }
       }
     }
+
+    if (uploads.length) await Promise.all(uploads);
   },
 
   async handleBlockImage(file) {
