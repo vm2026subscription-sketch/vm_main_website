@@ -37,6 +37,25 @@ body.epaper-body {
   min-height: 100vh;
 }
 
+/* ── Shared navbar override: always solid on viewer (no hero image here) ── */
+body.epaper-body .vm-main-header {
+  background: rgba(5, 10, 21, 0.92) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+}
+body.epaper-body .vm-nav-item,
+body.epaper-body .vm-dropdown-trigger,
+body.epaper-body .vm-btn-link {
+  color: #ffffff;
+}
+body.epaper-body .vm-nav-item:hover,
+body.epaper-body .vm-dropdown-trigger:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
 
 /* ── CATEGORY / EDITION NAV ────────────────────── */
 .ep-nav {
