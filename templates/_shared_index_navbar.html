@@ -571,7 +571,7 @@
     <div>
       <a href="{{ url_for('blog') }}">Blog</a>
       <a href="{{ url_for('epaper.epaper_viewer') }}">E-Paper</a>
-      <a href="{{ url_for('epaper') }}">E-Paper Archive</a>
+      <a href="{{ url_for('epaper_archive') }}">E-Paper Archive</a>
     </div>
     <div class="vm-nav-right">विद्यार्थी मित्र<span style="color:#ff6600;">.org</span></div>
   </div>
@@ -622,7 +622,7 @@
         <span class="vm-dropdown-trigger {% if request.blueprint == 'epaper' or request.endpoint == 'epaper' %}vm-active{% endif %}">E-Paper <i class="fa fa-chevron-down vm-chevron"></i></span>
         <div class="vm-dropdown-menu">
           <a href="{{ url_for('epaper.epaper_viewer') }}"><i class="fa fa-newspaper" style="margin-right:8px;color:#ff6600;width:14px;"></i>Today's Edition</a>
-          <a href="{{ url_for('epaper') }}"><i class="fa fa-archive" style="margin-right:8px;color:#ff6600;width:14px;"></i>E-Paper Archive</a>
+          <a href="{{ url_for('epaper_archive') }}"><i class="fa fa-archive" style="margin-right:8px;color:#ff6600;width:14px;"></i>E-Paper Archive</a>
         </div>
       </div>
       <a href="{{ url_for('govt_jobs') }}" class="vm-nav-item {% if request.endpoint == 'govt_jobs' or request.endpoint == 'govt_job_detail' %}vm-active{% endif %}">Govt Jobs</a>
