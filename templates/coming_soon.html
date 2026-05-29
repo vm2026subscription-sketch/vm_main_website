@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ page_title }} — Coming Soon</title>
+  <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      background: #050a15;
+      font-family: -apple-system, 'Inter', system-ui, sans-serif;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: #fff; text-align: center; padding: 24px;
+    }
+    .cs-icon { font-size: 64px; color: #ff6600; margin-bottom: 24px; }
+    .cs-badge {
+      display: inline-block; background: rgba(255,102,0,0.12); color: #ff6600;
+      border: 1px solid rgba(255,102,0,0.3); border-radius: 99px;
+      padding: 6px 18px; font-size: 12px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; margin-bottom: 20px;
+    }
+    h1 { font-size: clamp(32px, 6vw, 60px); font-weight: 900; letter-spacing: -1px; margin-bottom: 16px; }
+    h1 span { color: #ff6600; }
+    p { font-size: 16px; color: rgba(255,255,255,0.55); max-width: 480px; line-height: 1.7; margin-bottom: 40px; }
+    .cs-back {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #ff6600; color: #fff; text-decoration: none;
+      padding: 14px 28px; border-radius: 99px; font-weight: 700; font-size: 14px;
+      transition: background 0.2s;
+    }
+    .cs-back:hover { background: #ff7733; }
+  </style>
+</head>
+<body>
+  <div class="cs-icon"><i class="fa fa-wrench"></i></div>
+  <div class="cs-badge">Coming Soon</div>
+  <h1>{{ page_title }}<br><span>is being upgraded</span></h1>
+  <p>We're working hard to bring you a better experience. Check back soon!</p>
+  <a href="/" class="cs-back"><i class="fa fa-arrow-left"></i> Back to Home</a>
+</body>
+</html>

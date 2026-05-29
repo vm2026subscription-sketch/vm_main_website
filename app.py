@@ -95,7 +95,7 @@ except Exception as exc:
     app.logger.warning("Skipping epaper blueprint registration: %s", exc)
 
 
-# ── Subdomain routing: epaper.vidyarthimitra.org → /epaper-viewer ──────────
+# ── Subdomain routing: epaper.vidyarthimitra.org → /epaper ──────────
 @app.before_request
 def _epaper_subdomain_route():
     """Transparently serve the epaper viewer when the subdomain is used."""
@@ -1554,8 +1554,8 @@ def blog():
     return render_template("blogs.html")  # Placeholder
 
 
-@app.route("/epaper")
-def epaper():
+@app.route("/epaper-archive")
+def epaper_archive():
     return render_template("epaper.html")
 
 
@@ -1932,16 +1932,7 @@ def mock_exams():
 
 @app.route("/cutoffs")
 def cutoffs():
-    branches, categories, genders, options_error = get_cutoff_options()
-    top_colleges, top_error = get_top_cutoff_colleges(limit=20)
-    return render_template(
-        "cutoffs.html",
-        branches=branches,
-        categories=categories,
-        genders=genders,
-        top_colleges=top_colleges,
-        error=options_error or top_error,
-    )
+    return render_template("coming_soon.html", page_title="Cut-offs")
 
 
 @app.route("/api/college-predictor", methods=["POST"])
@@ -2233,7 +2224,7 @@ def api_full_cutoff_colleges():
 
 @app.route("/fyjc_rank")
 def fyjc_rank():
-    return render_template("fyjc_rank.html")
+    return render_template("coming_soon.html", page_title="FYJC Rank Predictor")
 
 
 @app.route("/predict", methods=["POST"])

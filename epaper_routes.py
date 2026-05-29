@@ -432,9 +432,9 @@ def _find_epaper_article(article_id):
 
 
 # ── Viewer Page ────────────────────────────────────
-@epaper_bp.route("/epaper-viewer")
-@epaper_bp.route("/epaper-viewer/<date>")
-@epaper_bp.route("/epaper-viewer/<date>/page-<int:page>")
+@epaper_bp.route("/epaper")
+@epaper_bp.route("/epaper/<date>")
+@epaper_bp.route("/epaper/<date>/page-<int:page>")
 def epaper_viewer(date=None, page=1):
     import json as _json
     initial_edition_json = None
