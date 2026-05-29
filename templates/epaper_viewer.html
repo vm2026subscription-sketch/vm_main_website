@@ -8,6 +8,24 @@
   <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='epaper-viewer.css') }}">
+  <style>
+    .ep-views-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: 10px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      background: rgba(255, 102, 0, 0.12);
+      border: 1px solid rgba(255, 102, 0, 0.3);
+      color: #ff6600;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .ep-views-badge i { font-size: 11px; opacity: 0.9; }
+    .ep-views-badge .ep-views-num { font-weight: 700; }
+  </style>
 
   <!-- PWA Manifest -->
   <link rel="manifest" href="{{ url_for('static', filename='epaper-manifest.json') }}">
@@ -46,6 +64,9 @@
       <span id="epDateText">Loading...</span>
       <i class="fa fa-chevron-down" style="font-size:10px"></i>
     </button>
+    <span class="ep-views-badge" id="epViews" style="display:none" title="Edition views">
+      <i class="fa fa-eye"></i> <span class="ep-views-num">0</span> views
+    </span>
     <button class="ep-nav-scroll-btn" id="epNavLeft"><i class="fa fa-chevron-left"></i></button>
     <div class="ep-nav-list" id="epNavList"></div>
     <button class="ep-nav-scroll-btn" id="epNavRight"><i class="fa fa-chevron-right"></i></button>

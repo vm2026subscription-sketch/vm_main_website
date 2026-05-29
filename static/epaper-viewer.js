@@ -86,6 +86,7 @@ const EP = {
       this.fetchAndRenderLanguageTabs(data.date);
       this.renderThumbnails();
       this.showPage(1);
+      this.registerEditionView();
     } catch (e) {
       // No published editions — show empty state
       this.setDate(new Date());
@@ -708,6 +709,38 @@ const EP = {
     } catch (e) { console.warn('Could not load editions:', e); }
   },
 
+  // ── Edition view counter ──
+  formatViews(n) {
+    n = Number(n) || 0;
+    if (n >= 1000000) return (n / 1000000).toFixed(n % 1000000 ? 1 : 0) + 'M';
+    if (n >= 1000)    return (n / 1000).toFixed(n % 1000 ? 1 : 0) + 'K';
+    return String(n);
+  },
+
+  updateViewBadge(views) {
+    const badge = document.getElementById('epViews');
+    if (!badge) return;
+    const num = badge.querySelector('.ep-views-num');
+    if (num) num.textContent = this.formatViews(views);
+    badge.style.display = 'inline-flex';
+  },
+
+  // Count this edition open (by date + language) and show the running total.
+  async registerEditionView() {
+    const ed = this.currentEdition;
+    if (!ed || !ed.date) return;
+    const lang = ed.language || this.currentLanguage || '';
+    try {
+      const res = await fetch(
+        `/api/epaper/edition/${encodeURIComponent(ed.date)}/view?lang=${encodeURIComponent(lang)}`,
+        { method: 'POST', keepalive: true }
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data && typeof data.views === 'number') this.updateViewBadge(data.views);
+    } catch (e) { /* ignore network errors */ }
+  },
+
   async loadEditionForDate(d) {
     const iso = this.formatDateISO(d);
 
@@ -728,6 +761,7 @@ const EP = {
       this.fetchAndRenderLanguageTabs(data.date);
       this.renderThumbnails();
       this.showPage(1);
+      this.registerEditionView();
     } catch (e) {
       console.warn('Edition load error:', e);
       this.showDemoPage();
@@ -837,6 +871,7 @@ const EP = {
       });
       this.renderThumbnails();
       this.showPage(1);
+      this.registerEditionView();
     } catch (e) {
       this.showToast('Edition not available');
     }
