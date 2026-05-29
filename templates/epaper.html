@@ -291,6 +291,25 @@
       z-index: 1;
     }
 
+    .cover-views {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      z-index: 3;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0,0,0,0.55);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+    .cover-views i { font-size: 10px; opacity: 0.9; }
+
     .edition-badge {
       position: absolute;
       top: 14px;
@@ -1280,6 +1299,7 @@
         // Accept a variety of keys returned by different backends (camelCase, snake_case, link)
         pdf: e.pdf || e.pdf_url || e.file_url || e.fileUrl || e.pdfUrl || e.document_url || e.link || null,
         url: e.url || e.link || e.source_url || e.pdf || e.pdf_url || e.fileUrl || null,
+        views: Number(e.views) || 0,
         displayTitle: e.display_title || e.title || e.headline || null,
         displaySubtitle: e.display_subtitle || e.excerpt || e.summary || null,
       };
@@ -1390,6 +1410,19 @@
       return arr;
     }
 
+    function formatViews(n) {
+      n = Number(n) || 0;
+      if (n >= 1000000) return (n / 1000000).toFixed(n % 1000000 ? 1 : 0) + 'M';
+      if (n >= 1000)    return (n / 1000).toFixed(n % 1000 ? 1 : 0) + 'K';
+      return String(n);
+    }
+
+    function updateViewBadge(id, views) {
+      document.querySelectorAll(`.epaper-card[data-id="${id}"] .views-num`).forEach(el => {
+        el.textContent = formatViews(views);
+      });
+    }
+
     function renderGrid() {
       const grid     = document.getElementById('epaperGrid');
       const empty    = document.getElementById('emptyState');
@@ -1413,6 +1446,7 @@
       toShow.forEach((e, i) => {
         const card    = document.createElement('div');
         card.className = 'epaper-card';
+        card.dataset.id = e.id;
         card.style.animationDelay = (i * 0.06) + 's';
 
         const langKey  = e.lang.toLowerCase();
@@ -1431,6 +1465,7 @@
             <div class="cover-lines">
               <span></span><span></span><span></span><span></span>
             </div>
+            <div class="cover-views"><i class="fa fa-eye"></i> <span class="views-num">${formatViews(e.views)}</span> views</div>
           </div>
           <div class="card-body">
             <div class="card-week">${e.week}</div>
@@ -1701,13 +1736,26 @@
        MODAL
     ═══════════════════════════════════════════════ */
     function recordView(id) {
-      // Fire-and-forget: tell the admin backend (via same-origin proxy) that this
-      // edition was opened, so the dashboard's view count goes up. Never blocks reading.
+      // Optimistically bump the visible count right away (Instagram-style), then
+      // reconcile with the authoritative count the admin backend returns.
+      const ed = editions.find(x => String(x.id) === String(id));
+      if (ed) {
+        ed.views = (Number(ed.views) || 0) + 1;
+        updateViewBadge(id, ed.views);
+      }
       try {
         fetch('/api/vmadmin/api/epapers/' + encodeURIComponent(id) + '/view', {
           method: 'POST',
           keepalive: true,
-        }).catch(() => {});
+        })
+          .then(r => (r.ok ? r.json() : null))
+          .then(data => {
+            if (data && typeof data.views === 'number') {
+              if (ed) ed.views = data.views;
+              updateViewBadge(id, data.views);
+            }
+          })
+          .catch(() => {});
       } catch (_) {}
     }
 
