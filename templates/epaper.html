@@ -1700,9 +1700,21 @@
     /* ═══════════════════════════════════════════════
        MODAL
     ═══════════════════════════════════════════════ */
+    function recordView(id) {
+      // Fire-and-forget: tell the admin backend (via same-origin proxy) that this
+      // edition was opened, so the dashboard's view count goes up. Never blocks reading.
+      try {
+        fetch('/api/vmadmin/api/epapers/' + encodeURIComponent(id) + '/view', {
+          method: 'POST',
+          keepalive: true,
+        }).catch(() => {});
+      } catch (_) {}
+    }
+
     function readEdition(id) {
       const e = editions.find(x => x.id === id);
       if (!e) return;
+      recordView(id);
       if (e.viewerDate) {
         window.location.href = '/epaper-viewer/' + e.viewerDate;
       } else {
