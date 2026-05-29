@@ -747,25 +747,42 @@ body.light-mode .top-search-grid .search-item:hover {
 
 /* Partners & Featured Section */
 .partner-logo-box img {
-    height: 70px !important;
-    width: auto !important;
-    margin-bottom: 20px !important;
+    width: 100% !important;
+    height: 140px !important;
+    object-fit: cover !important;
+    margin-bottom: 16px !important;
     background: #ffffff !important;
-    padding: 12px !important;
-    border-radius: 8px !important;
+    padding: 0 !important;
+    border-radius: 10px !important;
+    display: block !important;
 }
 
 .logo-item {
     display: flex !important;
     justify-content: center !important;
+    align-items: center !important;
+    background: #ffffff !important;
+    border-radius: 12px !important;
+    padding: 14px 20px !important;
+    min-width: 160px !important;
+    height: 90px !important;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.logo-item:hover {
+    transform: translateY(-3px) !important;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.14) !important;
 }
 
 .logo-item img {
-    height: 70px !important;
+    height: 56px !important;
     width: auto !important;
-    background: #ffffff !important;
-    padding: 12px !important;
-    border-radius: 8px !important;
+    max-width: 130px !important;
+    object-fit: contain !important;
+    background: transparent !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
 }
 
 /* Subscribe Section */
