@@ -97,6 +97,31 @@ ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
 ALLOWED_UPLOAD_EXTENSIONS = ALLOWED_IMAGE_EXTENSIONS | {"pdf"}
 
 
+# ── MongoDB helpers ──────────────────────────────────
+
+def _mongo_url():
+    return os.getenv("MONGODB_URI", "")
+
+
+def _load_editions_from_mongo():
+    """Read editions from MongoDB (Railway admin's database). Read-only — never writes."""
+    url = _mongo_url()
+    if not url:
+        return []
+    try:
+        from pymongo import MongoClient
+        client = MongoClient(url, serverSelectionTimeoutMS=4000, connectTimeoutMS=4000)
+        db_name = os.getenv("MONGODB_DB", "vm")
+        col_name = os.getenv("MONGODB_COLLECTION", "editions")
+        db = client[db_name]
+        docs = list(db[col_name].find({}, {"_id": 0}))
+        client.close()
+        return docs
+    except Exception as e:
+        print(f"[epaper] MongoDB load failed: {e}")
+        return []
+
+
 # ── Postgres (Supabase) helpers ─────────────────────
 
 def _pg_url():
@@ -217,6 +242,7 @@ def _save_editions_to_file(data):
 # ── Public load / save ──────────────────────────────
 
 def _load_editions():
+    pg_data = None
     if _pg_url():
         try:
             conn = _pg_connect()
@@ -225,19 +251,32 @@ def _load_editions():
                 cur.execute("SELECT data FROM epaper_editions_store WHERE id = 'editions'")
                 row = cur.fetchone()
             conn.close()
-            db_data = row[0] if row else []
-            if isinstance(db_data, str):
-                db_data = json.loads(db_data)
-            # Auto-migrate: if DB empty but JSON file has data, seed DB once
-            if not db_data:
+            pg_data = row[0] if row else []
+            if isinstance(pg_data, str):
+                pg_data = json.loads(pg_data)
+            if not pg_data:
                 file_data = _load_editions_from_file()
                 if file_data:
                     _save_editions(file_data)
-                return file_data
-            return db_data
+                pg_data = file_data
         except Exception as e:
-            print(f"[epaper] Postgres load failed, falling back to file: {e}")
-    return _load_editions_from_file()
+            print(f"[epaper] Postgres load failed, falling back: {e}")
+            pg_data = None
+
+    mongo_data = _load_editions_from_mongo()
+
+    # Merge Supabase + MongoDB; Supabase takes precedence on same (date, language)
+    base = pg_data if pg_data is not None else _load_editions_from_file()
+    if not mongo_data:
+        return base
+    if not base:
+        return mongo_data
+    existing_keys = {(e.get("date", ""), e.get("language", "Hindi")) for e in base}
+    merged = list(base)
+    for e in mongo_data:
+        if (e.get("date", ""), e.get("language", "Hindi")) not in existing_keys:
+            merged.append(e)
+    return merged
 
 
 def _save_editions(data):

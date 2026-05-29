@@ -1328,7 +1328,7 @@
         </div>`).join('');
 
       try {
-        const res = await fetch('/api/epaper/editions', {
+        const res = await fetch('/api/epaper-feed', {
           method: 'GET',
           headers: { 'Accept': 'application/json' },
         });
@@ -1336,28 +1336,14 @@
         if (!res.ok) throw new Error('Editions endpoint returned ' + res.status);
 
         const payload = await res.json();
-        const list = Array.isArray(payload.editions) ? payload.editions : [];
+        const list = extractEditionList(payload);
 
         const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
         editions = list
-          .filter(e => e.published !== false)
           .map((e, idx) => {
-            const isRecent = e.date && (Date.now() - new Date(e.date).getTime()) < sevenDaysMs;
-            return {
-              id: idx + 1,
-              viewerDate: e.date || null,
-              start: e.date || '–',
-              end: e.date || '–',
-              lang: e.language || 'Marathi',
-              week: e.name || 'Daily Edition',
-              tags: [e.language || 'Marathi'],
-              isNew: isRecent,
-              pdf: null,
-              url: e.date ? '/epaper-viewer/' + e.date : null,
-              displayTitle: e.name || null,
-              displaySubtitle: (e.language || '') + ' · ' + (e.total_pages || 1) + ' page' + ((e.total_pages || 1) !== 1 ? 's' : ''),
-              masthead_image_url: e.masthead_image_url || null,
-            };
+            const norm = normalizeEdition(e, idx);
+            const isRecent = norm.start !== '–' && (Date.now() - new Date(norm.start).getTime()) < sevenDaysMs;
+            return { ...norm, isNew: isRecent };
           })
           .reverse(); // newest first
 

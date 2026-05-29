@@ -95,7 +95,7 @@ except Exception as exc:
     app.logger.warning("Skipping epaper blueprint registration: %s", exc)
 
 VMADMIN_BASE_URL = (
-    os.getenv("VMADMIN_BASE_URL", "").strip().rstrip("/")
+    os.getenv("VMADMIN_BASE_URL", "https://vmadmin-production.up.railway.app").strip().rstrip("/")
 )
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile").strip() or "llama-3.3-70b-versatile"
