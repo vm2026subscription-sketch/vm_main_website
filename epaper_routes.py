@@ -496,6 +496,30 @@ def epaper_admin_v2():
 EPAPER_TMP_UPLOAD_DIR = os.path.join(tempfile.gettempdir(), "epaper_uploads")
 
 
+@epaper_bp.route("/api/epaper/admin/cloudinary-sign", methods=["POST"])
+def api_cloudinary_sign():
+    """Return signed params for a direct browser→Cloudinary upload (bypasses Vercel size limit)."""
+    guard = _require_epaper_admin()
+    if guard is not None: return guard
+    if not _CLOUDINARY_URL:
+        return jsonify({"error": "Cloudinary not configured"}), 503
+    try:
+        import cloudinary.utils
+        import time
+        timestamp = int(time.time())
+        params = {"folder": "epaper", "timestamp": timestamp}
+        signature = cloudinary.utils.api_sign_request(params, cloudinary.config().api_secret)
+        return jsonify({
+            "signature": signature,
+            "timestamp": timestamp,
+            "api_key": cloudinary.config().api_key,
+            "cloud_name": cloudinary.config().cloud_name,
+            "folder": "epaper",
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @epaper_bp.route("/api/epaper/admin/upload-image", methods=["POST"])
 def api_upload_epaper_image():
     guard = _require_epaper_admin()

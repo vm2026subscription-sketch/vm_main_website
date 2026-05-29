@@ -1833,12 +1833,33 @@ const EPAdmin = {
   },
 
   async uploadImage(file) {
+    // Try direct browser→Cloudinary upload first (no Vercel body size limit)
+    try {
+      const signRes = await fetch('/api/epaper/admin/cloudinary-sign', { method: 'POST' });
+      if (signRes.ok) {
+        const sign = await signRes.json();
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('api_key', sign.api_key);
+        fd.append('timestamp', sign.timestamp);
+        fd.append('signature', sign.signature);
+        fd.append('folder', sign.folder);
+        const upRes = await fetch(
+          `https://api.cloudinary.com/v1_1/${sign.cloud_name}/image/upload`,
+          { method: 'POST', body: fd }
+        );
+        const upData = await upRes.json();
+        if (upRes.ok && upData.secure_url) return upData.secure_url;
+        throw new Error(upData.error?.message || 'Cloudinary upload failed');
+      }
+    } catch (e) {
+      // Cloudinary not configured — fall through to server-side upload
+      if (!e.message.includes('Cloudinary not configured')) throw e;
+    }
+    // Fallback: server-side upload (local dev without Cloudinary)
     const form = new FormData();
     form.append('image', file);
-    const res = await fetch('/api/epaper/admin/upload-image', {
-      method: 'POST',
-      body: form,
-    });
+    const res = await fetch('/api/epaper/admin/upload-image', { method: 'POST', body: form });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Image upload failed');
     return data.url;
