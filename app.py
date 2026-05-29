@@ -94,6 +94,21 @@ try:
 except Exception as exc:
     app.logger.warning("Skipping epaper blueprint registration: %s", exc)
 
+
+# ── Subdomain routing: epaper.vidyarthimitra.org → /epaper-viewer ──────────
+@app.before_request
+def _epaper_subdomain_route():
+    """Transparently serve the epaper viewer when the subdomain is used."""
+    from flask import request as _req
+    host = _req.host.lower().split(':')[0]
+    if host == 'epaper.vidyarthimitra.org' and _req.path in ('/', ''):
+        try:
+            from epaper_routes import epaper_viewer
+            return epaper_viewer()
+        except Exception:
+            pass
+
+
 VMADMIN_BASE_URL = (
     os.getenv("VMADMIN_BASE_URL", "https://vmadmin-production.up.railway.app").strip().rstrip("/")
 )
