@@ -161,6 +161,15 @@ def _pg_ensure_table(conn):
                 snapshot JSONB NOT NULL
             )
         """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS epaper_edition_views (
+                edition_date TEXT NOT NULL,
+                edition_language TEXT NOT NULL DEFAULT '',
+                view_count BIGINT NOT NULL DEFAULT 0,
+                updated_at TIMESTAMPTZ DEFAULT NOW(),
+                PRIMARY KEY (edition_date, edition_language)
+            )
+        """)
     conn.commit()
 
 
@@ -237,6 +246,69 @@ def _save_editions_to_file(data):
             last_exc = exc
             continue
     raise RuntimeError(f"Cannot persist editions to file: {last_exc}")
+
+
+# ── Edition view counters ───────────────────────────
+
+EPAPER_VIEWS_FILE = os.path.join(os.path.dirname(__file__), "data", "epaper_views.json")
+_EPAPER_VIEWS_TMP = os.path.join(tempfile.gettempdir(), "epaper_views.json")
+
+
+def _views_key(date, language):
+    return f"{date}|{language or ''}"
+
+
+def _load_views_file():
+    for path in [EPAPER_VIEWS_FILE, _EPAPER_VIEWS_TMP]:
+        if os.path.exists(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception:
+                continue
+    return {}
+
+
+def _save_views_file(data):
+    _ensure_data_dir()
+    for path in [EPAPER_VIEWS_FILE, _EPAPER_VIEWS_TMP]:
+        try:
+            dir_ = os.path.dirname(path)
+            if dir_:
+                os.makedirs(dir_, exist_ok=True)
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            return
+        except (PermissionError, OSError):
+            continue
+
+
+def _increment_edition_view(date, language):
+    """Increment and return the view count for one edition (keyed by date + language)."""
+    if _pg_url():
+        try:
+            conn = _pg_connect()
+            _pg_ensure_table(conn)
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO epaper_edition_views (edition_date, edition_language, view_count, updated_at)
+                    VALUES (%s, %s, 1, NOW())
+                    ON CONFLICT (edition_date, edition_language)
+                    DO UPDATE SET view_count = epaper_edition_views.view_count + 1, updated_at = NOW()
+                    RETURNING view_count
+                """, (date, language or ""))
+                count = cur.fetchone()[0]
+            conn.commit()
+            conn.close()
+            return int(count)
+        except Exception as e:
+            print(f"[epaper] view increment (pg) failed, falling back to file: {e}")
+
+    data = _load_views_file()
+    key = _views_key(date, language)
+    data[key] = int(data.get(key, 0)) + 1
+    _save_views_file(data)
+    return data[key]
 
 
 # ── Public load / save ──────────────────────────────
@@ -682,6 +754,16 @@ def api_edition(date):
         "header_items": edition.get("header_items", []),
         "pages": edition.get("pages", []),
     })
+
+
+# ── API: Record an edition view ───────────────────
+@epaper_bp.route("/api/epaper/edition/<date>/view", methods=["POST"])
+def api_record_edition_view(date):
+    if not re.match(r"\d{4}-\d{2}-\d{2}$", date):
+        return jsonify({"error": "Invalid date format"}), 400
+    language = request.args.get("lang", "")
+    count = _increment_edition_view(date, language)
+    return jsonify({"date": date, "language": language, "views": count})
 
 
 # ── API: Get article ──────────────────────────────
