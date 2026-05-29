@@ -463,17 +463,20 @@ section {
 }
 
 
-/* Card Icons — rounded badge with cycling accent color */
+/* Card Icons — full-width banner strip */
 .info-box > i,
 .search-item > i {
-    width: 46px !important;
-    height: 46px !important;
-    border-radius: 10px !important;
+    width: calc(100% + 48px) !important;
+    margin-left: -24px !important;
+    margin-top: -26px !important;
+    height: 72px !important;
+    border-radius: 14px 14px 0 0 !important;
     display: flex !important;
     align-items: center !important;
-    justify-content: center !important;
-    font-size: 20px !important;
-    margin-bottom: 16px !important;
+    justify-content: flex-start !important;
+    padding-left: 24px !important;
+    font-size: 28px !important;
+    margin-bottom: 20px !important;
     transition: transform 0.3s ease !important;
     flex-shrink: 0 !important;
 }
@@ -481,17 +484,17 @@ section {
 /* Cycling accent — lime / purple / orange */
 .about-grid .info-box:nth-child(3n+1) > i,
 .top-search-grid .search-item:nth-child(3n+1) > i {
-    background: rgba(255,102,0, 0.15) !important;
+    background: rgba(255,102,0, 0.18) !important;
     color: var(--vm-lime) !important;
 }
 .about-grid .info-box:nth-child(3n+2) > i,
 .top-search-grid .search-item:nth-child(3n+2) > i {
-    background: rgba(184, 146, 255, 0.15) !important;
+    background: rgba(184, 146, 255, 0.18) !important;
     color: var(--vm-purple) !important;
 }
 .about-grid .info-box:nth-child(3n) > i,
 .top-search-grid .search-item:nth-child(3n) > i {
-    background: rgba(244, 178, 102, 0.15) !important;
+    background: rgba(244, 178, 102, 0.18) !important;
     color: var(--vm-orange-warm) !important;
 }
 
