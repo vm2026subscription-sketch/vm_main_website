@@ -762,10 +762,10 @@ body.light-mode .top-search-grid .search-item:hover {
     justify-content: center !important;
     align-items: center !important;
     background: #ffffff !important;
-    border-radius: 12px !important;
-    padding: 14px 20px !important;
-    min-width: 160px !important;
-    height: 90px !important;
+    border-radius: 16px !important;
+    padding: 20px 28px !important;
+    min-width: 220px !important;
+    height: 120px !important;
     box-shadow: 0 2px 12px rgba(0,0,0,0.08) !important;
     transition: transform 0.2s ease, box-shadow 0.2s ease !important;
 }
@@ -776,9 +776,9 @@ body.light-mode .top-search-grid .search-item:hover {
 }
 
 .logo-item img {
-    height: 56px !important;
+    height: 80px !important;
     width: auto !important;
-    max-width: 130px !important;
+    max-width: 180px !important;
     object-fit: contain !important;
     background: transparent !important;
     padding: 0 !important;
