@@ -3090,11 +3090,9 @@ def _topic_relevance_bonus(item, topic):
     return bonus
 
 
-def _get_groq_response(question, context_lines=None, language="en", topic="general"):
+def _get_groq_response(question, context_lines=None, language="en", topic="general", history=None):
     if not GROQ_API_KEY:
         return None
-
-    context_lines = context_lines or []
 
     if language == "hi":
         style_line = "Answer in simple Hindi (Devanagari), short and practical."
@@ -3104,48 +3102,38 @@ def _get_groq_response(question, context_lines=None, language="en", topic="gener
         style_line = "Answer in simple English, short and practical."
 
     system_prompt = (
-        "You are an education assistant and friendly conversational chatbot for Vidyarthi Mitra. "
-        "Answer using your own knowledge and the user message only. Do not browse the internet or rely on retrieved context. "
-        "If the user asks about Vidyarthi Mitra, explain it as an education and career guidance platform. "
-        "Return only bullet points, no paragraphs. "
-        "Use this exact format: "
-        "- Summary: <one line> "
-        "- Key Points: "
-        "  - <point 1> "
-        "  - <point 2> "
-        "  - <point 3> "
-        "- Next Step: "
-        "  - <one actionable step>. "
+        "You are an education assistant and friendly conversational chatbot for Vidyarthi Mitra "
+        "(vidyarthimitra.org) — India's education and career guidance platform. "
+        "Remember previous messages in the conversation to give contextual replies. "
+        "Return only bullet points, no paragraphs. Use this format:\n"
+        "- Summary: <one line>\n"
+        "- Key Points:\n"
+        "  - <point 1>\n"
+        "  - <point 2>\n"
+        "  - <point 3>\n"
+        "- Next Step:\n"
+        "  - <one actionable step>\n"
         "Do not invent facts. Keep the reply concise. "
-        f"{style_line}"
-    )
-    context_block = "\n".join(context_lines)
-    user_prompt = (
-        "User question:\n"
-        f"{question}\n\n"
-        f"Target topic: {topic}\n\n"
-        "No external context provided."
-        f"{context_block}"
+        + style_line
     )
 
-    payload = {
-        "model": GROQ_MODEL,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        "temperature": 0.2,
-        "max_tokens": 500,
-    }
+    # Build messages: system + conversation history + current question
+    messages = [{"role": "system", "content": system_prompt}]
+    for h in (history or [])[-8:]:  # last 8 turns max
+        role = h.get("role", "user")
+        content = str(h.get("content") or "").strip()
+        if role in {"user", "assistant"} and content:
+            messages.append({"role": role, "content": content})
+    messages.append({"role": "user", "content": question})
 
     try:
         from groq import Groq as _Groq
         client = _Groq(api_key=GROQ_API_KEY)
         completion = client.chat.completions.create(
-            model=payload["model"],
-            messages=payload["messages"],
-            temperature=payload["temperature"],
-            max_tokens=payload["max_tokens"],
+            model=GROQ_MODEL,
+            messages=messages,
+            temperature=0.4,
+            max_tokens=600,
         )
         content = completion.choices[0].message.content or ""
         return content.strip() or None
@@ -3328,27 +3316,18 @@ def _collect_internet_context(question, tokens, topic, limit=8):
     return deduped[:limit]
 
 
-def build_chatbot_answer(question, language="en"):
+def build_chatbot_answer(question, language="en", history=None):
     intent = _detect_chat_intent(question)
-    if intent in {"empty", "greeting", "smalltalk", "thanks", "intro"}:
+    if intent in {"empty", "greeting", "smalltalk", "thanks", "intro"} and not history:
         return _smalltalk_reply(intent, language=language), []
 
     topic = _detect_info_topic(question)
-    groq_answer = _get_groq_response(question, [], language=language, topic=topic)
+    groq_answer = _get_groq_response(question, [], language=language, topic=topic, history=history or [])
 
     if groq_answer:
         return groq_answer, []
 
-    lines = [
-        "- Summary: I can help with education, careers, admissions, exams, colleges, and Vidyarthi Mitra.",
-        "- Key Points:",
-    ]
-    lines.append("  - Ask me about courses, entrance exams, colleges, admissions, or career options.")
-    lines.append("  - I can also explain Vidyarthi Mitra and help you explore options.")
-    lines.append("- Next Step:")
-    lines.append("  - Tell me the exact exam, course, college, or city you want to know about.")
-    answer = "\n".join(lines)
-    return answer, []
+    return "I'm having trouble connecting right now. Please try again in a moment.", []
 
 
 @app.route("/chatbot")
@@ -3366,11 +3345,14 @@ def api_chatbot_query():
     language = str(payload.get("language") or "en").strip().lower()
     if language not in {"en", "hi", "mr"}:
         language = "en"
+    history = payload.get("history") or []
+    if not isinstance(history, list):
+        history = []
 
     if len(message) < 2:
         return jsonify({"error": "Message is required."}), 400
 
-    answer, sources = build_chatbot_answer(message, language=language)
+    answer, sources = build_chatbot_answer(message, language=language, history=history)
     if not answer:
         return jsonify({"error": "Could not get a response. Please try again."}), 500
 
