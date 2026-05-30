@@ -631,7 +631,11 @@ def verify_razorpay_payment_signature(order_id, payment_id, signature):
 
 
 def get_postgres_connection_url():
-    return os.getenv("SUPABASE_POSTGRES_URL", "").strip() or os.getenv("DATABASE_URL", "").strip()
+    url = os.getenv("SUPABASE_POSTGRES_URL", "").strip() or os.getenv("DATABASE_URL", "").strip()
+    # Supabase pooler requires SSL; append if not already specified
+    if url and "sslmode" not in url:
+        url += ("&" if "?" in url else "?") + "sslmode=require"
+    return url
 
 
 def resolve_colleges_columns(conn):
@@ -3706,7 +3710,9 @@ def excel_upload():
             else:
                 inserted_rows = insert_records_in_batches(supabase_client, selected_table, records)
         except Exception as exc:
-            flash(f"Upload failed: {exc}", "error")
+            import traceback
+            app.logger.error("Excel upload error: %s", traceback.format_exc())
+            flash(f"Upload failed: {type(exc).__name__}: {exc}", "error")
             return render_template(
                 "excel_upload.html",
                 configured=True,
