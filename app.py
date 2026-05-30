@@ -1131,6 +1131,40 @@ If you did not request this, ignore this email.
     return True
 
 
+def _coerce_value(value):
+    """Convert numpy/pandas types to plain Python types for JSON serialisation."""
+    if value is None:
+        return None
+    # NaN / NaT → None
+    try:
+        import math
+        if isinstance(value, float) and math.isnan(value):
+            return None
+    except Exception:
+        pass
+    try:
+        import pandas as _pd
+        if _pd.isna(value):
+            return None
+        if isinstance(value, _pd.Timestamp):
+            return value.isoformat()
+    except Exception:
+        pass
+    try:
+        import numpy as np
+        if isinstance(value, np.integer):
+            return int(value)
+        if isinstance(value, np.floating):
+            return float(value)
+        if isinstance(value, np.bool_):
+            return bool(value)
+        if isinstance(value, np.ndarray):
+            return value.tolist()
+    except Exception:
+        pass
+    return value
+
+
 def convert_excel_to_records(uploaded_file):
     if pd is None:
         raise RuntimeError("pandas is not installed. Install requirements to process Excel uploads.")
@@ -1152,7 +1186,7 @@ def convert_excel_to_records(uploaded_file):
                 normalized_column = str(column_name).strip()
                 if not normalized_column:
                     continue
-                payload[normalized_column] = value
+                payload[normalized_column] = _coerce_value(value)
 
             if not payload:
                 continue
@@ -1198,13 +1232,20 @@ def insert_records_via_postgres(connection_url, table_name, records):
         for item in records
     ]
 
-    with connect(connection_url) as conn:
+    conn = connect(connection_url)
+    try:
         with conn.cursor() as cursor:
             query = (
                 f"INSERT INTO {table_name} (file_name, sheet_name, row_number, payload) "
                 "VALUES %s"
             )
             execute_values(cursor, query, rows, page_size=500)
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
     return len(rows)
 
