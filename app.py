@@ -1591,7 +1591,7 @@ def build_article_paragraphs(text):
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", featured_alerts=_read_json_file(_ALERTS_FILE, _DEFAULT_ALERTS))
 
 
 @app.route("/blog")
@@ -1740,7 +1740,46 @@ def epaper_pdf_proxy():
 
 @app.route("/admin")
 def admin():
-    return render_template("epaper_admin_v2.html")
+    from epaper_routes import _is_epaper_admin
+    if not _is_epaper_admin():
+        return redirect(url_for("epaper.epaper_admin_login", next="/admin"))
+    return render_template("admin.html")
+
+
+@app.route("/api/admin/alerts", methods=["GET"])
+def api_admin_get_alerts():
+    from epaper_routes import _is_epaper_admin
+    if not _is_epaper_admin():
+        return jsonify({"error": "Unauthorized"}), 401
+    return jsonify({"alerts": _read_json_file(_ALERTS_FILE, _DEFAULT_ALERTS)})
+
+
+@app.route("/api/admin/alerts", methods=["POST"])
+def api_admin_save_alerts():
+    from epaper_routes import _is_epaper_admin
+    if not _is_epaper_admin():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.get_json(silent=True) or {}
+    alerts = data.get("alerts", [])
+    _write_json_file(_ALERTS_FILE, alerts)
+    return jsonify({"success": True})
+
+
+@app.route("/api/admin/responses/<source>")
+def api_admin_responses(source):
+    from epaper_routes import _is_epaper_admin
+    if not _is_epaper_admin():
+        return jsonify({"error": "Unauthorized"}), 401
+    source_map = {
+        'feedback': _FEEDBACK_FILE,
+        'guideme': _GUIDEME_FILE,
+        'contact': _CONTACT_FILE,
+        'subscribers': _SUBSCRIBERS_FILE,
+    }
+    if source not in source_map:
+        return jsonify({"error": "Unknown source"}), 404
+    data = _read_json_file(source_map[source], [])
+    return jsonify({"data": list(reversed(data)), "count": len(data)})
 
 
 @app.route("/api/vmadmin/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
@@ -2647,6 +2686,27 @@ def api_submit_story():
         pass
 
     return jsonify({'success': True, 'message': 'Story submitted successfully!'}), 201
+
+
+_ALERTS_FILE = os.path.join(os.path.dirname(__file__), 'data', 'featured_alerts.json')
+_DEFAULT_ALERTS = [
+    {"id": 1, "title": "MHT-CET 2026-27 Admission Process Started", "icon": "fa-file-text-o", "date": "2 days ago", "link": ""},
+    {"id": 2, "title": "Engineering Cut-offs Released for Round 1", "icon": "fa-graduation-cap", "date": "3 days ago", "link": ""},
+    {"id": 3, "title": "JEE Advanced 2026 Registration Open", "icon": "fa-calendar", "date": "5 days ago", "link": ""},
+    {"id": 4, "title": "NEET UG Counselling Schedule Announced", "icon": "fa-book", "date": "1 week ago", "link": ""},
+]
+
+def _read_json_file(filepath, default=None):
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return default if default is not None else []
+
+def _write_json_file(filepath, data):
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    with open(filepath, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
 
 _FEEDBACK_FILE  = os.path.join(os.path.dirname(__file__), 'data', 'feedback.json')

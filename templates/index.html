@@ -2293,22 +2293,16 @@
                 <h2 class="section-title"><span class="orange-text">FEATURED</span> ALERTS</h2>
                 <p class="section-subtitle">Latest News From Notice Board</p>
                 <div class="featured-alert-grid">
+                    {% for alert in featured_alerts %}
                     <div class="alert-box">
-                        <h5><i class="fa fa-file-text-o"></i> MHT-CET 2026-27 Admission Process Started</h5>
-                        <small>Posted on: 2 days ago</small>
+                        {% if alert.link %}
+                        <a href="{{ alert.link }}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit;">
+                        {% endif %}
+                        <h5><i class="fa {{ alert.icon }}"></i> {{ alert.title }}</h5>
+                        <small>Posted on: {{ alert.date }}</small>
+                        {% if alert.link %}</a>{% endif %}
                     </div>
-                    <div class="alert-box">
-                        <h5><i class="fa fa-graduation-cap"></i> Engineering Cut-offs Released for Round 1</h5>
-                        <small>Posted on: 3 days ago</small>
-                    </div>
-                    <div class="alert-box">
-                        <h5><i class="fa fa-calendar"></i> JEE Advanced 2026 Registration Open</h5>
-                        <small>Posted on: 5 days ago</small>
-                    </div>
-                    <div class="alert-box">
-                        <h5><i class="fa fa-book"></i> NEET UG Counselling Schedule Announced</h5>
-                        <small>Posted on: 1 week ago</small>
-                    </div>
+                    {% endfor %}
                 </div>
             </div>
         </section>

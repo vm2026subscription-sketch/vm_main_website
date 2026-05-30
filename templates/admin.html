@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Hub — Vidyarthi Mitra</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:-apple-system,'Inter',system-ui,sans-serif;background:#050a15;color:#e2e8f0;min-height:100vh;}
+    /* Top bar */
+    .adm-header{background:rgba(255,102,0,0.95);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;}
+    .adm-header h1{color:#fff;font-size:18px;font-weight:800;letter-spacing:-.3px;}
+    .adm-header a{color:rgba(255,255,255,.75);font-size:13px;text-decoration:none;margin-left:16px;}
+    .adm-header a:hover{color:#fff;}
+    /* Tab nav */
+    .adm-tabs{display:flex;gap:0;background:#0a1428;border-bottom:1px solid rgba(255,255,255,.06);padding:0 28px;}
+    .adm-tab{padding:14px 22px;font-size:13px;font-weight:600;color:#94a3b8;cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;display:flex;align-items:center;gap:8px;white-space:nowrap;}
+    .adm-tab:hover{color:#fff;}
+    .adm-tab.active{color:#ff6600;border-bottom-color:#ff6600;}
+    /* Content */
+    .adm-content{padding:28px;max-width:1200px;margin:0 auto;}
+    .adm-panel{display:none;}
+    .adm-panel.active{display:block;}
+    /* Cards */
+    .adm-card{background:#0d1b2e;border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:22px;margin-bottom:20px;}
+    .adm-card-title{font-size:15px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:8px;color:#fff;}
+    .adm-card-title i{color:#ff6600;}
+    /* Alerts editor */
+    .alert-editor-grid{display:grid;gap:14px;}
+    .alert-editor-row{background:#0a1428;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:16px;display:grid;grid-template-columns:1fr 1fr 140px 120px auto;gap:10px;align-items:center;}
+    .alert-editor-row input,.alert-editor-row select{background:#131f35;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;width:100%;outline:none;}
+    .alert-editor-row input:focus,.alert-editor-row select:focus{border-color:#ff6600;}
+    .alert-editor-row label{font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;display:block;}
+    .field-wrap{display:flex;flex-direction:column;}
+    /* Buttons */
+    .btn{padding:8px 16px;border:none;border-radius:8px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .2s;}
+    .btn-orange{background:#ff6600;color:#fff;}.btn-orange:hover{background:#ff7733;}
+    .btn-red{background:#dc2626;color:#fff;}.btn-red:hover{background:#b91c1c;}
+    .btn-ghost{background:rgba(255,255,255,.05);color:#94a3b8;border:1px solid rgba(255,255,255,.1);}.btn-ghost:hover{background:rgba(255,255,255,.1);color:#fff;}
+    .btn-sm{padding:6px 12px;font-size:12px;}
+    /* Table */
+    .adm-table-wrap{overflow-x:auto;}
+    .adm-table{width:100%;border-collapse:collapse;font-size:13px;}
+    .adm-table th{background:#0a1428;padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid rgba(255,255,255,.06);}
+    .adm-table td{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.04);color:#cbd5e1;vertical-align:top;}
+    .adm-table tr:hover td{background:rgba(255,255,255,.02);}
+    .adm-table td.muted{color:#475569;font-size:12px;}
+    /* Sub-tabs for form responses */
+    .sub-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+    .sub-tab{padding:7px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:#94a3b8;transition:all .2s;}
+    .sub-tab:hover{border-color:#ff6600;color:#ff6600;}
+    .sub-tab.active{background:rgba(255,102,0,.12);border-color:#ff6600;color:#ff6600;}
+    .sub-panel{display:none;}.sub-panel.active{display:block;}
+    /* Badge */
+    .badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;background:rgba(255,102,0,.15);color:#ff6600;}
+    /* Empty */
+    .empty-state{text-align:center;padding:48px 24px;color:#475569;}
+    .empty-state i{font-size:40px;margin-bottom:12px;display:block;opacity:.4;}
+    /* Link cards for E-Paper / Excel */
+    .link-card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;}
+    .link-card{background:#0a1428;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:28px 22px;text-align:center;text-decoration:none;color:#e2e8f0;transition:all .25s;display:block;}
+    .link-card:hover{border-color:#ff6600;box-shadow:0 0 0 1px #ff6600;color:#fff;}
+    .link-card i{font-size:36px;color:#ff6600;margin-bottom:12px;display:block;}
+    .link-card h3{font-size:15px;font-weight:700;margin-bottom:6px;}
+    .link-card p{font-size:12px;color:#64748b;}
+    /* Toast */
+    #adm-toast{position:fixed;bottom:24px;right:24px;background:#059669;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;}
+    #adm-toast.show{opacity:1;}
+    @media(max-width:768px){
+      .alert-editor-row{grid-template-columns:1fr;}.adm-tabs{overflow-x:auto;}
+    }
+  </style>
+</head>
+<body>
+  <div class="adm-header">
+    <h1><i class="fa fa-shield-halved" style="margin-right:8px;"></i>Vidyarthi Mitra — Admin Hub</h1>
+    <div>
+      <a href="/"><i class="fa fa-house"></i> Homepage</a>
+      <a href="/epaper-admin"><i class="fa fa-newspaper"></i> E-Paper Builder</a>
+      <a href="/epaper-admin/logout"><i class="fa fa-right-from-bracket"></i> Logout</a>
+    </div>
+  </div>
+
+  <div class="adm-tabs">
+    <div class="adm-tab active" data-panel="alerts"><i class="fa fa-bell"></i> Featured Alerts</div>
+    <div class="adm-tab" data-panel="responses"><i class="fa fa-inbox"></i> Form Responses</div>
+    <div class="adm-tab" data-panel="tools"><i class="fa fa-screwdriver-wrench"></i> Tools</div>
+  </div>
+
+  <div class="adm-content">
+
+    <!-- ── FEATURED ALERTS ── -->
+    <div class="adm-panel active" id="panel-alerts">
+      <div class="adm-card">
+        <div class="adm-card-title"><i class="fa fa-bell"></i> Featured Alerts <span class="badge" id="alert-count">0</span></div>
+        <div class="alert-editor-grid" id="alert-list"></div>
+        <div style="margin-top:16px;display:flex;gap:10px;">
+          <button class="btn btn-ghost" onclick="addAlert()"><i class="fa fa-plus"></i> Add Alert</button>
+          <button class="btn btn-orange" onclick="saveAlerts()"><i class="fa fa-floppy-disk"></i> Save Changes</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── FORM RESPONSES ── -->
+    <div class="adm-panel" id="panel-responses">
+      <div class="sub-tabs">
+        <div class="sub-tab active" data-source="feedback">Feedback</div>
+        <div class="sub-tab" data-source="guideme">Guide Me</div>
+        <div class="sub-tab" data-source="contact">Contact</div>
+        <div class="sub-tab" data-source="subscribers">Subscribers</div>
+      </div>
+      <div class="adm-card">
+        <div class="adm-card-title"><i class="fa fa-inbox"></i> <span id="response-title">Feedback</span> <span class="badge" id="response-count">0</span></div>
+        <div id="response-content">
+          <div class="empty-state"><i class="fa fa-spinner fa-spin"></i>Loading…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TOOLS ── -->
+    <div class="adm-panel" id="panel-tools">
+      <div class="link-card-grid">
+        <a href="/epaper-admin" class="link-card">
+          <i class="fa fa-newspaper"></i>
+          <h3>E-Paper Builder</h3>
+          <p>Create and manage newspaper editions, pages and articles</p>
+        </a>
+        <a href="/excel-upload" class="link-card">
+          <i class="fa fa-file-excel"></i>
+          <h3>Excel Upload</h3>
+          <p>Upload Excel files to populate Supabase database tables</p>
+        </a>
+        <a href="/epaper-archive" class="link-card">
+          <i class="fa fa-archive"></i>
+          <h3>E-Paper Archive</h3>
+          <p>View all published e-paper editions</p>
+        </a>
+        <a href="/news-reel" class="link-card">
+          <i class="fa fa-rss"></i>
+          <h3>News Reel</h3>
+          <p>Live education news reel</p>
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="adm-toast"></div>
+
+  <script>
+  const ICONS = ['fa-file-text-o','fa-graduation-cap','fa-calendar','fa-book','fa-bell','fa-bullhorn','fa-star','fa-trophy','fa-newspaper','fa-pen','fa-circle-info','fa-triangle-exclamation'];
+
+  // ── TAB SWITCHING ──
+  document.querySelectorAll('.adm-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.adm-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.adm-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('panel-' + tab.dataset.panel).classList.add('active');
+      if (tab.dataset.panel === 'responses') loadResponses('feedback');
+    });
+  });
+
+  // ── SUB-TAB SWITCHING ──
+  document.querySelectorAll('.sub-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      loadResponses(tab.dataset.source);
+    });
+  });
+
+  // ── ALERTS ──
+  let alerts = [];
+
+  async function loadAlerts() {
+    const res = await fetch('/api/admin/alerts');
+    const data = await res.json();
+    alerts = data.alerts || [];
+    renderAlerts();
+  }
+
+  function renderAlerts() {
+    document.getElementById('alert-count').textContent = alerts.length;
+    const list = document.getElementById('alert-list');
+    list.innerHTML = alerts.map((a, i) => `
+      <div class="alert-editor-row" data-idx="${i}">
+        <div class="field-wrap">
+          <label>Title</label>
+          <input type="text" value="${escHtml(a.title)}" oninput="alerts[${i}].title=this.value" placeholder="Alert title">
+        </div>
+        <div class="field-wrap">
+          <label>Link (optional)</label>
+          <input type="text" value="${escHtml(a.link||'')}" oninput="alerts[${i}].link=this.value" placeholder="https://...">
+        </div>
+        <div class="field-wrap">
+          <label>Date text</label>
+          <input type="text" value="${escHtml(a.date)}" oninput="alerts[${i}].date=this.value" placeholder="2 days ago">
+        </div>
+        <div class="field-wrap">
+          <label>Icon</label>
+          <select onchange="alerts[${i}].icon=this.value">
+            ${ICONS.map(ic => `<option value="${ic}" ${a.icon===ic?'selected':''}>${ic.replace('fa-','')}</option>`).join('')}
+          </select>
+        </div>
+        <button class="btn btn-red btn-sm" onclick="removeAlert(${i})"><i class="fa fa-trash"></i></button>
+      </div>
+    `).join('');
+  }
+
+  function addAlert() {
+    alerts.push({id: Date.now(), title: 'New Alert', icon: 'fa-bell', date: 'Just now', link: ''});
+    renderAlerts();
+  }
+
+  function removeAlert(idx) {
+    alerts.splice(idx, 1);
+    renderAlerts();
+  }
+
+  async function saveAlerts() {
+    const res = await fetch('/api/admin/alerts', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({alerts})
+    });
+    const data = await res.json();
+    toast(data.success ? '✓ Alerts saved! Reload homepage to see changes.' : '✗ Save failed: ' + (data.error||''));
+  }
+
+  // ── FORM RESPONSES ──
+  const SOURCE_LABELS = {feedback:'Feedback', guideme:'Guide Me', contact:'Contact', subscribers:'Subscribers'};
+  const SOURCE_COLUMNS = {
+    feedback: ['name','email','mobile','designation','feedback','submitted_at'],
+    guideme:  ['full_name','email','whatsapp','address','requirement_type','details','submitted_at'],
+    contact:  ['name','email','phone','subject','message','submitted_at'],
+    subscribers: ['email','name','subscribed_at'],
+  };
+
+  async function loadResponses(source) {
+    document.getElementById('response-title').textContent = SOURCE_LABELS[source] || source;
+    document.getElementById('response-content').innerHTML = '<div class="empty-state"><i class="fa fa-spinner fa-spin"></i>Loading…</div>';
+    try {
+      const res = await fetch('/api/admin/responses/' + source);
+      const data = await res.json();
+      const rows = data.data || [];
+      document.getElementById('response-count').textContent = rows.length;
+      if (!rows.length) {
+        document.getElementById('response-content').innerHTML = '<div class="empty-state"><i class="fa fa-inbox"></i>No responses yet</div>';
+        return;
+      }
+      const cols = SOURCE_COLUMNS[source] || Object.keys(rows[0]);
+      document.getElementById('response-content').innerHTML = `
+        <div class="adm-table-wrap">
+          <table class="adm-table">
+            <thead><tr>${cols.map(c=>`<th>${c.replace(/_/g,' ')}</th>`).join('')}</tr></thead>
+            <tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td>${escHtml(String(r[c]||''))}</td>`).join('')}</tr>`).join('')}</tbody>
+          </table>
+        </div>`;
+    } catch(e) {
+      document.getElementById('response-content').innerHTML = '<div class="empty-state"><i class="fa fa-circle-xmark"></i>Failed to load</div>';
+    }
+  }
+
+  // ── UTILS ──
+  function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function toast(msg) {
+    const el = document.getElementById('adm-toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 3000);
+  }
+
+  // ── INIT ──
+  loadAlerts();
+  </script>
+</body>
+</html>
