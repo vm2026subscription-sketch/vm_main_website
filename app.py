@@ -64,7 +64,9 @@ def request_too_large(e):
         'error': 'File too large. Maximum upload size is 200 MB. Please compress your PDF and try again.'
     }), 413
 
-AUTH_DB_PATH = os.path.join(app.root_path, "auth_users.db")
+# Use /tmp on read-only filesystems (Vercel); fall back to app dir locally
+import tempfile as _tempfile
+AUTH_DB_PATH = os.path.join(_tempfile.gettempdir(), "auth_users.db")
 
 COURSES_DB_URL = (
     os.getenv("SUPABASE_POSTGRES_URL", "").strip()
@@ -961,10 +963,32 @@ def fetch_colleges_by_states(states, limit_per_state=None):
 
 
 def get_auth_db_connection():
+    """Return an auth DB connection. Uses Postgres when DATABASE_URL is set, else SQLite in /tmp."""
+    pg_url = get_postgres_connection_url()
+    if pg_url and connect is not None:
+        try:
+            conn = connect(pg_url)
+            conn.autocommit = False
+            with conn.cursor() as cur:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        id BIGSERIAL PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        email TEXT NOT NULL UNIQUE,
+                        password_hash TEXT NOT NULL,
+                        created_at TIMESTAMPTZ DEFAULT NOW()
+                    )
+                """)
+            conn.commit()
+            # Wrap in a sqlite3-compatible shim so the rest of the code works unchanged
+            return _PgAuthConn(conn)
+        except Exception as e:
+            app.logger.warning("Auth Postgres connection failed, falling back to SQLite: %s", e)
+
+    # SQLite fallback (local dev or if Postgres unavailable)
     connection = sqlite3.connect(AUTH_DB_PATH)
     connection.row_factory = sqlite3.Row
-    connection.execute(
-        """
+    connection.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
@@ -972,10 +996,47 @@ def get_auth_db_connection():
             password_hash TEXT NOT NULL,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
-        """
-    )
+    """)
     connection.commit()
     return connection
+
+
+class _PgAuthConn:
+    """Thin sqlite3-compatible shim over a psycopg2 connection for auth queries."""
+    def __init__(self, conn):
+        self._conn = conn
+
+    def execute(self, sql, params=()):
+        import psycopg2.extras
+        sql = sql.replace("?", "%s")
+        cur = self._conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(sql, params)
+        return cur
+
+    def commit(self):
+        self._conn.commit()
+
+    def close(self):
+        try:
+            self._conn.close()
+        except Exception:
+            pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, *_):
+        if exc_type:
+            try:
+                self._conn.rollback()
+            except Exception:
+                pass
+        else:
+            try:
+                self._conn.commit()
+            except Exception:
+                pass
+        self.close()
 
 
 def get_logged_in_user():
