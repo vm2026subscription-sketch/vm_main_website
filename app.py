@@ -1839,7 +1839,32 @@ def api_admin_responses(source):
     }
     if source not in source_map:
         return jsonify({"error": "Unknown source"}), 404
-    data = _read_json_file(source_map[source], [])
+
+    filepath = source_map[source]
+
+    # ── Read from Postgres if available ──────────────────────────────
+    pg_url = get_postgres_connection_url()
+    if pg_url and connect is not None:
+        try:
+            table = _form_table_name(filepath)
+            conn = connect(pg_url)
+            with conn.cursor() as cur:
+                _ensure_form_table(cur, table)
+                cur.execute(f"SELECT data, submitted_at FROM {table} ORDER BY submitted_at DESC LIMIT 500")
+                rows = cur.fetchall()
+            conn.close()
+            data = []
+            for row in rows:
+                entry = row[0] if isinstance(row[0], dict) else json.loads(row[0])
+                if 'submitted_at' not in entry:
+                    entry['submitted_at'] = str(row[1])
+                data.append(entry)
+            return jsonify({"data": data, "count": len(data)})
+        except Exception as e:
+            app.logger.warning("Admin responses PG read failed: %s", e)
+
+    # ── Fallback: JSON file ───────────────────────────────────────────
+    data = _read_json_file(filepath, [])
     return jsonify({"data": list(reversed(data)), "count": len(data)})
 
 
@@ -2772,16 +2797,54 @@ def _write_json_file(filepath, data):
 
 _FEEDBACK_FILE  = os.path.join(os.path.dirname(__file__), 'data', 'feedback.json')
 
+def _form_table_name(filepath):
+    """Derive a stable Postgres table name from the JSON file path."""
+    base = os.path.splitext(os.path.basename(filepath))[0]  # e.g. 'guideme_requests'
+    return re.sub(r'[^a-z0-9_]', '_', base.lower())
+
+
+def _ensure_form_table(cur, table):
+    cur.execute(f"""
+        CREATE TABLE IF NOT EXISTS {table} (
+            id BIGSERIAL PRIMARY KEY,
+            data JSONB NOT NULL,
+            submitted_at TIMESTAMPTZ DEFAULT NOW()
+        )
+    """)
+
+
 def _append_json_file(filepath, entry):
-    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    """Persist a form entry. Writes to Postgres when available; always writes JSON file as backup."""
+    # ── Postgres (primary on Vercel) ──────────────────────────────────
+    pg_url = get_postgres_connection_url()
+    if pg_url and connect is not None:
+        try:
+            table = _form_table_name(filepath)
+            conn = connect(pg_url)
+            with conn.cursor() as cur:
+                _ensure_form_table(cur, table)
+                cur.execute(
+                    f"INSERT INTO {table} (data, submitted_at) VALUES (%s::jsonb, NOW())",
+                    (json.dumps(entry, ensure_ascii=False, default=str),)
+                )
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            app.logger.error("Form DB write failed (%s): %s", filepath, e)
+
+    # ── JSON file (local dev / backup) ────────────────────────────────
     try:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            data = json.load(f)
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        except Exception:
+            data = []
+        data.append(entry)
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception:
-        data = []
-    data.append(entry)
-    with open(filepath, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+        pass  # read-only filesystem on Vercel — that's fine, Postgres has it
 
 
 @app.route("/feedback", methods=["GET", "POST"])
