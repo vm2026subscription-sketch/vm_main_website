@@ -3138,28 +3138,19 @@ def _get_groq_response(question, context_lines=None, language="en", topic="gener
         "max_tokens": 500,
     }
 
-    groq_req = Request(
-        GROQ_API_URL,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {GROQ_API_KEY}",
-        },
-        method="POST",
-    )
-
     try:
-        with urlopen(groq_req, timeout=20) as response:
-            body = response.read()
-            result = json.loads(body.decode("utf-8"))
-            choices = result.get("choices") if isinstance(result, dict) else None
-            if not isinstance(choices, list) or not choices:
-                return None
-            message = choices[0].get("message", {})
-            content = str(message.get("content") or "").strip()
-            return content or None
+        from groq import Groq as _Groq
+        client = _Groq(api_key=GROQ_API_KEY)
+        completion = client.chat.completions.create(
+            model=payload["model"],
+            messages=payload["messages"],
+            temperature=payload["temperature"],
+            max_tokens=payload["max_tokens"],
+        )
+        content = completion.choices[0].message.content or ""
+        return content.strip() or None
     except Exception as exc:
-        app.logger.warning("Groq API call failed: %s", exc)
+        app.logger.error("Groq API call failed: %s", exc)
         return None
 
 
