@@ -3119,12 +3119,13 @@ def _get_groq_response(question, context_lines=None, language="en", topic="gener
         "Do not invent facts. Keep the reply concise. "
         f"{style_line}"
     )
+    context_block = "\n".join(context_lines)
     user_prompt = (
         "User question:\n"
         f"{question}\n\n"
         f"Target topic: {topic}\n\n"
         "No external context provided."
-        f"{'\n'.join(context_lines)}"
+        f"{context_block}"
     )
 
     payload = {
@@ -3137,7 +3138,7 @@ def _get_groq_response(question, context_lines=None, language="en", topic="gener
         "max_tokens": 500,
     }
 
-    request = Request(
+    groq_req = Request(
         GROQ_API_URL,
         data=json.dumps(payload).encode("utf-8"),
         headers={
@@ -3148,7 +3149,7 @@ def _get_groq_response(question, context_lines=None, language="en", topic="gener
     )
 
     try:
-        with urlopen(request, timeout=20) as response:
+        with urlopen(groq_req, timeout=20) as response:
             body = response.read()
             result = json.loads(body.decode("utf-8"))
             choices = result.get("choices") if isinstance(result, dict) else None
@@ -3366,6 +3367,9 @@ def chatbot():
 
 @app.route("/api/chatbot/query", methods=["POST"])
 def api_chatbot_query():
+    if not GROQ_API_KEY:
+        return jsonify({"error": "Chatbot is not configured. Set GROQ_API_KEY in environment variables."}), 503
+
     payload = request.get_json(silent=True) or {}
     message = str(payload.get("message") or "").strip()
     language = str(payload.get("language") or "en").strip().lower()
@@ -3376,13 +3380,10 @@ def api_chatbot_query():
         return jsonify({"error": "Message is required."}), 400
 
     answer, sources = build_chatbot_answer(message, language=language)
-    return jsonify(
-        {
-            "answer": answer,
-            "sources": sources,
-            "provider": "groq" if GROQ_API_KEY else "local-retrieval",
-        }
-    )
+    if not answer:
+        return jsonify({"error": "Could not get a response. Please try again."}), 500
+
+    return jsonify({"answer": answer, "sources": sources, "provider": "groq"})
 
 
 _GUIDEME_FILE = os.path.join(os.path.dirname(__file__), 'data', 'guideme_requests.json')
