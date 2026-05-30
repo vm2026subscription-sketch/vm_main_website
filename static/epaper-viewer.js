@@ -762,6 +762,11 @@ const EP = {
       this.renderThumbnails();
       this.showPage(1);
       this.registerEditionView();
+      // Keep the browser URL in sync so sharing always links to this specific edition
+      const editionUrl = `/epaper/${iso}`;
+      if (window.location.pathname !== editionUrl) {
+        history.replaceState(null, '', editionUrl);
+      }
     } catch (e) {
       console.warn('Edition load error:', e);
       this.showDemoPage();
@@ -2325,7 +2330,10 @@ const EP = {
 
   shareEdition(platform) {
     const title = this.currentEdition?.name || document.title || 'Vidyarthi Mitra E-Paper';
-    const url = window.location.href;
+    const date = this.currentEdition?.date;
+    const url = date
+      ? `${window.location.origin}/epaper/${date}`
+      : window.location.href;
     const text = encodeURIComponent(title + ' - ' + url);
 
     const urls = {
