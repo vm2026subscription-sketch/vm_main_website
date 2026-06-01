@@ -528,6 +528,7 @@
                 <!-- University Title and Logo -->
                 <div class="uni-header">
                     <img class="uni-logo-large" src="{{ university.logo_url }}" 
+                         onload="if(this.naturalWidth === 16 && this.src !== '{{ university.fallback_logo }}') { this.src='{{ university.fallback_logo }}'; }"
                          onerror="this.onerror=null; this.src='{{ university.fallback_logo }}';" 
                          alt="{{ university.name }} Logo">
                     <div class="uni-title-section">

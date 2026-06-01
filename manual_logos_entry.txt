@@ -1,0 +1,230 @@
+# University logo URLs. Each link returns the school's icon/crest image from its official site.
+# Confidence on smaller/renamed schools varies - spot-check the ones flagged LOW (see chat).
+# Blank lines = couldn't confidently identify an official domain.
+
+All India Institute of Medical Sciences: https://www.google.com/s2/favicons?domain=aiims.edu&sz=128
+Amity University: https://www.google.com/s2/favicons?domain=amity.edu&sz=128
+Amity University: https://www.google.com/s2/favicons?domain=amity.edu&sz=128
+Babasaheb Bhimrao Ambedkar University: https://www.google.com/s2/favicons?domain=bbau.ac.in&sz=128
+Bangalore University: https://www.google.com/s2/favicons?domain=bangaloreuniversity.ac.in&sz=128
+Bankura University: https://www.google.com/s2/favicons?domain=bankurauniv.ac.in&sz=128
+Barkatullah University: https://www.google.com/s2/favicons?domain=bubhopal.ac.in&sz=128
+Bengal Engineering College: https://www.google.com/s2/favicons?domain=iiests.ac.in&sz=128
+Berhampur University: https://www.google.com/s2/favicons?domain=buodisha.edu.in&sz=128
+Bhagwant University: https://www.google.com/s2/favicons?domain=bhagwantuniversity.ac.in&sz=128
+Bharath Institue Of Higher Education & Research: https://www.google.com/s2/favicons?domain=bharathuniv.ac.in&sz=128
+Bharathiar University: https://www.google.com/s2/favicons?domain=b-u.ac.in&sz=128
+Bharathidasan University: https://www.google.com/s2/favicons?domain=bdu.ac.in&sz=128
+Bhavnagar University: https://www.google.com/s2/favicons?domain=mkbhavuni.edu.in&sz=128
+Biju Pattnaik University of Technology: https://www.google.com/s2/favicons?domain=bput.ac.in&sz=128
+Birla Institute of Technology, Ranchi: https://www.google.com/s2/favicons?domain=bitmesra.ac.in&sz=128
+Birsa Agricultural University: https://www.google.com/s2/favicons?domain=bau.ac.in&sz=128
+Bundelkhand University: https://www.google.com/s2/favicons?domain=bujhansi.ac.in&sz=128
+CCS Haryana Agricultural University: https://www.google.com/s2/favicons?domain=hau.ac.in&sz=128
+CHRIST (Deemed University): https://www.google.com/s2/favicons?domain=christuniversity.in&sz=128
+CMJ University: 
+Center for Entrepreneurship and Small Business Management: 
+Central Agricultural University: https://www.google.com/s2/favicons?domain=cau.ac.in&sz=128
+Central Institute of English and Foreign Languages: https://www.google.com/s2/favicons?domain=efluniversity.ac.in&sz=128
+Central Institute of Fisheries Education: https://www.google.com/s2/favicons?domain=cife.edu.in&sz=128
+Ch. Charan Singh University: https://www.google.com/s2/favicons?domain=ccsuniversity.ac.in&sz=128
+Chhatrapati Shahu Ji Maharaj University: https://www.google.com/s2/favicons?domain=csjmu.ac.in&sz=128
+Cochin University of Science and Technology: https://www.google.com/s2/favicons?domain=cusat.ac.in&sz=128
+Darul Huda Islamic University: https://www.google.com/s2/favicons?domain=dhiu.in&sz=128
+Dayalbagh Educational Institute: https://www.google.com/s2/favicons?domain=dei.ac.in&sz=128
+Deccan College Postgraduate and Research Institute: https://www.google.com/s2/favicons?domain=deccancollegepune.ac.in&sz=128
+Deen Dayal Upadhyay Gorakhpur University: https://www.google.com/s2/favicons?domain=ddugu.ac.in&sz=128
+Devi Ahilya University of Indore: https://www.google.com/s2/favicons?domain=dauniv.ac.in&sz=128
+Devi Ahilya Vishwavidyalaya (DAVV): https://www.google.com/s2/favicons?domain=dauniv.ac.in&sz=128
+Dhirubhai Ambani Institute of Information and Communication Technology: https://www.google.com/s2/favicons?domain=daiict.ac.in&sz=128
+Dibrugarh University: https://www.google.com/s2/favicons?domain=dibru.ac.in&sz=128
+Dr. B.R. Ambedkar Open University: https://www.google.com/s2/favicons?domain=braou.ac.in&sz=128
+Dr. Babasaheb Ambedkar Marathwada University: https://www.google.com/s2/favicons?domain=bamu.ac.in&sz=128
+Dr. Babasaheb Ambedkar Marathwada Universtiy: https://www.google.com/s2/favicons?domain=bamu.ac.in&sz=128
+Dr. Babasaheb Ambedkar Technological University: https://www.google.com/s2/favicons?domain=dbatu.ac.in&sz=128
+Dr. Bhim Rao Abdekar University: https://www.google.com/s2/favicons?domain=dbrau.ac.in&sz=128
+Dr. Hari Singh Gour University, formerly University of Sagar: https://www.google.com/s2/favicons?domain=dhsgsu.edu.in&sz=128
+Easwari Engineering College: https://www.google.com/s2/favicons?domain=eec.edu.in&sz=128
+Eiilm University: 
+First Global University to teaching Jainism: 
+Forest Research Institute Dehradun: https://www.google.com/s2/favicons?domain=fri.res.in&sz=128
+Gauhati University: https://www.google.com/s2/favicons?domain=gauhati.ac.in&sz=128
+Global Open University , Nagaland: 
+Gokhale Institute of Politics and Economics: https://www.google.com/s2/favicons?domain=gipe.ac.in&sz=128
+Govind Ballabh Pant University of Agriculture and Technology: https://www.google.com/s2/favicons?domain=gbpuat.ac.in&sz=128
+Gulbarga University: https://www.google.com/s2/favicons?domain=gug.ac.in&sz=128
+Guru Jambeshwar University: https://www.google.com/s2/favicons?domain=gjust.ac.in&sz=128
+Guru Nanak Institute of Pharmaceutical Science & Technology: https://www.google.com/s2/favicons?domain=gnipst.ac.in&sz=128
+Guru Nanak Institute of Technology: https://www.google.com/s2/favicons?domain=gnit.ac.in&sz=128
+Gurukul University: 
+Hidayatullah National Law University, Raipur: https://www.google.com/s2/favicons?domain=hnlu.ac.in&sz=128
+Himachal Pradesh Agricultural University: https://www.google.com/s2/favicons?domain=hillagric.ac.in&sz=128
+Himachal Pradesh University: https://www.google.com/s2/favicons?domain=hpuniv.ac.in&sz=128
+IASE (Institute of Advanced Studies) Deemed University: 
+IIT Bhubaneswar: https://www.google.com/s2/favicons?domain=iitbbs.ac.in&sz=128
+IIT Delhi: https://www.google.com/s2/favicons?domain=iitd.ac.in&sz=128
+IIT Madras: https://www.google.com/s2/favicons?domain=iitm.ac.in&sz=128
+Indian Agricultural Research Institute: https://www.google.com/s2/favicons?domain=iari.res.in&sz=128
+Indian Institute of Information Technology Allahabad: https://www.google.com/s2/favicons?domain=iiita.ac.in&sz=128
+Indian Institute of Technology, Kanpur: https://www.google.com/s2/favicons?domain=iitk.ac.in&sz=128
+Indian Institute of Technology, Kharagpur: https://www.google.com/s2/favicons?domain=iitkgp.ac.in&sz=128
+Indian Institute of Technology, Madras: https://www.google.com/s2/favicons?domain=iitm.ac.in&sz=128
+Indian Institute of Technology, Patna: https://www.google.com/s2/favicons?domain=iitp.ac.in&sz=128
+Indian Institute of Technology, Roorkee: https://www.google.com/s2/favicons?domain=iitr.ac.in&sz=128
+Indian School of Mines (ISM): https://www.google.com/s2/favicons?domain=iitism.ac.in&sz=128
+Indian Statistical Institute: https://www.google.com/s2/favicons?domain=isical.ac.in&sz=128
+Indian University: 
+Indian Veterinary Research Institute: https://www.google.com/s2/favicons?domain=ivri.res.in&sz=128
+Indira Gandhi Agricultural University: https://www.google.com/s2/favicons?domain=igkv.ac.in&sz=128
+Indira Gandhi Institute of Development and Research: https://www.google.com/s2/favicons?domain=igidr.ac.in&sz=128
+Indira Gandhi Institute of Medical Sciences: https://www.google.com/s2/favicons?domain=igims.org&sz=128
+Indira Gandhi National Open University: https://www.google.com/s2/favicons?domain=ignou.ac.in&sz=128
+Indraprastha Institute of Information Technology, Delhi: https://www.google.com/s2/favicons?domain=iiitd.ac.in&sz=128
+Indus University: https://www.google.com/s2/favicons?domain=indusuni.ac.in&sz=128
+Institute of Management Studies: 
+Institute of Technology and Management: 
+Integral University: https://www.google.com/s2/favicons?domain=iul.ac.in&sz=128
+International Institute for Population Sciences: https://www.google.com/s2/favicons?domain=iipsindia.ac.in&sz=128
+International Institute of Information Technology, Bangalore: https://www.google.com/s2/favicons?domain=iiitb.ac.in&sz=128
+International Institute of Information Technology, Bhubaneswar: https://www.google.com/s2/favicons?domain=iiit-bh.ac.in&sz=128
+International Institute of Information Technology, Pune: https://www.google.com/s2/favicons?domain=iiitp.ac.in&sz=128
+JIS College of Engineering: https://www.google.com/s2/favicons?domain=jiscollege.ac.in&sz=128
+JIS Institute of Advanced Studies & Research: 
+JIS Institute of Pharmacy: 
+JIS School of Medical Science & Research: 
+Jai Narain Vyas University: https://www.google.com/s2/favicons?domain=jnvu.edu.in&sz=128
+Jai Prakash University: 
+Jamia Millia Islamia University: https://www.google.com/s2/favicons?domain=jmi.ac.in&sz=128
+Jawaharlal Nehru Agricultural University: https://www.google.com/s2/favicons?domain=jnkvv.org&sz=128
+Jawaharlal Nehru Centre for Advanced Scientific Research: https://www.google.com/s2/favicons?domain=jncasr.ac.in&sz=128
+Jawaharlal Nehru University: https://www.google.com/s2/favicons?domain=jnu.ac.in&sz=128
+Jawaharlal Nehru University: https://www.google.com/s2/favicons?domain=jnu.ac.in&sz=128
+Jiwaji University: https://www.google.com/s2/favicons?domain=jiwaji.edu&sz=128
+Jodhpur National University: 
+Kakatiya University: https://www.google.com/s2/favicons?domain=kakatiya.ac.in&sz=128
+Kalinga University: https://www.google.com/s2/favicons?domain=kalingauniversity.ac.in&sz=128
+Kameshwar Singh Darbhanga Sanskrit University: 
+Kannada University: 
+Karnataka State Law University: https://www.google.com/s2/favicons?domain=kslu.ac.in&sz=128
+Kerala University of Fisheries and Ocean Sciences: https://www.google.com/s2/favicons?domain=kufos.ac.in&sz=128
+Kohinoor School of Hospitality Management: 
+Krishna University: https://www.google.com/s2/favicons?domain=krishnauniversity.ac.in&sz=128
+L.D.College of Engineering: https://www.google.com/s2/favicons?domain=ldce.ac.in&sz=128
+Lakshmibai National Institute of Physical Education: https://www.google.com/s2/favicons?domain=lnipe.gov.in&sz=128
+Lalit Narayan Mithila University: https://www.google.com/s2/favicons?domain=lnmu.ac.in&sz=128
+Madhya Pradesh Bhoj (Open) University: https://www.google.com/s2/favicons?domain=mpbou.edu.in&sz=128
+Madurai Kamaraj University: https://www.google.com/s2/favicons?domain=mkuniversity.org&sz=128
+Magadh University: https://www.google.com/s2/favicons?domain=magadhuniversity.ac.in&sz=128
+Maharaja Ganga Singh University, Bikaner: https://www.google.com/s2/favicons?domain=mgsubikaner.ac.in&sz=128
+Mahatma Gandhi Kashi Vidyapith: https://www.google.com/s2/favicons?domain=mgkvp.ac.in&sz=128
+Mahatma Phule Agricultural University: https://www.google.com/s2/favicons?domain=mpkv.ac.in&sz=128
+Marathwada Agricultural University: https://www.google.com/s2/favicons?domain=vnmkv.org&sz=128
+Maulana Azad National Institute of Technology Bhopal: https://www.google.com/s2/favicons?domain=manit.ac.in&sz=128
+Motilal Nehru National Institute Of Technology: https://www.google.com/s2/favicons?domain=mnnit.ac.in&sz=128
+Nagaland University: https://www.google.com/s2/favicons?domain=nagalanduniversity.ac.in&sz=128
+Nagpur University: https://www.google.com/s2/favicons?domain=rtmnu.ac.in&sz=128
+Narendra Deva University of Agriculture and Technology: https://www.google.com/s2/favicons?domain=nduat.org&sz=128
+National Dairy Research Institute: https://www.google.com/s2/favicons?domain=ndri.res.in&sz=128
+National Institute of Industrial Engineering: https://www.google.com/s2/favicons?domain=nitie.ac.in&sz=128
+National Institute of Mental Health and Neuro Sciences: https://www.google.com/s2/favicons?domain=nimhans.ac.in&sz=128
+National Institute of Technology Agartala: https://www.google.com/s2/favicons?domain=nita.ac.in&sz=128
+National Institute of Technology Goa: https://www.google.com/s2/favicons?domain=nitgoa.ac.in&sz=128
+National Institute of Technology Kurukshetra: https://www.google.com/s2/favicons?domain=nitkkr.ac.in&sz=128
+National Institute of Technology Rourkela: https://www.google.com/s2/favicons?domain=nitrkl.ac.in&sz=128
+National Institute of Technology Silchar: https://www.google.com/s2/favicons?domain=nits.ac.in&sz=128
+National Institute of Technology Srinagar: https://www.google.com/s2/favicons?domain=nitsri.ac.in&sz=128
+National Institute of Technology Warangal: https://www.google.com/s2/favicons?domain=nitw.ac.in&sz=128
+National Museum Institute of History of Art, Conservation and Museology: 
+Navrachana University: https://www.google.com/s2/favicons?domain=nuv.ac.in&sz=128
+Nizam's Institute of Medical Sciences: https://www.google.com/s2/favicons?domain=nims.edu.in&sz=128
+Orissa University of Agriculture and Technology: https://www.google.com/s2/favicons?domain=ouat.ac.in&sz=128
+Osmania University: https://www.google.com/s2/favicons?domain=osmania.ac.in&sz=128
+P. V. Narasimha Rao Telangana Veterinary University: https://www.google.com/s2/favicons?domain=pvnrtvu.edu.in&sz=128
+Patna University: https://www.google.com/s2/favicons?domain=patnauniversity.ac.in&sz=128
+Periyar University: https://www.google.com/s2/favicons?domain=periyaruniversity.ac.in&sz=128
+Postgraduate lnstitute of Medical Education and Research: https://www.google.com/s2/favicons?domain=pgimer.edu.in&sz=128
+Professor Jayashankar Telangana State Agricultural University: https://www.google.com/s2/favicons?domain=pjtsau.edu.in&sz=128
+RMD Engineering College: https://www.google.com/s2/favicons?domain=rmd.ac.in&sz=128
+RMK Engineering College: https://www.google.com/s2/favicons?domain=rmkec.ac.in&sz=128
+Rajagiri School of Engineering and Technology: https://www.google.com/s2/favicons?domain=rajagiritech.ac.in&sz=128
+Rajasthan Technical University: https://www.google.com/s2/favicons?domain=rtu.ac.in&sz=128
+Rajasthan Vidyapeeth University: 
+Rajendra Agricultural University: https://www.google.com/s2/favicons?domain=rpcau.ac.in&sz=128
+Rajiv Gandhi Technical University (University of Technology of Madhya Pradesh): https://www.google.com/s2/favicons?domain=rgpv.ac.in&sz=128
+Ranchi University: https://www.google.com/s2/favicons?domain=ranchiuniversity.ac.in&sz=128
+Rashtrasant Tukadoji Maharaj Nagpur University: https://www.google.com/s2/favicons?domain=rtmnu.ac.in&sz=128
+SASTRA University: https://www.google.com/s2/favicons?domain=sastra.edu&sz=128
+SMK Fomra Institute of Technology: https://www.google.com/s2/favicons?domain=smkfomra.net&sz=128
+Sampurnanand Sanskrit University: 
+Sanjay Gandhi Postgraduate lnstitute of Medical Sciences: https://www.google.com/s2/favicons?domain=sgpgi.ac.in&sz=128
+Sardar Vallabhai Patel University of Agriculture Amd Technology: https://www.google.com/s2/favicons?domain=svpuat.edu.in&sz=128
+Sardarkrushinagar Dantiwada Agricultural University: https://www.google.com/s2/favicons?domain=sdau.edu.in&sz=128
+Sathyabama University: https://www.google.com/s2/favicons?domain=sathyabama.ac.in&sz=128
+Saurashtra University: https://www.google.com/s2/favicons?domain=saurashtrauniversity.edu&sz=128
+Savitribai Phule Pune University: https://www.google.com/s2/favicons?domain=unipune.ac.in&sz=128
+School of Planning and Architecture: https://www.google.com/s2/favicons?domain=spa.ac.in&sz=128
+Sharda University: https://www.google.com/s2/favicons?domain=sharda.ac.in&sz=128
+Sher-E-Kashmir University of Agricultural Sciences and Technology: https://www.google.com/s2/favicons?domain=skuastkashmir.ac.in&sz=128
+Shivaji University: https://www.google.com/s2/favicons?domain=unishivaji.ac.in&sz=128
+Shivaji University Kolhapur: https://www.google.com/s2/favicons?domain=unishivaji.ac.in&sz=128
+Shobhit University, Meerut: https://www.google.com/s2/favicons?domain=shobhituniversity.ac.in&sz=128
+Shreemati Nathibai Damodar Thackersey Women's University: https://www.google.com/s2/favicons?domain=sndt.ac.in&sz=128
+Shri Jagannath Sanskrit University: 
+Shri Jagdishprasad Jhabarmal Tibrewala University: https://www.google.com/s2/favicons?domain=jjtu.ac.in&sz=128
+Shri Lal Bahadur Shastri Rashtriya Sanskrit Vidyapeetha: https://www.google.com/s2/favicons?domain=slbsrsv.ac.in&sz=128
+Shridhar University: 
+Sido Kanhu Murmu University: https://www.google.com/s2/favicons?domain=skmu.ac.in&sz=128
+Sikha 'O' Anushandhan University: https://www.google.com/s2/favicons?domain=soa.ac.in&sz=128
+Sikkim Manipal University of Health, Medical and Technological Sciences: https://www.google.com/s2/favicons?domain=smu.edu.in&sz=128
+Singhania University: 
+Sister Nivedita University: https://www.google.com/s2/favicons?domain=snuniv.ac.in&sz=128
+Solapur University: https://www.google.com/s2/favicons?domain=sus.ac.in&sz=128
+Somaiya Vidyavihar: https://www.google.com/s2/favicons?domain=somaiya.edu&sz=128
+South Asian University: https://www.google.com/s2/favicons?domain=sau.int&sz=128
+South Gujarat University: https://www.google.com/s2/favicons?domain=vnsgu.ac.in&sz=128
+Sree Chitra Tirunal Institute for Medical Sciences and Technology: https://www.google.com/s2/favicons?domain=sctimst.ac.in&sz=128
+Sri Krishnadevaraya University: https://www.google.com/s2/favicons?domain=skuniversity.ac.in&sz=128
+Sri Padmavati Women's University: https://www.google.com/s2/favicons?domain=spmvv.ac.in&sz=128
+Sri Ramachardra Medical College and Research Institute: https://www.google.com/s2/favicons?domain=sriramachandra.edu.in&sz=128
+Sri Sivasubramaniya Nadar Institutions: https://www.google.com/s2/favicons?domain=ssn.edu.in&sz=128
+Sri Venkateswara Institute of Medical Sciences: https://www.google.com/s2/favicons?domain=svimstpt.ap.nic.in&sz=128
+Sri Venkateswara University: https://www.google.com/s2/favicons?domain=svuniversity.edu.in&sz=128
+St Joseph's Institute Of Technology: https://www.google.com/s2/favicons?domain=stjosephstechnology.ac.in&sz=128
+Swami Ramanand Teerth Marathwada University: https://www.google.com/s2/favicons?domain=srtmun.ac.in&sz=128
+Symbiosis International (Deemed University): https://www.google.com/s2/favicons?domain=siu.edu.in&sz=128
+Symbiosis International University: https://www.google.com/s2/favicons?domain=siu.edu.in&sz=128
+Takhatmal Shrivallabh Homoeopathic Medical College: 
+Tamil Nadu Agricultural University: https://www.google.com/s2/favicons?domain=tnau.ac.in&sz=128
+Tamil Nadu Dr. Ambedkar Law University: https://www.google.com/s2/favicons?domain=tndalu.ac.in&sz=128
+Tamil Nadu Dr. M.G.R. Medical University: https://www.google.com/s2/favicons?domain=tnmgrmu.ac.in&sz=128
+Tamil Nadu Veterinary and Animal Sciences University: https://www.google.com/s2/favicons?domain=tanuvas.ac.in&sz=128
+Tamil University: https://www.google.com/s2/favicons?domain=tamiluniversity.ac.in&sz=128
+Telangana University: https://www.google.com/s2/favicons?domain=telanganauniversity.ac.in&sz=128
+Tezpur University: https://www.google.com/s2/favicons?domain=tezu.ernet.in&sz=128
+Thapar Institute of Engineering and Technology: https://www.google.com/s2/favicons?domain=thapar.edu&sz=128
+Thiruvalluvar University: https://www.google.com/s2/favicons?domain=tvu.edu.in&sz=128
+Tilka Manjhi Bhagalpur University: https://www.google.com/s2/favicons?domain=tmbuniv.ac.in&sz=128
+University of Agricultural Sciences, Bangalore: https://www.google.com/s2/favicons?domain=uasbangalore.edu.in&sz=128
+University of Agricultural Sciences, Dharwad: https://www.google.com/s2/favicons?domain=uasd.edu&sz=128
+University of Burdwan: https://www.google.com/s2/favicons?domain=buruniv.ac.in&sz=128
+University of Calicut: https://www.google.com/s2/favicons?domain=uoc.ac.in&sz=128
+University of Health Sciences Andhra Pradesh: https://www.google.com/s2/favicons?domain=ntruhs.ap.nic.in&sz=128
+University of Kashmir: https://www.google.com/s2/favicons?domain=kashmiruniversity.net&sz=128
+University of Kerala: https://www.google.com/s2/favicons?domain=keralauniversity.ac.in&sz=128
+University of Lucknow: https://www.google.com/s2/favicons?domain=lkouniv.ac.in&sz=128
+University of Media Arts: 
+University of Pune: https://www.google.com/s2/favicons?domain=unipune.ac.in&sz=128
+University of Roorkee: https://www.google.com/s2/favicons?domain=iitr.ac.in&sz=128
+Utkal University: https://www.google.com/s2/favicons?domain=utkaluniversity.ac.in&sz=128
+Uttar Pradesh Technical University: https://www.google.com/s2/favicons?domain=aktu.ac.in&sz=128
+Uttarakhand Technical University: https://www.google.com/s2/favicons?domain=uktech.ac.in&sz=128
+Vardhaman Mahaveer Open University: https://www.google.com/s2/favicons?domain=vmou.ac.in&sz=128
+Velammal Engineering College: https://www.google.com/s2/favicons?domain=velammal.edu.in&sz=128
+Vikram University: https://www.google.com/s2/favicons?domain=vikramuniv.ac.in&sz=128
+Vikrama Simhapuri University: https://www.google.com/s2/favicons?domain=simhapuriuniv.ac.in&sz=128
+Vinoba Bhave University: https://www.google.com/s2/favicons?domain=vbu.ac.in&sz=128
+Visvesvaraya National Institute of Technology: https://www.google.com/s2/favicons?domain=vnit.ac.in&sz=128
+Visvesvaraya Technological University: https://www.google.com/s2/favicons?domain=vtu.ac.in&sz=128
+West Bengal University of Animal and Fishery Sciences: https://www.google.com/s2/favicons?domain=wbuafscl.ac.in&sz=128
+West Bengal University of Technology: https://www.google.com/s2/favicons?domain=makautwb.ac.in&sz=128
+Yashawantrao Chavan Maharashtra Open University: https://www.google.com/s2/favicons?domain=ycmou.ac.in&sz=128

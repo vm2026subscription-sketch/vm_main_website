@@ -1003,7 +1003,9 @@
                         data-type="{{ university.type }}" data-stream="{{ university.stream }}">
                         <img class="uni-logo"
                              src="{{ university.logo_url }}"
-                             loading="lazy" onerror="this.onerror=null; this.src='{{ university.fallback_logo }}';"
+                             loading="lazy" 
+                             onload="if(this.naturalWidth === 16 && this.src !== '{{ university.fallback_logo }}') { this.src='{{ university.fallback_logo }}'; }"
+                             onerror="this.onerror=null; this.src='{{ university.fallback_logo }}';"
                              alt="{{ university.name }}">
                         <div>
                             <h2 class="uni-title">{{ university.name }}</h2>
@@ -1106,7 +1108,8 @@
                 paginationControls.style.display = total === 0 ? 'none' : 'flex';
                 
                 if (total > 0) {
-                    pageInfo.textContent = `Showing ${start + 1} to ${Math.min(end, total)} of ${total} entries`;
+                    const totalPages = Math.ceil(total / itemsPerPage);
+                    pageInfo.textContent = `Showing ${start + 1} to ${Math.min(end, total)} of ${total} entries (Page ${currentPage} of ${totalPages})`;
                 }
 
                 prevBtn.disabled = currentPage === 1;
