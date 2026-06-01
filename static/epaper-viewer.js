@@ -2202,7 +2202,8 @@ const EP = {
         <div style="text-align: center; color: #fff; font-family: var(--ep-font);">
           <div style="width: 64px; height: 64px; border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid var(--ep-orange); border-radius: 50%; animation: epSpin 1s linear infinite; margin: 0 auto 24px;"></div>
           <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 8px; letter-spacing: 0.5px;">Generating Edition PDF</h3>
-          <p id="epPdfLoaderText" style="color: rgba(255,255,255,0.6); font-size: 14px;">Preparing pages...</p>
+          <p id="epPdfLoaderText" style="color: rgba(255,255,255,0.6); font-size: 14px; margin-bottom: 24px;">Preparing pages...</p>
+          <button onclick="EP.cancelPDF()" style="padding: 10px 28px; background: transparent; border: 1.5px solid rgba(255,255,255,0.3); border-radius: 8px; color: rgba(255,255,255,0.7); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#ff6600';this.style.color='#ff6600'" onmouseout="this.style.borderColor='rgba(255,255,255,0.3)';this.style.color='rgba(255,255,255,0.7)'">Cancel</button>
         </div>
       `;
       document.body.appendChild(loader);
@@ -2227,87 +2228,69 @@ const EP = {
   async compilePDF() {
     if (!this.pages.length) { this.showToast('No edition pages available'); return; }
     if (typeof window.jspdf === 'undefined') { this.showToast('PDF library not loaded, please refresh'); return; }
+    if (typeof window.html2canvas !== 'function') { this.showToast('PDF renderer not loaded, please refresh'); return; }
 
-    this.showPdfLoader(true, `Loading images (0/${this.pages.length})...`);
-
-    // Load one page image as dataURL (CORS-safe canvas draw)
-    const loadImgDataUrl = (url) => new Promise(resolve => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      const tryDraw = () => {
-        try {
-          const c = document.createElement('canvas');
-          c.width = img.naturalWidth || 800;
-          c.height = img.naturalHeight || 1131;
-          c.getContext('2d').drawImage(img, 0, 0);
-          resolve({ dataUrl: c.toDataURL('image/jpeg', 0.9), w: c.width, h: c.height });
-        } catch (e) {
-          resolve(null); // CORS taint — will fall back to html2canvas
-        }
-      };
-      img.onload = tryDraw;
-      img.onerror = () => resolve(null);
-      img.src = url;
-    });
-
-    // Capture current rendered page via html2canvas (fallback for pages without background image)
-    const captureDOM = async (pageNum) => {
-      this.showPage(pageNum);
-      this.setZoom(1);
-      await this.waitPageToLoad();
-      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-      if (typeof window.html2canvas !== 'function') return null;
-      const el = document.querySelector('.ep-canvas-viewer') || document.getElementById('epBlockGrid') || document.getElementById('epPaper');
-      if (!el) return null;
-      const canvas = await window.html2canvas(el, { backgroundColor: '#ffffff', useCORS: true, scale: 1.5, logging: false });
-      return { dataUrl: canvas.toDataURL('image/jpeg', 0.88), w: canvas.width, h: canvas.height };
-    };
-
+    this._pdfCancelled = false;
     const originalPage = this.currentPage;
     try {
-      // Load all image-backed pages in parallel
-      const urlMap = this.pages.map(p => p.page_image_url || p.image_path || '');
-      const urlResults = await Promise.all(
-        urlMap.map((url, i) => {
-          if (!url) return Promise.resolve(null);
-          return loadImgDataUrl(url).then(r => { this.showPdfLoader(true, `Loading images (${i + 1}/${this.pages.length})...`); return r; });
-        })
-      );
-
-      this.showPdfLoader(true, 'Compiling PDF...');
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const W = 210, H = 297;
       let firstPage = true;
 
       for (let i = 0; i < this.pages.length; i++) {
-        let r = urlResults[i];
-        if (!r) {
-          // No image URL or CORS failed — capture DOM
-          this.showPdfLoader(true, `Rendering page ${i + 1} of ${this.pages.length}...`);
-          r = await captureDOM(i + 1);
-        }
-        if (!r) continue;
-        if (!firstPage) pdf.addPage();
-        firstPage = false;
-        const ar = r.w / r.h;
+        if (this._pdfCancelled) { this.showToast('PDF cancelled.'); return; }
+        this.showPdfLoader(true, `Rendering page ${i + 1} of ${this.pages.length}...`);
+
+        // Navigate to the page — updatePageHeader sets masthead for pg1, section header for pg2+
+        this.showPage(i + 1);
+        this.setZoom(1);
+        await this.waitPageToLoad();
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+        if (this._pdfCancelled) { this.showToast('PDF cancelled.'); return; }
+
+        // Capture #epPaper which includes masthead/section-header + page content
+        const el = document.getElementById('epPaper');
+        if (!el) continue;
+        const canvas = await window.html2canvas(el, {
+          backgroundColor: '#ffffff',
+          useCORS: true,
+          allowTaint: false,
+          scale: 1.5,
+          logging: false,
+        });
+
+        if (this._pdfCancelled) { this.showToast('PDF cancelled.'); return; }
+
+        const ar = canvas.width / canvas.height;
         const pa = W / H;
         let iw = W, ih = H, ix = 0, iy = 0;
         if (ar > pa) { ih = W / ar; iy = (H - ih) / 2; }
         else { iw = H * ar; ix = (W - iw) / 2; }
-        pdf.addImage(r.dataUrl, 'JPEG', ix, iy, iw, ih, undefined, 'FAST');
+
+        if (!firstPage) pdf.addPage();
+        firstPage = false;
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.88), 'JPEG', ix, iy, iw, ih, undefined, 'FAST');
       }
 
       const title = this.currentEdition?.name || 'Vidyarthi Mitra E-Paper';
       pdf.save(`${title}.pdf`);
       this.showToast('PDF downloaded!');
     } catch (err) {
-      console.error('PDF export failed:', err);
-      this.showToast('PDF export failed: ' + err.message);
+      if (!this._pdfCancelled) {
+        console.error('PDF export failed:', err);
+        this.showToast('PDF export failed: ' + err.message);
+      }
     } finally {
+      this._pdfCancelled = false;
       this.showPdfLoader(false);
       this.showPage(originalPage);
     }
+  },
+
+  cancelPDF() {
+    this._pdfCancelled = true;
   },
 
   // ── Share ──
