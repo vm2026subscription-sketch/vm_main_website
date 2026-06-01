@@ -790,40 +790,47 @@ def fetch_colleges_search(page, per_page, q=None, alpha=None, state=None):
     except Exception as exc:
         return [], 0, f"Database connection failed: {exc}"
 
+    # Data is stored as JSONB payload with Excel-style unnamed column keys
+    select_sql = (
+        "payload->>'Unnamed: 1' AS name, "
+        "payload->>'Unnamed: 2' AS state, "
+        "payload->>'Unnamed: 3' AS city, "
+        "payload->>'Unnamed: 4' AS source_url, "
+        "payload->>'Unnamed: 5' AS year, "
+        "payload->>'Unnamed: 7' AS type, "
+        "payload->>'Unnamed: 8' AS management, "
+        "payload->>'Unnamed: 10' AS university_name, "
+        "NULL AS nirf, NULL AS logo_url"
+    )
+
     try:
-        col_map = resolve_colleges_columns(conn)
-        if not col_map.get("name"):
-            return [], 0, "Could not find a college name column in the colleges table."
-
-        select_sql = build_college_select(col_map)
-
-        filters = []
+        filters = [
+            "row_number >= 4",
+            "payload->>'Unnamed: 1' IS NOT NULL",
+            "payload->>'Unnamed: 1' <> ''",
+        ]
         params = []
-        if state and col_map.get("state"):
-            filters.append(f'"{col_map["state"]}" = %s')
+
+        if state:
+            filters.append("payload->>'Unnamed: 2' = %s")
             params.append(state)
 
         if alpha:
-            filters.append(f'"{col_map["name"]}" ILIKE %s')
+            filters.append("payload->>'Unnamed: 1' ILIKE %s")
             params.append(f"{alpha}%")
 
         if q:
             like = f"%{q}%"
-            parts = [f'"{col_map["name"]}" ILIKE %s']
-            params.append(like)
-            for key in ("state", "city", "type", "management"):
-                if col_map.get(key):
-                    parts.append(f'"{col_map[key]}" ILIKE %s')
-                    params.append(like)
-            if col_map.get("university_name"):
-                parts.append(f'"{col_map["university_name"]}" ILIKE %s')
-                params.append(like)
-            filters.append("(" + " OR ".join(parts) + ")")
+            filters.append(
+                "(payload->>'Unnamed: 1' ILIKE %s OR payload->>'Unnamed: 2' ILIKE %s"
+                " OR payload->>'Unnamed: 3' ILIKE %s OR payload->>'Unnamed: 7' ILIKE %s"
+                " OR payload->>'Unnamed: 10' ILIKE %s)"
+            )
+            params.extend([like, like, like, like, like])
 
-        where_clause = f"WHERE {' AND '.join(filters)}" if filters else ""
-
+        where_clause = "WHERE " + " AND ".join(filters)
         count_sql = f"SELECT COUNT(*) FROM colleges {where_clause}"
-        data_sql = f"SELECT {select_sql} FROM colleges {where_clause} ORDER BY name"
+        data_sql = f"SELECT {select_sql} FROM colleges {where_clause} ORDER BY payload->>'Unnamed: 1'"
         data_params = list(params)
         if per_page:
             data_sql += " LIMIT %s OFFSET %s"
@@ -832,7 +839,6 @@ def fetch_colleges_search(page, per_page, q=None, alpha=None, state=None):
         with conn.cursor() as cur:
             cur.execute(count_sql, params)
             total = cur.fetchone()["count"]
-
             cur.execute(data_sql, data_params)
             rows = cur.fetchall()
     except Exception as exc:
@@ -847,10 +853,10 @@ def fetch_colleges_search(page, per_page, q=None, alpha=None, state=None):
             "city": clean_college_text(row.get("city")),
             "type": clean_college_text(row.get("type")),
             "management": clean_college_text(row.get("management")),
-            "nirf": clean_college_text(row.get("nirf")),
+            "nirf": "",
             "year": clean_college_text(row.get("year")),
             "university_name": clean_college_text(row.get("university_name")),
-            "logo_url": row.get("logo_url") or "",
+            "logo_url": "",
             "source_url": normalize_external_url(row.get("source_url")),
         }
         for row in rows
@@ -873,15 +879,14 @@ def fetch_college_state_counts():
         return [], 0, f"Database connection failed: {exc}"
 
     try:
-        col_map = resolve_colleges_columns(conn)
-        if not col_map.get("state"):
-            return [], 0, "Could not find a state column in the colleges table."
-
         sql = (
-            f"SELECT \"{col_map['state']}\" AS state, COUNT(*) AS count "
-            f"FROM colleges WHERE \"{col_map['state']}\" IS NOT NULL "
-            f"AND \"{col_map['state']}\" <> '' "
-            f"GROUP BY \"{col_map['state']}\" ORDER BY \"{col_map['state']}\""
+            "SELECT payload->>'Unnamed: 2' AS state, COUNT(*) AS count "
+            "FROM colleges "
+            "WHERE row_number >= 4 "
+            "  AND payload->>'Unnamed: 2' IS NOT NULL "
+            "  AND payload->>'Unnamed: 2' <> '' "
+            "GROUP BY payload->>'Unnamed: 2' "
+            "ORDER BY payload->>'Unnamed: 2'"
         )
         with conn.cursor() as cur:
             cur.execute(sql)
@@ -911,19 +916,32 @@ def fetch_colleges_by_states(states, limit_per_state=None):
     except Exception as exc:
         return [], f"Database connection failed: {exc}"
 
-    try:
-        col_map = resolve_colleges_columns(conn)
-        if not col_map.get("state") or not col_map.get("name"):
-            return [], "Could not resolve required columns for colleges."
+    select_sql = (
+        "payload->>'Unnamed: 1' AS name, "
+        "payload->>'Unnamed: 2' AS state, "
+        "payload->>'Unnamed: 3' AS city, "
+        "payload->>'Unnamed: 4' AS source_url, "
+        "payload->>'Unnamed: 5' AS year, "
+        "payload->>'Unnamed: 7' AS type, "
+        "payload->>'Unnamed: 8' AS management, "
+        "payload->>'Unnamed: 10' AS university_name, "
+        "NULL AS nirf, NULL AS logo_url"
+    )
 
-        select_sql = build_college_select(col_map)
+    try:
+        base_where = (
+            "row_number >= 4 "
+            "AND payload->>'Unnamed: 1' IS NOT NULL "
+            "AND payload->>'Unnamed: 1' <> '' "
+            "AND payload->>'Unnamed: 2' = ANY(%s)"
+        )
         if limit_per_state:
             sql = (
                 "SELECT * FROM ("
                 f"SELECT {select_sql}, "
-                f"ROW_NUMBER() OVER (PARTITION BY \"{col_map['state']}\" "
-                f"ORDER BY \"{col_map['name']}\") AS row_num "
-                f"FROM colleges WHERE \"{col_map['state']}\" = ANY(%s)"
+                "ROW_NUMBER() OVER (PARTITION BY payload->>'Unnamed: 2' "
+                "ORDER BY payload->>'Unnamed: 1') AS row_num "
+                f"FROM colleges WHERE {base_where}"
                 ") ranked WHERE row_num <= %s "
                 "ORDER BY state, name"
             )
@@ -931,8 +949,8 @@ def fetch_colleges_by_states(states, limit_per_state=None):
         else:
             sql = (
                 f"SELECT {select_sql} FROM colleges "
-                f"WHERE \"{col_map['state']}\" = ANY(%s) "
-                f"ORDER BY name"
+                f"WHERE {base_where} "
+                "ORDER BY payload->>'Unnamed: 1'"
             )
             query_params = (states,)
         with conn.cursor() as cur:
@@ -950,10 +968,10 @@ def fetch_colleges_by_states(states, limit_per_state=None):
             "city": clean_college_text(row.get("city")),
             "type": clean_college_text(row.get("type")),
             "management": clean_college_text(row.get("management")),
-            "nirf": clean_college_text(row.get("nirf")),
+            "nirf": "",
             "year": clean_college_text(row.get("year")),
             "university_name": clean_college_text(row.get("university_name")),
-            "logo_url": row.get("logo_url") or "",
+            "logo_url": "",
             "source_url": normalize_external_url(row.get("source_url")),
         }
         for row in rows
