@@ -790,6 +790,32 @@ def api_record_edition_view(date):
     return jsonify({"date": date, "language": language, "views": count})
 
 
+# ── API: Get edition view count (no increment) ────
+@epaper_bp.route("/api/epaper/edition/<date>/views", methods=["GET"])
+def api_get_edition_views(date):
+    if not re.match(r"\d{4}-\d{2}-\d{2}$", date):
+        return jsonify({"error": "Invalid date format"}), 400
+    language = request.args.get("lang", "")
+    if _pg_url():
+        try:
+            conn = _pg_connect()
+            _pg_ensure_table(conn)
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT view_count FROM epaper_edition_views WHERE edition_date=%s AND edition_language=%s",
+                    (date, language or "")
+                )
+                row = cur.fetchone()
+            conn.close()
+            count = int(row[0]) if row else 0
+            return jsonify({"date": date, "language": language, "views": count})
+        except Exception as e:
+            print(f"[epaper] get views failed: {e}")
+    data = _load_views_file()
+    count = int(data.get(_views_key(date, language), 0))
+    return jsonify({"date": date, "language": language, "views": count})
+
+
 # ── API: Get article ──────────────────────────────
 @epaper_bp.route("/api/epaper/article/<article_id>")
 def api_article(article_id):

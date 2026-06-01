@@ -36,17 +36,12 @@ const EP = {
     this.cacheDOM();
     this.bindEvents();
     this.renderFooterLinks(this.footerLinksDefault);
-    // Load the latest published edition automatically instead of defaulting to today
-    this.loadLatestEdition();
-    // Load editions list for calendar in background
-    this.loadEditions();
-    // Poll for new editions every 5 minutes
-    this.startAutoRefreshPoll();
-    // Load news sidebar
-    this.loadNewsSidebar();
-    // Show swipe hint on first mobile visit
-    this._initSwipeHint();
 
+    this.loadLatestEdition();
+    this.loadEditions();
+    this.startAutoRefreshPoll();
+    this.loadNewsSidebar();
+    this._initSwipeHint();
   },
 
   _initSwipeHint() {
@@ -726,18 +721,34 @@ const EP = {
   },
 
   // Count this edition open (by date + language) and show the running total.
+  // Only counts once per browser session to avoid refresh-spam inflating views.
   async registerEditionView() {
     const ed = this.currentEdition;
     if (!ed || !ed.date) return;
     const lang = ed.language || this.currentLanguage || '';
+    const sessionKey = `epv_${ed.date}_${lang}`;
+    const alreadyCounted = sessionStorage.getItem(sessionKey);
     try {
-      const res = await fetch(
-        `/api/epaper/edition/${encodeURIComponent(ed.date)}/view?lang=${encodeURIComponent(lang)}`,
-        { method: 'POST', keepalive: true }
-      );
-      if (!res.ok) return;
-      const data = await res.json();
-      if (data && typeof data.views === 'number') this.updateViewBadge(data.views);
+      let views;
+      if (alreadyCounted) {
+        // Already counted this session — just fetch current count without incrementing
+        const res = await fetch(
+          `/api/epaper/edition/${encodeURIComponent(ed.date)}/views?lang=${encodeURIComponent(lang)}`
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        views = data?.views;
+      } else {
+        const res = await fetch(
+          `/api/epaper/edition/${encodeURIComponent(ed.date)}/view?lang=${encodeURIComponent(lang)}`,
+          { method: 'POST', keepalive: true }
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        views = data?.views;
+        sessionStorage.setItem(sessionKey, '1');
+      }
+      if (typeof views === 'number') this.updateViewBadge(views);
     } catch (e) { /* ignore network errors */ }
   },
 
