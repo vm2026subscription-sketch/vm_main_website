@@ -1356,63 +1356,21 @@ def ensure_upload_table_exists(connection_url, table_name):
             )
 
 
-def _favicon(domain):
-    return f"https://www.google.com/s2/favicons?sz=128&domain={domain}"
+_UNIVERSITIES_FILE = os.path.join(os.path.dirname(__file__), 'data', 'universities.json')
 
+def _load_universities_data():
+    try:
+        with open(_UNIVERSITIES_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception as e:
+        # Fallback to minimal data in case of file issues
+        return [
+            {"slug": "savitribai-phule-pune-university", "name": "Savitribai Phule Pune University", "location": "Pune", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "19", "source_url": "https://www.unipune.ac.in", "logo_url": "https://www.google.com/s2/favicons?sz=128&domain=unipune.ac.in"},
+            {"slug": "university-of-mumbai", "name": "University of Mumbai", "location": "Mumbai", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "45", "source_url": "https://mu.ac.in", "logo_url": "https://www.google.com/s2/favicons?sz=128&domain=mu.ac.in"},
+        ]
 
-UNIVERSITIES_DATA = [
-    # Maharashtra
-    {"slug": "savitribai-phule-pune-university", "name": "Savitribai Phule Pune University", "location": "Pune", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "19", "source_url": "https://www.unipune.ac.in", "logo_url": _favicon("unipune.ac.in")},
-    {"slug": "university-of-mumbai", "name": "University of Mumbai", "location": "Mumbai", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "45", "source_url": "https://mu.ac.in", "logo_url": _favicon("mu.ac.in")},
-    {"slug": "rtm-nagpur-university", "name": "Rashtrasant Tukadoji Maharaj Nagpur University", "location": "Nagpur", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "74", "source_url": "https://nagpuruniversity.ac.in", "logo_url": _favicon("nagpuruniversity.ac.in")},
-    {"slug": "symbiosis-international", "name": "Symbiosis International (Deemed University)", "location": "Pune", "state": "Maharashtra", "type": "Deemed", "stream": "Management", "nirf": "17", "source_url": "https://siu.edu.in", "logo_url": _favicon("siu.edu.in")},
-    {"slug": "mit-wpu", "name": "MIT World Peace University", "location": "Pune", "state": "Maharashtra", "type": "Private", "stream": "Technology", "nirf": "96", "source_url": "https://mitwpu.edu.in", "logo_url": _favicon("mitwpu.edu.in")},
-    {"slug": "nmims-mumbai", "name": "NMIMS University", "location": "Mumbai", "state": "Maharashtra", "type": "Private", "stream": "Management", "nirf": "49", "source_url": "https://www.nmims.edu", "logo_url": _favicon("nmims.edu")},
-    {"slug": "dr-babasaheb-ambedkar-marathwada", "name": "Dr. Babasaheb Ambedkar Marathwada University", "location": "Aurangabad", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "N/A", "source_url": "https://bamu.ac.in", "logo_url": _favicon("bamu.ac.in")},
-    {"slug": "shivaji-university-kolhapur", "name": "Shivaji University Kolhapur", "location": "Kolhapur", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "N/A", "source_url": "https://www.unishivaji.ac.in", "logo_url": _favicon("unishivaji.ac.in")},
-    {"slug": "solapur-university", "name": "Solapur University", "location": "Solapur", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "N/A", "source_url": "https://su.digitaluniversity.ac", "logo_url": _favicon("su.digitaluniversity.ac")},
-    {"slug": "sant-gadge-baba-amravati", "name": "Sant Gadge Baba Amravati University", "location": "Amravati", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "N/A", "source_url": "https://www.sgbau.ac.in", "logo_url": _favicon("sgbau.ac.in")},
-    {"slug": "dr-bamu-open", "name": "YCMOU (Yashwantrao Chavan Maharashtra Open University)", "location": "Nashik", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "N/A", "source_url": "https://ycmou.ac.in", "logo_url": _favicon("ycmou.ac.in")},
-    {"slug": "bharati-vidyapeeth", "name": "Bharati Vidyapeeth (Deemed University)", "location": "Pune", "state": "Maharashtra", "type": "Deemed", "stream": "General", "nirf": "N/A", "source_url": "https://www.bharatividyapeeth.edu", "logo_url": _favicon("bharatividyapeeth.edu")},
-    # Delhi / NCR
-    {"slug": "delhi-university", "name": "University of Delhi", "location": "Delhi", "state": "Delhi", "type": "Government", "stream": "General", "nirf": "11", "source_url": "https://www.du.ac.in", "logo_url": _favicon("du.ac.in")},
-    {"slug": "jnu-delhi", "name": "Jawaharlal Nehru University", "location": "Delhi", "state": "Delhi", "type": "Government", "stream": "General", "nirf": "2", "source_url": "https://www.jnu.ac.in", "logo_url": _favicon("jnu.ac.in")},
-    {"slug": "jamia-millia-islamia", "name": "Jamia Millia Islamia", "location": "Delhi", "state": "Delhi", "type": "Government", "stream": "General", "nirf": "12", "source_url": "https://www.jmi.ac.in", "logo_url": _favicon("jmi.ac.in")},
-    {"slug": "amity-university-noida", "name": "Amity University", "location": "Noida", "state": "Uttar Pradesh", "type": "Private", "stream": "Technology", "nirf": "54", "source_url": "https://www.amity.edu", "logo_url": _favicon("amity.edu")},
-    # Karnataka
-    {"slug": "bangalore-university", "name": "Bangalore University", "location": "Bangalore", "state": "Karnataka", "type": "Government", "stream": "General", "nirf": "N/A", "source_url": "https://bangaloreuniversity.ac.in", "logo_url": _favicon("bangaloreuniversity.ac.in")},
-    {"slug": "manipal-academy", "name": "Manipal Academy of Higher Education", "location": "Manipal", "state": "Karnataka", "type": "Deemed", "stream": "Medical", "nirf": "8", "source_url": "https://manipal.edu", "logo_url": _favicon("manipal.edu")},
-    {"slug": "christ-university", "name": "CHRIST (Deemed University)", "location": "Bangalore", "state": "Karnataka", "type": "Deemed", "stream": "General", "nirf": "N/A", "source_url": "https://christuniversity.in", "logo_url": _favicon("christuniversity.in")},
-    # Tamil Nadu
-    {"slug": "anna-university", "name": "Anna University", "location": "Chennai", "state": "Tamil Nadu", "type": "Government", "stream": "Technology", "nirf": "7", "source_url": "https://www.annauniv.edu", "logo_url": _favicon("annauniv.edu")},
-    {"slug": "vit-vellore", "name": "Vellore Institute of Technology", "location": "Vellore", "state": "Tamil Nadu", "type": "Deemed", "stream": "Technology", "nirf": "10", "source_url": "https://vit.ac.in", "logo_url": _favicon("vit.ac.in")},
-    {"slug": "madras-university", "name": "University of Madras", "location": "Chennai", "state": "Tamil Nadu", "type": "Government", "stream": "General", "nirf": "N/A", "source_url": "https://www.unom.ac.in", "logo_url": _favicon("unom.ac.in")},
-    # Rajasthan
-    {"slug": "bits-pilani", "name": "Birla Institute of Technology & Science (BITS) Pilani", "location": "Pilani", "state": "Rajasthan", "type": "Deemed", "stream": "Technology", "nirf": "26", "source_url": "https://www.bits-pilani.ac.in", "logo_url": _favicon("bits-pilani.ac.in")},
-    {"slug": "university-of-rajasthan", "name": "University of Rajasthan", "location": "Jaipur", "state": "Rajasthan", "type": "Government", "stream": "General", "nirf": "N/A", "source_url": "https://www.uniraj.ac.in", "logo_url": _favicon("uniraj.ac.in")},
-    # Madhya Pradesh
-    {"slug": "davv-indore", "name": "Devi Ahilya Vishwavidyalaya (DAVV)", "location": "Indore", "state": "Madhya Pradesh", "type": "Government", "stream": "General", "nirf": "N/A", "source_url": "https://www.dauniv.ac.in", "logo_url": _favicon("dauniv.ac.in")},
-    # West Bengal
-    {"slug": "jadavpur-university", "name": "Jadavpur University", "location": "Kolkata", "state": "West Bengal", "type": "Government", "stream": "Technology", "nirf": "5", "source_url": "https://jadavpuruniversity.in", "logo_url": _favicon("jadavpuruniversity.in")},
-    {"slug": "university-of-calcutta", "name": "University of Calcutta", "location": "Kolkata", "state": "West Bengal", "type": "Government", "stream": "General", "nirf": "N/A", "source_url": "https://www.caluniv.ac.in", "logo_url": _favicon("caluniv.ac.in")},
-    # Gujarat
-    {"slug": "gujarat-university", "name": "Gujarat University", "location": "Ahmedabad", "state": "Gujarat", "type": "Government", "stream": "General", "nirf": "N/A", "source_url": "https://www.gujaratuniversity.ac.in", "logo_url": _favicon("gujaratuniversity.ac.in")},
-    {"slug": "nirma-university", "name": "Nirma University", "location": "Ahmedabad", "state": "Gujarat", "type": "Private", "stream": "Technology", "nirf": "N/A", "source_url": "https://nirmauni.ac.in", "logo_url": _favicon("nirmauni.ac.in")},
-    # Andhra Pradesh / Telangana
-    {"slug": "osmania-university", "name": "Osmania University", "location": "Hyderabad", "state": "Telangana", "type": "Government", "stream": "General", "nirf": "N/A", "source_url": "https://osmania.ac.in", "logo_url": _favicon("osmania.ac.in")},
-    {"slug": "university-of-hyderabad", "name": "University of Hyderabad", "location": "Hyderabad", "state": "Telangana", "type": "Government", "stream": "General", "nirf": "6", "source_url": "https://www.uohyd.ac.in", "logo_url": _favicon("uohyd.ac.in")},
-    # Punjab / Haryana
-    {"slug": "panjab-university", "name": "Panjab University", "location": "Chandigarh", "state": "Punjab", "type": "Government", "stream": "General", "nirf": "N/A", "source_url": "https://puchd.ac.in", "logo_url": _favicon("puchd.ac.in")},
-    {"slug": "kurukshetra-university", "name": "Kurukshetra University", "location": "Kurukshetra", "state": "Haryana", "type": "Government", "stream": "General", "nirf": "N/A", "source_url": "https://kuk.ac.in", "logo_url": _favicon("kuk.ac.in")},
-    # Uttar Pradesh
-    {"slug": "bhu-varanasi", "name": "Banaras Hindu University", "location": "Varanasi", "state": "Uttar Pradesh", "type": "Government", "stream": "General", "nirf": "3", "source_url": "https://www.bhu.ac.in", "logo_url": _favicon("bhu.ac.in")},
-    {"slug": "aligarh-muslim-university", "name": "Aligarh Muslim University", "location": "Aligarh", "state": "Uttar Pradesh", "type": "Government", "stream": "General", "nirf": "9", "source_url": "https://www.amu.ac.in", "logo_url": _favicon("amu.ac.in")},
-    # Premier Institutes
-    {"slug": "iit-bombay", "name": "IIT Bombay", "location": "Mumbai", "state": "Maharashtra", "type": "Government", "stream": "Technology", "nirf": "3", "source_url": "https://www.iitb.ac.in", "logo_url": _favicon("iitb.ac.in")},
-    {"slug": "iit-delhi", "name": "IIT Delhi", "location": "Delhi", "state": "Delhi", "type": "Government", "stream": "Technology", "nirf": "2", "source_url": "https://home.iitd.ac.in", "logo_url": _favicon("iitd.ac.in")},
-    {"slug": "iit-madras", "name": "IIT Madras", "location": "Chennai", "state": "Tamil Nadu", "type": "Government", "stream": "Technology", "nirf": "1", "source_url": "https://www.iitm.ac.in", "logo_url": _favicon("iitm.ac.in")},
-    {"slug": "aiims-delhi", "name": "AIIMS New Delhi", "location": "Delhi", "state": "Delhi", "type": "Government", "stream": "Medical", "nirf": "1", "source_url": "https://www.aiims.edu", "logo_url": _favicon("aiims.edu")},
-]
+UNIVERSITIES_DATA = _load_universities_data()
+
 
 
 COLLEGES_DATA = [
@@ -1943,12 +1901,47 @@ def universities():
     )
 
 
+def generate_university_description(uni):
+    name = uni.get("name", "This university")
+    location = uni.get("location", "")
+    state = uni.get("state", "")
+    utype = uni.get("type", "Government")
+    stream = uni.get("stream", "General")
+    nirf = uni.get("nirf", "N/A")
+
+    # Base description
+    desc = f"{name} is a distinguished {utype.lower()} institution located in {location}, {state}."
+
+    # Stream-specific detail
+    if stream != "General":
+        desc += f" It has established a strong reputation for academic excellence and specialized training in the field of {stream.lower()}."
+    else:
+        desc += " Offering a comprehensive curriculum, it provides students with diverse study programs spanning multiple streams and disciplines."
+
+    # NIRF Ranking detail
+    if nirf and nirf != "N/A":
+        desc += f" In the latest National Institutional Ranking Framework (NIRF) evaluations, it secured a commendable ranking of {nirf} among universities in India."
+    else:
+        desc += " The institution continues to strive for academic distinction and is highly regarded by students and educators alike for its contribution to higher education."
+
+    # Campus life & website notice
+    desc += f" Known for its dedicated faculty and modern facilities, {name} provides an environment that fosters intellectual and professional growth. Students are encouraged to visit the official website to explore active admissions, curriculum options, and detailed course offerings."
+
+    return desc
+
+
 @app.route("/universities/<slug>")
 def university_detail(slug):
     university = next((item for item in UNIVERSITIES_DATA if item["slug"] == slug), None)
     if university is None:
         return redirect(url_for("universities"))
-    return render_template("universities.html", universities=[university], states=[], cities=[], types=[], streams=[])
+    
+    uni_copy = university.copy()
+    if "description" not in uni_copy:
+        uni_copy["description"] = generate_university_description(uni_copy)
+        
+    return render_template("university_detail.html", university=uni_copy)
+
 
 
 @app.route("/colleges")
@@ -3958,6 +3951,10 @@ def sitemap_xml():
     return Response(xml, mimetype='application/xml')
 
 
+# Auto-reload trigger after database upgrade
 if __name__ == "__main__":
     debug = os.environ.get("FLASK_ENV") != "production"
-    app.run(host='0.0.0.0', debug=debug)
+    port = int(os.environ.get("PORT", 5001))
+    app.run(host='0.0.0.0', port=port, debug=debug)
+
+

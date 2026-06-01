@@ -87,68 +87,101 @@
         .section-pad { padding: 34px 0 52px; }
 
         .layout-grid {
-            display: grid;
-            grid-template-columns: 320px 1fr;
-            gap: 22px;
+            /* Removed sidebar grid */
         }
 
-        .panel {
+        .top-filter-bar {
             background: #0d1627;
             border: 1px solid rgba(255,255,255,0.08);
             border-radius: 14px;
-            overflow: hidden;
+            padding: 18px 24px;
+            margin-bottom: 24px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            margin-bottom: 14px;
-            transition: all 0.3s ease;
         }
 
-        .panel-head {
-            background: rgba(255,255,255,0.03);
-            color: var(--primary);
-            padding: 14px 16px;
-            font-weight: 700;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
+        .filter-group {
+            flex: 1;
+            min-width: 160px;
+        }
+
+        .filter-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 6px;
+            font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
-        .panel-search {
-            background: transparent;
-            color: #ffffff;
-            border: 0;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
-            width: 100%;
-            padding: 12px 14px;
-            outline: none;
-            font-size: .95rem;
+        .custom-select {
+            background-color: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #fff;
         }
-        .panel-search::placeholder {
-            color: rgba(255,255,255,0.4);
+        .custom-select:focus {
+            background-color: rgba(255,255,255,0.05);
+            border-color: var(--primary);
+            color: #fff;
+            box-shadow: 0 0 0 0.25rem rgba(255, 102, 0, 0.25);
         }
-
-        .state-list {
-            max-height: 220px;
-            overflow: auto;
-            padding: 8px 0;
+        .custom-select option {
+            background: #0d1627;
+            color: #fff;
         }
 
-        .state-item {
-            padding: 10px 14px;
-            border-bottom: 1px solid rgba(255,255,255,0.04);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: .9rem;
+        .pagination-controls {
+            background: #0d1627;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            padding: 16px 24px;
+            margin-top: 24px;
             color: #cbd5e1;
-            cursor: pointer;
-            transition: background 0.2s, color 0.2s;
         }
-        .state-item:hover {
-            background: rgba(255,102,0, 0.05);
-            color: #ffffff;
+        
+        .pagination-controls .btn-outline-secondary {
+            border-color: rgba(255,255,255,0.2);
+            color: #fff;
+        }
+        .pagination-controls .btn-outline-secondary:hover:not(:disabled) {
+            background-color: rgba(255,102,0, 0.15);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        .pagination-controls .btn-outline-secondary:disabled {
+            opacity: 0.3;
         }
 
-        .state-item input { width: 16px; height: 16px; accent-color: var(--primary); }
+        /* Light mode overrides */
+        body.light-mode .top-filter-bar, body.light-mode .pagination-controls {
+            background: #ffffff;
+            border-color: #e2e8f0;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.05);
+        }
+        body.light-mode .custom-select {
+            background-color: #f8fafc;
+            border-color: #cbd5e1;
+            color: #1e293b;
+        }
+        body.light-mode .custom-select option {
+            background: #fff;
+            color: #1e293b;
+        }
+        body.light-mode .filter-group label {
+            color: #64748b;
+        }
+        body.light-mode .pagination-controls {
+            color: #475569;
+        }
+        body.light-mode .pagination-controls .btn-outline-secondary {
+            border-color: #cbd5e1;
+            color: #1e293b;
+        }
+
+        
 
         .cards-wrap { display: grid; gap: 14px; }
 
@@ -313,7 +346,100 @@
         }
 
         @media (max-width: 992px) {
-            .layout-grid { grid-template-columns: 1fr; }
+            .layout-grid {
+            /* Removed sidebar grid */
+        }
+
+        .top-filter-bar {
+            background: #0d1627;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            padding: 18px 24px;
+            margin-bottom: 24px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 160px;
+        }
+
+        .filter-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .custom-select {
+            background-color: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #fff;
+        }
+        .custom-select:focus {
+            background-color: rgba(255,255,255,0.05);
+            border-color: var(--primary);
+            color: #fff;
+            box-shadow: 0 0 0 0.25rem rgba(255, 102, 0, 0.25);
+        }
+        .custom-select option {
+            background: #0d1627;
+            color: #fff;
+        }
+
+        .pagination-controls {
+            background: #0d1627;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            padding: 16px 24px;
+            margin-top: 24px;
+            color: #cbd5e1;
+        }
+        
+        .pagination-controls .btn-outline-secondary {
+            border-color: rgba(255,255,255,0.2);
+            color: #fff;
+        }
+        .pagination-controls .btn-outline-secondary:hover:not(:disabled) {
+            background-color: rgba(255,102,0, 0.15);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        .pagination-controls .btn-outline-secondary:disabled {
+            opacity: 0.3;
+        }
+
+        /* Light mode overrides */
+        body.light-mode .top-filter-bar, body.light-mode .pagination-controls {
+            background: #ffffff;
+            border-color: #e2e8f0;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.05);
+        }
+        body.light-mode .custom-select {
+            background-color: #f8fafc;
+            border-color: #cbd5e1;
+            color: #1e293b;
+        }
+        body.light-mode .custom-select option {
+            background: #fff;
+            color: #1e293b;
+        }
+        body.light-mode .filter-group label {
+            color: #64748b;
+        }
+        body.light-mode .pagination-controls {
+            color: #475569;
+        }
+        body.light-mode .pagination-controls .btn-outline-secondary {
+            border-color: #cbd5e1;
+            color: #1e293b;
+        }
             .panel-stack { order: 2; }
         }
 
@@ -405,68 +531,101 @@
         .section-pad { padding: 34px 0 52px; }
 
         .layout-grid {
-            display: grid;
-            grid-template-columns: 320px 1fr;
-            gap: 22px;
+            /* Removed sidebar grid */
         }
 
-        .panel {
+        .top-filter-bar {
             background: #0d1627;
             border: 1px solid rgba(255,255,255,0.08);
             border-radius: 14px;
-            overflow: hidden;
+            padding: 18px 24px;
+            margin-bottom: 24px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            margin-bottom: 14px;
-            transition: all 0.3s ease;
         }
 
-        .panel-head {
-            background: rgba(255,255,255,0.03);
-            color: var(--primary);
-            padding: 14px 16px;
-            font-weight: 700;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
+        .filter-group {
+            flex: 1;
+            min-width: 160px;
+        }
+
+        .filter-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 6px;
+            font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
-        .panel-search {
-            background: transparent;
-            color: #ffffff;
-            border: 0;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
-            width: 100%;
-            padding: 12px 14px;
-            outline: none;
-            font-size: .95rem;
+        .custom-select {
+            background-color: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #fff;
         }
-        .panel-search::placeholder {
-            color: rgba(255,255,255,0.4);
+        .custom-select:focus {
+            background-color: rgba(255,255,255,0.05);
+            border-color: var(--primary);
+            color: #fff;
+            box-shadow: 0 0 0 0.25rem rgba(255, 102, 0, 0.25);
         }
-
-        .state-list {
-            max-height: 220px;
-            overflow: auto;
-            padding: 8px 0;
+        .custom-select option {
+            background: #0d1627;
+            color: #fff;
         }
 
-        .state-item {
-            padding: 10px 14px;
-            border-bottom: 1px solid rgba(255,255,255,0.04);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: .9rem;
+        .pagination-controls {
+            background: #0d1627;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            padding: 16px 24px;
+            margin-top: 24px;
             color: #cbd5e1;
-            cursor: pointer;
-            transition: background 0.2s, color 0.2s;
         }
-        .state-item:hover {
-            background: rgba(255,102,0, 0.05);
-            color: #ffffff;
+        
+        .pagination-controls .btn-outline-secondary {
+            border-color: rgba(255,255,255,0.2);
+            color: #fff;
+        }
+        .pagination-controls .btn-outline-secondary:hover:not(:disabled) {
+            background-color: rgba(255,102,0, 0.15);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        .pagination-controls .btn-outline-secondary:disabled {
+            opacity: 0.3;
         }
 
-        .state-item input { width: 16px; height: 16px; accent-color: var(--primary); }
+        /* Light mode overrides */
+        body.light-mode .top-filter-bar, body.light-mode .pagination-controls {
+            background: #ffffff;
+            border-color: #e2e8f0;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.05);
+        }
+        body.light-mode .custom-select {
+            background-color: #f8fafc;
+            border-color: #cbd5e1;
+            color: #1e293b;
+        }
+        body.light-mode .custom-select option {
+            background: #fff;
+            color: #1e293b;
+        }
+        body.light-mode .filter-group label {
+            color: #64748b;
+        }
+        body.light-mode .pagination-controls {
+            color: #475569;
+        }
+        body.light-mode .pagination-controls .btn-outline-secondary {
+            border-color: #cbd5e1;
+            color: #1e293b;
+        }
+
+        
 
         .cards-wrap { display: grid; gap: 14px; }
 
@@ -631,7 +790,100 @@
         }
 
         @media (max-width: 992px) {
-            .layout-grid { grid-template-columns: 1fr; }
+            .layout-grid {
+            /* Removed sidebar grid */
+        }
+
+        .top-filter-bar {
+            background: #0d1627;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            padding: 18px 24px;
+            margin-bottom: 24px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 160px;
+        }
+
+        .filter-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .custom-select {
+            background-color: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #fff;
+        }
+        .custom-select:focus {
+            background-color: rgba(255,255,255,0.05);
+            border-color: var(--primary);
+            color: #fff;
+            box-shadow: 0 0 0 0.25rem rgba(255, 102, 0, 0.25);
+        }
+        .custom-select option {
+            background: #0d1627;
+            color: #fff;
+        }
+
+        .pagination-controls {
+            background: #0d1627;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            padding: 16px 24px;
+            margin-top: 24px;
+            color: #cbd5e1;
+        }
+        
+        .pagination-controls .btn-outline-secondary {
+            border-color: rgba(255,255,255,0.2);
+            color: #fff;
+        }
+        .pagination-controls .btn-outline-secondary:hover:not(:disabled) {
+            background-color: rgba(255,102,0, 0.15);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        .pagination-controls .btn-outline-secondary:disabled {
+            opacity: 0.3;
+        }
+
+        /* Light mode overrides */
+        body.light-mode .top-filter-bar, body.light-mode .pagination-controls {
+            background: #ffffff;
+            border-color: #e2e8f0;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.05);
+        }
+        body.light-mode .custom-select {
+            background-color: #f8fafc;
+            border-color: #cbd5e1;
+            color: #1e293b;
+        }
+        body.light-mode .custom-select option {
+            background: #fff;
+            color: #1e293b;
+        }
+        body.light-mode .filter-group label {
+            color: #64748b;
+        }
+        body.light-mode .pagination-controls {
+            color: #475569;
+        }
+        body.light-mode .pagination-controls .btn-outline-secondary {
+            border-color: #cbd5e1;
+            color: #1e293b;
+        }
             .panel-stack { order: 2; }
         }
 
@@ -686,147 +938,209 @@
             <p class="meta-note">Live source powered top universities with discover-more style filters. Showing {{
                 universities|length }} records.</p>
 
-            <div class="layout-grid">
-                <aside class="panel-stack">
-                    <div class="panel">
-                        <div class="panel-head"><i class="fa-solid fa-map-location-dot me-2"></i>State</div>
-                        <input class="panel-search" type="text" id="stateSearch" placeholder="Search state..."
-                            aria-label="Search states">
-                        <div class="state-list" id="stateList">
-                            {% for state in states %}
-                            <label class="state-item">
-                                <input type="checkbox" data-filter-group="state" value="{{ state }}">
-                                <span>{{ state }}</span>
-                            </label>
-                            {% endfor %}
-                        </div>
-                    </div>
-
-                    <div class="panel">
-                        <div class="panel-head"><i class="fa-solid fa-location-dot me-2"></i>City</div>
-                        <div class="state-list">
-                            {% for city in cities %}
-                            <label class="state-item">
-                                <input type="checkbox" data-filter-group="city" value="{{ city }}">
-                                <span>{{ city }}</span>
-                            </label>
-                            {% endfor %}
-                        </div>
-                    </div>
-
-                    <div class="panel">
-                        <div class="panel-head"><i class="fa-solid fa-layer-group me-2"></i>Type</div>
-                        <div class="state-list">
-                            {% for type in types %}
-                            <label class="state-item">
-                                <input type="checkbox" data-filter-group="type" value="{{ type }}">
-                                <span>{{ type }}</span>
-                            </label>
-                            {% endfor %}
-                        </div>
-                    </div>
-
-                    <div class="panel">
-                        <div class="panel-head"><i class="fa-solid fa-book me-2"></i>Stream</div>
-                        <div class="state-list">
-                            {% for stream in streams %}
-                            <label class="state-item">
-                                <input type="checkbox" data-filter-group="stream" value="{{ stream }}">
-                                <span>{{ stream }}</span>
-                            </label>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </aside>
-
-                <section>
-                    <div class="cards-wrap" id="universityCards">
-                        {% for university in universities %}
-                        <a class="uni-card" href="{{ url_for('university_detail', slug=university.slug) }}"
-                            data-state="{{ university.state }}" data-city="{{ university.location }}"
-                            data-type="{{ university.type }}" data-stream="{{ university.stream }}">
-                            <img class="uni-logo"
-                                 src="{{ university.logo_url }}"
-                                 loading="lazy" onerror="this.onerror=null; this.src='/static/logo.png';"
-                                 alt="{{ university.name }}">
-                            <div>
-                                <h2 class="uni-title">{{ university.name }}</h2>
-                                <div class="chips">
-                                    <span class="chip"><i class="fa-solid fa-location-dot me-1"></i>{{
-                                        university.location }}</span>
-                                    <span class="chip">{{ university.type }}</span>
-                                    <span class="chip nirf">NIRF {{ university.nirf }}</span>
-                                </div>
-                            </div>
-                        </a>
+            <div class="top-filter-bar">
+                <div class="filter-group">
+                    <label>State</label>
+                    <select class="form-select custom-select filter-select" data-filter="state">
+                        <option value="">All States</option>
+                        {% for state in states %}
+                        <option value="{{ state }}">{{ state }}</option>
                         {% endfor %}
-                    </div>
-                    <div id="emptyState" class="empty-state" style="display:none;">No universities match your selected
-                        filters.</div>
-                </section>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>City</label>
+                    <select class="form-select custom-select filter-select" data-filter="city">
+                        <option value="">All Cities</option>
+                        {% for city in cities %}
+                        <option value="{{ city }}">{{ city }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label>Type</label>
+                    <select class="form-select custom-select filter-select" data-filter="type">
+                        <option value="">All Types</option>
+                        {% for type in types %}
+                        <option value="{{ type }}">{{ type }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label>Stream</label>
+                    <select class="form-select custom-select filter-select" data-filter="stream">
+                        <option value="">All Streams</option>
+                        {% for stream in streams %}
+                        <option value="{{ stream }}">{{ stream }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label>Sort By</label>
+                    <select class="form-select custom-select" id="sortSelect">
+                        <option value="name-asc">Alphabetical (A-Z)</option>
+                        <option value="name-desc">Alphabetical (Z-A)</option>
+                        <option value="nirf-asc">NIRF Rank (Top First)</option>
+                    </select>
+                </div>
+
+                <div class="filter-group" style="flex: 0.5; min-width: 100px;">
+                    <label>&nbsp;</label>
+                    <button class="btn btn-outline-danger w-100" id="clearFilters">Clear</button>
+                </div>
             </div>
+
+            <section>
+                <div class="cards-wrap" id="universityCards" style="grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));">
+                    {% for university in universities %}
+                    <a class="uni-card" href="{{ url_for('university_detail', slug=university.slug) }}"
+                        data-name="{{ university.name }}" data-nirf="{{ university.nirf }}"
+                        data-state="{{ university.state }}" data-city="{{ university.location }}"
+                        data-type="{{ university.type }}" data-stream="{{ university.stream }}">
+                        <img class="uni-logo"
+                             src="{{ university.logo_url }}"
+                             loading="lazy" onerror="this.onerror=null; this.src='{{ university.fallback_logo }}';"
+                             alt="{{ university.name }}">
+                        <div>
+                            <h2 class="uni-title">{{ university.name }}</h2>
+                            <div class="chips">
+                                <span class="chip"><i class="fa-solid fa-location-dot me-1"></i>{{ university.location }}</span>
+                                <span class="chip">{{ university.type }}</span>
+                                <span class="chip nirf">NIRF {{ university.nirf }}</span>
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                
+                <div id="emptyState" class="empty-state" style="display:none;">No universities match your selected filters.</div>
+                
+                <div class="pagination-controls d-flex justify-content-between align-items-center" id="paginationControls">
+                    <div class="page-info fw-semibold" id="pageInfo">Showing 1 to 12 of 498 entries</div>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-secondary" id="prevPage">Previous</button>
+                        <button class="btn btn-outline-secondary" id="nextPage">Next</button>
+                    </div>
+                </div>
+            </section>
         </div>
     </main>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const cards = document.querySelectorAll('.uni-card');
-            const checkboxes = document.querySelectorAll('.state-item input[type="checkbox"]');
-            const stateSearch = document.getElementById('stateSearch');
-            const stateItems = document.querySelectorAll('#stateList .state-item');
-            const emptyState = document.getElementById('emptyState');
+            const cardsWrap = document.getElementById('universityCards');
+            const allCards = Array.from(document.querySelectorAll('.uni-card'));
+            let filteredCards = [...allCards];
+            let currentPage = 1;
+            const itemsPerPage = 12;
 
-            function selectedValues(groupName) {
-                return Array.from(document.querySelectorAll(`input[data-filter-group="${groupName}"]:checked`))
-                    .map(cb => cb.value.trim());
-            }
+            const filterSelects = document.querySelectorAll('.filter-select');
+            const sortSelect = document.getElementById('sortSelect');
+            const clearBtn = document.getElementById('clearFilters');
+            const prevBtn = document.getElementById('prevPage');
+            const nextBtn = document.getElementById('nextPage');
+            const pageInfo = document.getElementById('pageInfo');
+            const emptyState = document.getElementById('emptyState');
+            const paginationControls = document.getElementById('paginationControls');
 
             function applyFilters() {
-                const stateFilters = selectedValues('state');
-                const cityFilters = selectedValues('city');
-                const typeFilters = selectedValues('type');
-                const streamFilters = selectedValues('stream');
+                const state = document.querySelector('[data-filter="state"]').value;
+                const city = document.querySelector('[data-filter="city"]').value;
+                const type = document.querySelector('[data-filter="type"]').value;
+                const stream = document.querySelector('[data-filter="stream"]').value;
 
-                let visibleCount = 0;
+                filteredCards = allCards.filter(card => {
+                    return (!state || card.dataset.state === state) &&
+                           (!city || card.dataset.city === city) &&
+                           (!type || card.dataset.type === type) &&
+                           (!stream || card.dataset.stream === stream);
+                });
 
-                cards.forEach(card => {
-                    const state = card.dataset.state || '';
-                    const city = card.dataset.city || '';
-                    const type = card.dataset.type || '';
-                    const stream = card.dataset.stream || '';
+                applySort();
+            }
 
-                    const matchesState = stateFilters.length === 0 || stateFilters.includes(state);
-                    const matchesCity = cityFilters.length === 0 || cityFilters.includes(city);
-                    const matchesType = typeFilters.length === 0 || typeFilters.includes(type);
-                    const matchesStream = streamFilters.length === 0 || streamFilters.includes(stream);
-
-                    const visible = matchesState && matchesCity && matchesType && matchesStream;
-                    card.style.display = visible ? 'grid' : 'none';
-                    if (visible) {
-                        visibleCount += 1;
+            function applySort() {
+                const sortVal = sortSelect.value;
+                
+                filteredCards.sort((a, b) => {
+                    if (sortVal === 'name-asc') {
+                        return a.dataset.name.localeCompare(b.dataset.name);
+                    } else if (sortVal === 'name-desc') {
+                        return b.dataset.name.localeCompare(a.dataset.name);
+                    } else if (sortVal === 'nirf-asc') {
+                        let na = parseInt(a.dataset.nirf);
+                        let nb = parseInt(b.dataset.nirf);
+                        if (isNaN(na)) na = 9999;
+                        if (isNaN(nb)) nb = 9999;
+                        if (na === nb) return a.dataset.name.localeCompare(b.dataset.name);
+                        return na - nb;
                     }
                 });
 
-                emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+                currentPage = 1;
+                renderPage();
             }
 
-            checkboxes.forEach(checkbox => {
-                checkbox.addEventListener('change', applyFilters);
+            function renderPage() {
+                // Hide all cards first
+                allCards.forEach(c => c.style.display = 'none');
+                
+                const start = (currentPage - 1) * itemsPerPage;
+                const end = start + itemsPerPage;
+                const paginated = filteredCards.slice(start, end);
+                
+                // Re-append to DOM in sorted order
+                paginated.forEach(c => {
+                    cardsWrap.appendChild(c); 
+                    c.style.display = 'grid';
+                });
+
+                // Update UI state
+                const total = filteredCards.length;
+                emptyState.style.display = total === 0 ? 'block' : 'none';
+                paginationControls.style.display = total === 0 ? 'none' : 'flex';
+                
+                if (total > 0) {
+                    pageInfo.textContent = `Showing ${start + 1} to ${Math.min(end, total)} of ${total} entries`;
+                }
+
+                prevBtn.disabled = currentPage === 1;
+                nextBtn.disabled = end >= total;
+            }
+
+            filterSelects.forEach(select => select.addEventListener('change', applyFilters));
+            sortSelect.addEventListener('change', applySort);
+            
+            clearBtn.addEventListener('click', () => {
+                filterSelects.forEach(select => select.value = '');
+                sortSelect.value = 'name-asc';
+                applyFilters();
             });
 
-            // Ensure correct initial state on page load
-            applyFilters();
+            prevBtn.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderPage();
+                    window.scrollTo({ top: 300, behavior: 'smooth' });
+                }
+            });
 
-            if (stateSearch) {
-                stateSearch.addEventListener('input', function () {
-                    const query = this.value.toLowerCase().trim();
-                    stateItems.forEach(item => {
-                        const text = item.textContent.toLowerCase();
-                        item.style.display = text.includes(query) ? 'flex' : 'none';
-                    });
-                });
-            }
+            nextBtn.addEventListener('click', () => {
+                const maxPage = Math.ceil(filteredCards.length / itemsPerPage);
+                if (currentPage < maxPage) {
+                    currentPage++;
+                    renderPage();
+                    window.scrollTo({ top: 300, behavior: 'smooth' });
+                }
+            });
+
+            // Initialize
+            applyFilters();
         });
     </script>
 </body>
