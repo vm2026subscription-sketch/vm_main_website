@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ university.name }} | Vidyarthi Mitra</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
+
+    <!-- Stylesheets -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #ff6600;
+            --primary-dark: #cc5200;
+            --secondary: #ff6600;
+            --text: #ffffff;
+            --muted: #94a3b8;
+            --bg-soft: #0d1627;
+            --bg-body: #050a15;
+            --line: rgba(255, 255, 255, 0.08);
+            --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            --glow: rgba(255, 102, 0, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            color: var(--text);
+            background: var(--bg-body);
+            background-image: radial-gradient(circle at 80% 20%, rgba(255, 102, 0, 0.07) 0%, transparent 50%),
+                              radial-gradient(circle at 20% 80%, rgba(0, 100, 250, 0.05) 0%, transparent 50%);
+            background-attachment: fixed;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 700;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 40px 0 60px;
+        }
+
+        /* Breadcrumbs */
+        .breadcrumb-container {
+            margin-bottom: 24px;
+        }
+
+        .custom-breadcrumb {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 0;
+            margin: 0;
+            list-style: none;
+            font-size: 0.9rem;
+        }
+
+        .custom-breadcrumb li {
+            display: flex;
+            align-items: center;
+            color: var(--muted);
+        }
+
+        .custom-breadcrumb li+li::before {
+            content: "\f105";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            padding: 0 10px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        .custom-breadcrumb a {
+            color: var(--muted);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .custom-breadcrumb a:hover {
+            color: var(--primary);
+        }
+
+        .custom-breadcrumb li.active {
+            color: #ffffff;
+            font-weight: 500;
+        }
+
+        /* Detail Panel Layout */
+        .glass-card {
+            background: var(--bg-soft);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: var(--card-shadow);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), #3b82f6);
+            opacity: 0.8;
+        }
+
+        .uni-header {
+            display: flex;
+            gap: 28px;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--line);
+            padding-bottom: 30px;
+        }
+
+        .uni-logo-large {
+            width: 110px;
+            height: 110px;
+            object-fit: contain;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.04);
+            padding: 12px;
+            flex-shrink: 0;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+        }
+
+        .uni-title-section h1 {
+            font-size: clamp(1.6rem, 3.5vw, 2.5rem);
+            margin: 0 0 12px;
+            background: linear-gradient(135deg, #ffffff 30%, #e2e8f0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.25;
+        }
+
+        .uni-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .uni-badge {
+            background: rgba(255, 255, 255, 0.05);
+            color: #cbd5e1;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 6px 14px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .uni-badge.nirf-badge {
+            background: rgba(255, 102, 0, 0.15);
+            color: var(--primary);
+            border-color: rgba(255, 102, 0, 0.3);
+            box-shadow: 0 0 15px rgba(255, 102, 0, 0.1);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 35px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 14px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .stat-card:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(255, 102, 0, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .stat-icon {
+            width: 44px;
+            height: 44px;
+            background: rgba(255, 102, 0, 0.1);
+            color: var(--primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .stat-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        .stat-value {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #f1f5f9;
+        }
+
+        /* Detailed sections */
+        .content-section {
+            margin-bottom: 30px;
+        }
+
+        .content-section h3 {
+            font-size: 1.25rem;
+            color: var(--primary);
+            margin-bottom: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .content-section p {
+            line-height: 1.75;
+            color: #cbd5e1;
+            font-size: 1rem;
+            margin-bottom: 18px;
+        }
+
+        .admissions-box {
+            background: rgba(59, 130, 246, 0.05);
+            border: 1px solid rgba(59, 130, 246, 0.15);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+
+        .admissions-box h4 {
+            font-size: 1.05rem;
+            color: #93c5fd;
+            margin-bottom: 10px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .admissions-box ul {
+            margin: 0;
+            padding-left: 20px;
+            color: #cbd5e1;
+        }
+
+        .admissions-box li {
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        /* Action Buttons */
+        .actions-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-top: 40px;
+            border-top: 1px solid var(--line);
+            padding-top: 30px;
+        }
+
+        .btn-premium {
+            font-weight: 700;
+            font-size: 0.95rem;
+            padding: 12px 28px;
+            border-radius: 12px;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            text-decoration: none;
+            border: 1.5px solid transparent;
+            cursor: pointer;
+        }
+
+        .btn-premium-primary {
+            background: var(--primary);
+            color: #000000;
+            box-shadow: 0 4px 20px var(--glow);
+        }
+
+        .btn-premium-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(255, 102, 0, 0.3);
+            color: #000000;
+        }
+
+        .btn-premium-secondary {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: var(--line);
+            color: #f1f5f9;
+        }
+
+        .btn-premium-secondary:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            transform: translateY(-2px);
+        }
+
+        /* Footer styling */
+        .site-footer {
+            background: #090e1a;
+            border-top: 1px solid var(--line);
+            color: var(--muted);
+            font-size: 0.85rem;
+            padding: 24px 0;
+            text-align: center;
+            width: 100%;
+        }
+
+        .site-footer .footer-inner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .site-footer a {
+            color: var(--primary);
+            text-decoration: none;
+            transition: color 0.2s;
+            font-weight: 500;
+        }
+
+        .site-footer a:hover {
+            color: #ffffff;
+            text-decoration: underline;
+        }
+
+        /* Light Mode Styling Overrides */
+        body.light-mode {
+            --bg-body: #f8fafc;
+            --bg-soft: #ffffff;
+            --text: #1e293b;
+            --muted: #64748b;
+            --line: #e2e8f0;
+            --card-shadow: 0 10px 40px rgba(0, 0, 0, 0.06);
+            background-image: radial-gradient(circle at 80% 20%, rgba(255, 102, 0, 0.04) 0%, transparent 50%),
+                              radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.03) 0%, transparent 50%);
+        }
+
+        body.light-mode .custom-breadcrumb li {
+            color: var(--muted);
+        }
+
+        body.light-mode .custom-breadcrumb li+li::before {
+            color: #cbd5e1;
+        }
+
+        body.light-mode .custom-breadcrumb li.active {
+            color: #0f172a;
+        }
+
+        body.light-mode .uni-title-section h1 {
+            background: linear-gradient(135deg, #0f172a 30%, #334155 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        body.light-mode .uni-badge {
+            background: #f1f5f9;
+            color: #475569;
+            border-color: #cbd5e1;
+        }
+
+        body.light-mode .uni-badge.nirf-badge {
+            background: rgba(255, 102, 0, 0.1);
+            color: #c2410c;
+            border-color: rgba(255, 102, 0, 0.2);
+        }
+
+        body.light-mode .stat-card {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+        }
+
+        body.light-mode .stat-card:hover {
+            background: #f1f5f9;
+            border-color: rgba(255, 102, 0, 0.3);
+        }
+
+        body.light-mode .stat-value {
+            color: #0f172a;
+        }
+
+        body.light-mode .stat-icon {
+            background: rgba(255, 102, 0, 0.08);
+        }
+
+        body.light-mode .content-section p {
+            color: #334155;
+        }
+
+        body.light-mode .admissions-box {
+            background: rgba(59, 130, 246, 0.03);
+            border-color: rgba(59, 130, 246, 0.1);
+        }
+
+        body.light-mode .admissions-box h4 {
+            color: #1e3a8a;
+        }
+
+        body.light-mode .admissions-box ul {
+            color: #334155;
+        }
+
+        body.light-mode .btn-premium-primary {
+            color: #ffffff;
+            background: #ea580c;
+            box-shadow: 0 4px 15px rgba(234, 88, 12, 0.2);
+        }
+
+        body.light-mode .btn-premium-primary:hover {
+            background: #c2410c;
+            box-shadow: 0 6px 20px rgba(234, 88, 12, 0.35);
+            color: #ffffff;
+        }
+
+        body.light-mode .btn-premium-secondary {
+            background: #ffffff;
+            border-color: #cbd5e1;
+            color: #475569;
+        }
+
+        body.light-mode .btn-premium-secondary:hover {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+            color: #0f172a;
+        }
+
+        body.light-mode .site-footer {
+            background: #ffffff;
+            border-top-color: #e2e8f0;
+        }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 768px) {
+            .uni-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 20px;
+                padding-bottom: 24px;
+                margin-bottom: 24px;
+            }
+
+            .uni-logo-large {
+                width: 90px;
+                height: 90px;
+                padding: 8px;
+            }
+
+            .glass-card {
+                padding: 24px;
+            }
+
+            .actions-bar {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .btn-premium {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Shared Navigation Bar -->
+    {% include '_shared_index_navbar.html' %}
+
+    <main class="main-content">
+        <div class="container">
+            <!-- Breadcrumbs -->
+            <div class="breadcrumb-container">
+                <ul class="custom-breadcrumb">
+                    <li><a href="{{ url_for('index') }}"><i class="fa-solid fa-house me-1"></i>Home</a></li>
+                    <li><a href="{{ url_for('universities') }}">Universities</a></li>
+                    <li class="active">{{ university.name }}</li>
+                </ul>
+            </div>
+
+            <!-- Detail Glass Card -->
+            <div class="glass-card">
+                <!-- University Title and Logo -->
+                <div class="uni-header">
+                    <img class="uni-logo-large" src="{{ university.logo_url }}" 
+                         onerror="this.onerror=null; this.src='{{ university.fallback_logo }}';" 
+                         alt="{{ university.name }} Logo">
+                    <div class="uni-title-section">
+                        <h1>{{ university.name }}</h1>
+                        <div class="uni-badges">
+                            <span class="uni-badge"><i class="fa-solid fa-location-dot"></i>{{ university.location }}, {{ university.state }}</span>
+                            <span class="uni-badge"><i class="fa-solid fa-building-columns"></i>{{ university.type }}</span>
+                            <span class="uni-badge"><i class="fa-solid fa-graduation-cap"></i>{{ university.stream }} Focus</span>
+                            {% if university.nirf and university.nirf != 'N/A' %}
+                            <span class="uni-badge nirf-badge"><i class="fa-solid fa-award"></i>NIRF: #{{ university.nirf }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Summary Row -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fa-solid fa-map-location-dot"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">State Hub</span>
+                            <span class="stat-value">{{ university.state }}</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fa-solid fa-network-wired"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Institution Category</span>
+                            <span class="stat-value">{{ university.type }}</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fa-solid fa-book-open"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Academic Stream</span>
+                            <span class="stat-value">{{ university.stream }}</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fa-solid fa-ranking-star"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">National Rank</span>
+                            <span class="stat-value">{% if university.nirf and university.nirf != 'N/A' %}NIRF {{ university.nirf }}{% else %}Rank N/A{% endif %}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section: Overview -->
+                <div class="content-section">
+                    <h3><i class="fa-solid fa-circle-info"></i>Overview</h3>
+                    <p>{{ university.description }}</p>
+                </div>
+
+                <!-- Section: Admissions and Courses Details -->
+                <div class="content-section">
+                    <h3><i class="fa-solid fa-circle-nodes"></i>Academics & Admissions</h3>
+                    <p>
+                        {{ university.name }} offers competitive educational programs tailored to its primary stream focus ({{ university.stream }}).
+                        The curriculum is designed in alignment with national education directives to cultivate high industry readiness, practical application, and scientific inquiry.
+                    </p>
+                    
+                    <div class="admissions-box">
+                        <h4><i class="fa-solid fa-calendar-check"></i>General Admission Intake Guidelines</h4>
+                        <ul>
+                            {% if university.stream == 'Technology' %}
+                            <li>Engineering & Technical admissions are primarily based on national exams like <strong>JEE Main</strong> / <strong>JEE Advanced</strong> or state exams (e.g., <strong>MHT-CET</strong> in Maharashtra).</li>
+                            <li>Selection is processed through standardized centralized counseling (e.g., JoSAA, CSAB, or State DTE CAP rounds).</li>
+                            {% elif university.stream == 'Management' %}
+                            <li>Management degrees (MBA / PGDM) require valid test scores in <strong>CAT</strong>, <strong>XAT</strong>, <strong>MAT</strong>, or <strong>CMAT</strong>.</li>
+                            <li>The selection process incorporates entrance score weights followed by Group Discussions (GD) and Personal Interviews (PI).</li>
+                            {% elif university.stream == 'Medical' %}
+                            <li>Medical and healthcare programs mandate clearing the National Eligibility cum Entrance Test (<strong>NEET-UG</strong> or <strong>NEET-PG</strong>).</li>
+                            <li>Counseling rounds are overseen by MCC or state counseling authorities.</li>
+                            {% else %}
+                            <li>General streams (Arts, Science, Commerce, and Humanities) typically utilize common entrance tests (such as <strong>CUET</strong>) or qualify students based on merit lists derived from qualifying board examination percentages.</li>
+                            <li>Specialized professional courses within the university may require distinct aptitude assessments.</li>
+                            {% endif %}
+                            <li>Official applications, fee lists, schedule details, and seating allocation counts are released annually on the university's official portal.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Action Button Block -->
+                <div class="actions-bar">
+                    <!-- Hyperlink to relocate to main website as requested -->
+                    <a href="{{ university.source_url }}" target="_blank" rel="noopener noreferrer" class="btn-premium btn-premium-primary">
+                        <i class="fa-solid fa-up-right-from-square"></i>Visit Official Website
+                    </a>
+                    
+                    <a href="{{ url_for('universities') }}" class="btn-premium btn-premium-secondary">
+                        <i class="fa-solid fa-arrow-left"></i>Back to Universities
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Standard Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-inner">
+                <div>© 2026 VidyarthiMitra.org - All Rights Reserved</div>
+                <div>
+                    <a href="{{ url_for('refund_policy') }}">Refund & Cancellation</a>
+                    <span> | </span>
+                    <a href="{{ url_for('contact') }}">Contact Us</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Check if dark/light mode toggle exists on the parent page or localstorage
+        // Wait, the _shared_index_navbar script automatically applies light-mode to document.body
+        // on load. Let's make sure it handles any storage checks correctly.
+    </script>
+</body>
+
+</html>
