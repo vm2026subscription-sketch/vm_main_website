@@ -16,11 +16,11 @@ let pageCount    = PAGE_SIZE;
 
 /* Category mapping: API -> UI */
 const categoryMap = {
-  "entrance": { ui: "entrance", label: "Entrance Exams", emoji: "📝", bgCls: "bg-exam" },
-  "results": { ui: "results", label: "Results", emoji: "📊", bgCls: "bg-exam" },
-  "admissions": { ui: "admissions", label: "Admissions", emoji: "🏛️", bgCls: "bg-admission" },
-  "govtjobs": { ui: "govt", label: "Govt Jobs", emoji: "👮", bgCls: "bg-govt" },
-  "scholarship": { ui: "scholar", label: "Scholarships", emoji: "💰", bgCls: "bg-scholar" }
+  "entrance": { ui: "entrance", label: "Entrance Exams", img: "https://images.unsplash.com/photo-1546410531-bd4cb0153f3e?auto=format&fit=crop&w=400&q=80", bgCls: "bg-exam" },
+  "results": { ui: "results", label: "Results", img: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=400&q=80", bgCls: "bg-exam" },
+  "admissions": { ui: "admissions", label: "Admissions", img: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=400&q=80", bgCls: "bg-admission" },
+  "govtjobs": { ui: "govt", label: "Govt Jobs", img: "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?auto=format&fit=crop&w=400&q=80", bgCls: "bg-govt" },
+  "scholarship": { ui: "scholar", label: "Scholarships", img: "https://images.unsplash.com/photo-1532619675605-1ede6c2ed2b0?auto=format&fit=crop&w=400&q=80", bgCls: "bg-scholar" }
 };
 
 /* ══════════════════════════════════════════════════
@@ -62,12 +62,28 @@ async function fetchNews() {
       else if (diffMins < 60) dateStr = `${diffMins} min${diffMins !== 1 ? 's' : ''} ago`;
       else if (diffHours < 24) dateStr = `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
       else if (diffDays < 7) dateStr = `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
-      else dateStr = dateObj.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
-      
+      const fallbackImgs = [
+        'https://media.istockphoto.com/id/2177186284/photo/may-i-answer-your-question-professor.jpg?s=612x612&w=0&k=20&c=q7jhVUW8r3K6GJESS_5L8QS_4wOuRSb1ChfHsK_7aJI=',
+        'https://img.jagranjosh.com/imported/images/E/Articles/Tips-to-Focus-Better-on-Your-Studies-Body-Image.webp',
+        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR064b87YTte8BtmZRUcceOKfi-V7LmTVwvtA&s'
+      ];
+      let imgUrl = fallbackImgs[idx % fallbackImgs.length];
+      const titleLower = article.title ? article.title.toLowerCase() : '';
+      const descLower = article.desc ? article.desc.toLowerCase() : '';
+      if (titleLower.includes('neet') || descLower.includes('neet')) {
+        imgUrl = 'https://csacademy.in/wp-content/uploads/2021/05/blog-image10.jpg';
+      } else if (titleLower.includes('jee') || descLower.includes('jee')) {
+        imgUrl = 'https://www.shutterstock.com/image-photo/jee-joint-entrance-examination-conducted-260nw-2279191817.jpg';
+      } else if (titleLower.includes('nda') || descLower.includes('nda')) {
+        imgUrl = 'https://i.pinimg.com/736x/74/fa/7f/74fa7f7cb31d44075a8c7cc76f6da589.jpg';
+      } else if (titleLower.includes('result') || descLower.includes('result')) {
+        imgUrl = 'https://img.freepik.com/free-photo/results-evaluate-progress-outcome-productivity-concept_53876-121131.jpg';
+      }
+
       return {
         id: idx,
         cat: catInfo.ui,
-        emoji: catInfo.emoji,
+        img: imgUrl,
         bgCls: catInfo.bgCls,
         badgeCls: catInfo.ui,
         label: catInfo.label,
@@ -134,8 +150,8 @@ function renderGrid() {
     card.style.animationDelay = (i * 0.05) + 's';
     card.innerHTML = `
       <div class="card-stripe ${a.cat}"></div>
-      <div class="card-thumb ${a.bgCls}">
-        ${a.emoji}
+      <div class="card-thumb ${a.bgCls}" style="padding: 0;">
+        <img src="${a.img}" alt="News Thumbnail" style="width: 100%; height: 100%; object-fit: cover;">
         <div class="card-thumb-badge ${a.badgeCls}">${a.label}</div>
         ${a.hot ? '<div class="card-hot">Hot</div>' : ''}
       </div>
@@ -235,6 +251,16 @@ function openModal(id) {
   }
   document.getElementById('mBody').innerHTML = bodyHtml;
 
+  const fullBtn = document.getElementById('mFullArticleBtn');
+  if (fullBtn) {
+    if (a.link) {
+      fullBtn.style.display = 'inline-flex';
+      fullBtn.onclick = () => window.open(a.link, '_blank');
+    } else {
+      fullBtn.style.display = 'none';
+    }
+  }
+
   updateModalBookmark();
   document.getElementById('modalBg').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -302,6 +328,37 @@ document.addEventListener('DOMContentLoaded', function () {
       renderGrid();
     });
   }
+
+  /* Tag pills */
+  document.querySelectorAll('.tag-pill').forEach(pill => {
+    pill.addEventListener('click', function(e) {
+      e.preventDefault();
+      // Remove emoji/extra text if any
+      const tagText = this.textContent.replace(/[^\w\s-]/gi, '').trim();
+      if (searchInput) {
+        searchInput.value = tagText;
+        searchQuery = tagText;
+        pageCount = PAGE_SIZE;
+        renderGrid();
+        // Optional: Scroll to news grid
+        document.getElementById('newsGrid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+
+  /* Most Read items */
+  document.querySelectorAll('.story-list-item').forEach(item => {
+    item.addEventListener('click', function() {
+      const title = this.querySelector('h5').textContent.trim();
+      if (searchInput) {
+        searchInput.value = title;
+        searchQuery = title;
+        pageCount = PAGE_SIZE;
+        renderGrid();
+        document.getElementById('newsGrid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
 
   /* Load more button */
   const loadMoreBtn = document.getElementById('loadMoreBtn');
