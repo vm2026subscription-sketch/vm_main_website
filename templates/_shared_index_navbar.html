@@ -643,7 +643,7 @@
           <a href="{{ url_for('exams') }}">Entrance Exams</a>
           <a href="{{ url_for('mock_exams') }}">Mock Exams</a>
           <a href="{{ url_for('cutoffs') }}" style="opacity:.6;pointer-events:none;">Cut-offs <span style="background:#ff6600;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:4px;vertical-align:middle;">SOON</span></a>
-          <a href="{{ url_for('fyjc_rank') }}" style="opacity:.6;pointer-events:none;">FYJC Rank Predictor <span style="background:#ff6600;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:4px;vertical-align:middle;">SOON</span></a>
+          <a href="{{ url_for('fyjc_rank') }}">FYJC Rank Predictor</a>
         </div>
       </div>
 
@@ -711,7 +711,7 @@
     }
 
     var searchItems = [
-      { keywords: ['fyjc', 'rank', 'predictor', 'fyjc rank', 'rank predictor', 'junior college', '11th admission'], url: '{{ url_for("fyjc_rank") }}', label: 'FYJC Rank Predictor (Coming Soon)' },
+      { keywords: ['fyjc', 'rank', 'predictor', 'fyjc rank', 'rank predictor', 'junior college', '11th admission'], url: '{{ url_for("fyjc_rank") }}', label: 'FYJC Rank Predictor' },
       { keywords: ['cutoff', 'cut-off', 'cut off', 'cutoffs', 'merit list', 'marks'], url: '{{ url_for("cutoffs") }}', label: 'College Cut-offs (Coming Soon)' },
       { keywords: ['admission', 'admissions', 'dte', 'cap', 'counselling', 'process'], url: '{{ url_for("admissions") }}', label: 'Admissions & CAP Process' },
       { keywords: ['university', 'universities', 'institutions', 'campus'], url: '{{ url_for("universities") }}', label: 'Explore Universities' },
