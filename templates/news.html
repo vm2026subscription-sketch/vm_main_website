@@ -1,22 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
-  <title>Education News | Vidyarthi Mitra</title>
+  <title>EducationNews | Vidyarthi Mitra</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
 
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-   <!-- Font Awesome Icons -->
+  <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 
   <!-- Page Styles -->
   <link rel="stylesheet" href="{{ url_for('static', filename='news.css') }}">
 </head>
+
 <body>
-{% include '_shared_index_navbar.html' %}
+  {% include '_shared_index_navbar.html' %}
 
   <!-- BREAKING NEWS TICKER -->
   <div class="ticker-bar">
@@ -49,7 +51,8 @@
   <!-- MASTHEAD -->
   <header class="masthead">
     <div class="masthead-inner">
-      <a href="/" class="masthead-logo">&#2357;&#2367;&#2342;&#2381;&#2351;&#2366;&#2352;&#2381;&#2341;&#2368; <span>&#2350;&#2367;&#2340;&#2381;&#2352;.org</span></a>
+      <a href="/" class="masthead-logo">&#2357;&#2367;&#2342;&#2381;&#2351;&#2366;&#2352;&#2381;&#2341;&#2368;
+        <span>&#2350;&#2367;&#2340;&#2381;&#2352;.org</span></a>
       <div class="masthead-divider"></div>
       <div class="masthead-title">Education News</div>
       <div class="masthead-search">
@@ -82,7 +85,8 @@
         <div class="hero-story-content">
           <div class="story-category"><i class="fa fa-bolt"></i> Top Story</div>
           <h2>DTE Maharashtra Admissions 2026-27: Option Form Filling Guide Released</h2>
-          <p>The Directorate of Technical Education has published the comprehensive guide for engineering option form filling. Students are advised to carefully study the cut-off trends before locking preferences.</p>
+          <p>The Directorate of Technical Education has published the comprehensive guide for engineering option form
+            filling. Students are advised to carefully study the cut-off trends before locking preferences.</p>
           <div class="hero-meta">
             <span><i class="fa fa-calendar"></i> March 2, 2026</span>
             <span><i class="fa fa-clock"></i> 5 min read</span>
@@ -102,51 +106,58 @@
       <!-- Cards populated by JS -->
       <div class="news-grid" id="newsGrid">
         {% if initial_articles %}
-          {% for article in initial_articles %}
-            {% set badge_label = category_labels.get(article.category, article.category|title) %}
-            {% set stripe_class = 'admission' if article.category == 'admissions' else 'results' if article.category == 'results' else 'govt' if article.category == 'govtjobs' else 'scholar' if article.category == 'scholarship' else 'exams' %}
-            {% set thumb_class = 'bg-admission' if article.category == 'admissions' else 'bg-result' if article.category == 'results' else 'bg-govt' if article.category == 'govtjobs' else 'bg-scholar' if article.category == 'scholarship' else 'bg-exam' %}
-            {% set fallback_imgs = [
-              'https://media.istockphoto.com/id/2177186284/photo/may-i-answer-your-question-professor.jpg?s=612x612&w=0&k=20&c=q7jhVUW8r3K6GJESS_5L8QS_4wOuRSb1ChfHsK_7aJI=',
-              'https://img.jagranjosh.com/imported/images/E/Articles/Tips-to-Focus-Better-on-Your-Studies-Body-Image.webp',
-              'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR064b87YTte8BtmZRUcceOKfi-V7LmTVwvtA&s'
-            ] %}
-            {% set img_url = fallback_imgs | random %}
-            {% if 'neet' in article.title|lower or 'neet' in article.desc|lower %}
-              {% set img_url = 'https://csacademy.in/wp-content/uploads/2021/05/blog-image10.jpg' %}
-            {% elif 'jee' in article.title|lower or 'jee' in article.desc|lower %}
-              {% set img_url = 'https://www.shutterstock.com/image-photo/jee-joint-entrance-examination-conducted-260nw-2279191817.jpg' %}
-            {% elif 'nda' in article.title|lower or 'nda' in article.desc|lower %}
-              {% set img_url = 'https://i.pinimg.com/736x/74/fa/7f/74fa7f7cb31d44075a8c7cc76f6da589.jpg' %}
-            {% elif 'result' in article.title|lower or 'result' in article.desc|lower %}
-              {% set img_url = 'https://img.freepik.com/free-photo/results-evaluate-progress-outcome-productivity-concept_53876-121131.jpg' %}
-            {% endif %}
-            <div class="news-card" data-fallback="true">
-              <div class="card-stripe {{ stripe_class }}"></div>
-              <div class="card-thumb {{ thumb_class }}" style="padding: 0;">
-                <img src="{{ img_url }}" alt="News Thumbnail" style="width: 100%; height: 100%; object-fit: cover;">
-                <div class="card-thumb-badge {{ article.category if article.category != 'admissions' else 'admission' }}">{{ badge_label }}</div>
-              </div>
-              <div class="card-body">
-                <div class="card-source" style="font-size: 11px; color: #888; margin-bottom: 6px;">
-                  <i class="fa fa-globe"></i> {{ article.source }}
-                </div>
-                <div class="card-headline">{{ article.title }}</div>
-                <div class="card-excerpt">{{ article.desc }}</div>
-              </div>
-              <div class="card-footer">
-                <div class="card-meta-info">
-                  <div class="card-time"><i class="fa fa-clock"></i> {{ article.date[:10] }}</div>
-                  <div class="card-read">Latest</div>
-                </div>
-                <div class="card-actions">
-                  <a class="btn-action" href="{{ article.link }}" target="_blank" rel="noopener" title="Open source">
-                    <i class="fa fa-external-link-alt"></i>
-                  </a>
-                </div>
-              </div>
+        {% for article in initial_articles %}
+        {% set badge_label = category_labels.get(article.category, article.category|title) %}
+        {% set stripe_class = 'admission' if article.category == 'admissions' else 'results' if article.category ==
+        'results' else 'govt' if article.category == 'govtjobs' else 'scholar' if article.category == 'scholarship' else
+        'exams' %}
+        {% set thumb_class = 'bg-admission' if article.category == 'admissions' else 'bg-result' if article.category ==
+        'results' else 'bg-govt' if article.category == 'govtjobs' else 'bg-scholar' if article.category ==
+        'scholarship' else 'bg-exam' %}
+        {% set fallback_imgs = [
+        'https://media.istockphoto.com/id/2177186284/photo/may-i-answer-your-question-professor.jpg?s=612x612&w=0&k=20&c=q7jhVUW8r3K6GJESS_5L8QS_4wOuRSb1ChfHsK_7aJI=',
+        'https://img.jagranjosh.com/imported/images/E/Articles/Tips-to-Focus-Better-on-Your-Studies-Body-Image.webp',
+        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR064b87YTte8BtmZRUcceOKfi-V7LmTVwvtA&s'
+        ] %}
+        {% set img_url = fallback_imgs | random %}
+        {% if 'neet' in article.title|lower or 'neet' in article.desc|lower %}
+        {% set img_url = 'https://csacademy.in/wp-content/uploads/2021/05/blog-image10.jpg' %}
+        {% elif 'jee' in article.title|lower or 'jee' in article.desc|lower %}
+        {% set img_url =
+        'https://www.shutterstock.com/image-photo/jee-joint-entrance-examination-conducted-260nw-2279191817.jpg' %}
+        {% elif 'nda' in article.title|lower or 'nda' in article.desc|lower %}
+        {% set img_url = 'https://i.pinimg.com/736x/74/fa/7f/74fa7f7cb31d44075a8c7cc76f6da589.jpg' %}
+        {% elif 'result' in article.title|lower or 'result' in article.desc|lower %}
+        {% set img_url =
+        'https://img.freepik.com/free-photo/results-evaluate-progress-outcome-productivity-concept_53876-121131.jpg' %}
+        {% endif %}
+        <div class="news-card" data-fallback="true">
+          <div class="card-stripe {{ stripe_class }}"></div>
+          <div class="card-thumb {{ thumb_class }}" style="padding: 0;">
+            <img src="{{ img_url }}" alt="News Thumbnail" style="width: 100%; height: 100%; object-fit: cover;">
+            <div class="card-thumb-badge {{ article.category if article.category != 'admissions' else 'admission' }}">{{
+              badge_label }}</div>
+          </div>
+          <div class="card-body">
+            <div class="card-source" style="font-size: 11px; color: #888; margin-bottom: 6px;">
+              <i class="fa fa-globe"></i> {{ article.source }}
             </div>
-          {% endfor %}
+            <div class="card-headline">{{ article.title }}</div>
+            <div class="card-excerpt">{{ article.desc }}</div>
+          </div>
+          <div class="card-footer">
+            <div class="card-meta-info">
+              <div class="card-time"><i class="fa fa-clock"></i> {{ article.date[:10] }}</div>
+              <div class="card-read">Latest</div>
+            </div>
+            <div class="card-actions">
+              <a class="btn-action" href="{{ article.link }}" target="_blank" rel="noopener" title="Open source">
+                <i class="fa fa-external-link-alt"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
         {% endif %}
       </div>
 
@@ -261,16 +272,16 @@
         <p style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6;">
           Get the most important education news delivered to your inbox every morning.
         </p>
-       <div class="nl-form">
-  <input type="email" id="nlEmail" placeholder="your@email.com" required> 
-  <button onclick="validateSubscription()">
-    <i class="fa fa-paper-plane"></i> Subscribe Free
-  </button>
-</div>
+        <div class="nl-form">
+          <input type="email" id="nlEmail" placeholder="your@email.com" required>
+          <button onclick="validateSubscription()">
+            <i class="fa fa-paper-plane"></i> Subscribe Free
+          </button>
         </div>
       </div>
+  </div>
 
-    </aside>
+  </aside>
   </div>
 
   <!-- MODAL -->
@@ -314,6 +325,5 @@
   <script src="{{ url_for('static', filename='news.js') }}"></script>
 
 </body>
+
 </html>
-
-
