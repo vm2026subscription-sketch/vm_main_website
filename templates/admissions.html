@@ -206,76 +206,59 @@
 <!-- MAIN CONTENT -->
 <div class="adm-main">
 
-  <!-- COMING SOON STATE -->
+  {% if admissions_data %}
+  <div class="adm-info-grid" id="admGrid">
+    {% for a in admissions_data %}
+    {% set stream_key = a.get('stream','other')|lower|replace(' ','') %}
+    <div class="adm-info-card" data-stream="{{ stream_key }}">
+      <span style="display:inline-block;background:rgba(255,102,0,0.15);border:1px solid rgba(255,102,0,0.35);color:#ff6600;font-size:10px;font-weight:700;padding:3px 10px;border-radius:12px;text-transform:uppercase;margin-bottom:6px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ a.get('stream','') }}</span>
+      {% if a.get('status') %}
+      <div style="font-size:11px;color:{% if 'Active' in a.get('status','') %}#22c55e{% else %}#94a3b8{% endif %};margin-bottom:8px;">● {{ a.get('status','').split('–')[0] if '–' in a.get('status','') else a.get('status','') }}</div>
+      {% endif %}
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:4px;color:#fff;line-height:1.3;">{{ a.get('course_name') or a.get('process','') }}</h3>
+      <p style="font-size:12px;color:#94a3b8;margin-bottom:10px;">{{ a.get('state','') }}{% if a.get('level') %} · {{ a.get('level','') }}{% endif %}</p>
+      {% if a.get('exam_name') %}
+      <p style="font-size:12px;margin-bottom:5px;color:#e2e8f0;"><i class="fa fa-file-alt" style="color:#ff6600;margin-right:5px;width:12px;"></i><strong>Exam:</strong> {{ a.get('exam_name','') }}</p>
+      {% endif %}
+      {% if a.get('eligibility') %}
+      <p style="font-size:12px;margin-bottom:5px;color:#e2e8f0;"><i class="fa fa-check-circle" style="color:#ff6600;margin-right:5px;width:12px;"></i>{{ a.get('eligibility','') }}</p>
+      {% endif %}
+      {% if a.get('important_dates') %}
+      <p style="font-size:11px;margin-bottom:8px;color:#94a3b8;line-height:1.5;border-left:2px solid rgba(255,102,0,0.4);padding-left:8px;"><i class="fa fa-calendar" style="color:#ff6600;margin-right:4px;"></i>{{ a.get('important_dates','') }}</p>
+      {% endif %}
+      {% if a.get('admission_body') %}
+      <p style="font-size:11px;color:#64748b;margin-bottom:10px;">{{ a.get('admission_body','') }}</p>
+      {% endif %}
+      {% if a.get('official_link') %}
+      <a href="{{ a.get('official_link','') }}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:#ff6600;text-decoration:none;margin-top:4px;">
+        <i class="fa fa-external-link-alt"></i> Official Website
+      </a>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
   <div class="adm-coming-soon">
     <div class="cs-icon">&#128203;</div>
     <h2>Admissions 2026-27 — Coming Soon</h2>
-    <p>
-      Admission notices for 2026-27 are being compiled and will be published here as soon as officially announced.
-      Check back regularly or subscribe to our updates to be notified.
-    </p>
+    <p>Admission notices are being compiled and will be published here soon.</p>
     <div class="adm-cta-row">
-      <a class="adm-btn adm-btn-primary" href="{{ url_for('news') }}">
-        <i class="fa-solid fa-bell"></i> Latest Admission News
-      </a>
-      <a class="adm-btn adm-btn-outline" href="{{ url_for('cutoffs') }}">
-        <i class="fa-solid fa-chart-bar"></i> View Cut-offs
-      </a>
-      <a class="adm-btn adm-btn-outline" href="{{ url_for('guide_me') }}">
-        <i class="fa-solid fa-compass"></i> Get Guidance
-      </a>
+      <a class="adm-btn adm-btn-primary" href="{{ url_for('news') }}"><i class="fa-solid fa-bell"></i> Latest Admission News</a>
+      <a class="adm-btn adm-btn-outline" href="{{ url_for('guide_me') }}"><i class="fa-solid fa-compass"></i> Get Guidance</a>
     </div>
   </div>
+  {% endif %}
 
-  <!-- QUICK REFERENCE CARDS -->
-  <div class="adm-info-grid">
-    <div class="adm-info-card">
-      <div class="aic-icon">&#9881;&#65039;</div>
-      <h3>Engineering (B.E / B.Tech)</h3>
-      <p>MHT-CET / JEE Main based admissions via DTE Maharashtra CAP rounds. <a href="{{ url_for('cutoffs') }}">View cut-offs →</a></p>
-    </div>
-    <div class="adm-info-card">
-      <div class="aic-icon">&#127968;</div>
-      <h3>MBBS / BDS</h3>
-      <p>NEET UG mandatory. Maharashtra state quota via CET Cell counselling. <a href="{{ url_for('exams') }}">Exam details →</a></p>
-    </div>
-    <div class="adm-info-card">
-      <div class="aic-icon">&#128200;</div>
-      <h3>MBA / MMS</h3>
-      <p>MAH-MBA CET based admissions. CAP round conducted by DTE Maharashtra. <a href="{{ url_for('cutoffs') }}">View cut-offs →</a></p>
-    </div>
-    <div class="adm-info-card">
-      <div class="aic-icon">&#127963;&#65039;</div>
-      <h3>Architecture (B.Arch)</h3>
-      <p>NATA score mandatory. JEE Main Paper 2 also accepted for national quota. <a href="{{ url_for('exams') }}">Exam details →</a></p>
-    </div>
-    <div class="adm-info-card">
-      <div class="aic-icon">&#128138;</div>
-      <h3>Pharmacy (B.Pharm)</h3>
-      <p>MHT-CET (PCB/PCM) for Maharashtra state. DTE CAP process. <a href="{{ url_for('cutoffs') }}">View cut-offs →</a></p>
-    </div>
-    <div class="adm-info-card">
-      <div class="aic-icon">&#9878;&#65039;</div>
-      <h3>Law (LLB / BA LLB)</h3>
-      <p>MH-CET LAW for Maharashtra NLUs and government law colleges. <a href="{{ url_for('exams') }}">Exam details →</a></p>
-    </div>
-    <div class="adm-info-card">
-      <div class="aic-icon">&#127807;</div>
-      <h3>Agriculture (B.Sc.)</h3>
-      <p>MHT-CET (PCB) based. 7/12 farmer certificate preferred. <a href="{{ url_for('cutoffs') }}">View cut-offs →</a></p>
-    </div>
-    <div class="adm-info-card">
-      <div class="aic-icon">&#127891;</div>
-      <h3>FYJC (11th Admissions)</h3>
-      <p>Mumbai, Pune and other boards announce schedules in June. <a href="{{ url_for('fyjc_rank') }}">Rank Predictor →</a></p>
-    </div>
-  </div>
 </div>
 
 <script>
 function filterAdm(btn, cat) {
   document.querySelectorAll('.adm-cat-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+  document.querySelectorAll('#admGrid .adm-info-card').forEach(card => {
+    const stream = (card.dataset.stream || '').toLowerCase();
+    card.style.display = (cat === 'all' || stream.includes(cat)) ? '' : 'none';
+  });
 }
 </script>
 {% endblock %}
