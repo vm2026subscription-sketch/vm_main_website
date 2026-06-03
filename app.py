@@ -181,6 +181,11 @@ UPLOAD_TARGET_TABLES = [
     {"value": "colleges", "label": "Colleges"},
     {"value": "courses", "label": "Courses"},
     {"value": "entrance_exams", "label": "Entrance Exams"},
+    {"value": "blogs", "label": "Blog Articles"},
+    {"value": "admissions", "label": "Admissions"},
+    {"value": "exam_updates", "label": "Exam Updates"},
+    {"value": "govt_jobs", "label": "Govt Jobs"},
+    {"value": "scholarships", "label": "Scholarships"},
 ]
 
 BTECH_CUTOFF_DIR = os.path.join(app.root_path, "data", "btech")
