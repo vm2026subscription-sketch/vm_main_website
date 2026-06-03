@@ -39,6 +39,7 @@ header::before {
   width: 220px; height: 220px;
   background: radial-gradient(circle, rgba(255,107,0,.25) 0%, transparent 70%);
   border-radius: 50%;
+  pointer-events: none;
 }
 
 header::after {
@@ -48,6 +49,7 @@ header::after {
   width: 160px; height: 160px;
   background: radial-gradient(circle, rgba(0,137,123,.2) 0%, transparent 70%);
   border-radius: 50%;
+  pointer-events: none;
 }
 
 .header-top {
