@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Dashboard | Vidyarthi Mitra</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Your personalized student dashboard on Vidyarthi Mitra — quick access to exams, admissions, news, and tools.">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+</head>
+<body>
+  {% include '_shared_index_navbar.html' %}
+
+  <!-- ═══════════════════════ WELCOME HERO ═══════════════════════ -->
+  <section class="dash-hero">
+    <div class="dash-hero-inner">
+      <div class="dash-hero-avatar" id="dashAvatar">
+        <span id="avatarInitials">{{ user.name[0]|upper }}</span>
+      </div>
+      <div class="dash-hero-text">
+        <h1 id="dashGreeting">Hello</h1>
+        <p class="dash-hero-sub">Welcome back, <strong>{{ user.name }}</strong> 👋</p>
+        <p class="dash-hero-email"><i class="fa fa-envelope"></i> {{ user.email }}</p>
+      </div>
+      <div class="dash-hero-actions">
+        <a href="{{ url_for('logout') }}" class="dash-btn dash-btn-outline"><i class="fa fa-sign-out-alt"></i> Logout</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ QUICK ACTIONS ═══════════════════════ -->
+  <section class="dash-section">
+    <div class="dash-container">
+      <h2 class="dash-section-title"><i class="fa fa-bolt" style="color:#ff6600;"></i> Quick Actions</h2>
+      <div class="dash-actions-grid">
+
+        <a href="{{ url_for('exams') }}" class="dash-action-card" style="--accent: #f97316;">
+          <div class="dac-icon"><i class="fa fa-clipboard-list"></i></div>
+          <div class="dac-content">
+            <h3>Entrance Exams</h3>
+            <p>JEE, NEET, CET info & schedules</p>
+          </div>
+          <i class="fa fa-arrow-right dac-arrow"></i>
+        </a>
+
+        <a href="{{ url_for('mock_exams') }}" class="dash-action-card" style="--accent: #8b5cf6;">
+          <div class="dac-icon"><i class="fa fa-pen-ruler"></i></div>
+          <div class="dac-content">
+            <h3>Mock Exams</h3>
+            <p>Practice tests for all major exams</p>
+          </div>
+          <i class="fa fa-arrow-right dac-arrow"></i>
+        </a>
+
+        <a href="{{ url_for('universities') }}" class="dash-action-card" style="--accent: #06b6d4;">
+          <div class="dac-icon"><i class="fa fa-university"></i></div>
+          <div class="dac-content">
+            <h3>Universities</h3>
+            <p>Browse 490+ universities across India</p>
+          </div>
+          <i class="fa fa-arrow-right dac-arrow"></i>
+        </a>
+
+        <a href="{{ url_for('colleges') }}" class="dash-action-card" style="--accent: #10b981;">
+          <div class="dac-icon"><i class="fa fa-building-columns"></i></div>
+          <div class="dac-content">
+            <h3>Colleges</h3>
+            <p>Find the right college for you</p>
+          </div>
+          <i class="fa fa-arrow-right dac-arrow"></i>
+        </a>
+
+        <a href="{{ url_for('admissions') }}" class="dash-action-card" style="--accent: #ec4899;">
+          <div class="dac-icon"><i class="fa fa-graduation-cap"></i></div>
+          <div class="dac-content">
+            <h3>Admissions</h3>
+            <p>2026-27 admission alerts & schedules</p>
+          </div>
+          <i class="fa fa-arrow-right dac-arrow"></i>
+        </a>
+
+        <a href="{{ url_for('news') }}" class="dash-action-card" style="--accent: #eab308;">
+          <div class="dac-icon"><i class="fa fa-newspaper"></i></div>
+          <div class="dac-content">
+            <h3>Education News</h3>
+            <p>Latest education news & updates</p>
+          </div>
+          <i class="fa fa-arrow-right dac-arrow"></i>
+        </a>
+
+        <a href="{{ url_for('cutoffs') }}" class="dash-action-card" style="--accent: #ef4444;">
+          <div class="dac-icon"><i class="fa fa-chart-bar"></i></div>
+          <div class="dac-content">
+            <h3>Cut-offs</h3>
+            <p>Previous year cut-off analysis</p>
+          </div>
+          <i class="fa fa-arrow-right dac-arrow"></i>
+        </a>
+
+        <a href="{{ url_for('guide_me') }}" class="dash-action-card" style="--accent: #14b8a6;">
+          <div class="dac-icon"><i class="fa fa-compass"></i></div>
+          <div class="dac-content">
+            <h3>Guide Me</h3>
+            <p>Career guidance & counselling</p>
+          </div>
+          <i class="fa fa-arrow-right dac-arrow"></i>
+        </a>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ RECENT NEWS ═══════════════════════ -->
+  <section class="dash-section">
+    <div class="dash-container">
+      <div class="dash-section-header">
+        <h2 class="dash-section-title"><i class="fa fa-fire" style="color:#ff6600;"></i> Latest News</h2>
+        <a href="{{ url_for('news') }}" class="dash-see-all">See All <i class="fa fa-arrow-right"></i></a>
+      </div>
+      <div class="dash-news-grid" id="dashNewsGrid">
+        <div class="dash-news-loading">
+          <i class="fa fa-spinner fa-spin"></i> Loading latest news...
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ TOOLS STRIP ═══════════════════════ -->
+  <section class="dash-section dash-tools-section">
+    <div class="dash-container">
+      <h2 class="dash-section-title"><i class="fa fa-wrench" style="color:#ff6600;"></i> Student Tools</h2>
+      <div class="dash-tools-grid">
+
+        <a href="{{ url_for('fyjc_rank') }}" class="dash-tool-card">
+          <div class="dtc-icon">🎯</div>
+          <h4>FYJC Rank Predictor</h4>
+          <p>Predict your 11th admission rank</p>
+        </a>
+
+        <a href="{{ url_for('epaper.epaper_viewer') }}" class="dash-tool-card">
+          <div class="dtc-icon">📰</div>
+          <h4>E-Paper</h4>
+          <p>Read today's education newspaper</p>
+        </a>
+
+        <a href="{{ url_for('articles') }}" class="dash-tool-card">
+          <div class="dtc-icon">📚</div>
+          <h4>Career Articles</h4>
+          <p>Explore career paths & guides</p>
+        </a>
+
+        <a href="{{ url_for('govt_jobs') }}" class="dash-tool-card">
+          <div class="dtc-icon">👮</div>
+          <h4>Govt Jobs</h4>
+          <p>Latest government job openings</p>
+        </a>
+
+        <a href="{{ url_for('student_stories') }}" class="dash-tool-card">
+          <div class="dtc-icon">✍️</div>
+          <h4>Student Stories</h4>
+          <p>Read inspiring student journeys</p>
+        </a>
+
+        <a href="{{ url_for('courses') }}" class="dash-tool-card">
+          <div class="dtc-icon">🎓</div>
+          <h4>Courses</h4>
+          <p>Browse all available courses</p>
+        </a>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ FOOTER ═══════════════════════ -->
+  <footer class="dash-footer">
+    <p>&copy; 2026 VidyarthiMitra.org — All Rights Reserved |
+      <a href="{{ url_for('terms') }}">Terms</a> |
+      <a href="{{ url_for('privacy') }}">Privacy</a> |
+      <a href="{{ url_for('contact') }}">Contact Us</a>
+    </p>
+  </footer>
+
+  <script>
+    // ── Time-based greeting ──
+    (function() {
+      var h = new Date().getHours();
+      var greeting = h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening';
+      var el = document.getElementById('dashGreeting');
+      if (el) el.textContent = greeting + '! 🌟';
+    })();
+
+    // ── Fetch latest news for dashboard ──
+    (function() {
+      var grid = document.getElementById('dashNewsGrid');
+      if (!grid) return;
+
+      fetch('/api/news')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (!data.success || !data.articles || data.articles.length === 0) {
+            grid.innerHTML = '<p style="color:#94a3b8; text-align:center;">No news available right now.</p>';
+            return;
+          }
+
+          var html = '';
+          var articles = data.articles.slice(0, 6);
+          var fallbackImgs = [
+            'https://media.istockphoto.com/id/2177186284/photo/may-i-answer-your-question-professor.jpg?s=612x612&w=0&k=20&c=q7jhVUW8r3K6GJESS_5L8QS_4wOuRSb1ChfHsK_7aJI=',
+            'https://img.jagranjosh.com/imported/images/E/Articles/Tips-to-Focus-Better-on-Your-Studies-Body-Image.webp',
+            'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR064b87YTte8BtmZRUcceOKfi-V7LmTVwvtA&s'
+          ];
+
+          var catColors = {
+            entrance: '#f97316',
+            results: '#8b5cf6',
+            admissions: '#06b6d4',
+            govtjobs: '#10b981',
+            scholarship: '#eab308'
+          };
+
+          articles.forEach(function(a, i) {
+            var title = a.title || 'Untitled';
+            var desc = a.desc || '';
+            var link = a.link || '#';
+            var source = a.source || '';
+            var cat = a.category || 'entrance';
+            var color = catColors[cat] || '#ff6600';
+
+            var tl = title.toLowerCase();
+            var dl = desc.toLowerCase();
+            var imgUrl;
+            if (tl.indexOf('neet') !== -1 || dl.indexOf('neet') !== -1) {
+              imgUrl = 'https://csacademy.in/wp-content/uploads/2021/05/blog-image10.jpg';
+            } else if (tl.indexOf('jee') !== -1 || dl.indexOf('jee') !== -1) {
+              imgUrl = 'https://www.shutterstock.com/image-photo/jee-joint-entrance-examination-conducted-260nw-2279191817.jpg';
+            } else if (tl.indexOf('nda') !== -1 || dl.indexOf('nda') !== -1) {
+              imgUrl = 'https://i.pinimg.com/736x/74/fa/7f/74fa7f7cb31d44075a8c7cc76f6da589.jpg';
+            } else if (tl.indexOf('result') !== -1 || dl.indexOf('result') !== -1) {
+              imgUrl = 'https://img.freepik.com/free-photo/results-evaluate-progress-outcome-productivity-concept_53876-121131.jpg';
+            } else {
+              imgUrl = fallbackImgs[i % fallbackImgs.length];
+            }
+
+            var dateObj = new Date(a.date);
+            var now = new Date();
+            var diffMs = now - dateObj;
+            var diffH = Math.floor(diffMs / 3600000);
+            var dateStr = diffH < 1 ? 'Just now' : diffH < 24 ? diffH + 'h ago' : Math.floor(diffMs / 86400000) + 'd ago';
+
+            html += '<a href="' + link + '" target="_blank" rel="noopener" class="dash-news-card">' +
+              '<div class="dnc-img" style="background-image:url(' + imgUrl + ');">' +
+                '<span class="dnc-badge" style="background:' + color + ';">' + (cat === 'govtjobs' ? 'Govt Jobs' : cat.charAt(0).toUpperCase() + cat.slice(1)) + '</span>' +
+              '</div>' +
+              '<div class="dnc-body">' +
+                '<h4>' + title + '</h4>' +
+                '<div class="dnc-meta"><span><i class="fa fa-clock"></i> ' + dateStr + '</span>' +
+                  (source ? '<span><i class="fa fa-globe"></i> ' + source + '</span>' : '') +
+                '</div>' +
+              '</div>' +
+            '</a>';
+          });
+
+          grid.innerHTML = html;
+        })
+        .catch(function() {
+          grid.innerHTML = '<p style="color:#94a3b8; text-align:center;">Unable to load news.</p>';
+        });
+    })();
+  </script>
+</body>
+</html>

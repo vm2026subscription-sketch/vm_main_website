@@ -1,249 +1,385 @@
 {% extends "base.html" %}
-
-{% block title %}College Predictor | Cut-Offs 2025-26 | VidyarthiMitra.org{% endblock %}
-{% block meta_description %}Predict your college admission chances with Maharashtra's most-used MHT-CET college predictor. Browse CAP cut-offs 2025-26 for Engineering, MBA, Pharmacy and more.{% endblock %}
-{% block meta_keywords %}college predictor, MHT-CET cutoffs, CAP cutoffs, Maharashtra engineering colleges, DTE cutoffs 2025, admission predictor{% endblock %}
-{% block og_description %}Maharashtra's most-used college predictor — search MHT-CET, CAP round cut-offs for Engineering, MBA, Pharmacy colleges.{% endblock %}
-
+{% block title %}Previous Year Cut-offs | Vidyarthi Mitra{% endblock %}
 {% block page_styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='courses.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='cutoffs.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<style>
+  :root {
+    --primary: #ff6600;
+    --primary-dark: #e05500;
+    --text: #ffffff;
+    --muted: #94a3b8;
+    --bg-main: #050a15;
+    --bg-card: rgba(13, 22, 39, 0.65);
+    --border: rgba(255, 255, 255, 0.06);
+  }
+
+  body {
+    background: var(--bg-main) !important;
+    color: var(--text) !important;
+    font-family: 'Inter', sans-serif !important;
+    transition: background-color 0.4s ease, color 0.4s ease;
+  }
+
+  /* ── CUTOFFS PAGE STYLING ── */
+  .cutoff-hero {
+    background: radial-gradient(circle at top right, rgba(255, 102, 0, 0.15), transparent 40%),
+                radial-gradient(circle at bottom left, rgba(139, 92, 246, 0.1), transparent 40%),
+                var(--bg-main) !important;
+    border-bottom: 1px solid var(--border) !important;
+    color: #fff;
+    padding: 60px 20px;
+    text-align: center;
+  }
+  .cutoff-hero h1 { font-family: 'Poppins', sans-serif; font-size: 2.2rem; font-weight: 800; margin: 0 0 10px; }
+  .cutoff-hero p { font-size: 16px; color: var(--muted); margin: 0 auto; max-width: 600px; }
+
+  .cutoff-main { max-width: 1240px; margin: 0 auto; padding: 40px 20px; display: grid; grid-template-columns: 260px 1fr; gap: 40px; }
+
+  /* SIDEBAR FILTERS */
+  .cutoff-sidebar { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; height: fit-content; }
+  .cutoff-sidebar h3 { font-family: 'Poppins', sans-serif; font-size: 1.1rem; margin-bottom: 20px; color: #fff; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+  
+  .cutoff-nav-btn {
+    display: block; width: 100%; text-align: left; background: transparent; border: none;
+    color: var(--muted); padding: 12px 16px; border-radius: 8px; font-size: 15px; cursor: pointer; transition: all 0.3s;
+    margin-bottom: 8px; font-family: 'Inter', sans-serif;
+  }
+  .cutoff-nav-btn:hover { background: rgba(255,255,255,0.05); color: #fff; }
+  .cutoff-nav-btn.active { background: var(--primary); color: #050a15; font-weight: 600; }
+
+  /* CONTENT AREA */
+  .cutoff-content { display: none; }
+  .cutoff-content.active { display: block; animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  .cutoff-content-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+  .cutoff-content-header h2 { font-family: 'Poppins', sans-serif; font-size: 1.5rem; color: #fff; }
+
+  .cutoff-table-wrapper { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .cutoff-table { width: 100%; border-collapse: collapse; }
+  .cutoff-table th, .cutoff-table td { padding: 16px 20px; text-align: left; border-bottom: 1px solid var(--border); }
+  .cutoff-table th { background: rgba(255,255,255,0.02); color: var(--muted); font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }
+  .cutoff-table td { color: #cbd5e1; font-size: 15px; }
+  .cutoff-table tr:last-child td { border-bottom: none; }
+  .cutoff-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .pdf-btn {
+    display: inline-flex; align-items: center; gap: 8px; background: rgba(255, 102, 0, 0.1);
+    color: var(--primary); padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    transition: all 0.2s; border: 1px solid rgba(255, 102, 0, 0.2);
+  }
+  .pdf-btn:hover { background: var(--primary); color: #050a15; }
+
+  /* LIGHT MODE */
+  body.light-mode .cutoff-hero {
+    background: radial-gradient(circle at top right, rgba(255,102,0, 0.2), transparent 40%),
+                radial-gradient(circle at bottom left, rgba(255, 102, 0, 0.1), transparent 40%),
+                #ffffff;
+    border-bottom: 2px solid var(--primary);
+  }
+  body.light-mode .cutoff-hero h1 { color: #0f172a; }
+  body.light-mode .cutoff-hero p { color: #475569; }
+  body.light-mode .cutoff-sidebar { background: #ffffff; border-color: #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+  body.light-mode .cutoff-sidebar h3 { color: #0f172a; border-bottom-color: #e2e8f0; }
+  body.light-mode .cutoff-nav-btn { color: #475569; }
+  body.light-mode .cutoff-nav-btn:hover { background: #f1f5f9; color: #0f172a; }
+  body.light-mode .cutoff-nav-btn.active { background: var(--primary); color: #ffffff; }
+  body.light-mode .cutoff-content-header h2 { color: #0f172a; }
+  body.light-mode .cutoff-content-header { border-bottom-color: #e2e8f0; }
+  body.light-mode .cutoff-table-wrapper { background: #ffffff; border-color: #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+  body.light-mode .cutoff-table th { background: #f8fafc; color: #64748b; border-bottom-color: #e2e8f0; }
+  body.light-mode .cutoff-table td { color: #334155; border-bottom-color: #e2e8f0; }
+  body.light-mode .cutoff-table tr:hover td { background: #f1f5f9; }
+  body.light-mode .pdf-btn { background: #fff5f0; border-color: #ffccb3; }
+  body.light-mode .pdf-btn:hover { background: var(--primary); color: #ffffff; }
+
+  @media (max-width: 900px) {
+    .cutoff-main { grid-template-columns: 1fr; }
+    .cutoff-sidebar { display: flex; overflow-x: auto; padding: 16px; }
+    .cutoff-sidebar h3 { display: none; }
+    .cutoff-nav-btn { white-space: nowrap; margin-bottom: 0; margin-right: 8px; width: auto; }
+  }
+</style>
 {% endblock %}
 
 {% block content %}
-<section class="search-section cutoff-hero">
-  <div class="search-inner cutoff-hero-content">
-    <span class="hero-kicker">MHT-CET Engineering</span>
-    <h2>College Predictor & Cut-Offs</h2>
-    <p>
-      Enter your percentile and preferences to shortlist colleges using recent CAP cutoff data.
-    </p>
-
-    <div class="cutoff-buttons">
-      <a href="#college-predictor" class="btn-primary" data-tab-trigger="predictor">Predict Colleges</a>
-      <a href="#top-colleges" class="btn-outline" data-tab-trigger="top20">View Top 20</a>
-      <a href="{{ url_for('courses') }}" class="btn-outline">Explore Courses</a>
-    </div>
-  </div>
-</section>
-
-<div class="filter-bar cutoff-filter-bar">
-  <div class="filter-tabs">
-    <a class="filter-tab active" href="#college-predictor" data-tab-trigger="predictor">College Predictor</a>
-    <a class="filter-tab" href="#top-colleges" data-tab-trigger="top20">Top 20 Colleges</a>
-    <span class="filter-tab muted">MHT-CET Engineering</span>
-    <span class="filter-tab muted">Full List: Locked</span>
-  </div>
+<div class="cutoff-hero">
+  <h1><i class="fa-solid fa-chart-line" style="margin-right:10px;"></i>Previous Year Cut-offs</h1>
+  <p>Analyze historical admission data to gauge your chances of securing a seat in top colleges.</p>
 </div>
 
-<section id="college-predictor" class="predictor-section cutoff-tab-panel active" data-tab-panel="predictor">
-  <div class="section-header cutoff-section-header">
-    <div class="section-icon">01</div>
-    <div>
-      <div class="section-label">Predictor</div>
-      <h2 class="section-title">Find colleges that match your score</h2>
-    </div>
-  </div>
-  <div class="predictor-shell">
-    <div class="predictor-copy">
-      <p>
-        We compare your percentile with historical branch, category, and seat-type cutoffs, then show matching colleges with the strongest options first.
-      </p>
-      {% if error %}
-      <div class="predictor-error">{{ error }}</div>
-      {% endif %}
-    </div>
+<div class="cutoff-main">
+  <aside class="cutoff-sidebar">
+    <h3>Select Exam Category</h3>
+    <button class="cutoff-nav-btn {% if exam_cat == 'engineering' or not exam_cat %}active{% endif %}" onclick="switchTab('engineering', this)">B.E / B.Tech (Engineering)</button>
+    <button class="cutoff-nav-btn {% if exam_cat == 'medical' %}active{% endif %}" onclick="switchTab('medical', this)">MBBS / BDS (Medical)</button>
+    <button class="cutoff-nav-btn {% if exam_cat == 'pharmacy' %}active{% endif %}" onclick="switchTab('pharmacy', this)">B.Pharmacy / Pharm.D</button>
+    <button class="cutoff-nav-btn {% if exam_cat == 'management' %}active{% endif %}" onclick="switchTab('management', this)">MBA / MMS (Management)</button>
+    <button class="cutoff-nav-btn {% if exam_cat == 'architecture' %}active{% endif %}" onclick="switchTab('architecture', this)">B.Architecture</button>
+    <button class="cutoff-nav-btn {% if exam_cat == 'law' %}active{% endif %}" onclick="switchTab('law', this)">LLB (Law)</button>
+    <button class="cutoff-nav-btn {% if exam_cat == 'agriculture' %}active{% endif %}" onclick="switchTab('agriculture', this)">B.Sc Agriculture</button>
+  </aside>
 
-    <form class="predictor-form" id="collegePredictorForm">
-      <label>
-        CET Percentile
-        <input type="number" name="percentile" min="0" max="100" step="0.0001" placeholder="e.g. 92.5" required>
-      </label>
-
-      <label>
-        Branch
-        <select name="branch" required>
-          <option value="">Select branch</option>
+  <section class="cutoff-details">
+    
+    <!-- ENGINEERING -->
+    <div id="tab-engineering" class="cutoff-content {% if exam_cat == 'engineering' or not exam_cat %}active{% endif %}">
+      <div class="cutoff-content-header">
+        <h2>B.E / B.Tech Previous Cut-offs (MHT-CET / JEE Main)</h2>
+      </div>
+      
+      <!-- DATA FILTERS -->
+      <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+        <select id="btech-branch" style="padding: 10px; border-radius: 8px; background: var(--bg-card); color: var(--text); border: 1px solid var(--border);">
+          <option value="">All Branches</option>
           {% for branch in branches %}
-          <option value="{{ branch }}">{{ branch }}</option>
+            <option value="{{ branch }}">{{ branch }}</option>
           {% endfor %}
         </select>
-      </label>
-
-      <div class="form-pair">
-        <label>
-          Category
-          <select name="category" required>
-            {% for category in categories %}
-            <option value="{{ category }}" {% if category == 'OPEN' %}selected{% endif %}>{{ category }}</option>
-            {% endfor %}
-          </select>
-        </label>
-
-        <label>
-          Seat type
-          <select name="gender" required>
-            {% for gender in genders %}
-            <option value="{{ gender.value }}" {% if gender.value == 'G' %}selected{% endif %}>{{ gender.label }}</option>
-            {% endfor %}
-          </select>
-        </label>
-      </div>
-
-      <label>
-        Results per page
-        <select name="per_page">
-          <option value="20">20</option>
-          <option value="50">50</option>
-          <option value="100">100</option>
-        </select>
-      </label>
-
-      <button type="submit">Show Predicted Colleges</button>
-      <p class="form-note">This is a cutoff-based predictor, not an admission guarantee.</p>
-    </form>
-  </div>
-</section>
-
-<section id="top20-cutoffs" class="predictor-section cutoff-tab-panel" data-tab-panel="top20" hidden>
-  <div class="section-header cutoff-section-header">
-    <div class="section-icon">20</div>
-    <div>
-      <div class="section-label">Top 20</div>
-      <h2 class="section-title">Top colleges by cutoff</h2>
-    </div>
-  </div>
-  <div class="top20-shell">
-    <div class="predictor-copy top20-copy">
-      <p>
-        Filter by branch, category, and seat type. Results are sorted from highest cutoff to lowest cutoff using the same CAP cutoff data.
-      </p>
-    </div>
-
-    <form class="top20-filter-bar" id="top20FilterForm">
-      <label>
-        Branch
-        <select name="branch">
-          <option value="">All branches</option>
-          {% for branch in branches %}
-          <option value="{{ branch }}">{{ branch }}</option>
+        
+        <select id="btech-category" style="padding: 10px; border-radius: 8px; background: var(--bg-card); color: var(--text); border: 1px solid var(--border);">
+          <option value="">All Categories</option>
+          {% for cat in categories %}
+            <option value="{{ cat }}">{{ cat }}</option>
           {% endfor %}
         </select>
-      </label>
-
-      <div class="form-pair">
-        <label>
-          Category
-          <select name="category">
-            <option value="">All categories</option>
-            {% for category in categories %}
-            <option value="{{ category }}">{{ category }}</option>
-            {% endfor %}
-          </select>
-        </label>
-
-        <label>
-          Seat type
-          <select name="gender">
-            <option value="">All seat types</option>
-            {% for gender in genders %}
-            <option value="{{ gender.value }}">{{ gender.label }}</option>
-            {% endfor %}
-          </select>
-        </label>
+        
+        <select id="btech-gender" style="padding: 10px; border-radius: 8px; background: var(--bg-card); color: var(--text); border: 1px solid var(--border);">
+          {% for g in genders %}
+            <option value="{{ g.value }}">{{ g.label }}</option>
+          {% endfor %}
+        </select>
+        
+        <button onclick="fetchBtechCutoffs()" style="padding: 10px 20px; border-radius: 8px; background: var(--primary); color: #fff; border: none; font-weight: 600; cursor: pointer;">
+          View Cut-offs
+        </button>
       </div>
 
-      <button type="submit">Show Top 20</button>
-    </form>
-
-    <div class="locked-full-list">
-      <strong>Need the full list?</strong>
-      Unlock the full branch-wise cutoff list from all available CAP rounds for &#8377;100.
-    </div>
-  </div>
-</section>
-
-<section id="top-colleges" class="results-section">
-  <div class="results-header">
-    <div>
-      <div class="section-label">Results</div>
-      <h2 class="section-title" id="resultsTitle">Top 20 Colleges</h2>
-    </div>
-    <p id="resultsMeta">Showing the highest cutoff colleges across available B.Tech CAP data.</p>
-  </div>
-
-  <div class="results-alert" id="predictorAlert" hidden></div>
-
-  <div class="top20-table-wrap" id="resultsTableWrap">
-    <table class="top20-table">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>College</th>
-          <th>Branch</th>
-          <th>Category</th>
-          <th>Seat Type</th>
-          <th>Cutoff</th>
-          <th>CAP 1</th>
-          <th>CAP 2</th>
-          <th>CAP 3</th>
-          <th>CAP 4</th>
-          <th>Gap</th>
-          <th>Rank</th>
-          <th>Website</th>
-        </tr>
-      </thead>
-      <tbody id="resultsTableBody">
-    {% for college in top_colleges %}
-        <tr>
-          <td>{{ loop.index }}</td>
-          <td>
-            <strong>{{ college.college }}</strong>
-            <span>{{ college.college_code }}</span>
-          </td>
-          <td>{{ college.branch }}</td>
-          <td>{{ college.category }}</td>
-          <td>{{ college.gender_label }}</td>
-          <td>{{ "%.2f"|format(college.final_cutoff) }}</td>
-          <td>{{ "%.2f"|format(college.cap_1_cutoff) if college.cap_1_cutoff is not none else "-" }}</td>
-          <td>{{ "%.2f"|format(college.cap_2_cutoff) if college.cap_2_cutoff is not none else "-" }}</td>
-          <td>{{ "%.2f"|format(college.cap_3_cutoff) if college.cap_3_cutoff is not none else "-" }}</td>
-          <td>{{ "%.2f"|format(college.cap_4_cutoff) if college.cap_4_cutoff is not none else "-" }}</td>
-          <td>{{ college.gap if college.gap is not none else "-" }}</td>
-          <td>{{ college.best_rank or "N/A" }}</td>
-          <td>
-            {% if college.website %}
-            <a href="{{ college.website }}" target="_blank" rel="noopener">Visit</a>
-            {% else %}
-            <span class="muted-cell">N/A</span>
-            {% endif %}
-          </td>
-        </tr>
-    {% endfor %}
-      </tbody>
-    </table>
-  </div>
-
-  <nav class="predictor-pagination" id="predictorPagination" hidden></nav>
-  <div class="payment-cta" id="paymentCta" hidden>
-    <div>
-      <strong>Unlock complete cutoff list</strong>
-      <p>Pay &#8377;100 in Razorpay test mode to show every matching cutoff row beyond the free top 20.</p>
-    </div>
-    <div class="payment-action">
-        <div class="coupon-row">
-          <input type="text" id="couponCodeInput" placeholder="Enter coupon code (optional)">
-          <button type="button" id="applyCouponBtn">Apply</button>
-          <span id="couponStatus" class="muted"></span>
+      <div class="cutoff-table-wrapper" style="overflow-x: auto;">
+        <table class="cutoff-table" id="btech-table">
+          <thead>
+            <tr>
+              <th>College</th>
+              <th>Branch</th>
+              <th>Category</th>
+              <th>Final Cutoff (Percentile)</th>
+              <th>CAP 1</th>
+              <th>CAP 2</th>
+              <th>CAP 3</th>
+            </tr>
+          </thead>
+          <tbody id="btech-tbody">
+            <tr><td colspan="7" style="text-align:center;">Click "View Cut-offs" to load data.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="btech-pagination" style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center; color: var(--muted);">
+        <span id="btech-total-msg"></span>
+        <div style="display: flex; gap: 10px;">
+          <button id="btech-prev" onclick="changeBtechPage(-1)" style="padding: 6px 12px; background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; display: none;">Previous</button>
+          <button id="btech-next" onclick="changeBtechPage(1)" style="padding: 6px 12px; background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; display: none;">Next</button>
         </div>
-        <button type="button" id="unlockFullListBtn">Unlock for &#8377;100</button>
-        <span class="payment-status" id="paymentStatus" role="status" aria-live="polite"></span>
+      </div>
     </div>
-  </div>
-</section>
-{% endblock %}
 
-{% block page_scripts %}
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-<script src="{{ url_for('static', filename='cutoffs.js') }}?v=5"></script>
+    <!-- MEDICAL -->
+    <div id="tab-medical" class="cutoff-content {% if exam_cat == 'medical' %}active{% endif %}">
+      <div class="cutoff-content-header">
+        <h2>MBBS / BDS Previous Cut-offs (NEET UG)</h2>
+      </div>
+      <div class="cutoff-table-wrapper">
+        <table class="cutoff-table">
+          <thead>
+            <tr><th>Admission Year</th><th>Quota</th><th>Download Official PDF</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>2024-25</td><td>State Quota (85%) - Round 3</td><td><a href="#" class="pdf-btn"><i class="fa-solid fa-download"></i> Download</a></td></tr>
+            <tr><td>2024-25</td><td>State Quota (85%) - Round 1 & 2</td><td><a href="#" class="pdf-btn"><i class="fa-solid fa-download"></i> Download</a></td></tr>
+            <tr><td>2023-24</td><td>State Quota Final</td><td><a href="#" class="pdf-btn"><i class="fa-solid fa-download"></i> Download</a></td></tr>
+            <tr><td>2022-23</td><td>State Quota Final</td><td><a href="#" class="pdf-btn"><i class="fa-solid fa-download"></i> Download</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PHARMACY -->
+    <div id="tab-pharmacy" class="cutoff-content {% if exam_cat == 'pharmacy' %}active{% endif %}">
+      <div class="cutoff-content-header">
+        <h2>B.Pharmacy Previous Cut-offs (MHT-CET)</h2>
+      </div>
+      <div class="cutoff-table-wrapper">
+        <table class="cutoff-table">
+          <thead>
+            <tr><th>Admission Year</th><th>CAP Round</th><th>Download Official PDF</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>2024-25</td><td>Round 3 (Final)</td><td><a href="#" class="pdf-btn"><i class="fa-solid fa-download"></i> Download</a></td></tr>
+            <tr><td>2024-25</td><td>Round 1</td><td><a href="#" class="pdf-btn"><i class="fa-solid fa-download"></i> Download</a></td></tr>
+            <tr><td>2023-24</td><td>Final Round</td><td><a href="#" class="pdf-btn"><i class="fa-solid fa-download"></i> Download</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- MANAGEMENT -->
+    <div id="tab-management" class="cutoff-content {% if exam_cat == 'management' %}active{% endif %}">
+      <div class="cutoff-content-header">
+        <h2>MBA / MMS Previous Cut-offs (MAH-MBA CET)</h2>
+      </div>
+      <div class="cutoff-table-wrapper">
+        <table class="cutoff-table">
+          <thead>
+            <tr><th>Admission Year</th><th>CAP Round</th><th>Download Official PDF</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>2024-25</td><td>Round 3 (Final)</td><td><a href="#" class="pdf-btn"><i class="fa-solid fa-download"></i> Download</a></td></tr>
+            <tr><td>2024-25</td><td>Round 1</td><td><a href="#" class="pdf-btn"><i class="fa-solid fa-download"></i> Download</a></td></tr>
+            <tr><td>2023-24</td><td>Final Round</td><td><a href="#" class="pdf-btn"><i class="fa-solid fa-download"></i> Download</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ARCHITECTURE -->
+    <div id="tab-architecture" class="cutoff-content {% if exam_cat == 'architecture' %}active{% endif %}">
+      <div class="cutoff-content-header">
+        <h2>B.Architecture Previous Cut-offs (NATA)</h2>
+      </div>
+      <div class="cutoff-table-wrapper">
+        <table class="cutoff-table">
+          <thead>
+            <tr><th>Admission Year</th><th>CAP Round</th><th>Download Official PDF</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>2024-25</td><td>Round 3 (Final)</td><td><a href="#" class="pdf-btn"><i class="fa-solid fa-download"></i> Download</a></td></tr>
+            <tr><td>2024-25</td><td>Round 1</td><td><a href="#" class="pdf-btn"><i class="fa-solid fa-download"></i> Download</a></td></tr>
+            <tr><td>2023-24</td><td>Final Round</td><td><a href="#" class="pdf-btn"><i class="fa-solid fa-download"></i> Download</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- LAW -->
+    <div id="tab-law" class="cutoff-content {% if exam_cat == 'law' %}active{% endif %}">
+      <div class="cutoff-content-header">
+        <h2>LLB Previous Cut-offs (MAH-LLB CET)</h2>
+      </div>
+      <div class="cutoff-table-wrapper">
+        <table class="cutoff-table">
+          <thead>
+            <tr><th>Admission Year</th><th>CAP Round</th><th>Download Official PDF</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>2024-25</td><td>Round 3 (Final)</td><td><a href="#" class="pdf-btn"><i class="fa-solid fa-download"></i> Download</a></td></tr>
+            <tr><td>2024-25</td><td>Round 1</td><td><a href="#" class="pdf-btn"><i class="fa-solid fa-download"></i> Download</a></td></tr>
+            <tr><td>2023-24</td><td>Final Round</td><td><a href="#" class="pdf-btn"><i class="fa-solid fa-download"></i> Download</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- AGRICULTURE -->
+    <div id="tab-agriculture" class="cutoff-content {% if exam_cat == 'agriculture' %}active{% endif %}">
+      <div class="cutoff-content-header">
+        <h2>B.Sc Agriculture Previous Cut-offs (MCAER)</h2>
+      </div>
+      <div class="cutoff-table-wrapper">
+        <table class="cutoff-table">
+          <thead>
+            <tr><th>Admission Year</th><th>CAP Round</th><th>Download Official PDF</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>2024-25</td><td>Round 3 (Final)</td><td><a href="#" class="pdf-btn"><i class="fa-solid fa-download"></i> Download</a></td></tr>
+            <tr><td>2024-25</td><td>Round 1</td><td><a href="#" class="pdf-btn"><i class="fa-solid fa-download"></i> Download</a></td></tr>
+            <tr><td>2023-24</td><td>Final Round</td><td><a href="#" class="pdf-btn"><i class="fa-solid fa-download"></i> Download</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </section>
+</div>
+
+<script>
+  let btechCurrentPage = 1;
+  const btechPerPage = 50;
+
+  function switchTab(tabId, btn) {
+    // Update buttons
+    var btns = document.querySelectorAll('.cutoff-nav-btn');
+    btns.forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+
+    // Update content blocks
+    var contents = document.querySelectorAll('.cutoff-content');
+    contents.forEach(function(c) { c.classList.remove('active'); });
+    document.getElementById('tab-' + tabId).classList.add('active');
+
+    // Scroll into view on mobile
+    if (window.innerWidth <= 900) {
+      btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }
+
+  function fetchBtechCutoffs(page = 1) {
+    btechCurrentPage = page;
+    const branch = document.getElementById('btech-branch').value;
+    const category = document.getElementById('btech-category').value;
+    const gender = document.getElementById('btech-gender').value;
+
+    const tbody = document.getElementById('btech-tbody');
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Loading data <i class="fa-solid fa-spinner fa-spin"></i></td></tr>';
+
+    fetch('/api/btech_cutoffs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ branch, category, gender, page, per_page: btechPerPage })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (!data.success) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: red;">Error: ${data.error}</td></tr>`;
+        return;
+      }
+      
+      const total = data.total;
+      document.getElementById('btech-total-msg').innerText = `Showing page ${page} of ${Math.ceil(total/btechPerPage)} (${total} results)`;
+      
+      document.getElementById('btech-prev').style.display = page > 1 ? 'block' : 'none';
+      document.getElementById('btech-next').style.display = (page * btechPerPage) < total ? 'block' : 'none';
+
+      if (data.data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No cut-offs found for this combination.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = '';
+      data.data.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${row.college}</strong></td>
+          <td>${row.branch}</td>
+          <td>${row.category} (${row.gender})</td>
+          <td style="color: var(--primary); font-weight: bold;">${row.final_cutoff ? row.final_cutoff.toFixed(2) : '-'}</td>
+          <td>${row.cap_1_cutoff ? row.cap_1_cutoff.toFixed(2) : '-'}</td>
+          <td>${row.cap_2_cutoff ? row.cap_2_cutoff.toFixed(2) : '-'}</td>
+          <td>${row.cap_3_cutoff ? row.cap_3_cutoff.toFixed(2) : '-'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    })
+    .catch(err => {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: red;">Failed to load data.</td></tr>';
+    });
+  }
+
+  function changeBtechPage(delta) {
+    fetchBtechCutoffs(btechCurrentPage + delta);
+  }
+
+  // Load initial data on load if we are on engineering tab
+  if (document.getElementById('tab-engineering').classList.contains('active')) {
+    fetchBtechCutoffs(1);
+  }
+</script>
 {% endblock %}
