@@ -1631,6 +1631,15 @@ def build_article_paragraphs(text):
     return paragraphs
 
 
+@app.route("/dashboard")
+def dashboard():
+    user = get_logged_in_user()
+    if not user:
+        flash("Please login to access your dashboard.", "error")
+        return redirect(url_for("login"))
+    return render_template("dashboard.html", user=user)
+
+
 @app.route("/")
 def index():
     return render_template("index.html", featured_alerts=_read_json_file(_ALERTS_FILE, _DEFAULT_ALERTS))
@@ -2118,7 +2127,25 @@ def mock_exams():
 
 @app.route("/cutoffs")
 def cutoffs():
-    return render_template("coming_soon.html", page_title="Cut-offs")
+    exam_cat = request.args.get("exam", "engineering").lower()
+    branches, categories, genders, _ = get_cutoff_options()
+    return render_template("cutoffs.html", exam_cat=exam_cat, branches=branches, categories=categories, genders=genders)
+
+
+@app.route("/api/btech_cutoffs", methods=["POST"])
+def api_btech_cutoffs():
+    payload = request.get_json(silent=True) or {}
+    branch = payload.get("branch")
+    category = payload.get("category")
+    gender = payload.get("gender")
+    page = int(payload.get("page", 1))
+    per_page = int(payload.get("per_page", 50))
+
+    results, total, error = get_full_cutoff_colleges(branch, category, gender, page, per_page)
+    if error:
+        return jsonify({"success": False, "error": error}), 500
+
+    return jsonify({"success": True, "data": results, "total": total})
 
 
 @app.route("/api/college-predictor", methods=["POST"])
@@ -2410,7 +2437,7 @@ def api_full_cutoff_colleges():
 
 @app.route("/fyjc_rank")
 def fyjc_rank():
-    return render_template("coming_soon.html", page_title="FYJC Rank Predictor")
+    return render_template("fyjc_rank.html", page_title="FYJC Rank Predictor")
 
 
 @app.route("/predict", methods=["POST"])
@@ -3635,7 +3662,7 @@ def register():
 
         session["auth_user"] = {"name": name, "email": email}
         session.pop("pending_otp", None)
-        return redirect(url_for("index"))
+        return redirect(url_for("dashboard"))
 
     return render_template("auth.html", mode="register", page_title="Register")
 
@@ -3746,7 +3773,7 @@ def verify_otp():
                     session.pop("otp_delivery_mode", None)
                     session.pop("pending_otp_preview", None)
                     flash("Login successful.", "success")
-                    return redirect(url_for("index"))
+                    return redirect(url_for("dashboard"))
             except Exception as exc:
                 app.logger.warning("Twilio Verify validation failed: %s", exc)
 
@@ -3759,7 +3786,7 @@ def verify_otp():
             session.pop("otp_delivery_mode", None)
             session.pop("pending_otp_preview", None)
             flash("Login successful.", "success")
-            return redirect(url_for("index"))
+            return redirect(url_for("dashboard"))
 
         pending_otp["attempts"] = pending_otp.get("attempts", 0) + 1
         session["pending_otp"] = pending_otp

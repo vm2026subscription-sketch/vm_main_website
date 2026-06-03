@@ -498,8 +498,13 @@
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1) !important;
   }
 
-  .vm-search-modal input {
+  .vm-search-input-wrapper {
     flex: 1;
+    position: relative;
+  }
+
+  .vm-search-modal input {
+    width: 100%;
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.05);
     color: #ffffff;
@@ -524,27 +529,56 @@
     box-shadow: 0 0 10px rgba(22, 101, 52, 0.2);
   }
 
-  .vm-search-modal button {
-    background: #ff6600 !important;
-    border: none;
-    color: #050a15 !important;
-    border-radius: 10px;
-    padding: 14px 20px;
-    font-size: 16px;
-    cursor: pointer;
-    font-weight: 800;
-    transition: all 0.3s ease;
+  .vm-search-results {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    width: 100%;
+    background: rgba(10, 17, 40, 0.98);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 2010;
   }
-  body.light-mode .vm-search-modal button {
-    background: #c2410c !important;
-    color: #ffffff !important;
+  body.light-mode .vm-search-results {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   }
-  .vm-search-modal button:hover {
-    background: #ff7733 !important;
-    transform: translateY(-1px);
+  
+  .vm-search-results.vm-show {
+    display: flex;
   }
-  body.light-mode .vm-search-modal button:hover {
-    background: #ea580c !important;
+
+  .vm-search-results a {
+    padding: 14px 18px;
+    color: #cbd5e1;
+    text-decoration: none;
+    font-size: 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+  body.light-mode .vm-search-results a {
+    color: #475569;
+    border-bottom-color: rgba(0, 0, 0, 0.05);
+  }
+
+  .vm-search-results a:hover,
+  .vm-search-results a.vm-active-item {
+    background: rgba(255, 102, 0, 0.1);
+    color: #ff6600;
+  }
+  body.light-mode .vm-search-results a:hover,
+  body.light-mode .vm-search-results a.vm-active-item {
+    background: rgba(22, 101, 52, 0.06);
+    color: #c2410c;
+  }
+
+  .vm-search-results a:last-child {
+    border-bottom: none;
   }
 
   .vm-search-close {
@@ -609,7 +643,7 @@
           <a href="{{ url_for('exams') }}">Entrance Exams</a>
           <a href="{{ url_for('mock_exams') }}">Mock Exams</a>
           <a href="{{ url_for('cutoffs') }}" style="opacity:.6;pointer-events:none;">Cut-offs <span style="background:#ff6600;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:4px;vertical-align:middle;">SOON</span></a>
-          <a href="{{ url_for('fyjc_rank') }}" style="opacity:.6;pointer-events:none;">FYJC Rank Predictor <span style="background:#ff6600;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:4px;vertical-align:middle;">SOON</span></a>
+          <a href="{{ url_for('fyjc_rank') }}">FYJC Rank Predictor</a>
         </div>
       </div>
 
@@ -653,11 +687,13 @@
 <!-- ── SEARCH MODAL OVERLAY ── -->
 <div class="vm-search-overlay" id="vmSearchOverlay">
   <div class="vm-search-modal">
-    <input type="text" id="vmSearchInput" placeholder="Search: FYJC rank, cutoff, courses, exams...">
-    <button type="button" id="vmSearchSubmit">🔍</button>
+    <div class="vm-search-input-wrapper">
+      <input type="text" id="vmSearchInput" placeholder="Search: FYJC rank, cutoff, courses, exams...">
+      <div id="vmSearchResults" class="vm-search-results"></div>
+    </div>
     <span class="vm-search-close" id="vmSearchClose">&times;</span>
   </div>
-  <small class="vm-search-hint" id="vmSearchHint"></small>
+  <small class="vm-search-hint" id="vmSearchHint">Use up/down arrows to navigate, Enter to select.</small>
 </div>
 
 <!-- ── SCRIPTS ── -->
@@ -667,72 +703,114 @@
     var trigger = document.querySelector('.vm-search-trigger');
     var closeBtn = document.getElementById('vmSearchClose');
     var input = document.getElementById('vmSearchInput');
-    var submit = document.getElementById('vmSearchSubmit');
+    var resultsBox = document.getElementById('vmSearchResults');
     var hint = document.getElementById('vmSearchHint');
 
-    if (!overlay || !trigger || !input || !submit || !closeBtn || !hint) {
+    if (!overlay || !trigger || !input || !closeBtn || !resultsBox) {
       return;
     }
 
     var searchItems = [
-      { keywords: ['fyjc', 'rank', 'predictor', 'fyjc rank', 'rank predictor'], url: '{{ url_for("fyjc_rank") }}', label: 'FYJC Rank Predictor (Coming Soon)' },
-      { keywords: ['cutoff', 'cut-off', 'cut off', 'cutoffs'], url: '{{ url_for("cutoffs") }}', label: 'Cut-offs (Coming Soon)' },
-      { keywords: ['admission', 'admissions', 'dte'], url: '{{ url_for("admissions") }}', label: 'Admissions' },
-      { keywords: ['university', 'universities'], url: '{{ url_for("universities") }}', label: 'Universities' },
-      { keywords: ['college', 'colleges'], url: '{{ url_for("colleges") }}', label: 'Colleges' },
-      { keywords: ['course', 'courses'], url: '{{ url_for("courses") }}', label: 'Courses' },
-      { keywords: ['exam', 'exams', 'entrance', 'jee', 'neet', 'cet', 'mht-cet'], url: '{{ url_for("exams") }}', label: 'Entrance Exams' },
-      { keywords: ['mock', 'mock exam', 'mock test'], url: '{{ url_for("mock_exams") }}', label: 'Mock Exams' },
-      { keywords: ['news', 'update', 'updates'], url: '{{ url_for("news") }}', label: 'News' },
-      { keywords: ['article', 'articles', 'career'], url: '{{ url_for("articles") }}', label: 'Career Articles' },
-      { keywords: ['story', 'stories', 'student'], url: '{{ url_for("student_stories") }}', label: 'Student Stories' },
-      { keywords: ['guide', 'guide me', 'guideme'], url: '{{ url_for("guide_me") }}', label: 'Guide Me' },
-      { keywords: ['epaper', 'e-paper'], url: '{{ url_for("epaper.epaper_viewer") }}', label: 'E-Paper' }
+      { keywords: ['fyjc', 'rank', 'predictor', 'fyjc rank', 'rank predictor', 'junior college', '11th admission'], url: '{{ url_for("fyjc_rank") }}', label: 'FYJC Rank Predictor' },
+      { keywords: ['cutoff', 'cut-off', 'cut off', 'cutoffs', 'merit list', 'marks'], url: '{{ url_for("cutoffs") }}', label: 'College Cut-offs (Coming Soon)' },
+      { keywords: ['admission', 'admissions', 'dte', 'cap', 'counselling', 'process'], url: '{{ url_for("admissions") }}', label: 'Admissions & CAP Process' },
+      { keywords: ['university', 'universities', 'institutions', 'campus'], url: '{{ url_for("universities") }}', label: 'Explore Universities' },
+      { keywords: ['college', 'colleges', 'institute', 'institutes'], url: '{{ url_for("colleges") }}', label: 'Explore Colleges' },
+      { keywords: ['course', 'courses', 'degree', 'diploma', 'program'], url: '{{ url_for("courses") }}', label: 'Academic Courses' },
+      { keywords: ['exam', 'exams', 'entrance', 'jee', 'neet', 'cet', 'mht-cet', 'nda', 'upsc'], url: '{{ url_for("exams") }}', label: 'Entrance Exams' },
+      { keywords: ['mock', 'mock exam', 'mock test', 'practice test', 'test series'], url: '{{ url_for("mock_exams") }}', label: 'Mock Exams' },
+      { keywords: ['news', 'update', 'updates', 'latest', 'notification', 'alert'], url: '{{ url_for("news") }}', label: 'Latest News & Updates' },
+      { keywords: ['article', 'articles', 'career', 'blog', 'tips'], url: '{{ url_for("articles") }}', label: 'Career Articles' },
+      { keywords: ['story', 'stories', 'student', 'success', 'testimonial'], url: '{{ url_for("student_stories") }}', label: 'Student Stories' },
+      { keywords: ['guide', 'guide me', 'guideme', 'counselor', 'expert advice', 'career guidance'], url: '{{ url_for("guide_me") }}', label: 'Guide Me (Expert Advice)' },
+      { keywords: ['epaper', 'e-paper', 'newspaper', 'daily news'], url: '{{ url_for("epaper.epaper_viewer") }}', label: 'E-Paper' }
     ];
+
+    var debounceTimer;
+    var currentSelectedIndex = -1;
 
     function openSearch() {
       overlay.classList.add('vm-active');
-      hint.textContent = '';
+      input.value = '';
+      resultsBox.innerHTML = '';
+      resultsBox.classList.remove('vm-show');
+      currentSelectedIndex = -1;
       setTimeout(function () { input.focus(); }, 50);
     }
 
     function closeSearch() {
       overlay.classList.remove('vm-active');
       input.value = '';
-      hint.textContent = '';
+      resultsBox.innerHTML = '';
+      resultsBox.classList.remove('vm-show');
     }
 
-    function submitSearch() {
-      var query = input.value.trim().toLowerCase();
-      if (!query) return;
-
-      var bestMatch = null;
-      var bestScore = 0;
-
-      for (var i = 0; i < searchItems.length; i++) {
-        var item = searchItems[i];
-        for (var j = 0; j < item.keywords.length; j++) {
-          var keyword = item.keywords[j];
-          if (query === keyword) {
-            bestMatch = item;
-            bestScore = 100;
-            break;
-          }
-          if (keyword.indexOf(query) === 0 || query.indexOf(keyword) === 0) {
-            var currentScore = Math.max(keyword.indexOf(query) === 0 ? 50 : 30);
-            if (currentScore > bestScore) {
-              bestMatch = item;
-              bestScore = currentScore;
-            }
-          }
-        }
-        if (bestScore === 100) break;
+    function doSearch(query) {
+      if (!query) {
+        resultsBox.innerHTML = '';
+        resultsBox.classList.remove('vm-show');
+        return;
       }
-
-      if (bestMatch) {
-        window.location.href = bestMatch.url;
+      
+      var matches = [];
+      searchItems.forEach(function(item) {
+        var matchScore = 0;
+        
+        // Exact label match is best
+        if (item.label.toLowerCase().indexOf(query) !== -1) {
+          matchScore += 100;
+        }
+        
+        // Keyword matches
+        item.keywords.forEach(function(kw) {
+          if (kw === query) matchScore += 50;
+          else if (kw.indexOf(query) === 0) matchScore += 30; // prefix match
+          else if (kw.indexOf(query) > 0) matchScore += 10; // substring match
+        });
+        
+        if (matchScore > 0) {
+          matches.push({ item: item, score: matchScore });
+        }
+      });
+      
+      matches.sort(function(a, b) { return b.score - a.score; });
+      
+      renderResults(matches.map(function(m) { return m.item; }).slice(0, 6)); // max 6 results
+    }
+    
+    function renderResults(results) {
+      resultsBox.innerHTML = '';
+      currentSelectedIndex = -1;
+      
+      if (results.length === 0) {
+        var el = document.createElement('a');
+        el.href = '#';
+        el.textContent = 'No results found';
+        el.style.pointerEvents = 'none';
+        el.style.opacity = '0.7';
+        resultsBox.appendChild(el);
       } else {
-        hint.textContent = 'No results found for "' + query + '"';
+        results.forEach(function(res, index) {
+          var a = document.createElement('a');
+          a.href = res.url;
+          a.textContent = res.label;
+          a.setAttribute('data-index', index);
+          resultsBox.appendChild(a);
+        });
+      }
+      resultsBox.classList.add('vm-show');
+    }
+
+    function updateSelection() {
+      var items = resultsBox.querySelectorAll('a');
+      items.forEach(function(item) { item.classList.remove('vm-active-item'); });
+      if (currentSelectedIndex >= 0 && currentSelectedIndex < items.length) {
+        var selectedItem = items[currentSelectedIndex];
+        selectedItem.classList.add('vm-active-item');
+        // keep selected item in view
+        if(selectedItem.scrollIntoViewIfNeeded) {
+          selectedItem.scrollIntoViewIfNeeded();
+        }
       }
     }
 
@@ -753,16 +831,40 @@
       }
     });
 
-    submit.addEventListener('click', function (e) {
-      e.preventDefault();
-      submitSearch();
+    input.addEventListener('input', function (e) {
+      clearTimeout(debounceTimer);
+      var query = e.target.value.trim().toLowerCase();
+      debounceTimer = setTimeout(function() {
+        doSearch(query);
+      }, 300); // 300ms debounce
     });
 
-    input.addEventListener('keyup', function (e) {
-      if (e.key === 'Enter') {
-        submitSearch();
+    input.addEventListener('keydown', function (e) {
+      var items = resultsBox.querySelectorAll('a');
+      if (!items.length) {
+        if (e.key === 'Escape') closeSearch();
+        return;
       }
-      if (e.key === 'Escape') {
+      
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        currentSelectedIndex = (currentSelectedIndex + 1) % items.length;
+        updateSelection();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        currentSelectedIndex = (currentSelectedIndex - 1 + items.length) % items.length;
+        updateSelection();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (currentSelectedIndex >= 0 && currentSelectedIndex < items.length) {
+          window.location.href = items[currentSelectedIndex].href;
+        } else {
+          // Default to first if none selected but user hit enter
+          if (items[0].getAttribute('href') !== '#') {
+            window.location.href = items[0].href;
+          }
+        }
+      } else if (e.key === 'Escape') {
         closeSearch();
       }
     });
