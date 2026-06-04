@@ -315,111 +315,44 @@
 <!-- MAIN CONTENT -->
 <div class="adm-main">
   <div class="adm-cards-grid" id="admGrid">
-    
-    <!-- Engineering -->
-    <div class="adm-card show" data-cat="engineering">
-      <div class="adm-card-badge status-upcoming">Upcoming</div>
-      <h3>B.E / B.Tech Admissions</h3>
-      <p>First Year Under Graduate Technical Courses in Engineering and Technology</p>
-      <div class="adm-card-details">
-        <div class="adm-card-detail"><i class="fa-solid fa-calendar"></i> <strong>Tentative:</strong> June 2026</div>
-        <div class="adm-card-detail"><i class="fa-solid fa-landmark"></i> <strong>Authority:</strong> State CET Cell</div>
-        <div class="adm-card-detail"><i class="fa-solid fa-clipboard-check"></i> <strong>Exams:</strong> MHT-CET, JEE Main</div>
+    {% if admissions_data %}
+      {% for a in admissions_data %}
+      {% set stream_key = a.get('stream','other')|lower|replace(' ','') %}
+      {% set status_val = a.get('status','') %}
+      {% if 'Active' in status_val %}{% set badge_class = 'status-open' %}
+      {% elif 'Upcoming' in status_val or 'upcoming' in status_val %}{% set badge_class = 'status-upcoming' %}
+      {% else %}{% set badge_class = 'status-upcoming' %}{% endif %}
+      <div class="adm-card show" data-cat="{{ stream_key }}">
+        {% if status_val %}
+        <div class="adm-card-badge {{ badge_class }}">{{ status_val.split('–')[0].strip() }}</div>
+        {% endif %}
+        <h3>{{ a.get('course_name') or a.get('process','') }}</h3>
+        <p>{{ a.get('description','') or (a.get('state','') + ' · ' + a.get('level','')) }}</p>
+        <div class="adm-card-details">
+          {% if a.get('important_dates') %}
+          <div class="adm-card-detail"><i class="fa-solid fa-calendar"></i> {{ a.get('important_dates','') }}</div>
+          {% endif %}
+          {% if a.get('admission_body') %}
+          <div class="adm-card-detail"><i class="fa-solid fa-landmark"></i> {{ a.get('admission_body','') }}</div>
+          {% endif %}
+          {% if a.get('exam_name') %}
+          <div class="adm-card-detail"><i class="fa-solid fa-clipboard-check"></i> <strong>Exam:</strong> {{ a.get('exam_name','') }}</div>
+          {% endif %}
+          {% if a.get('eligibility') %}
+          <div class="adm-card-detail"><i class="fa-solid fa-check"></i> {{ a.get('eligibility','') }}</div>
+          {% endif %}
+        </div>
+        {% if a.get('official_link') %}
+        <a href="{{ a.get('official_link','') }}" target="_blank" rel="noopener" class="adm-btn-full">Official Website →</a>
+        {% endif %}
       </div>
-      <a href="{{ url_for('cutoffs', exam='engineering') }}" class="adm-btn-full">View Previous Cut-offs</a>
-    </div>
-
-    <!-- Medical -->
-    <div class="adm-card show" data-cat="medical">
-      <div class="adm-card-badge status-upcoming">Upcoming</div>
-      <h3>MBBS / BDS Admissions</h3>
-      <p>State Quota Counselling for Medical and Dental Courses</p>
-      <div class="adm-card-details">
-        <div class="adm-card-detail"><i class="fa-solid fa-calendar"></i> <strong>Tentative:</strong> July 2026</div>
-        <div class="adm-card-detail"><i class="fa-solid fa-landmark"></i> <strong>Authority:</strong> State CET Cell</div>
-        <div class="adm-card-detail"><i class="fa-solid fa-clipboard-check"></i> <strong>Exams:</strong> NEET UG</div>
+      {% endfor %}
+    {% else %}
+      <div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:#94a3b8;">
+        <i class="fa-solid fa-graduation-cap" style="font-size:48px;margin-bottom:16px;display:block;opacity:.4;"></i>
+        <p>Admission data coming soon.</p>
       </div>
-      <a href="{{ url_for('exams') }}" class="adm-btn-full">View Exam Info</a>
-    </div>
-
-    <!-- FYJC -->
-    <div class="adm-card show" data-cat="arts">
-      <div class="adm-card-badge status-open">Open Soon</div>
-      <h3>FYJC (11th) Admissions</h3>
-      <p>Centralized Admission Process for Pune, Mumbai, Nagpur, Amravati, Nashik</p>
-      <div class="adm-card-details">
-        <div class="adm-card-detail"><i class="fa-solid fa-calendar"></i> <strong>Tentative:</strong> May 2026</div>
-        <div class="adm-card-detail"><i class="fa-solid fa-landmark"></i> <strong>Authority:</strong> School Education Dept</div>
-        <div class="adm-card-detail"><i class="fa-solid fa-clipboard-check"></i> <strong>Basis:</strong> 10th (SSC) Marks</div>
-      </div>
-      <a href="{{ url_for('fyjc_rank') }}" class="adm-btn-full">Use FYJC Rank Predictor</a>
-    </div>
-
-    <!-- Pharmacy -->
-    <div class="adm-card show" data-cat="pharmacy">
-      <div class="adm-card-badge status-upcoming">Upcoming</div>
-      <h3>B.Pharmacy / Pharm.D</h3>
-      <p>Under Graduate Technical Courses in Pharmacy</p>
-      <div class="adm-card-details">
-        <div class="adm-card-detail"><i class="fa-solid fa-calendar"></i> <strong>Tentative:</strong> June 2026</div>
-        <div class="adm-card-detail"><i class="fa-solid fa-landmark"></i> <strong>Authority:</strong> State CET Cell</div>
-        <div class="adm-card-detail"><i class="fa-solid fa-clipboard-check"></i> <strong>Exams:</strong> MHT-CET, NEET</div>
-      </div>
-      <a href="{{ url_for('cutoffs', exam='pharmacy') }}" class="adm-btn-full">View Previous Cut-offs</a>
-    </div>
-
-    <!-- Management -->
-    <div class="adm-card show" data-cat="management">
-      <div class="adm-card-badge status-upcoming">Upcoming</div>
-      <h3>MBA / MMS Admissions</h3>
-      <p>Post Graduate Technical Courses in Management</p>
-      <div class="adm-card-details">
-        <div class="adm-card-detail"><i class="fa-solid fa-calendar"></i> <strong>Tentative:</strong> June 2026</div>
-        <div class="adm-card-detail"><i class="fa-solid fa-landmark"></i> <strong>Authority:</strong> State CET Cell</div>
-        <div class="adm-card-detail"><i class="fa-solid fa-clipboard-check"></i> <strong>Exams:</strong> MAH-MBA CET, CAT, CMAT</div>
-      </div>
-      <a href="{{ url_for('cutoffs', exam='management') }}" class="adm-btn-full">View Previous Cut-offs</a>
-    </div>
-
-    <!-- Architecture -->
-    <div class="adm-card show" data-cat="architecture">
-      <div class="adm-card-badge status-upcoming">Upcoming</div>
-      <h3>B.Architecture</h3>
-      <p>Under Graduate Degree Course in Architecture</p>
-      <div class="adm-card-details">
-        <div class="adm-card-detail"><i class="fa-solid fa-calendar"></i> <strong>Tentative:</strong> June 2026</div>
-        <div class="adm-card-detail"><i class="fa-solid fa-landmark"></i> <strong>Authority:</strong> State CET Cell</div>
-        <div class="adm-card-detail"><i class="fa-solid fa-clipboard-check"></i> <strong>Exams:</strong> NATA, JEE Main Paper 2</div>
-      </div>
-      <a href="{{ url_for('cutoffs', exam='architecture') }}" class="adm-btn-full">View Previous Cut-offs</a>
-    </div>
-
-    <!-- Law -->
-    <div class="adm-card show" data-cat="law">
-      <div class="adm-card-badge status-upcoming">Upcoming</div>
-      <h3>LLB (3 Yrs / 5 Yrs)</h3>
-      <p>Under Graduate Degree Course in Law</p>
-      <div class="adm-card-details">
-        <div class="adm-card-detail"><i class="fa-solid fa-calendar"></i> <strong>Tentative:</strong> June 2026</div>
-        <div class="adm-card-detail"><i class="fa-solid fa-landmark"></i> <strong>Authority:</strong> State CET Cell</div>
-        <div class="adm-card-detail"><i class="fa-solid fa-clipboard-check"></i> <strong>Exams:</strong> MAH-LLB CET</div>
-      </div>
-      <a href="{{ url_for('cutoffs', exam='law') }}" class="adm-btn-full">View Previous Cut-offs</a>
-    </div>
-
-    <!-- Agriculture -->
-    <div class="adm-card show" data-cat="agriculture">
-      <div class="adm-card-badge status-upcoming">Upcoming</div>
-      <h3>B.Sc. Agriculture</h3>
-      <p>Under Graduate Degree Courses in Agriculture</p>
-      <div class="adm-card-details">
-        <div class="adm-card-detail"><i class="fa-solid fa-calendar"></i> <strong>Tentative:</strong> June 2026</div>
-        <div class="adm-card-detail"><i class="fa-solid fa-landmark"></i> <strong>Authority:</strong> MCAER</div>
-        <div class="adm-card-detail"><i class="fa-solid fa-clipboard-check"></i> <strong>Exams:</strong> MHT-CET, NEET, JEE</div>
-      </div>
-      <a href="{{ url_for('cutoffs', exam='agriculture') }}" class="adm-btn-full">View Previous Cut-offs</a>
-    </div>
-
+    {% endif %}
   </div>
 </div>
 
@@ -464,13 +397,11 @@ function filterAdm(btn, cat) {
   // Update active button
   document.querySelectorAll('.adm-cat-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-
-  // Filter cards
   const cards = document.querySelectorAll('.adm-card');
   cards.forEach(card => {
     card.classList.remove('show');
-    if (cat === 'all' || card.getAttribute('data-cat') === cat) {
-      // Small timeout to allow CSS animation to restart
+    const cardCat = (card.getAttribute('data-cat') || '').toLowerCase();
+    if (cat === 'all' || cardCat.includes(cat)) {
       setTimeout(() => { card.classList.add('show'); }, 10);
     }
   });

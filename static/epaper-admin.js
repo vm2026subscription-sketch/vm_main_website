@@ -1979,17 +1979,46 @@ const EPAdmin = {
   async handlePdfToPages(file) {
     if (!file || file.type !== 'application/pdf') return;
     const statusEl = document.getElementById('pdfToPageStatus');
-    if (statusEl) { statusEl.style.display = ''; statusEl.textContent = 'Uploading PDF…'; }
+    const setStatus = (msg) => { if (statusEl) { statusEl.style.display = ''; statusEl.textContent = msg; } };
+    setStatus('Getting upload credentials…');
     try {
+      // Step 1: Get Cloudinary signed params (bypasses Vercel 4.5MB limit)
+      const signRes = await fetch('/api/epaper/admin/cloudinary-sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resource_type: 'raw' }),
+      });
+      const sign = await signRes.json();
+      if (!signRes.ok || sign.error) throw new Error(sign.error || 'Could not get upload credentials');
+
+      // Step 2: Upload PDF directly to Cloudinary
+      setStatus('Uploading PDF to cloud…');
       const fd = new FormData();
-      fd.append('pdf', file);
-      const res = await fetch('/api/epaper/admin/pdf-to-pages', { method: 'POST', body: fd });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || 'Conversion failed');
-      const urls = data.pages || [];
+      fd.append('file', file);
+      fd.append('api_key', sign.api_key);
+      fd.append('timestamp', sign.timestamp);
+      fd.append('signature', sign.signature);
+      fd.append('folder', sign.folder);
+      const uploadRes = await fetch(
+        `https://api.cloudinary.com/v1_1/${sign.cloud_name}/raw/upload`,
+        { method: 'POST', body: fd }
+      );
+      const uploadData = await uploadRes.json();
+      if (!uploadRes.ok || !uploadData.secure_url) throw new Error(uploadData.error?.message || 'Cloudinary upload failed');
+
+      // Step 3: Ask backend to convert PDF URL → page images
+      setStatus('Converting PDF to pages…');
+      const convRes = await fetch('/api/epaper/admin/pdf-url-to-pages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pdf_url: uploadData.secure_url }),
+      });
+      const convData = await convRes.json();
+      if (!convRes.ok || !convData.success) throw new Error(convData.error || 'Conversion failed');
+      const urls = convData.pages || [];
       if (!urls.length) throw new Error('No pages returned');
+
       this._pushUndo();
-      // Replace all current pages with PDF pages
       this.pages = urls.map((url, i) => ({
         page_number: i + 1,
         category: i === 0 ? 'मुख पृष्ठ' : 'News',
@@ -2001,10 +2030,11 @@ const EPAdmin = {
       this.currentPageIdx = 0;
       this.renderPageTabs();
       this.openPage(0);
-      if (statusEl) { statusEl.textContent = `${urls.length} pages imported!`; setTimeout(() => { statusEl.style.display = 'none'; }, 3000); }
+      setStatus(`${urls.length} pages imported!`);
+      setTimeout(() => { if (statusEl) statusEl.style.display = 'none'; }, 3000);
       this.showToast(`${urls.length} pages imported from PDF`);
     } catch (e) {
-      if (statusEl) { statusEl.textContent = `Error: ${e.message}`; }
+      setStatus(`Error: ${e.message}`);
       this.showToast('PDF import failed: ' + e.message);
     }
   },

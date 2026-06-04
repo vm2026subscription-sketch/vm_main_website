@@ -2599,7 +2599,25 @@ def fyjc_predict():
 
 @app.route("/admissions")
 def admissions():
-    return render_template("admissions.html")  # Placeholder
+    admissions_data = []
+    try:
+        db_url = get_postgres_connection_url()
+        if db_url and psycopg2:
+            conn = psycopg2.connect(db_url, cursor_factory=psycopg2.extras.RealDictCursor)
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT payload FROM admissions
+                    WHERE row_number >= 2
+                    AND payload->>'state' IS NOT NULL
+                    AND payload->>'state' <> ''
+                    ORDER BY payload->>'state', payload->>'stream'
+                """)
+                rows = cur.fetchall()
+            conn.close()
+            admissions_data = [r['payload'] for r in rows if r.get('payload')]
+    except Exception as e:
+        app.logger.warning("Admissions DB fetch failed: %s", e)
+    return render_template("admissions.html", admissions_data=admissions_data)
 
 @app.route("/news")
 def news():
