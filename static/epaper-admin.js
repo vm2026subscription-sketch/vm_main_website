@@ -82,7 +82,6 @@ const EPAdmin = {
     this.currentPageIdx = Math.min(this.currentPageIdx, this.pages.length - 1);
     this.renderCanvas();
     this.renderPageTabs();
-    this.renderMastheadPreview();
     this.populateFooterLinkInputs();
     if (this.editionMeta.header_items) this.renderHeaderCanvas();
     document.getElementById('blockEditor').style.display = 'none';
@@ -245,7 +244,6 @@ const EPAdmin = {
       masthead_image_url: '',
       footer_links: this.defaultFooterLinks(),
     };
-    this.renderMastheadPreview();
     this.populateFooterLinkInputs();
   },
 
@@ -257,7 +255,6 @@ const EPAdmin = {
       masthead_image_url: data.masthead_image_url || '',
       footer_links: footerLinks,
     };
-    this.renderMastheadPreview();
     this.populateFooterLinkInputs();
   },
 
@@ -1953,12 +1950,12 @@ const EPAdmin = {
       // Render each page to canvas → blob → upload to Cloudinary
       const uploadPage = async (pageNum) => {
         const page = await pdf.getPage(pageNum);
-        const viewport = page.getViewport({ scale: 1.5 });
+        const viewport = page.getViewport({ scale: 3.0 });
         const canvas = document.createElement('canvas');
         canvas.width = viewport.width;
         canvas.height = viewport.height;
         await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-        const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.88));
+        const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.97));
         const fd = new FormData();
         fd.append('file', blob, `page_${pageNum}.jpg`);
         fd.append('api_key', sign.api_key);
