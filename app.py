@@ -2664,7 +2664,39 @@ EXAM_UPDATES_DATA = [
 
 @app.route('/exam-updates')
 def exam_updates():
-    return render_template('exam-updates.html', exams=EXAM_UPDATES_DATA)
+    exams = []
+    try:
+        db_url = get_postgres_connection_url()
+        if db_url and psycopg2:
+            conn = psycopg2.connect(db_url, cursor_factory=psycopg2.extras.RealDictCursor)
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT payload FROM exam_updates
+                    WHERE row_number >= 2
+                    AND payload->>'exam_name' IS NOT NULL
+                    ORDER BY payload->>'date' DESC
+                """)
+                rows = cur.fetchall()
+            conn.close()
+            for r in rows:
+                p = r['payload']
+                exams.append({
+                    'title': p.get('update_title') or p.get('exam_name', ''),
+                    'desc': p.get('description', ''),
+                    'category': p.get('stream', p.get('category', 'general')).lower().split('/')[0].strip(),
+                    'exam_name': p.get('exam_name', ''),
+                    'date': p.get('date', ''),
+                    'link': p.get('link', ''),
+                    'importance': p.get('importance', 'Medium'),
+                    'conducting_body': p.get('conducting_body', ''),
+                    'state': p.get('state', ''),
+                    'badge': p.get('category', ''),
+                })
+    except Exception as e:
+        app.logger.warning("exam_updates DB fetch failed: %s", e)
+    if not exams:
+        exams = EXAM_UPDATES_DATA
+    return render_template('exam-updates.html', exams=exams)
 
 @app.route("/articles")
 @app.route("/career-articles")
