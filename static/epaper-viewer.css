@@ -436,14 +436,10 @@ body.ep-fullscreen .ep-masthead-img img,
 }
 
 .ep-masthead-placeholder {
-  font-size: 11px;
-  color: #9ca3af;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  font-weight: 700;
+  display: none;
 }
 
-body.epaper-body.has-masthead .ep-masthead-placeholder {
+body.epaper-body:not(.has-masthead) .ep-masthead:not(:has(.ep-section-header)) {
   display: none;
 }
 
