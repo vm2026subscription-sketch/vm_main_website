@@ -2000,7 +2000,7 @@ const EPAdmin = {
       fd.append('signature', sign.signature);
       fd.append('folder', sign.folder);
       const uploadRes = await fetch(
-        `https://api.cloudinary.com/v1_1/${sign.cloud_name}/raw/upload`,
+        `https://api.cloudinary.com/v1_1/${sign.cloud_name}/${sign.resource_type || 'auto'}/upload`,
         { method: 'POST', body: fd }
       );
       const uploadData = await uploadRes.json();
