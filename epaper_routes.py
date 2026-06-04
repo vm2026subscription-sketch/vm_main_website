@@ -507,7 +507,10 @@ def api_cloudinary_sign():
         import cloudinary.utils
         import time
         timestamp = int(time.time())
+        resource_type = request.get_json(silent=True, force=True).get("resource_type", "image") if request.content_length else "image"
         params = {"folder": "epaper", "timestamp": timestamp}
+        if resource_type == "raw":
+            params["resource_type"] = "raw"
         signature = cloudinary.utils.api_sign_request(params, cloudinary.config().api_secret)
         return jsonify({
             "signature": signature,
@@ -577,6 +580,56 @@ def api_upload_epaper_image():
     return jsonify({"error": "Could not save image — filesystem unavailable"}), 500
 
 
+
+
+@epaper_bp.route("/api/epaper/admin/pdf-url-to-pages", methods=["POST"])
+def api_pdf_url_to_pages():
+    """Convert a PDF already on Cloudinary (URL) to page images. Bypasses Vercel upload limit."""
+    guard = _require_epaper_admin()
+    if guard is not None: return guard
+    data = request.get_json(silent=True) or {}
+    pdf_url = data.get("pdf_url", "").strip()
+    if not pdf_url:
+        return jsonify({"error": "pdf_url required"}), 400
+    try:
+        import fitz
+    except ImportError:
+        return jsonify({"error": "PyMuPDF not installed"}), 500
+    try:
+        from urllib.request import urlopen
+        pdf_bytes = urlopen(pdf_url).read()
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    except Exception as e:
+        return jsonify({"error": f"Could not fetch/open PDF: {e}"}), 400
+
+    dpi = 120
+    mat = fitz.Matrix(dpi / 72, dpi / 72)
+    ts = datetime.now().strftime("%Y%m%d%H%M%S")
+    pages_data = []
+    for i, page in enumerate(doc):
+        pix = page.get_pixmap(matrix=mat, alpha=False)
+        img_bytes = pix.tobytes("jpeg", jpg_quality=88)
+        pages_data.append((i, img_bytes, f"pdf_page_{ts}_{i+1}.jpg"))
+    doc.close()
+
+    if not _CLOUDINARY_URL:
+        return jsonify({"error": "Cloudinary not configured"}), 503
+
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    results = [None] * len(pages_data)
+
+    def _upload_page(item):
+        idx, img_bytes, filename = item
+        url = _upload_to_cloudinary(img_bytes, filename)
+        return idx, url
+
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        futures = {ex.submit(_upload_page, item): item[0] for item in pages_data}
+        for fut in as_completed(futures):
+            idx, url = fut.result()
+            results[idx] = url
+
+    return jsonify({"success": True, "pages": results})
 
 
 @epaper_bp.route("/api/epaper/admin/pdf-to-pages", methods=["POST"])
