@@ -1980,43 +1980,64 @@ const EPAdmin = {
     if (!file || file.type !== 'application/pdf') return;
     const statusEl = document.getElementById('pdfToPageStatus');
     const setStatus = (msg) => { if (statusEl) { statusEl.style.display = ''; statusEl.textContent = msg; } };
-    setStatus('Getting upload credentials…');
+    setStatus('Loading PDF…');
     try {
-      // Step 1: Get Cloudinary signed params (bypasses Vercel 4.5MB limit)
+      // Load PDF.js from CDN if not already loaded
+      if (!window.pdfjsLib) {
+        await new Promise((res, rej) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+          s.onload = res; s.onerror = rej;
+          document.head.appendChild(s);
+        });
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      }
+
+      // Render PDF pages to images in browser (no size limit)
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const totalPages = pdf.numPages;
+
+      // Get Cloudinary sign once
+      setStatus('Getting upload credentials…');
       const signRes = await fetch('/api/epaper/admin/cloudinary-sign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resource_type: 'raw' }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resource_type: 'image' }),
       });
       const sign = await signRes.json();
-      if (!signRes.ok || sign.error) throw new Error(sign.error || 'Could not get upload credentials');
+      if (!signRes.ok || sign.error) throw new Error(sign.error || 'Could not get credentials');
 
-      // Step 2: Upload PDF directly to Cloudinary
-      setStatus('Uploading PDF to cloud…');
-      const fd = new FormData();
-      fd.append('file', file);
-      fd.append('api_key', sign.api_key);
-      fd.append('timestamp', sign.timestamp);
-      fd.append('signature', sign.signature);
-      fd.append('folder', sign.folder);
-      const uploadRes = await fetch(
-        `https://api.cloudinary.com/v1_1/${sign.cloud_name}/${sign.resource_type || 'auto'}/upload`,
-        { method: 'POST', body: fd }
-      );
-      const uploadData = await uploadRes.json();
-      if (!uploadRes.ok || !uploadData.secure_url) throw new Error(uploadData.error?.message || 'Cloudinary upload failed');
+      // Render each page to canvas → blob → upload to Cloudinary
+      const uploadPage = async (pageNum) => {
+        const page = await pdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale: 1.5 });
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+        const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.88));
+        const fd = new FormData();
+        fd.append('file', blob, `page_${pageNum}.jpg`);
+        fd.append('api_key', sign.api_key);
+        fd.append('timestamp', sign.timestamp);
+        fd.append('signature', sign.signature);
+        fd.append('folder', sign.folder);
+        const r = await fetch(
+          `https://api.cloudinary.com/v1_1/${sign.cloud_name}/image/upload`,
+          { method: 'POST', body: fd }
+        );
+        const d = await r.json();
+        if (!r.ok || !d.secure_url) throw new Error(d.error?.message || `Page ${pageNum} upload failed`);
+        return d.secure_url;
+      };
 
-      // Step 3: Ask backend to convert PDF URL → page images
-      setStatus('Converting PDF to pages…');
-      const convRes = await fetch('/api/epaper/admin/pdf-url-to-pages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pdf_url: uploadData.secure_url }),
-      });
-      const convData = await convRes.json();
-      if (!convRes.ok || !convData.success) throw new Error(convData.error || 'Conversion failed');
-      const urls = convData.pages || [];
-      if (!urls.length) throw new Error('No pages returned');
+      // Upload pages sequentially to avoid hitting rate limits
+      const urls = [];
+      for (let i = 1; i <= totalPages; i++) {
+        setStatus(`Uploading page ${i} of ${totalPages}…`);
+        urls.push(await uploadPage(i));
+      }
 
       this._pushUndo();
       this.pages = urls.map((url, i) => ({
