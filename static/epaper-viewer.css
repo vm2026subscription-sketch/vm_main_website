@@ -439,7 +439,7 @@ body.ep-fullscreen .ep-masthead-img img,
   display: none;
 }
 
-body.epaper-body:not(.has-masthead) .ep-masthead:not(:has(.ep-section-header)) {
+body.epaper-body:not(.has-masthead) .ep-masthead {
   display: none;
 }
 
