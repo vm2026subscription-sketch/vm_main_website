@@ -160,20 +160,7 @@ const EPAdmin = {
       });
     }
 
-    const mastheadUploadBtn = document.getElementById('mastheadUploadBtn');
-    const mastheadInput = document.getElementById('mastheadInput');
-    const mastheadClearBtn = document.getElementById('mastheadClearBtn');
-    if (mastheadUploadBtn && mastheadInput) {
-      mastheadUploadBtn.addEventListener('click', () => mastheadInput.click());
-      mastheadInput.addEventListener('change', () => {
-        const file = mastheadInput.files?.[0];
-        if (file) this.handleMastheadImage(file);
-        mastheadInput.value = '';
-      });
-    }
-    if (mastheadClearBtn) {
-      mastheadClearBtn.addEventListener('click', () => this.clearMastheadImage());
-    }
+
 
     ['footerLinkSearch', 'footerLinkWhatsapp', 'footerLinkFacebook', 'footerLinkX'].forEach(id => {
       const input = document.getElementById(id);
@@ -299,44 +286,6 @@ const EPAdmin = {
     setValue('footerLinkX', 'x');
   },
 
-  renderMastheadPreview() {
-    const container = document.getElementById('mastheadPreview');
-    if (!container) return;
-    const url = this.editionMeta.masthead_image_url || '';
-    if (!url) {
-      container.innerHTML = '<span class="epa-masthead-placeholder">No header image</span>';
-      return;
-    }
-    container.innerHTML = `<img src="${url}" alt="Masthead">`;
-  },
-
-  async handleMastheadImage(file) {
-    if (!file?.type.startsWith('image/')) return;
-    this._pushUndo();
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      // Show preview instantly with data URL, then replace with CDN URL in background
-      this.editionMeta.masthead_image_url = e.target.result;
-      this.renderMastheadPreview();
-      this.showToast('Uploading header image…');
-      try {
-        const url = await this.uploadDataUrl(e.target.result, 'masthead.png');
-        this.editionMeta.masthead_image_url = url;
-        this.renderMastheadPreview();
-        this.showToast('Header image ready');
-      } catch (_) {
-        this.showToast('Header image ready (will upload on save)');
-      }
-    };
-    reader.readAsDataURL(file);
-  },
-
-  clearMastheadImage() {
-    this._pushUndo();
-    this.editionMeta.masthead_image_url = '';
-    this.renderMastheadPreview();
-    this.showToast('Header image cleared');
-  },
 
   renderHeaderCanvas() {
     const canvas = document.getElementById('headerCanvas');
@@ -1295,7 +1244,7 @@ const EPAdmin = {
     const payload = {
       date, name: name || `Edition ${date}`, language: lang,
       published: status === 'published',
-      masthead_image_url: this.editionMeta.masthead_image_url || '',
+      masthead_image_url: '',
       footer_links: this.editionMeta.footer_links || [],
       pages: this.pages.map(p => ({
         page_number: p.page_number, category: p.category || 'मुख पृष्ठ',
@@ -1882,13 +1831,6 @@ const EPAdmin = {
 
   async ensureUploadedImages() {
     const uploads = [];
-
-    if (this.editionMeta.masthead_image_url?.startsWith('data:image/')) {
-      const dataUrl = this.editionMeta.masthead_image_url;
-      uploads.push(this.uploadDataUrl(dataUrl, 'masthead.png').then(url => {
-        this.editionMeta.masthead_image_url = url;
-      }));
-    }
 
     for (const page of this.pages) {
       const pageDataUrl = page.page_image_url?.startsWith('data:') ? page.page_image_url
