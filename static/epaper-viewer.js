@@ -559,34 +559,13 @@ const EP = {
     const masthead = el.closest('.ep-masthead') || el.parentElement;
     const viewer = this.el.viewer || document.getElementById('epViewer');
     const grid = document.getElementById('epBlockGrid');
-    if (pageNum === 1) {
-      el.style.cssText = '';
-      if (masthead) masthead.style.cssText = '';
-      if (viewer) viewer.style.paddingTop = '';
-      if (grid) grid.style.marginTop = '';
-      this.applyMastheadImage(this.mastheadUrl || '');
-      return;
-    }
-    // Page 2+: collapse all spacing so section header sits flush above content
-    if (masthead) masthead.style.cssText = 'padding:0;border-bottom:none;';
-    if (viewer) viewer.style.paddingTop = '0';
-    if (grid) grid.style.marginTop = '0';
-    const num = String(pageNum).padStart(2, '0');
-    const cat = (page.category || '').toUpperCase();
-    const dateRange = page.date_range || '';
-    el.style.cssText = 'border:none;border-radius:0;background:#fff;padding:0;height:72px;';
-    el.innerHTML = `
-      <div style="border-top:2px dotted #d9252a;border-bottom:2px dotted #d9252a;padding:6px 14px;display:flex;align-items:center;justify-content:space-between;background:#fff;width:100%;height:100%;box-sizing:border-box;">
-        <div style="display:flex;align-items:center;gap:14px;">
-          <span style="font-size:26px;font-weight:800;color:#d9252a;line-height:1;font-family:Georgia,serif;">${num}</span>
-          <span style="font-size:14px;font-weight:800;color:#d9252a;border-left:3px solid #d9252a;padding-left:12px;font-family:Georgia,serif;letter-spacing:.5px;">${cat}</span>
-        </div>
-        <div style="text-align:right;flex-shrink:0;">
-          ${dateRange ? `<div style="font-size:10px;font-weight:600;color:#374151;margin-bottom:2px;">${dateRange}</div>` : ''}
-          <div style="font-size:11px;font-weight:800;color:#d9252a;">Vidyarthi Mitra</div>
-        </div>
-      </div>`;
-    document.body.classList.add('has-masthead');
+    el.style.cssText = '';
+    el.innerHTML = '';
+    if (masthead) masthead.style.cssText = '';
+    if (viewer) viewer.style.paddingTop = '';
+    if (grid) grid.style.marginTop = '';
+    if (pageNum === 1) this.applyMastheadImage(this.mastheadUrl || '');
+    else document.body.classList.remove('has-masthead');
   },
 
   resolveFooterLinks(rawLinks) {
