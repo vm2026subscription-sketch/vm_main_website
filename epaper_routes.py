@@ -507,10 +507,10 @@ def api_cloudinary_sign():
         import cloudinary.utils
         import time
         timestamp = int(time.time())
-        resource_type = request.get_json(silent=True, force=True).get("resource_type", "image") if request.content_length else "image"
+        req_data = request.get_json(silent=True) or {}
+        resource_type = req_data.get("resource_type", "auto")
+        # resource_type is NOT signed — it's a URL path param in Cloudinary API
         params = {"folder": "epaper", "timestamp": timestamp}
-        if resource_type == "raw":
-            params["resource_type"] = "raw"
         signature = cloudinary.utils.api_sign_request(params, cloudinary.config().api_secret)
         return jsonify({
             "signature": signature,
@@ -518,6 +518,7 @@ def api_cloudinary_sign():
             "api_key": cloudinary.config().api_key,
             "cloud_name": cloudinary.config().cloud_name,
             "folder": "epaper",
+            "resource_type": resource_type,
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
