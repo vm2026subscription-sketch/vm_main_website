@@ -24,34 +24,11 @@ except ImportError:
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
 from dotenv import load_dotenv
 from werkzeug.security import check_password_hash, generate_password_hash
-
-# Robustly import Flask-Compress and provide a no-op fallback so optional
-# compression doesn't block application startup.
-_FlaskCompress = None
-_has_compress = False
 try:
     from flask_compress import Compress as _FlaskCompress
     _has_compress = True
-except Exception:
-    try:
-        import flask_compress as _fc
-        _FlaskCompress = getattr(_fc, "Compress", None)
-        _has_compress = _FlaskCompress is not None
-    except Exception:
-        _FlaskCompress = None
-        _has_compress = False
-
-
-class _NoopCompress:
-    def __init__(self, app=None, **kwargs):
-        if app is not None:
-            self.init_app(app, **kwargs)
-
-    def init_app(self, app, **kwargs):
-        return
-
-if not _has_compress:
-    _FlaskCompress = _NoopCompress
+except ImportError:
+    _has_compress = False
 try:
     from psycopg2 import connect
     from psycopg2.extras import Json, execute_values
@@ -77,26 +54,8 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 # Enable SECURE cookies only when not running locally
 if os.environ.get("FLASK_ENV") == "production" or os.environ.get("RENDER"):
     app.config["SESSION_COOKIE_SECURE"] = True
-
-# Initialize Compress extension if available. Prefer init_app API.
-try:
-    if _FlaskCompress:
-        try:
-            comp = _FlaskCompress()
-            if hasattr(comp, "init_app"):
-                comp.init_app(app)
-            else:
-                try:
-                    _FlaskCompress(app)
-                except Exception:
-                    pass
-        except TypeError:
-            try:
-                _FlaskCompress(app)
-            except Exception as exc:
-                app.logger.warning("Failed to initialize Compress extension: %s", exc)
-except Exception as exc:
-    app.logger.warning("Compress initialization skipped: %s", exc)
+if _has_compress:
+    _FlaskCompress(app)
 
 @app.errorhandler(413)
 def request_too_large(e):
@@ -1687,36 +1646,25 @@ def index():
 
 
 @app.route("/blog")
+@app.route("/blogs")
 def blog():
-    return render_template("blogs.html")  # Placeholder
+    blogs = _load_blog_articles()
+    return render_template("blogs.html", blogs=blogs)
 
 
-def _load_blogs():
-    try:
-        with open(_BLOGS_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return []
+@app.route("/blog/<slug>")
+@app.route("/blogs/<slug>")
+def blog_detail(slug):
+    blog_article = next((item for item in _load_blog_articles() if item.get('slug') == slug), None)
+    if blog_article is None:
+        return redirect(url_for("blog"))
 
-
-def get_blog_by_id(blog_id):
-    for blog in _load_blogs():
-        if str(blog.get('id')) == str(blog_id):
-            return blog
-    return None
-
-
-@app.route('/blogs/<int:blog_id>')
-def blog_detail(blog_id):
-    blog = get_blog_by_id(blog_id)
-    if blog is None:
-        return redirect(url_for('blog'))
-
-    blog_detail_data = {
-        **blog,
-        "paragraphs": build_article_paragraphs(blog.get("full", "")),
+    article_detail_data = {
+        "title": blog_article.get("title", ""),
+        "category": blog_article.get("category", "Blog"),
+        "paragraphs": build_article_paragraphs(blog_article.get("full", "")) or [blog_article.get("summary", "")],
     }
-    return render_template("blog_detail.html", blog=blog_detail_data)
+    return render_template("article_detail.html", article=article_detail_data)
 
 
 @app.route("/epaper-archive")
@@ -2733,78 +2681,12 @@ EXAM_UPDATES_DATA = [
 
 @app.route('/exam-updates')
 def exam_updates():
-    exams = []
-    try:
-        db_url = get_postgres_connection_url()
-        if db_url and psycopg2:
-            conn = psycopg2.connect(db_url, cursor_factory=psycopg2.extras.RealDictCursor)
-            with conn.cursor() as cur:
-                cur.execute("""
-                    SELECT payload FROM exam_updates
-                    WHERE row_number >= 2
-                    AND payload->>'exam_name' IS NOT NULL
-                    ORDER BY payload->>'date' DESC
-                """)
-                rows = cur.fetchall()
-            conn.close()
-            for r in rows:
-                p = r['payload']
-                exams.append({
-                    'title': p.get('update_title') or p.get('exam_name', ''),
-                    'desc': p.get('description', ''),
-                    'category': p.get('stream', p.get('category', 'general')).lower().split('/')[0].strip(),
-                    'exam_name': p.get('exam_name', ''),
-                    'date': p.get('date', ''),
-                    'link': p.get('link', ''),
-                    'importance': p.get('importance', 'Medium'),
-                    'conducting_body': p.get('conducting_body', ''),
-                    'state': p.get('state', ''),
-                    'badge': p.get('category', ''),
-                })
-    except Exception as e:
-        app.logger.warning("exam_updates DB fetch failed: %s", e)
-    if not exams:
-        exams = EXAM_UPDATES_DATA
-    return render_template('exam-updates.html', exams=exams)
+    return render_template('exam-updates.html', exams=EXAM_UPDATES_DATA)
 
 @app.route("/articles")
-@app.route("/career-articles")
 def articles():
-    category = request.args.get("category", "all").strip()
-    query = request.args.get("q", "").strip().lower()
-
-    valid_categories = {item["value"] for item in CATEGORIES}
-    if category not in valid_categories:
-        category = "all"
-
-    filtered_articles = ARTICLES
-    if category != "all":
-        filtered_articles = [
-            article for article in filtered_articles if article["category"] == category
-        ]
-    if query:
-        filtered_articles = [
-            article
-            for article in filtered_articles
-            if query in article["title"].lower() or query in article["desc"].lower()
-        ]
-
-    list_articles = [
-        {
-            **article,
-            "desc": build_article_teaser(article.get("desc", "")),
-        }
-        for article in filtered_articles
-    ]
-
-    return render_template(
-        "articles.html",
-        articles=list_articles,
-        categories=CATEGORIES,
-        active_category=category,
-        query=query,
-        total=len(filtered_articles),
-    )
+    # This page has been removed from the site. Redirect users to /news instead.
+    return redirect(url_for('news'))
 
 
 @app.route("/articles/<int:article_id>")
@@ -3661,20 +3543,91 @@ def subscribe():
 
 _BLOGS_FILE = os.path.join(os.path.dirname(__file__), 'data', 'blogs.json')
 
+
+def _normalize_blog_article(article):
+    title = str(article.get('Title') or article.get('title') or '').strip()
+    category = str(article.get('Category') or article.get('category') or '').strip()
+    author = str(article.get('Author') or article.get('author') or '').strip()
+    date = str(article.get('Date') or article.get('date') or '').strip()
+    summary = str(article.get('Summary') or article.get('summary') or '').strip()
+    full = str(article.get('Content') or article.get('full') or '').strip()
+    tags = str(article.get('Tags') or article.get('tag') or article.get('tags') or '').strip()
+    image = str(article.get('Image') or article.get('image') or '').strip()
+    slug = str(article.get('Slug') or article.get('slug') or title).lower().replace(' ', '-').replace(',', '').replace(':', '')
+    status = str(article.get('Status') or article.get('status') or '').strip().lower()
+
+    if not title:
+        return None
+
+    if status and status not in {'published', 'publish'}:
+        return None
+
+    if image and not image.startswith(('http://', 'https://', '/')):
+        image = url_for('static', filename=image)
+    elif not image:
+        image = url_for('static', filename='logo.png')
+
+    return {
+        'title': title,
+        'category': category,
+        'author': author,
+        'date': date,
+        'summary': summary,
+        'full': full,
+        'tags': tags,
+        'image': image,
+        'slug': slug,
+        'href': url_for('blog_detail', slug=slug),
+    }
+
+
+def _load_blog_articles():
+    blogs = []
+    try:
+        db_url = get_postgres_connection_url()
+        if db_url and psycopg2:
+            conn = psycopg2.connect(db_url, cursor_factory=psycopg2.extras.RealDictCursor)
+            try:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT payload
+                        FROM blogs
+                        WHERE row_number >= 2
+                        ORDER BY row_number ASC
+                    """)
+                    rows = cur.fetchall()
+            finally:
+                conn.close()
+
+            for row in rows:
+                normalized = _normalize_blog_article(row.get('payload') or {})
+                if normalized:
+                    blogs.append(normalized)
+    except Exception as e:
+        app.logger.warning("blogs DB fetch failed: %s", e)
+
+    if not blogs:
+        try:
+            with open(_BLOGS_FILE, 'r', encoding='utf-8') as f:
+                raw_blogs = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            raw_blogs = []
+        for article in raw_blogs:
+            normalized = _normalize_blog_article(article)
+            if normalized:
+                blogs.append(normalized)
+
+    return blogs
+
 @app.route('/api/blogs')
 def api_blogs():
     category = request.args.get('category', '').strip().lower()
     search = request.args.get('search', '').strip().lower()
-    blogs = _load_blogs()
+    blogs = _load_blog_articles()
     if category and category != 'all':
         blogs = [b for b in blogs if b.get('category', '').lower() == category]
     if search:
-        blogs = [
-            b for b in blogs
-            if search in b.get('title', '').lower()
-            or search in b.get('summary', '').lower()
-            or search in b.get('full', '').lower()
-        ]
+        blogs = [b for b in blogs if search in b.get('title', '').lower() or search in b.get('summary', '').lower()]
     return jsonify(blogs)
 
 
@@ -4080,7 +4033,7 @@ def sitemap_xml():
         ('/entrance-exams', '0.9', 'weekly'),
         ('/mock-exams', '0.8', 'weekly'),
         ('/exam-updates', '0.8', 'weekly'),
-        ('/articles', '0.8', 'weekly'),
+        ('/news', '0.8', 'daily'),
         ('/blogs', '0.8', 'weekly'),
         ('/news', '0.8', 'daily'),
         ('/courses', '0.8', 'weekly'),
