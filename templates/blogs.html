@@ -231,6 +231,9 @@
     border-radius: 20px;
     width: fit-content;
   }
+
+  /* Hide small tag pills below images on the blogs listing */
+  .blog-card .tag { display: none !important; }
   
   .tag.result    { background: rgba(239, 68, 68, 0.1) !important; color: #f87171 !important; border: 1px solid rgba(239, 68, 68, 0.2); }
   .tag.exam      { background: rgba(59, 130, 246, 0.1) !important; color: #60a5fa !important; border: 1px solid rgba(59, 130, 246, 0.2); }
@@ -343,57 +346,26 @@
 </div>
 
 <section class="blog-container" id="blogContainer">
-
-  <div class="blog-card result">
-    <img src="{{ url_for('static', filename='blog1.jpg') }}" alt="Maharashtra SSC Result 2026" class="blog-card-img" loading="lazy">
-    <div class="blog-content">
-      <span class="tag result">RESULT</span>
-      <h3>Maharashtra SSC Result 2026</h3>
-      <p>SSC results expected soon. Check official updates and cutoff trends.</p>
-      <a href="{{ url_for('news') }}?category=Result" class="read-more-btn">Read More <i class="fa fa-arrow-right" style="margin-left: 6px;"></i></a>
+  {% if blogs %}
+    {% for blog in blogs %}
+      <div class="blog-card {{ blog.category|lower|replace(' ', '-') }}" data-category="{{ blog.category|lower }}">
+        <img src="{{ blog.image }}" alt="{{ blog.title }}" class="blog-card-img" loading="lazy" onerror="this.src='{{ url_for('static', filename='logo.png') }}'">
+        <div class="blog-content">
+          <span class="tag {{ blog.category|lower }}">{{ blog.tags or blog.category or 'BLOG' }}</span>
+          <h3>{{ blog.title }}</h3>
+          <p>{{ blog.summary }}</p>
+          <a href="{{ blog.href or blog.url or '#' }}" class="read-more-btn">Read More <i class="fa fa-arrow-right" style="margin-left: 6px;"></i></a>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="blog-card" style="grid-column: 1 / -1;">
+      <div class="blog-content">
+        <h3>No blog articles found</h3>
+        <p>Upload articles through the Excel page to populate this section.</p>
+      </div>
     </div>
-  </div>
-
-  <div class="blog-card admission">
-    <img src="{{ url_for('static', filename='blog2.jpg') }}" alt="NEET UG 2026 Registration" class="blog-card-img" loading="lazy">
-    <div class="blog-content">
-      <span class="tag admission">ADMISSION</span>
-      <h3>NEET UG 2026 Registration</h3>
-      <p>Complete registration process, eligibility &amp; important dates.</p>
-      <a href="{{ url_for('news') }}?category=Medical" class="read-more-btn">Read More <i class="fa fa-arrow-right" style="margin-left: 6px;"></i></a>
-    </div>
-  </div>
-
-  <div class="blog-card exam">
-    <img src="{{ url_for('static', filename='blog3.jpg') }}" alt="JEE Main 2026 Admit Card" class="blog-card-img" loading="lazy">
-    <div class="blog-content">
-      <span class="tag exam">EXAM</span>
-      <h3>JEE Main 2026 Admit Card</h3>
-      <p>Admit card download link and exam-day guidelines.</p>
-      <a href="{{ url_for('news') }}?category=Engineering" class="read-more-btn">Read More <i class="fa fa-arrow-right" style="margin-left: 6px;"></i></a>
-    </div>
-  </div>
-
-  <div class="blog-card exam">
-    <img src="{{ url_for('static', filename='blog4.jpg') }}" alt="MHT-CET Mock Seat Allotment" class="blog-card-img" loading="lazy">
-    <div class="blog-content">
-      <span class="tag exam">EXAM</span>
-      <h3>MHT-CET Mock Seat Allotment</h3>
-      <p>Check provisional allotment and understand counselling rounds.</p>
-      <a href="{{ url_for('news') }}?category=Engineering" class="read-more-btn">Read More <i class="fa fa-arrow-right" style="margin-left: 6px;"></i></a>
-    </div>
-  </div>
-
-  <div class="blog-card career">
-    <img src="{{ url_for('static', filename='blog5.jpg') }}" alt="Top Career Options After 12th" class="blog-card-img" loading="lazy">
-    <div class="blog-content">
-      <span class="tag career">CAREER</span>
-      <h3>Top Career Options After 12th</h3>
-      <p>Explore engineering, medical, commerce &amp; skill-based careers.</p>
-      <a href="{{ url_for('articles') }}" class="read-more-btn">Read More <i class="fa fa-arrow-right" style="margin-left: 6px;"></i></a>
-    </div>
-  </div>
-
+  {% endif %}
 </section>
 
 <script>
