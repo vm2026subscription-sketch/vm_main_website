@@ -1646,8 +1646,25 @@ def index():
 
 
 @app.route("/blog")
+@app.route("/blogs")
 def blog():
-    return render_template("blogs.html")  # Placeholder
+    blogs = _load_blog_articles()
+    return render_template("blogs.html", blogs=blogs)
+
+
+@app.route("/blog/<slug>")
+@app.route("/blogs/<slug>")
+def blog_detail(slug):
+    blog_article = next((item for item in _load_blog_articles() if item.get('slug') == slug), None)
+    if blog_article is None:
+        return redirect(url_for("blog"))
+
+    article_detail_data = {
+        "title": blog_article.get("title", ""),
+        "category": blog_article.get("category", "Blog"),
+        "paragraphs": build_article_paragraphs(blog_article.get("full", "")) or [blog_article.get("summary", "")],
+    }
+    return render_template("article_detail.html", article=article_detail_data)
 
 
 @app.route("/epaper-archive")
@@ -2667,43 +2684,9 @@ def exam_updates():
     return render_template('exam-updates.html', exams=EXAM_UPDATES_DATA)
 
 @app.route("/articles")
-@app.route("/career-articles")
 def articles():
-    category = request.args.get("category", "all").strip()
-    query = request.args.get("q", "").strip().lower()
-
-    valid_categories = {item["value"] for item in CATEGORIES}
-    if category not in valid_categories:
-        category = "all"
-
-    filtered_articles = ARTICLES
-    if category != "all":
-        filtered_articles = [
-            article for article in filtered_articles if article["category"] == category
-        ]
-    if query:
-        filtered_articles = [
-            article
-            for article in filtered_articles
-            if query in article["title"].lower() or query in article["desc"].lower()
-        ]
-
-    list_articles = [
-        {
-            **article,
-            "desc": build_article_teaser(article.get("desc", "")),
-        }
-        for article in filtered_articles
-    ]
-
-    return render_template(
-        "articles.html",
-        articles=list_articles,
-        categories=CATEGORIES,
-        active_category=category,
-        query=query,
-        total=len(filtered_articles),
-    )
+    # This page has been removed from the site. Redirect users to /news instead.
+    return redirect(url_for('news'))
 
 
 @app.route("/articles/<int:article_id>")
@@ -3560,24 +3543,91 @@ def subscribe():
 
 _BLOGS_FILE = os.path.join(os.path.dirname(__file__), 'data', 'blogs.json')
 
+
+def _normalize_blog_article(article):
+    title = str(article.get('Title') or article.get('title') or '').strip()
+    category = str(article.get('Category') or article.get('category') or '').strip()
+    author = str(article.get('Author') or article.get('author') or '').strip()
+    date = str(article.get('Date') or article.get('date') or '').strip()
+    summary = str(article.get('Summary') or article.get('summary') or '').strip()
+    full = str(article.get('Content') or article.get('full') or '').strip()
+    tags = str(article.get('Tags') or article.get('tag') or article.get('tags') or '').strip()
+    image = str(article.get('Image') or article.get('image') or '').strip()
+    slug = str(article.get('Slug') or article.get('slug') or title).lower().replace(' ', '-').replace(',', '').replace(':', '')
+    status = str(article.get('Status') or article.get('status') or '').strip().lower()
+
+    if not title:
+        return None
+
+    if status and status not in {'published', 'publish'}:
+        return None
+
+    if image and not image.startswith(('http://', 'https://', '/')):
+        image = url_for('static', filename=image)
+    elif not image:
+        image = url_for('static', filename='logo.png')
+
+    return {
+        'title': title,
+        'category': category,
+        'author': author,
+        'date': date,
+        'summary': summary,
+        'full': full,
+        'tags': tags,
+        'image': image,
+        'slug': slug,
+        'href': url_for('blog_detail', slug=slug),
+    }
+
+
+def _load_blog_articles():
+    blogs = []
+    try:
+        db_url = get_postgres_connection_url()
+        if db_url and psycopg2:
+            conn = psycopg2.connect(db_url, cursor_factory=psycopg2.extras.RealDictCursor)
+            try:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT payload
+                        FROM blogs
+                        WHERE row_number >= 2
+                        ORDER BY row_number ASC
+                    """)
+                    rows = cur.fetchall()
+            finally:
+                conn.close()
+
+            for row in rows:
+                normalized = _normalize_blog_article(row.get('payload') or {})
+                if normalized:
+                    blogs.append(normalized)
+    except Exception as e:
+        app.logger.warning("blogs DB fetch failed: %s", e)
+
+    if not blogs:
+        try:
+            with open(_BLOGS_FILE, 'r', encoding='utf-8') as f:
+                raw_blogs = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            raw_blogs = []
+        for article in raw_blogs:
+            normalized = _normalize_blog_article(article)
+            if normalized:
+                blogs.append(normalized)
+
+    return blogs
+
 @app.route('/api/blogs')
 def api_blogs():
     category = request.args.get('category', '').strip().lower()
     search = request.args.get('search', '').strip().lower()
-    try:
-        with open(_BLOGS_FILE, 'r', encoding='utf-8') as f:
-            blogs = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        blogs = []
+    blogs = _load_blog_articles()
     if category and category != 'all':
         blogs = [b for b in blogs if b.get('category', '').lower() == category]
     if search:
-        blogs = [
-            b for b in blogs
-            if search in b.get('title', '').lower()
-            or search in b.get('summary', '').lower()
-            or search in b.get('full', '').lower()
-        ]
+        blogs = [b for b in blogs if search in b.get('title', '').lower() or search in b.get('summary', '').lower()]
     return jsonify(blogs)
 
 
@@ -3983,7 +4033,7 @@ def sitemap_xml():
         ('/entrance-exams', '0.9', 'weekly'),
         ('/mock-exams', '0.8', 'weekly'),
         ('/exam-updates', '0.8', 'weekly'),
-        ('/articles', '0.8', 'weekly'),
+        ('/news', '0.8', 'daily'),
         ('/blogs', '0.8', 'weekly'),
         ('/news', '0.8', 'daily'),
         ('/courses', '0.8', 'weekly'),
