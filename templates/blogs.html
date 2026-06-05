@@ -331,87 +331,21 @@
 <div class="blog-filter-section">
   <div class="blog-filter-inner">
     <span class="filter-label">Filter:</span>
-    <select id="categoryFilter" onchange="filterBlog(this.value)" class="blog-select">
+    <select id="categoryFilter" class="blog-select">
       <option value="all">All Topics</option>
       <option value="result">Results</option>
       <option value="exam">Exams</option>
       <option value="admission">Admissions</option>
       <option value="career">Career</option>
     </select>
-    <input type="text" id="blogSearch" onkeyup="searchBlog(this.value)" placeholder="Search articles..." class="blog-search-input">
+    <input type="text" id="searchInput" placeholder="Search articles..." class="blog-search-input">
   </div>
 </div>
 
 <section class="blog-container" id="blogContainer">
-
-  <div class="blog-card result">
-    <img src="{{ url_for('static', filename='blog1.jpg') }}" alt="Maharashtra SSC Result 2026" class="blog-card-img" loading="lazy">
-    <div class="blog-content">
-      <span class="tag result">RESULT</span>
-      <h3>Maharashtra SSC Result 2026</h3>
-      <p>SSC results expected soon. Check official updates and cutoff trends.</p>
-      <a href="{{ url_for('news') }}?category=Result" class="read-more-btn">Read More <i class="fa fa-arrow-right" style="margin-left: 6px;"></i></a>
-    </div>
-  </div>
-
-  <div class="blog-card admission">
-    <img src="{{ url_for('static', filename='blog2.jpg') }}" alt="NEET UG 2026 Registration" class="blog-card-img" loading="lazy">
-    <div class="blog-content">
-      <span class="tag admission">ADMISSION</span>
-      <h3>NEET UG 2026 Registration</h3>
-      <p>Complete registration process, eligibility &amp; important dates.</p>
-      <a href="{{ url_for('news') }}?category=Medical" class="read-more-btn">Read More <i class="fa fa-arrow-right" style="margin-left: 6px;"></i></a>
-    </div>
-  </div>
-
-  <div class="blog-card exam">
-    <img src="{{ url_for('static', filename='blog3.jpg') }}" alt="JEE Main 2026 Admit Card" class="blog-card-img" loading="lazy">
-    <div class="blog-content">
-      <span class="tag exam">EXAM</span>
-      <h3>JEE Main 2026 Admit Card</h3>
-      <p>Admit card download link and exam-day guidelines.</p>
-      <a href="{{ url_for('news') }}?category=Engineering" class="read-more-btn">Read More <i class="fa fa-arrow-right" style="margin-left: 6px;"></i></a>
-    </div>
-  </div>
-
-  <div class="blog-card exam">
-    <img src="{{ url_for('static', filename='blog4.jpg') }}" alt="MHT-CET Mock Seat Allotment" class="blog-card-img" loading="lazy">
-    <div class="blog-content">
-      <span class="tag exam">EXAM</span>
-      <h3>MHT-CET Mock Seat Allotment</h3>
-      <p>Check provisional allotment and understand counselling rounds.</p>
-      <a href="{{ url_for('news') }}?category=Engineering" class="read-more-btn">Read More <i class="fa fa-arrow-right" style="margin-left: 6px;"></i></a>
-    </div>
-  </div>
-
-  <div class="blog-card career">
-    <img src="{{ url_for('static', filename='blog5.jpg') }}" alt="Top Career Options After 12th" class="blog-card-img" loading="lazy">
-    <div class="blog-content">
-      <span class="tag career">CAREER</span>
-      <h3>Top Career Options After 12th</h3>
-      <p>Explore engineering, medical, commerce &amp; skill-based careers.</p>
-      <a href="{{ url_for('articles') }}" class="read-more-btn">Read More <i class="fa fa-arrow-right" style="margin-left: 6px;"></i></a>
-    </div>
-  </div>
-
 </section>
 
-<script>
-function filterBlog(cat) {
-  document.querySelectorAll('.blog-card').forEach(function(card) {
-    if (cat === 'all' || card.classList.contains(cat)) {
-      card.style.display = '';
-    } else {
-      card.style.display = 'none';
-    }
-  });
-}
-function searchBlog(q) {
-  var query = q.toLowerCase().trim();
-  document.querySelectorAll('.blog-card').forEach(function(card) {
-    var text = card.textContent.toLowerCase();
-    card.style.display = (!query || text.includes(query)) ? '' : 'none';
-  });
-}
-</script>
+{% block page_scripts %}
+<script src="{{ url_for('static', filename='blog.js') }}"></script>
+{% endblock %}
 {% endblock %}
