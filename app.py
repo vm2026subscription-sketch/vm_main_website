@@ -24,11 +24,34 @@ except ImportError:
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
 from dotenv import load_dotenv
 from werkzeug.security import check_password_hash, generate_password_hash
+
+# Robustly import Flask-Compress and provide a no-op fallback so optional
+# compression doesn't block application startup.
+_FlaskCompress = None
+_has_compress = False
 try:
     from flask_compress import Compress as _FlaskCompress
     _has_compress = True
-except ImportError:
-    _has_compress = False
+except Exception:
+    try:
+        import flask_compress as _fc
+        _FlaskCompress = getattr(_fc, "Compress", None)
+        _has_compress = _FlaskCompress is not None
+    except Exception:
+        _FlaskCompress = None
+        _has_compress = False
+
+
+class _NoopCompress:
+    def __init__(self, app=None, **kwargs):
+        if app is not None:
+            self.init_app(app, **kwargs)
+
+    def init_app(self, app, **kwargs):
+        return
+
+if not _has_compress:
+    _FlaskCompress = _NoopCompress
 try:
     from psycopg2 import connect
     from psycopg2.extras import Json, execute_values
@@ -54,8 +77,26 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 # Enable SECURE cookies only when not running locally
 if os.environ.get("FLASK_ENV") == "production" or os.environ.get("RENDER"):
     app.config["SESSION_COOKIE_SECURE"] = True
-if _has_compress:
-    _FlaskCompress(app)
+
+# Initialize Compress extension if available. Prefer init_app API.
+try:
+    if _FlaskCompress:
+        try:
+            comp = _FlaskCompress()
+            if hasattr(comp, "init_app"):
+                comp.init_app(app)
+            else:
+                try:
+                    _FlaskCompress(app)
+                except Exception:
+                    pass
+        except TypeError:
+            try:
+                _FlaskCompress(app)
+            except Exception as exc:
+                app.logger.warning("Failed to initialize Compress extension: %s", exc)
+except Exception as exc:
+    app.logger.warning("Compress initialization skipped: %s", exc)
 
 @app.errorhandler(413)
 def request_too_large(e):
@@ -1648,6 +1689,34 @@ def index():
 @app.route("/blog")
 def blog():
     return render_template("blogs.html")  # Placeholder
+
+
+def _load_blogs():
+    try:
+        with open(_BLOGS_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
+
+
+def get_blog_by_id(blog_id):
+    for blog in _load_blogs():
+        if str(blog.get('id')) == str(blog_id):
+            return blog
+    return None
+
+
+@app.route('/blogs/<int:blog_id>')
+def blog_detail(blog_id):
+    blog = get_blog_by_id(blog_id)
+    if blog is None:
+        return redirect(url_for('blog'))
+
+    blog_detail_data = {
+        **blog,
+        "paragraphs": build_article_paragraphs(blog.get("full", "")),
+    }
+    return render_template("blog_detail.html", blog=blog_detail_data)
 
 
 @app.route("/epaper-archive")
@@ -3596,11 +3665,7 @@ _BLOGS_FILE = os.path.join(os.path.dirname(__file__), 'data', 'blogs.json')
 def api_blogs():
     category = request.args.get('category', '').strip().lower()
     search = request.args.get('search', '').strip().lower()
-    try:
-        with open(_BLOGS_FILE, 'r', encoding='utf-8') as f:
-            blogs = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        blogs = []
+    blogs = _load_blogs()
     if category and category != 'all':
         blogs = [b for b in blogs if b.get('category', '').lower() == category]
     if search:
