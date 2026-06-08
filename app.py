@@ -1616,25 +1616,15 @@ def build_article_teaser(text, max_len=120):
 
 
 def build_article_paragraphs(text):
-    # Preserve uploaded formatting when possible: prefer newline-separated
-    # paragraphs (as when Excel cells contain line breaks). If no explicit
-    # newlines exist, fall back to grouping sentences for readability.
-    raw = text or ""
-    # If there are explicit line breaks, respect them as paragraph boundaries.
-    if "\n" in raw or "\r" in raw:
-        parts = [p.strip() for p in re.split(r"\r?\n+", raw) if p.strip()]
-        if parts:
-            return parts
-
-    # Fallback: split on sentences and group into readable paragraphs.
-    sentences = [part.strip() for part in re.split(r"(?<=[\.\?\!])\s+", raw) if part.strip()]
+    # Turn long one-line content into readable chunks for detail page rendering.
+    sentences = [part.strip() for part in (text or "").split(".") if part.strip()]
     if not sentences:
         return ["Content will be updated soon."]
 
     paragraphs = []
     bucket = []
     for idx, sentence in enumerate(sentences, start=1):
-        bucket.append(sentence if sentence.endswith(('.', '?', '!')) else sentence + '.')
+        bucket.append(sentence + ".")
         if len(bucket) == 3 or idx == len(sentences):
             paragraphs.append(" ".join(bucket))
             bucket = []
