@@ -238,9 +238,9 @@ const EP = {
     this.el.collapseBtn?.addEventListener('click', () => this.toggleHeader());
 
     // Date picker
-    this.el.dateBtn?.addEventListener('click', () => this.toggleCalendar());
-    this.el.calendarOverlay?.addEventListener('click', (e) => {
-      if (e.target === this.el.calendarOverlay) this.toggleCalendar(false);
+    this.el.dateBtn?.addEventListener('click', async () => await this.toggleCalendar());
+    this.el.calendarOverlay?.addEventListener('click', async (e) => {
+      if (e.target === this.el.calendarOverlay) await this.toggleCalendar(false);
     });
 
     // Page nav
@@ -605,7 +605,7 @@ const EP = {
   calendarMonth: null,
   calendarYear: null,
 
-  toggleCalendar(show) {
+  async toggleCalendar(show) {
     const overlay = this.el.calendarOverlay;
     if (!overlay) return;
     const isOpen = overlay.classList.contains('open');
@@ -614,6 +614,10 @@ const EP = {
     } else {
       this.calendarMonth = this.currentDate.getMonth();
       this.calendarYear = this.currentDate.getFullYear();
+      // Ensure editions are loaded so days with editions can be marked
+      if (!Array.isArray(this.editions) || this.editions.length === 0) {
+        try { await this.loadEditions(); } catch (e) { /* ignore */ }
+      }
       this.renderCalendar();
       overlay.classList.add('open');
     }
@@ -666,9 +670,9 @@ const EP = {
       if (this.editions.some(e => e.date === iso)) el.classList.add('has-edition');
 
       if (!el.classList.contains('disabled')) {
-        el.addEventListener('click', () => {
+        el.addEventListener('click', async () => {
           this.setDate(new Date(this.calendarYear, this.calendarMonth, day));
-          this.toggleCalendar(false);
+          await this.toggleCalendar(false);
         });
       }
       grid.appendChild(el);
