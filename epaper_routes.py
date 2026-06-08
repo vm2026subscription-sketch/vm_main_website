@@ -365,6 +365,11 @@ def _save_editions(data):
                 """, (json.dumps(data, ensure_ascii=False),))
             conn.commit()
             conn.close()
+            # Dual-write to local file so fallback stays in sync with Postgres
+            try:
+                _save_editions_to_file(data)
+            except Exception as fe:
+                print(f"[epaper] Local file sync after Postgres save failed (non-fatal): {fe}")
             return
         except Exception as e:
             print(f"[epaper] Postgres save failed, falling back to file: {e}")
@@ -962,6 +967,11 @@ def api_create_edition():
                 """, (json.dumps(editions, ensure_ascii=False),))
             conn.commit()
             conn.close()
+            # Dual-write to local file so fallback stays in sync with Postgres
+            try:
+                _save_editions_to_file(editions)
+            except Exception as fe:
+                print(f"[epaper] Local file sync after Postgres save failed (non-fatal): {fe}")
         else:
             _save_editions_to_file(editions)
     except Exception as exc:
@@ -1504,6 +1514,10 @@ def api_restore_backup(backup_id):
             """, (json.dumps(editions, ensure_ascii=False),))
         conn.commit()
         conn.close()
+        try:
+            _save_editions_to_file(editions)
+        except Exception as fe:
+            print(f"[epaper] Local file sync after restore failed (non-fatal): {fe}")
         return jsonify({"success": True,
                         "message": f"Edition {edition.get('date')} ({edition.get('language')}) restored successfully!"})
     except Exception as e:
