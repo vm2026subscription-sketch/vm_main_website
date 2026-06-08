@@ -39,8 +39,12 @@ except ImportError:
 try:
     import psycopg2
     import psycopg2.extras
+    import psycopg2.pool as _pg_pool
 except ImportError:
     psycopg2 = None
+    _pg_pool = None
+
+import threading as _threading
 
 from supabase import create_client
 
@@ -141,7 +145,7 @@ GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile").strip() or "llam
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 
-def fetch_remote_json(url, timeout=12):
+def fetch_remote_json(url, timeout=4):
     request = Request(
         url,
         headers={
@@ -213,6 +217,33 @@ UPLOAD_TARGET_TABLES = [
 BTECH_CUTOFF_DIR = os.path.join(app.root_path, "data", "btech")
 _btech_cutoff_cache = None
 _btech_cutoff_error = None
+_btech_cutoff_lock = _threading.Lock()
+
+# ── Postgres connection pool ─────────────────────────────────────────
+_pg_conn_pool = None
+_pg_pool_lock = _threading.Lock()
+
+def _get_pg_pool():
+    global _pg_conn_pool
+    if _pg_conn_pool is not None:
+        return _pg_conn_pool
+    with _pg_pool_lock:
+        if _pg_conn_pool is not None:
+            return _pg_conn_pool
+        if psycopg2 is None or _pg_pool is None:
+            return None
+        db_url = (
+            os.getenv("SUPABASE_POSTGRES_URL", "").strip()
+            or os.getenv("DATABASE_URL", "").strip()
+            or COURSES_DB_URL
+        )
+        if not db_url:
+            return None
+        try:
+            _pg_conn_pool = _pg_pool.ThreadedConnectionPool(1, 8, db_url)
+        except Exception:
+            _pg_conn_pool = None
+        return _pg_conn_pool
 _college_website_cache = None
 FULL_CUTOFF_PRICE_RUPEES = 100
 FULL_CUTOFF_PRICE_PAISE = FULL_CUTOFF_PRICE_RUPEES * 100
@@ -4073,7 +4104,16 @@ def sitemap_xml():
     return Response(xml, mimetype='application/xml')
 
 
-# Auto-reload trigger after database upgrade
+# Preload heavy data in background so first HTTP request is fast
+def _preload_cutoff_data():
+    try:
+        load_btech_cutoff_data()
+    except Exception:
+        pass
+
+_threading.Thread(target=_preload_cutoff_data, daemon=True).start()
+
+
 if __name__ == "__main__":
     debug = os.environ.get("FLASK_ENV") != "production"
     port = int(os.environ.get("PORT", 5001))
