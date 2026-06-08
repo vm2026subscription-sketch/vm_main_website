@@ -11,6 +11,8 @@ import queue as _queue
 import re
 import sys
 import threading
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
 from flask import Blueprint, jsonify, render_template, request, redirect, url_for, send_file, session, Response, stream_with_context
@@ -22,6 +24,16 @@ _TTS_CACHE_MAX = 30
 
 _trans_cache: dict = {}   # cache_key → translated_text
 _TRANS_CACHE_MAX = 80
+
+# ── Editions in-memory cache (avoids DB hit on every request) ──
+_editions_cache: list = None
+_editions_cache_ts: float = 0
+_EDITIONS_CACHE_TTL: int = 60          # seconds; invalidated on every save
+_editions_cache_lock = threading.Lock()
+
+# ── Global MongoDB client (created once, reused across requests) ──
+_mongo_client = None
+_mongo_client_lock = threading.Lock()
 
 def _tts_cache_key(text, voice, rate, pitch):
     return hashlib.md5(f"{text}|{voice}|{rate}|{pitch}".encode("utf-8")).hexdigest()
@@ -103,19 +115,39 @@ def _mongo_url():
     return os.getenv("MONGODB_URI", "")
 
 
-def _load_editions_from_mongo():
-    """Read editions from MongoDB (Railway admin's database). Read-only — never writes."""
+def _get_mongo_client():
+    """Return a cached global MongoClient (created once, reused across requests)."""
+    global _mongo_client
     url = _mongo_url()
     if not url:
+        return None
+    if _mongo_client is None:
+        with _mongo_client_lock:
+            if _mongo_client is None:
+                try:
+                    from pymongo import MongoClient
+                    _mongo_client = MongoClient(
+                        url,
+                        serverSelectionTimeoutMS=3000,
+                        connectTimeoutMS=3000,
+                        socketTimeoutMS=5000,
+                        maxPoolSize=5,
+                    )
+                except Exception as e:
+                    print(f"[epaper] MongoDB client init failed: {e}")
+                    return None
+    return _mongo_client
+
+
+def _load_editions_from_mongo():
+    """Read editions from MongoDB (Railway admin's database). Read-only — never writes."""
+    client = _get_mongo_client()
+    if not client:
         return []
     try:
-        from pymongo import MongoClient
-        client = MongoClient(url, serverSelectionTimeoutMS=4000, connectTimeoutMS=4000)
         db_name = os.getenv("MONGODB_DB", "vm")
         col_name = os.getenv("MONGODB_COLLECTION", "editions")
-        db = client[db_name]
-        docs = list(db[col_name].find({}, {"_id": 0}))
-        client.close()
+        docs = list(client[db_name][col_name].find({}, {"_id": 0}))
         return docs
     except Exception as e:
         print(f"[epaper] MongoDB load failed: {e}")
@@ -313,45 +345,80 @@ def _increment_edition_view(date, language):
 
 # ── Public load / save ──────────────────────────────
 
+def _load_editions_from_pg():
+    """Load editions from Postgres. Returns list or None on failure."""
+    if not _pg_url():
+        return None
+    try:
+        conn = _pg_connect()
+        _pg_ensure_table(conn)
+        with conn.cursor() as cur:
+            cur.execute("SELECT data FROM epaper_editions_store WHERE id = 'editions'")
+            row = cur.fetchone()
+        conn.close()
+        pg_data = row[0] if row else []
+        if isinstance(pg_data, str):
+            pg_data = json.loads(pg_data)
+        if not pg_data:
+            file_data = _load_editions_from_file()
+            if file_data:
+                _save_editions(file_data)
+            return file_data
+        return pg_data
+    except Exception as e:
+        print(f"[epaper] Postgres load failed, falling back: {e}")
+        return None
+
+
 def _load_editions():
-    pg_data = None
-    if _pg_url():
-        try:
-            conn = _pg_connect()
-            _pg_ensure_table(conn)
-            with conn.cursor() as cur:
-                cur.execute("SELECT data FROM epaper_editions_store WHERE id = 'editions'")
-                row = cur.fetchone()
-            conn.close()
-            pg_data = row[0] if row else []
-            if isinstance(pg_data, str):
-                pg_data = json.loads(pg_data)
-            if not pg_data:
-                file_data = _load_editions_from_file()
-                if file_data:
-                    _save_editions(file_data)
-                pg_data = file_data
-        except Exception as e:
-            print(f"[epaper] Postgres load failed, falling back: {e}")
-            pg_data = None
+    """Load editions with in-memory cache (60s TTL) + parallel Postgres & MongoDB fetch."""
+    global _editions_cache, _editions_cache_ts
 
-    mongo_data = _load_editions_from_mongo()
+    # Serve from cache if fresh
+    now = time.time()
+    with _editions_cache_lock:
+        if _editions_cache is not None and (now - _editions_cache_ts) < _EDITIONS_CACHE_TTL:
+            return _editions_cache
 
-    # Merge Supabase + MongoDB; Supabase takes precedence on same (date, language)
+    # Fetch Postgres and MongoDB in parallel
+    with ThreadPoolExecutor(max_workers=2) as ex:
+        pg_future = ex.submit(_load_editions_from_pg)
+        mongo_future = ex.submit(_load_editions_from_mongo)
+        pg_data = pg_future.result()
+        mongo_data = mongo_future.result()
+
+    # Merge: Postgres/file takes precedence; MongoDB fills in missing editions
     base = pg_data if pg_data is not None else _load_editions_from_file()
     if not mongo_data:
-        return base
-    if not base:
-        return mongo_data
-    existing_keys = {(e.get("date", ""), e.get("language", "Hindi")) for e in base}
-    merged = list(base)
-    for e in mongo_data:
-        if (e.get("date", ""), e.get("language", "Hindi")) not in existing_keys:
-            merged.append(e)
-    return merged
+        result = base or []
+    elif not base:
+        result = mongo_data
+    else:
+        existing_keys = {(e.get("date", ""), e.get("language", "Hindi")) for e in base}
+        merged = list(base)
+        for e in mongo_data:
+            if (e.get("date", ""), e.get("language", "Hindi")) not in existing_keys:
+                merged.append(e)
+        result = merged
+
+    # Store in cache
+    with _editions_cache_lock:
+        _editions_cache = result
+        _editions_cache_ts = time.time()
+
+    return result
+
+
+def _invalidate_editions_cache():
+    global _editions_cache, _editions_cache_ts
+    with _editions_cache_lock:
+        _editions_cache = None
+        _editions_cache_ts = 0
 
 
 def _save_editions(data):
+    # Invalidate cache immediately on any save
+    _invalidate_editions_cache()
     if _pg_url():
         try:
             conn = _pg_connect()
