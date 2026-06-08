@@ -3597,6 +3597,17 @@ def subscribe():
 _BLOGS_FILE = os.path.join(os.path.dirname(__file__), 'data', 'blogs.json')
 
 
+def _sync_blogs_json_from_records(records):
+    """After a successful DB insert to blogs table, write payloads to local JSON
+    so the DB-down fallback always shows the latest uploaded content."""
+    payloads = [r['payload'] for r in records if r.get('payload')]
+    try:
+        with open(_BLOGS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(payloads, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        app.logger.warning("blogs JSON sync failed: %s", e)
+
+
 def _normalize_blog_article(article):
     title = str(article.get('Title') or article.get('title') or '').strip()
     category = str(article.get('Category') or article.get('category') or '').strip()
@@ -3639,7 +3650,8 @@ def _load_blog_articles():
     try:
         db_url = get_postgres_connection_url()
         if db_url and psycopg2:
-            conn = psycopg2.connect(db_url, cursor_factory=psycopg2.extras.RealDictCursor)
+            conn = psycopg2.connect(db_url, cursor_factory=psycopg2.extras.RealDictCursor,
+                                    connect_timeout=5)
             try:
                 with conn.cursor() as cur:
                     cur.execute("""
@@ -4043,6 +4055,10 @@ def excel_upload():
                 upload_targets=UPLOAD_TARGET_TABLES,
                 connection_mode=connection_mode,
             )
+
+        # Dual-write: keep local JSON in sync so DB-down fallback stays fresh
+        if selected_table == 'blogs':
+            _sync_blogs_json_from_records(records)
 
         flash(f"Upload successful. Inserted {inserted_rows} row(s) into {selected_table}.", "success")
         return redirect(url_for("excel_upload"))
