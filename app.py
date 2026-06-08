@@ -55,7 +55,29 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 if os.environ.get("FLASK_ENV") == "production" or os.environ.get("RENDER"):
     app.config["SESSION_COOKIE_SECURE"] = True
 if _has_compress:
+    app.config['COMPRESS_LEVEL'] = 6
+    app.config['COMPRESS_MIN_SIZE'] = 500
     _FlaskCompress(app)
+
+
+@app.after_request
+def add_cache_headers(response):
+    """Add HTTP cache headers so browsers cache static assets aggressively."""
+    ct = response.content_type or ''
+    path = request.path or ''
+    # Long cache for static assets (JS, CSS, images, fonts)
+    if path.startswith('/static/'):
+        if any(x in ct for x in ('javascript', 'css', 'image', 'font')):
+            response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+        else:
+            response.headers['Cache-Control'] = 'public, max-age=86400'
+    # API responses — short cache or no-cache
+    elif path.startswith('/api/epaper/latest') or path.startswith('/api/epaper/editions'):
+        response.headers['Cache-Control'] = 'public, max-age=60, stale-while-revalidate=30'
+    elif path.startswith('/api/'):
+        response.headers['Cache-Control'] = 'no-store'
+    return response
+
 
 @app.errorhandler(413)
 def request_too_large(e):
