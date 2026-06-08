@@ -4038,11 +4038,21 @@ def excel_upload():
 
         try:
             records = convert_excel_to_records(uploaded_file)
+            inserted_rows = 0
+            last_exc = None
+            # Try direct Postgres first; if DB is paused fall back to REST API
             if postgres_connection_url:
-                ensure_upload_table_exists(postgres_connection_url, selected_table)
-                inserted_rows = insert_records_via_postgres(postgres_connection_url, selected_table, records)
-            else:
+                try:
+                    ensure_upload_table_exists(postgres_connection_url, selected_table)
+                    inserted_rows = insert_records_via_postgres(postgres_connection_url, selected_table, records)
+                except Exception as pg_exc:
+                    last_exc = pg_exc
+                    app.logger.warning("Postgres upload failed, trying Supabase REST: %s", pg_exc)
+            if inserted_rows == 0 and supabase_client:
                 inserted_rows = insert_records_in_batches(supabase_client, selected_table, records)
+                last_exc = None
+            if inserted_rows == 0 and last_exc:
+                raise last_exc
         except Exception as exc:
             import traceback
             app.logger.error("Excel upload error: %s", traceback.format_exc())
