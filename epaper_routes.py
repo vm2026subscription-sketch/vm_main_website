@@ -12,6 +12,10 @@ import re
 import sys
 import threading
 import time
+import urllib.parse
+import urllib.request
+import contextlib
+from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
@@ -19,10 +23,10 @@ from flask import Blueprint, jsonify, render_template, request, redirect, url_fo
 from werkzeug.utils import secure_filename
 
 # ── In-memory caches ──────────────────────────────────────
-_tts_cache: dict = {}     # cache_key → bytes
+_tts_cache: OrderedDict[str, bytes] = OrderedDict()     # cache_key → bytes
 _TTS_CACHE_MAX = 30
 
-_trans_cache: dict = {}   # cache_key → translated_text
+_trans_cache: OrderedDict[str, str] = OrderedDict()   # cache_key → translated_text
 _TRANS_CACHE_MAX = 80
 
 # ── Editions in-memory cache (avoids DB hit on every request) ──
@@ -43,13 +47,16 @@ def _trans_cache_key(text, target):
 
 def _evict(cache, max_size):
     while len(cache) >= max_size:
-        del cache[next(iter(cache))]
+        if isinstance(cache, OrderedDict):
+            cache.popitem(last=False)
+        else:
+            del cache[next(iter(cache))]
 
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "saurabhedict@gmail.com")
 
 # ── Epaper admin credentials ──────────────────────
-_EPAPER_ADMIN_USER = "admin"
-_EPAPER_ADMIN_PASS = "vm2026"
+_EPAPER_ADMIN_USER = os.getenv("EPAPER_ADMIN_USER", "admin")
+_EPAPER_ADMIN_PASS = os.getenv("EPAPER_ADMIN_PASS", "vm2026")
 _EPAPER_ADMIN_SESSION_KEY = "epaper_admin_auth"
 
 def _is_epaper_admin():
@@ -280,6 +287,43 @@ def _save_editions_to_file(data):
     raise RuntimeError(f"Cannot persist editions to file: {last_exc}")
 
 
+def _ensure_lock_dir(path):
+    lock_dir = os.path.dirname(path) or os.getcwd()
+    os.makedirs(lock_dir, exist_ok=True)
+    return lock_dir
+
+try:
+    import fcntl
+except ImportError:
+    fcntl = None
+
+try:
+    import msvcrt
+except ImportError:
+    msvcrt = None
+
+@contextlib.contextmanager
+def _exclusive_file_lock(path):
+    _ensure_lock_dir(path)
+    lock_path = f"{path}.lock"
+    with open(lock_path, "a+b") as lock_file:
+        if fcntl:
+            fcntl.flock(lock_file, fcntl.LOCK_EX)
+        elif msvcrt:
+            msvcrt.locking(lock_file.fileno(), msvcrt.LK_LOCK, 1)
+        try:
+            yield
+        finally:
+            if fcntl:
+                fcntl.flock(lock_file, fcntl.LOCK_UN)
+            elif msvcrt:
+                try:
+                    lock_file.seek(0)
+                    msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+                except OSError:
+                    pass
+
+
 # ── Edition view counters ───────────────────────────
 
 EPAPER_VIEWS_FILE = os.path.join(os.path.dirname(__file__), "data", "epaper_views.json")
@@ -336,11 +380,13 @@ def _increment_edition_view(date, language):
         except Exception as e:
             print(f"[epaper] view increment (pg) failed, falling back to file: {e}")
 
-    data = _load_views_file()
-    key = _views_key(date, language)
-    data[key] = int(data.get(key, 0)) + 1
-    _save_views_file(data)
-    return data[key]
+    lock_path = f"{EPAPER_VIEWS_FILE}.lock"
+    with _exclusive_file_lock(lock_path):
+        data = _load_views_file()
+        key = _views_key(date, language)
+        data[key] = int(data.get(key, 0)) + 1
+        _save_views_file(data)
+        return data[key]
 
 
 # ── Public load / save ──────────────────────────────
@@ -485,22 +531,29 @@ def _iter_epaper_articles():
 
 
 def _find_epaper_article(article_id):
+    target_id = str(article_id)
+    articles = []
+    article_index = {}
     for article, edition, page in _iter_epaper_articles():
-        if str(article.get("id")) == str(article_id):
-            related = [
-                candidate for candidate, _, _ in _iter_epaper_articles()
-                if str(candidate.get("id")) != str(article_id)
-                and candidate.get("category") == article.get("category")
-            ][:3]
-            if len(related) < 3:
-                related_ids = {str(item.get("id")) for item in related}
-                related.extend([
-                    candidate for candidate, _, _ in _iter_epaper_articles()
-                    if str(candidate.get("id")) != str(article_id)
-                    and str(candidate.get("id")) not in related_ids
-                ][:3 - len(related)])
-            return article, related, edition, page
-    return None, [], None, None
+        aid = str(article.get("id"))
+        articles.append((article, edition, page))
+        article_index[aid] = (article, edition, page)
+
+    if target_id not in article_index:
+        return None, [], None, None
+
+    article, edition, page = article_index[target_id]
+    category = article.get("category")
+    related = [candidate for candidate, _, _ in articles
+               if str(candidate.get("id")) != target_id
+               and candidate.get("category") == category][:3]
+    if len(related) < 3:
+        excluded_ids = {target_id} | {str(item.get("id")) for item in related}
+        related.extend([
+            candidate for candidate, _, _ in articles
+            if str(candidate.get("id")) not in excluded_ids
+        ][:3 - len(related)])
+    return article, related, edition, page
 
 
 # ── Viewer Page ────────────────────────────────────
@@ -541,8 +594,10 @@ def epaper_admin_login():
             session[_EPAPER_ADMIN_SESSION_KEY] = True
             session.permanent = True
             next_url = request.args.get("next") or url_for("epaper.epaper_admin_v2")
-            # strip query string artifacts
-            if "?" in next_url:
+            parsed = urllib.parse.urlparse(next_url)
+            if parsed.scheme or parsed.netloc or next_url.startswith("//"):
+                next_url = url_for("epaper.epaper_admin_v2")
+            elif "?" in next_url:
                 next_url = next_url.split("?")[0]
             return redirect(next_url)
         error = "Invalid username or password."
@@ -1116,6 +1171,7 @@ def api_translate():
     # Check cache first
     ck = _trans_cache_key(text, target)
     if ck in _trans_cache:
+        _trans_cache.move_to_end(ck)
         return jsonify({"translated_text": _trans_cache[ck]})
 
     lang_names = {
@@ -1129,6 +1185,7 @@ def api_translate():
         _evict(_trans_cache, _TRANS_CACHE_MAX)
         _trans_cache[ck] = translated
 
+    fast_error = None
     # ── Fast path: deep_translator (Google Translate, no API key, near-instant) ──
     try:
         from deep_translator import GoogleTranslator
@@ -1150,8 +1207,8 @@ def api_translate():
         result = "\n\n".join(translated_chunks)
         _save_cache(result)
         return jsonify({"translated_text": result})
-    except Exception:
-        pass
+    except Exception as exc:
+        fast_error = f"Google Translate path failed: {str(exc)}"
 
     # ── Fallback: Groq LLM (higher quality but slower) ──
     api_key = os.getenv("GROQ_API_KEY")
@@ -1177,10 +1234,10 @@ def api_translate():
             translated = response.choices[0].message.content.strip()
             _save_cache(translated)
             return jsonify({"translated_text": translated})
-        except Exception:
-            pass
+        except Exception as exc:
+            return jsonify({"error": f"Groq translation fallback failed: {str(exc)}"}), 500
 
-    return jsonify({"error": "Translation failed."}), 500
+    return jsonify({"error": fast_error or "Translation failed after all translation providers."}), 500
 
 
 # ── AI: Summarize ──────────────────────────────────
@@ -1245,93 +1302,8 @@ def api_summarize():
     return jsonify({"summary": summary})
 
 
-# ── AI: LLM-optimized TTS script ───────────────────
-@epaper_bp.route("/api/epaper/tts-script", methods=["POST"])
-def api_tts_script():
-    """Use Groq LLM to process raw text into an optimized broadcast script for TTS."""
-    data = request.get_json(silent=True) or {}
-    text = data.get("text", "").strip()
+# ── AI: TTS (Edge Neural Voices — Real Indian Anchor) ───────────────────────────────────
 
-    if not text:
-        return jsonify({"error": "No text provided."}), 400
-
-    api_key = os.getenv("GROQ_API_KEY")
-    if not api_key:
-        return jsonify({"error": "Groq API key not configured"}), 500
-
-    try:
-        from groq import Groq
-        client = Groq(api_key=api_key)
-
-        system_prompt = """You are a senior broadcast script writer for India's top news channels (Aaj Tak, NDTV India, Zee 24 Taas, ABP Maza, Times Now). Transform raw news text into a broadcast-ready narration script that sounds exactly like a real live news anchor — not a robot.
-
-LANGUAGE DETECTION:
-Detect the primary language: Hindi (हिंदी), Marathi (मराठी), or English.
-Return "language" as: "hi" for Hindi, "mr" for Marathi, "en" for English.
-Mixed scripts are normal — keep natural code-switching (e.g. English proper nouns in Hindi article).
-
-MANDATORY TRANSFORMATIONS:
-
-1. SENTENCE RHYTHM — Break long sentences at natural breath points. Each sentence max 15 words. Short punchy sentences for impact.
-
-2. PAUSE INJECTION (critical for realistic delivery):
-   - After headline: add "..." (anchor pause before story)
-   - After key facts, numbers, names: add ", " (short beat)
-   - Between topic shifts in Hindi/Marathi: add " | "
-   - After dramatic statements: add " — "
-   - End of important section: add full stop + new line
-
-3. NUMBER & SYMBOL CONVERSION:
-   Hindi/Marathi: ₹50,000 → पचास हजार रुपये | ₹2 crore → दो करोड़ रुपये | 50% → पचास प्रतिशत | 10 lakh → दस लाख
-   English: $1M → one million dollars | 10% → ten percent | 2025 → twenty twenty-five
-
-4. ABBREVIATION EXPANSION:
-   Hindi: JEE→जे ई ई | NEET→नीट | IIT→आई आई टी | UP→उत्तर प्रदेश | CM→मुख्यमंत्री | PM→प्रधानमंत्री
-   Marathi: JEE→जे ई ई | CM→मुख्यमंत्री | PM→पंतप्रधान | MH→महाराष्ट्र
-   English: JEE→J-E-E | IIT→I-I-T | CM→Chief Minister | PM→Prime Minister
-
-5. ANCHOR TONE BY LANGUAGE:
-   Hindi (Aaj Tak style): आदरपूर्ण, स्पष्ट उच्चारण, थोड़ी urgency। वाक्य छोटे और प्रभावशाली।
-   Marathi (Zee 24 Taas style): स्पष्ट मराठी उच्चारण। Standard Pune-style Marathi diction.
-   English (NDTV style): Crisp neutral Indian English. Measured pace.
-
-6. OPENING FORMAT (mandatory):
-   Hindi: Start with "एक बड़ी खबर... " or "ताज़ा जानकारी के मुताबिक... "
-   Marathi: Start with "महत्त्वाची बातमी... " or "ताज्या माहितीनुसार... "
-   English: Start with "Breaking news — " or "In a major development, "
-
-7. VOICE STYLE (choose based on story tone):
-   Breaking/urgent: speed=1.0, pitch="+2Hz"
-   Education/results: speed=0.95, pitch="+0Hz"
-   Government/policy: speed=0.92, pitch="-2Hz"
-   Positive/achievement: speed=1.0, pitch="+3Hz"
-
-Return ONLY valid JSON — no markdown, no extra text:
-{
-  "language": "hi|mr|en",
-  "title_script": "...",
-  "body_script": "...",
-  "voice_style": { "speed": 0.95, "pitch": "+0Hz", "emotion": "calm-authoritative", "pause_style": "short after facts" }
-}"""
-
-        response = client.chat.completions.create(
-            messages=[{"role": "user", "content": f"Raw News Article:\n\n{text[:4000]}"}],
-            model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
-            response_format={"type": "json_object"},
-            temperature=0.2,
-            max_tokens=2000,
-        )
-
-        import json as _json
-        result = _json.loads(response.choices[0].message.content)
-        return jsonify(result)
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({"error": f"LLM script optimization failed: {str(e)}"}), 500
-
-
-# ── AI: TTS (Edge Neural Voices — Real Indian Anchor) ──
 def _preprocess_tts_text(text):
     """Shared text preprocessing for natural TTS delivery."""
     _abbr_map = {
@@ -1469,6 +1441,7 @@ def api_tts():
 
     # ── Serve from cache instantly ──────────────────────────────────────────
     if ck in _tts_cache:
+        _tts_cache.move_to_end(ck)
         return send_file(
             io.BytesIO(_tts_cache[ck]),
             mimetype="audio/mpeg",
@@ -1490,7 +1463,7 @@ def api_tts():
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return jsonify({"error": f"TTS error: {str(e)}"}), 500
+        return jsonify({"error": f"TTS generation failed: {str(e)}"}), 500
 
 
 # ── API: Available TTS voices ───────────────────────
@@ -1589,3 +1562,22 @@ def api_restore_backup(backup_id):
                         "message": f"Edition {edition.get('date')} ({edition.get('language')}) restored successfully!"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@epaper_bp.route("/api/supabase/keepalive")
+def api_supabase_keepalive():
+    url = os.getenv("SUPABASE_URL", "").strip()
+    if not url:
+        return jsonify({"error": "SUPABASE_URL is not configured."}), 500
+    ping_url = url.rstrip("/") + "/rest/v1"
+    headers = {}
+    api_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip() or os.getenv("SUPABASE_ANON_KEY", "").strip()
+    if api_key:
+        headers["apikey"] = api_key
+        headers["Authorization"] = f"Bearer {api_key}"
+    try:
+        req = urllib.request.Request(ping_url, headers=headers, method="GET")
+        with urllib.request.urlopen(req, timeout=15) as res:
+            return jsonify({"success": True, "status": res.status, "ping_url": ping_url})
+    except Exception as exc:
+        return jsonify({"error": f"Supabase keepalive ping failed: {exc}"}), 500
