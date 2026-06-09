@@ -24,3 +24,7 @@ Thumbs.db
 
 # VS Code
 .vscode/
+
+# Runtime lock files
+*.lock.lock
+data/*.lock
