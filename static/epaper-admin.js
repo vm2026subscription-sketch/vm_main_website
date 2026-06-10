@@ -1344,6 +1344,31 @@ const EPAdmin = {
     } catch (e) { this.showToast('Delete failed'); }
   },
 
+  newEdition() {
+    this.currentEdition = null;
+    this.pages = [];
+    this.currentPageIdx = 0;
+    this.activeBlockIdx = null;
+
+    const dateInput = document.getElementById('edDate');
+    const nameInput = document.getElementById('edName');
+    const langSelect = document.getElementById('edLang');
+    if (dateInput) dateInput.value = '';
+    if (nameInput) nameInput.value = '';
+    if (langSelect) langSelect.value = 'Hindi';
+    this.updateEditionNamePreview();
+
+    const builder = document.getElementById('builderSection');
+    const deleteBtn = document.getElementById('deleteEditionBtn');
+    if (builder) builder.style.display = 'none';
+    if (deleteBtn) deleteBtn.style.display = 'none';
+
+    const form = document.getElementById('editionForm');
+    if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    this.showToast('Ready to create a new edition.');
+  },
+
   // ══════ PAGES ══════
 
   addPage() {
