@@ -1274,6 +1274,33 @@ const EP = {
   _origArticleTitle: null,
   _origArticleHTML: null,
 
+  sanitizeArticleHTML(html) {
+    if (!html) return '';
+
+    const container = document.createElement('div');
+    container.innerHTML = String(html);
+
+    container.querySelectorAll('script, iframe, object, embed, meta, link, style, base').forEach(el => el.remove());
+
+    container.querySelectorAll('*').forEach(el => {
+      Array.from(el.attributes).forEach(attr => {
+        const name = attr.name.toLowerCase();
+        const value = String(attr.value || '');
+        const normalized = value.replace(/[\u0000-\u0020\u007F]+/g, '').toLowerCase();
+        const isImageDataUrl = name === 'src' && el.tagName === 'IMG' && normalized.startsWith('data:image/');
+
+        if (name.startsWith('on') || name === 'srcdoc') {
+          el.removeAttribute(attr.name);
+        } else if ((name === 'href' || name === 'src' || name === 'xlink:href' || name === 'formaction')
+          && (normalized.startsWith('javascript:') || normalized.startsWith('vbscript:') || (normalized.startsWith('data:') && !isImageDataUrl))) {
+          el.removeAttribute(attr.name);
+        }
+      });
+    });
+
+    return container.innerHTML;
+  },
+
   openArticle(index) {
     const art = this.articles[index];
     if (!art) return;
@@ -1308,7 +1335,7 @@ const EP = {
       }
 
       if (art.body_html && art.body_html.length > 10) {
-        this.el.articleText.innerHTML = galHTML + art.body_html;
+        this.el.articleText.innerHTML = galHTML + this.sanitizeArticleHTML(art.body_html || '');
       } else {
         this.el.articleText.innerHTML = galHTML + (art.body_text || '').split('\n').map(p => `<p>${p}</p>`).join('');
       }
