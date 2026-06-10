@@ -21,6 +21,7 @@ const EP = {
   mastheadUrl: '',
   ttsUtterance: null,
   ttsPlaying: false,
+  _toastTimer: null,
 
   footerLinksDefault: [
     { key: 'search', icon: 'fa fa-magnifying-glass', url: '/epaper' },
@@ -33,6 +34,8 @@ const EP = {
   el: {},
 
   init() {
+    this.cacheDOM();
+    this.ensureArticleFeatureUI();
     this.cacheDOM();
     this.bindEvents();
     this.renderFooterLinks(this.footerLinksDefault);
@@ -99,7 +102,9 @@ const EP = {
         const data = await res.json();
         if (!data.date) return;
         const currentISO = this.currentDate ? this.formatDateISO(this.currentDate) : '';
-        if (data.date > currentISO) {
+        const isFreshPublishForCurrentDate = data.date === currentISO && (!this.currentEdition || !this.pages.length);
+        if (data.date > currentISO || isFreshPublishForCurrentDate) {
+          this.invalidateEditionCache(data.date);
           this._showNewEditionBanner(data);
         }
       } catch (e) { /* silently ignore network errors */ }
@@ -130,6 +135,7 @@ const EP = {
 
   _loadNewEdition(date) {
     document.getElementById('epNewEditionBanner')?.remove();
+    this.invalidateEditionCache(date);
     this.setDate(new Date(date + 'T00:00:00'));
   },
 
@@ -152,6 +158,71 @@ const EP = {
   // Return Cloudinary URL as-is — PNG is already lossless, no transformation needed
   optimizeCloudinaryUrl(url, width = 400) {
     return url || '';
+  },
+
+  invalidateEditionCache(date = '') {
+    delete this._apiCache['/api/epaper/latest'];
+    delete this._apiCache['/api/epaper/editions'];
+    Object.keys(this._apiCache).forEach(key => {
+      if (key.startsWith('/api/epaper/edition/')) delete this._apiCache[key];
+      if (key.startsWith('/api/epaper/editions-by-date/')) delete this._apiCache[key];
+    });
+    if (date) {
+      delete this._apiCache[`/api/epaper/edition/${date}`];
+      delete this._apiCache[`/api/epaper/editions-by-date/${date}`];
+    }
+  },
+
+  ensureArticleFeatureUI() {
+    const aiBar = document.getElementById('epTtsPrompt');
+    const summarizeTab = document.querySelector('.ep-ai-tab[data-tab="summarize"]');
+    if (aiBar && summarizeTab && !document.querySelector('.ep-ai-tab[data-tab="translate"]')) {
+      const translateTab = document.createElement('button');
+      translateTab.className = 'ep-ai-tab';
+      translateTab.dataset.tab = 'translate';
+      translateTab.innerHTML = '<i class="fa fa-language"></i><span>Translate</span>';
+      aiBar.insertBefore(translateTab, summarizeTab);
+    }
+
+    const summarizePane = document.querySelector('.ep-ai-content[data-tab="summarize"]');
+    if (summarizePane && !document.getElementById('epTranslateOutput')) {
+      const translatePane = document.createElement('div');
+      translatePane.className = 'ep-ai-content';
+      translatePane.dataset.tab = 'translate';
+      translatePane.innerHTML = `
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+          <label for="epTranslateSelect" style="font-size:12px;font-weight:600;color:#6b7280;">Language</label>
+          <select id="epTranslateSelect" class="ep-tts-voice-select" title="Select translation language">
+            <option value="en">English</option>
+            <option value="hi">Hindi</option>
+            <option value="mr">Marathi</option>
+            <option value="gu">Gujarati</option>
+            <option value="bn">Bengali</option>
+            <option value="ta">Tamil</option>
+            <option value="te">Telugu</option>
+            <option value="kn">Kannada</option>
+            <option value="ml">Malayalam</option>
+            <option value="ur">Urdu</option>
+          </select>
+        </div>
+        <div class="ep-summary-box" id="epTranslateOutput">
+          <p>Click Translate to view this article in another language.</p>
+        </div>
+      `;
+      summarizePane.parentNode.insertBefore(translatePane, summarizePane);
+    }
+
+    const articleDate = document.getElementById('epArtDate');
+    if (articleDate && !document.getElementById('epVideoBtn')) {
+      const videoBtn = document.createElement('button');
+      videoBtn.id = 'epVideoBtn';
+      videoBtn.className = 'ep-art-play-btn';
+      videoBtn.type = 'button';
+      videoBtn.style.display = 'none';
+      videoBtn.style.marginTop = '10px';
+      videoBtn.innerHTML = '<i class="fa fa-circle-play"></i> <span>Watch Video</span>';
+      articleDate.insertAdjacentElement('afterend', videoBtn);
+    }
   },
 
   cacheDOM() {
@@ -349,8 +420,10 @@ const EP = {
 
       // Pinch-to-zoom on touch
       let _lastDist = null;
+      let _pinchGesture = false;
       v.addEventListener('touchstart', (e) => {
         if (e.touches.length === 2) {
+          _pinchGesture = true;
           const dx = e.touches[0].clientX - e.touches[1].clientX;
           const dy = e.touches[0].clientY - e.touches[1].clientY;
           _lastDist = Math.hypot(dx, dy);
@@ -365,26 +438,39 @@ const EP = {
           _lastDist = dist;
         }
       }, { passive: true });
-      v.addEventListener('touchend', () => { _lastDist = null; }, { passive: true });
+      v.addEventListener('touchend', (e) => {
+        if (e.touches.length < 2) _lastDist = null;
+        if (e.touches.length === 0) _pinchGesture = false;
+      }, { passive: true });
+      v.addEventListener('touchcancel', () => {
+        _lastDist = null;
+        _pinchGesture = false;
+      }, { passive: true });
+
+      v._epWasPinching = () => _pinchGesture;
     }
 
     // Swipe left/right to change pages (single finger, only when not zoomed)
     {
       const rc = document.getElementById('epReaderContainer');
-      let _swX = null, _swY = null;
+      let _swX = null, _swY = null, _swStartTs = 0;
       if (rc) {
         rc.addEventListener('touchstart', (e) => {
           if (e.touches.length !== 1) return;
+          if (v && typeof v._epWasPinching === 'function' && v._epWasPinching()) return;
           _swX = e.touches[0].clientX;
           _swY = e.touches[0].clientY;
+          _swStartTs = Date.now();
         }, { passive: true });
         rc.addEventListener('touchend', (e) => {
           if (_swX === null) return;
-          if (this.zoom > 1) { _swX = null; return; }
+          if (this.zoom > 1) { _swX = null; _swStartTs = 0; return; }
           const dx = e.changedTouches[0].clientX - _swX;
           const dy = e.changedTouches[0].clientY - _swY;
+          const dt = Date.now() - _swStartTs;
           _swX = null;
-          if (Math.abs(dx) < 55 || Math.abs(dx) <= Math.abs(dy) * 1.3) return;
+          _swStartTs = 0;
+          if (Math.abs(dx) < 72 || Math.abs(dx) <= Math.abs(dy) * 1.5 || dt > 700) return;
           dx < 0 ? this.changePage(1) : this.changePage(-1);
         }, { passive: true });
       }
@@ -397,6 +483,7 @@ const EP = {
       if (vEl) {
         vEl.addEventListener('touchend', (e) => {
           if (e.changedTouches.length !== 1) return;
+          if (typeof vEl._epWasPinching === 'function' && vEl._epWasPinching()) return;
           const now = Date.now();
           if (now - _lastTap < 300) {
             this.setZoom(this.zoom > 1.1 ? 1 : 2.5);
@@ -448,6 +535,10 @@ const EP = {
 
     // Translate
     this.el.translateSelect?.addEventListener('change', () => this.translateArticle());
+    document.getElementById('epVideoBtn')?.addEventListener('click', () => {
+      const videoUrl = this.currentArticle?.video_url || this.currentArticle?.video || '';
+      this.playArticleVideo(videoUrl);
+    });
 
     // Keyboard
     document.addEventListener('keydown', (e) => {
@@ -601,6 +692,14 @@ const EP = {
     return `${y}-${m}-${day}`;
   },
 
+  getUTCDateKey(d) {
+    return [
+      d.getUTCFullYear(),
+      String(d.getUTCMonth() + 1).padStart(2, '0'),
+      String(d.getUTCDate()).padStart(2, '0'),
+    ].join('-');
+  },
+
   // ── Calendar ──
   calendarMonth: null,
   calendarYear: null,
@@ -646,9 +745,10 @@ const EP = {
       grid.appendChild(el);
     });
 
-    const firstDay = new Date(this.calendarYear, this.calendarMonth, 1).getDay();
-    const daysInMonth = new Date(this.calendarYear, this.calendarMonth + 1, 0).getDate();
-    const today = new Date();
+    const firstDay = new Date(Date.UTC(this.calendarYear, this.calendarMonth, 1)).getUTCDay();
+    const daysInMonth = new Date(Date.UTC(this.calendarYear, this.calendarMonth + 1, 0)).getUTCDate();
+    const todayKey = this.getUTCDateKey(new Date());
+    const selectedKey = this.currentDate ? this.getUTCDateKey(this.currentDate) : '';
 
     for (let i = 0; i < firstDay; i++) {
       const el = document.createElement('div');
@@ -660,13 +760,14 @@ const EP = {
       el.className = 'ep-cal-day';
       el.textContent = day;
 
-      const d = new Date(this.calendarYear, this.calendarMonth, day);
-      if (d > today) el.classList.add('disabled');
-      if (d.toDateString() === today.toDateString()) el.classList.add('today');
-      if (d.toDateString() === this.currentDate.toDateString()) el.classList.add('selected');
+      const d = new Date(Date.UTC(this.calendarYear, this.calendarMonth, day));
+      const utcKey = this.getUTCDateKey(d);
+      if (utcKey > todayKey) el.classList.add('disabled');
+      if (utcKey === todayKey) el.classList.add('today');
+      if (utcKey === selectedKey) el.classList.add('selected');
 
       // Check if edition exists
-      const iso = this.formatDateISO(d);
+      const iso = utcKey;
       if (this.editions.some(e => e.date === iso)) el.classList.add('has-edition');
 
       if (!el.classList.contains('disabled')) {
@@ -890,6 +991,9 @@ const EP = {
     this.updatePageHeader(page, this.currentPage);
 
     const viewer = this.el.viewer || document.getElementById('epViewer');
+    if (viewer?.animate) {
+      viewer.animate([{ opacity: 0.72 }, { opacity: 1 }], { duration: 180, easing: 'ease-out' });
+    }
     document.getElementById('epEmptyState')?.style.setProperty('display', 'none');
 
     // Check if page uses new block format
@@ -1076,7 +1180,9 @@ const EP = {
         body_html: block.body_html || '',
         category_label: block.category_label,
         article_image_url: block.image_url,
-        gallery: block.gallery || [],
+        gallery: this.filterGalleryImages(block.gallery || []),
+        has_video: !!(block.has_video || block.video_url || block.video),
+        video_url: block.video_url || block.video || '',
       }) - 1;
 
       // Optimize Cloudinary images: smaller width for card thumbnails
@@ -1274,6 +1380,33 @@ const EP = {
   _origArticleTitle: null,
   _origArticleHTML: null,
 
+  sanitizeArticleHTML(html) {
+    if (!html) return '';
+
+    const container = document.createElement('div');
+    container.innerHTML = String(html);
+
+    container.querySelectorAll('script, iframe, object, embed, meta, link, style, base').forEach(el => el.remove());
+
+    container.querySelectorAll('*').forEach(el => {
+      Array.from(el.attributes).forEach(attr => {
+        const name = attr.name.toLowerCase();
+        const value = String(attr.value || '');
+        const normalized = value.replace(/[\u0000-\u0020\u007F]+/g, '').toLowerCase();
+        const isImageDataUrl = name === 'src' && el.tagName === 'IMG' && normalized.startsWith('data:image/');
+
+        if (name.startsWith('on') || name === 'srcdoc') {
+          el.removeAttribute(attr.name);
+        } else if ((name === 'href' || name === 'src' || name === 'xlink:href' || name === 'formaction')
+          && (normalized.startsWith('javascript:') || normalized.startsWith('vbscript:') || (normalized.startsWith('data:') && !isImageDataUrl))) {
+          el.removeAttribute(attr.name);
+        }
+      });
+    });
+
+    return container.innerHTML;
+  },
+
   openArticle(index) {
     const art = this.articles[index];
     if (!art) return;
@@ -1290,7 +1423,7 @@ const EP = {
     if (this.el.articleTitle) this.el.articleTitle.textContent = art.headline || '';
     if (this.el.articleDate) this.el.articleDate.textContent = art.created_at || this.formatDateISO(this.currentDate);
     // Only show admin-uploaded gallery images — never show the newspaper clipping
-    const gallery = art.gallery || [];
+    const gallery = this.filterGalleryImages(art.gallery || []);
     if (this.el.articleImg) {
       this.el.articleImg.style.display = 'none';
       this.el.articleImg.onclick = null;
@@ -1308,7 +1441,7 @@ const EP = {
       }
 
       if (art.body_html && art.body_html.length > 10) {
-        this.el.articleText.innerHTML = galHTML + art.body_html;
+        this.el.articleText.innerHTML = galHTML + this.sanitizeArticleHTML(art.body_html || '');
       } else {
         this.el.articleText.innerHTML = galHTML + (art.body_text || '').split('\n').map(p => `<p>${p}</p>`).join('');
       }
@@ -1329,7 +1462,8 @@ const EP = {
 
     // Show video button if article has video
     const vidBtn = document.getElementById('epVideoBtn');
-    if (vidBtn) vidBtn.style.display = art.has_video && art.video_url ? 'inline-flex' : 'none';
+    const videoUrl = art.video_url || art.video || '';
+    if (vidBtn) vidBtn.style.display = (art.has_video || videoUrl) ? 'inline-flex' : 'none';
 
     this.trackEvent('article_read', { headline: art.headline, category: art.category_label });
   },
@@ -1338,7 +1472,8 @@ const EP = {
   openGalleryViewer(artIndex, imgIndex) {
     const art = this.articles[artIndex];
     if (!art || !art.gallery) return;
-    const imgs = art.gallery;
+    const imgs = this.filterGalleryImages(art.gallery);
+    if (!imgs.length) return;
     this._galImgs = imgs;
     this._galIdx = imgIndex;
     this._openLightbox();
@@ -1401,6 +1536,7 @@ const EP = {
     if (tab === 'summarize') this.summarizeArticle();
     if (tab === 'translate') {
       this._autoSetTranslateLang();
+      this.translateArticle();
     }
   },
 
@@ -1534,8 +1670,18 @@ const EP = {
   _ttsCurrentSpan: -1,
   _estimatedTtsDuration: 0,
 
+  filterGalleryImages(gallery) {
+    if (!Array.isArray(gallery)) return [];
+    return gallery
+      .map(img => String(img || '').trim())
+      .filter(Boolean);
+  },
+
   _splitSentences(text) {
     text = text.replace(/\s+/g, ' ').trim();
+    if (!text) return [];
+    const matches = text.match(/[^.!?\u0964]+(?:[.!?\u0964]+(?=\s|$)|$)/g) || [];
+    return matches.map(s => s.trim()).filter(Boolean);
     const sentences = [];
     let buf = '';
     for (let i = 0; i < text.length; i++) {
@@ -2090,7 +2236,7 @@ const EP = {
   // ── Summarize ──
   async summarizeArticle() {
     if (!this.currentArticle || !this.el.summaryOutput) return;
-    const text = this.currentArticle.body_text || '';
+    const text = this._getArticleText();
     if (!text) { this.el.summaryOutput.innerHTML = '<p>No content to summarize.</p>'; return; }
 
     this.el.summaryOutput.innerHTML = '<div class="ep-summary-loading"><div class="spinner"></div>AI is summarizing...</div>';
@@ -2104,8 +2250,14 @@ const EP = {
       });
       if (res.ok) {
         const data = await res.json();
-        const points = data.summary || [];
-        this.el.summaryOutput.innerHTML = `<h4>✨ AI Summary</h4><ul>${points.map(p => `<li>${p}</li>`).join('')}</ul>`;
+        const summary = data.summary;
+        if (Array.isArray(summary) && summary.length) {
+          this.el.summaryOutput.innerHTML = `<h4>AI Summary</h4><ul>${summary.map(p => `<li>${p}</li>`).join('')}</ul>`;
+        } else if (typeof summary === 'string' && summary.trim()) {
+          this.el.summaryOutput.innerHTML = `<h4>AI Summary</h4><p>${summary}</p>`;
+        } else {
+          this.el.summaryOutput.innerHTML = '<p>Summary unavailable.</p>';
+        }
       } else {
         this.el.summaryOutput.innerHTML = '<p>Summary unavailable.</p>';
       }
@@ -2363,20 +2515,27 @@ const EP = {
   // ── Toast ──
   showToast(msg) {
     if (!this.el.toast) return;
+    if (this._toastTimer) clearTimeout(this._toastTimer);
     this.el.toast.textContent = msg;
     this.el.toast.classList.add('show');
-    setTimeout(() => this.el.toast.classList.remove('show'), 2500);
+    const duration = Math.max(1800, Math.min(5200, 1400 + String(msg || '').trim().length * 35));
+    this._toastTimer = setTimeout(() => {
+      this.el.toast.classList.remove('show');
+      this._toastTimer = null;
+    }, duration);
   },
 
   // ── News Sidebar ──
   async loadNewsSidebar() {
     const container = document.getElementById('epNewsCards');
     if (!container) return;
+    const fallbackHtml = '<p style="color:#6b7280;font-size:12px;padding:8px 0">Unable to load news right now</p>';
     try {
       // Fetch a large pool so we can pick 2 per category
       const res = await fetch('/api/news?limit=60&category=all');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      const pool = data.articles || [];
+      const pool = Array.isArray(data?.articles) ? data.articles : [];
       if (!pool.length) { container.innerHTML = '<p style="color:#6b7280;font-size:12px;padding:8px 0">No news available</p>'; return; }
 
       // Group by category, keep first 2 per category
@@ -2388,6 +2547,7 @@ const EP = {
         if (!seen[cat]) seen[cat] = 0;
         if (seen[cat] < PER_CAT) { picked.push(a); seen[cat]++; }
       }
+      if (!picked.length) { container.innerHTML = '<p style="color:#6b7280;font-size:12px;padding:8px 0">No news available</p>'; return; }
 
       container.innerHTML = picked.map(a => {
         const thumb = a.image || a.image_url || '';
@@ -2408,7 +2568,7 @@ const EP = {
           </a>`;
       }).join('');
     } catch (e) {
-      container.innerHTML = '';
+      container.innerHTML = fallbackHtml;
     }
   },
 
