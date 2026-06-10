@@ -719,12 +719,23 @@ def resolve_colleges_columns(conn):
 
 ## --- Simple coupon storage and helpers (file-backed) ---
 COUPONS_FILE = os.path.join(app.root_path, "data", "coupons.json")
+SCHOLARSHIPS_FILE = os.path.join(app.root_path, "data", "scholarships.json")
 
 def _load_coupons_raw():
     try:
         if not os.path.exists(COUPONS_FILE):
             return []
         with open(COUPONS_FILE, "r", encoding="utf-8") as fh:
+            return json.load(fh) or []
+    except Exception:
+        return []
+
+
+def _load_scholarships_data():
+    try:
+        if not os.path.exists(SCHOLARSHIPS_FILE):
+            return []
+        with open(SCHOLARSHIPS_FILE, "r", encoding="utf-8") as fh:
             return json.load(fh) or []
     except Exception:
         return []
@@ -2664,6 +2675,25 @@ def fyjc_predict():
         "marks_vs_cutoff": marks_vs_cutoff,
         "colleges": colleges_out,
     })
+
+
+@app.route("/scholarships")
+def scholarships():
+    scholarships_data = _load_scholarships_data()
+    return render_template("scholarships.html", scholarships=scholarships_data)
+
+
+@app.route("/scholarship-redirect")
+def scholarship_redirect():
+    url = (request.args.get("url") or "").strip()
+    if not url:
+        return redirect(url_for("scholarships"))
+
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        return redirect(url_for("scholarships"))
+
+    return redirect(url)
 
 
 @app.route("/admissions")
