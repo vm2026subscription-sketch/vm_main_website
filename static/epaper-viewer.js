@@ -544,7 +544,7 @@ const EP = {
     document.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowLeft') this.changePage(-1);
       if (e.key === 'ArrowRight') this.changePage(1);
-      if (e.key === 'Escape') this.closeArticle();
+      if (e.key === 'Escape') { this.closeArticle(); this.closeArticlePopup(); }
       if (e.key === ' ' || e.key === 'Spacebar') {
         const tag = document.activeElement?.tagName;
         if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || document.activeElement?.isContentEditable) return;
@@ -1189,7 +1189,7 @@ const EP = {
       const imgSrc = hasImg ? this.optimizeCloudinaryUrl(block.image_url, 400) : '';
       const clickHandler = gotoPage
         ? `onclick="EP.showPage(${gotoPage})" title="Go to page ${gotoPage}"`
-        : `onclick="EP.openArticle(${articleIndex})" title="${block.headline || ''}"`;
+        : `onclick="EP.showArticlePopup(${articleIndex}, event, this)" title="${block.headline || ''}"`;
 
       return `
             <div class="ep-block-card" ${clickHandler} style="${baseStyle}cursor:pointer;">
@@ -1215,7 +1215,7 @@ const EP = {
       hs.style.width = (art.click_region_w || 20) + '%';
       hs.style.height = (art.click_region_h || 15) + '%';
       hs.title = art.headline || 'Read article';
-      hs.addEventListener('click', () => this.openArticle(i));
+      hs.addEventListener('click', (e) => this.showArticlePopup(i, e, hs));
       this.el.hotspotsLayer.appendChild(hs);
     });
   },
@@ -2569,6 +2569,96 @@ const EP = {
       }).join('');
     } catch (e) {
       container.innerHTML = fallbackHtml;
+    }
+  },
+
+  // ── Article Click Popup (Aaj Tak-style blue link card) ──────────────────
+  _popupOutsideHandler: null,
+
+  showArticlePopup(index, e, triggerEl) {
+    const art = this.articles[index];
+    if (!art) return;
+
+    // Remove previous active highlight
+    document.querySelectorAll('.ep-block-card.ep-popup-active').forEach(el => el.classList.remove('ep-popup-active'));
+
+    // Close any existing popup first
+    this.closeArticlePopup();
+
+    const articleId = art.article_id || art.id;
+    const hasContent = !!(art.body_text || art.body_html);
+
+    // If no article_id at all, fall straight back to panel
+    if (!articleId) {
+      this.openArticle(index);
+      return;
+    }
+
+    const articleUrl = `/article/${articleId}`;
+    const catLabel = (art.category_label || art.category || 'News');
+    const headline = art.headline || 'Read Article';
+
+    // Build popup element
+    const popup = document.createElement('div');
+    popup.id = 'epArticlePopup';
+    popup.className = 'ep-article-popup';
+    popup.innerHTML = `
+      <button class="ep-article-popup-close" onclick="EP.closeArticlePopup()" title="Close">&#x2715;</button>
+      <div class="ep-article-popup-cat">${catLabel}</div>
+      <div class="ep-article-popup-title">${headline}</div>
+      <div class="ep-article-popup-actions">
+        <a class="ep-article-popup-link" href="${articleUrl}" title="Read full article">
+          <i class="fa fa-book-open"></i> पूरा पढ़ें
+        </a>
+        ${hasContent ? `<button class="ep-article-popup-preview" onclick="EP.closeArticlePopup(); EP.openArticle(${index})" title="Quick preview"><i class="fa fa-eye"></i> Preview</button>` : ''}
+      </div>
+    `;
+
+    document.body.appendChild(popup);
+
+    // Smart positioning near click point
+    const POP_W = 292, POP_H = 148;
+    if (e && (e.clientX !== undefined)) {
+      let left = e.clientX + 14;
+      let top = e.clientY - 24;
+      if (left + POP_W > window.innerWidth - 12) left = e.clientX - POP_W - 14;
+      if (top + POP_H > window.innerHeight - 12) top = window.innerHeight - POP_H - 12;
+      if (top < 8) top = 8;
+      if (left < 8) left = 8;
+      popup.style.left = left + 'px';
+      popup.style.top  = top  + 'px';
+    } else {
+      // fallback: center of screen
+      popup.style.left = '50%';
+      popup.style.top  = '50%';
+      popup.style.transform = 'translate(-50%, -50%)';
+    }
+
+    // Highlight the clicked block
+    if (triggerEl && triggerEl.classList) {
+      triggerEl.classList.add('ep-popup-active');
+      this._popupTriggerEl = triggerEl;
+    } else {
+      this._popupTriggerEl = null;
+    }
+
+    // Close when clicking outside (single-use listener, added after micro-task)
+    this._popupOutsideHandler = (ev) => {
+      if (!popup.contains(ev.target)) this.closeArticlePopup();
+    };
+    setTimeout(() => document.addEventListener('click', this._popupOutsideHandler), 50);
+  },
+
+  closeArticlePopup() {
+    const popup = document.getElementById('epArticlePopup');
+    if (popup) popup.remove();
+    if (this._popupOutsideHandler) {
+      document.removeEventListener('click', this._popupOutsideHandler);
+      this._popupOutsideHandler = null;
+    }
+    if (this._popupTriggerEl) {
+      this._popupTriggerEl.classList.remove('ep-popup-active');
+      this._popupTriggerEl = null;
     }
   },
 
