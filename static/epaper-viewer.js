@@ -34,6 +34,8 @@ const EP = {
 
   init() {
     this.cacheDOM();
+    this.ensureArticleFeatureUI();
+    this.cacheDOM();
     this.bindEvents();
     this.renderFooterLinks(this.footerLinksDefault);
 
@@ -99,7 +101,9 @@ const EP = {
         const data = await res.json();
         if (!data.date) return;
         const currentISO = this.currentDate ? this.formatDateISO(this.currentDate) : '';
-        if (data.date > currentISO) {
+        const isFreshPublishForCurrentDate = data.date === currentISO && (!this.currentEdition || !this.pages.length);
+        if (data.date > currentISO || isFreshPublishForCurrentDate) {
+          this.invalidateEditionCache(data.date);
           this._showNewEditionBanner(data);
         }
       } catch (e) { /* silently ignore network errors */ }
@@ -130,6 +134,7 @@ const EP = {
 
   _loadNewEdition(date) {
     document.getElementById('epNewEditionBanner')?.remove();
+    this.invalidateEditionCache(date);
     this.setDate(new Date(date + 'T00:00:00'));
   },
 
@@ -152,6 +157,71 @@ const EP = {
   // Return Cloudinary URL as-is — PNG is already lossless, no transformation needed
   optimizeCloudinaryUrl(url, width = 400) {
     return url || '';
+  },
+
+  invalidateEditionCache(date = '') {
+    delete this._apiCache['/api/epaper/latest'];
+    delete this._apiCache['/api/epaper/editions'];
+    Object.keys(this._apiCache).forEach(key => {
+      if (key.startsWith('/api/epaper/edition/')) delete this._apiCache[key];
+      if (key.startsWith('/api/epaper/editions-by-date/')) delete this._apiCache[key];
+    });
+    if (date) {
+      delete this._apiCache[`/api/epaper/edition/${date}`];
+      delete this._apiCache[`/api/epaper/editions-by-date/${date}`];
+    }
+  },
+
+  ensureArticleFeatureUI() {
+    const aiBar = document.getElementById('epTtsPrompt');
+    const summarizeTab = document.querySelector('.ep-ai-tab[data-tab="summarize"]');
+    if (aiBar && summarizeTab && !document.querySelector('.ep-ai-tab[data-tab="translate"]')) {
+      const translateTab = document.createElement('button');
+      translateTab.className = 'ep-ai-tab';
+      translateTab.dataset.tab = 'translate';
+      translateTab.innerHTML = '<i class="fa fa-language"></i><span>Translate</span>';
+      aiBar.insertBefore(translateTab, summarizeTab);
+    }
+
+    const summarizePane = document.querySelector('.ep-ai-content[data-tab="summarize"]');
+    if (summarizePane && !document.getElementById('epTranslateOutput')) {
+      const translatePane = document.createElement('div');
+      translatePane.className = 'ep-ai-content';
+      translatePane.dataset.tab = 'translate';
+      translatePane.innerHTML = `
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+          <label for="epTranslateSelect" style="font-size:12px;font-weight:600;color:#6b7280;">Language</label>
+          <select id="epTranslateSelect" class="ep-tts-voice-select" title="Select translation language">
+            <option value="en">English</option>
+            <option value="hi">Hindi</option>
+            <option value="mr">Marathi</option>
+            <option value="gu">Gujarati</option>
+            <option value="bn">Bengali</option>
+            <option value="ta">Tamil</option>
+            <option value="te">Telugu</option>
+            <option value="kn">Kannada</option>
+            <option value="ml">Malayalam</option>
+            <option value="ur">Urdu</option>
+          </select>
+        </div>
+        <div class="ep-summary-box" id="epTranslateOutput">
+          <p>Click Translate to view this article in another language.</p>
+        </div>
+      `;
+      summarizePane.parentNode.insertBefore(translatePane, summarizePane);
+    }
+
+    const articleDate = document.getElementById('epArtDate');
+    if (articleDate && !document.getElementById('epVideoBtn')) {
+      const videoBtn = document.createElement('button');
+      videoBtn.id = 'epVideoBtn';
+      videoBtn.className = 'ep-art-play-btn';
+      videoBtn.type = 'button';
+      videoBtn.style.display = 'none';
+      videoBtn.style.marginTop = '10px';
+      videoBtn.innerHTML = '<i class="fa fa-circle-play"></i> <span>Watch Video</span>';
+      articleDate.insertAdjacentElement('afterend', videoBtn);
+    }
   },
 
   cacheDOM() {
@@ -448,6 +518,10 @@ const EP = {
 
     // Translate
     this.el.translateSelect?.addEventListener('change', () => this.translateArticle());
+    document.getElementById('epVideoBtn')?.addEventListener('click', () => {
+      const videoUrl = this.currentArticle?.video_url || this.currentArticle?.video || '';
+      this.playArticleVideo(videoUrl);
+    });
 
     // Keyboard
     document.addEventListener('keydown', (e) => {
@@ -1077,6 +1151,8 @@ const EP = {
         category_label: block.category_label,
         article_image_url: block.image_url,
         gallery: block.gallery || [],
+        has_video: !!(block.has_video || block.video_url || block.video),
+        video_url: block.video_url || block.video || '',
       }) - 1;
 
       // Optimize Cloudinary images: smaller width for card thumbnails
@@ -1356,7 +1432,8 @@ const EP = {
 
     // Show video button if article has video
     const vidBtn = document.getElementById('epVideoBtn');
-    if (vidBtn) vidBtn.style.display = art.has_video && art.video_url ? 'inline-flex' : 'none';
+    const videoUrl = art.video_url || art.video || '';
+    if (vidBtn) vidBtn.style.display = (art.has_video || videoUrl) ? 'inline-flex' : 'none';
 
     this.trackEvent('article_read', { headline: art.headline, category: art.category_label });
   },
@@ -1428,6 +1505,7 @@ const EP = {
     if (tab === 'summarize') this.summarizeArticle();
     if (tab === 'translate') {
       this._autoSetTranslateLang();
+      this.translateArticle();
     }
   },
 
@@ -2117,7 +2195,7 @@ const EP = {
   // ── Summarize ──
   async summarizeArticle() {
     if (!this.currentArticle || !this.el.summaryOutput) return;
-    const text = this.currentArticle.body_text || '';
+    const text = this._getArticleText();
     if (!text) { this.el.summaryOutput.innerHTML = '<p>No content to summarize.</p>'; return; }
 
     this.el.summaryOutput.innerHTML = '<div class="ep-summary-loading"><div class="spinner"></div>AI is summarizing...</div>';
@@ -2131,8 +2209,14 @@ const EP = {
       });
       if (res.ok) {
         const data = await res.json();
-        const points = data.summary || [];
-        this.el.summaryOutput.innerHTML = `<h4>✨ AI Summary</h4><ul>${points.map(p => `<li>${p}</li>`).join('')}</ul>`;
+        const summary = data.summary;
+        if (Array.isArray(summary) && summary.length) {
+          this.el.summaryOutput.innerHTML = `<h4>AI Summary</h4><ul>${summary.map(p => `<li>${p}</li>`).join('')}</ul>`;
+        } else if (typeof summary === 'string' && summary.trim()) {
+          this.el.summaryOutput.innerHTML = `<h4>AI Summary</h4><p>${summary}</p>`;
+        } else {
+          this.el.summaryOutput.innerHTML = '<p>Summary unavailable.</p>';
+        }
       } else {
         this.el.summaryOutput.innerHTML = '<p>Summary unavailable.</p>';
       }
@@ -2399,11 +2483,13 @@ const EP = {
   async loadNewsSidebar() {
     const container = document.getElementById('epNewsCards');
     if (!container) return;
+    const fallbackHtml = '<p style="color:#6b7280;font-size:12px;padding:8px 0">Unable to load news right now</p>';
     try {
       // Fetch a large pool so we can pick 2 per category
       const res = await fetch('/api/news?limit=60&category=all');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      const pool = data.articles || [];
+      const pool = Array.isArray(data?.articles) ? data.articles : [];
       if (!pool.length) { container.innerHTML = '<p style="color:#6b7280;font-size:12px;padding:8px 0">No news available</p>'; return; }
 
       // Group by category, keep first 2 per category
@@ -2415,6 +2501,7 @@ const EP = {
         if (!seen[cat]) seen[cat] = 0;
         if (seen[cat] < PER_CAT) { picked.push(a); seen[cat]++; }
       }
+      if (!picked.length) { container.innerHTML = '<p style="color:#6b7280;font-size:12px;padding:8px 0">No news available</p>'; return; }
 
       container.innerHTML = picked.map(a => {
         const thumb = a.image || a.image_url || '';
@@ -2435,7 +2522,7 @@ const EP = {
           </a>`;
       }).join('');
     } catch (e) {
-      container.innerHTML = '';
+      container.innerHTML = fallbackHtml;
     }
   },
 
