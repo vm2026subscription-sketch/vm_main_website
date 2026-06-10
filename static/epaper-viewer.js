@@ -21,6 +21,7 @@ const EP = {
   mastheadUrl: '',
   ttsUtterance: null,
   ttsPlaying: false,
+  _toastTimer: null,
 
   footerLinksDefault: [
     { key: 'search', icon: 'fa fa-magnifying-glass', url: '/epaper' },
@@ -419,8 +420,10 @@ const EP = {
 
       // Pinch-to-zoom on touch
       let _lastDist = null;
+      let _pinchGesture = false;
       v.addEventListener('touchstart', (e) => {
         if (e.touches.length === 2) {
+          _pinchGesture = true;
           const dx = e.touches[0].clientX - e.touches[1].clientX;
           const dy = e.touches[0].clientY - e.touches[1].clientY;
           _lastDist = Math.hypot(dx, dy);
@@ -435,26 +438,39 @@ const EP = {
           _lastDist = dist;
         }
       }, { passive: true });
-      v.addEventListener('touchend', () => { _lastDist = null; }, { passive: true });
+      v.addEventListener('touchend', (e) => {
+        if (e.touches.length < 2) _lastDist = null;
+        if (e.touches.length === 0) _pinchGesture = false;
+      }, { passive: true });
+      v.addEventListener('touchcancel', () => {
+        _lastDist = null;
+        _pinchGesture = false;
+      }, { passive: true });
+
+      v._epWasPinching = () => _pinchGesture;
     }
 
     // Swipe left/right to change pages (single finger, only when not zoomed)
     {
       const rc = document.getElementById('epReaderContainer');
-      let _swX = null, _swY = null;
+      let _swX = null, _swY = null, _swStartTs = 0;
       if (rc) {
         rc.addEventListener('touchstart', (e) => {
           if (e.touches.length !== 1) return;
+          if (v && typeof v._epWasPinching === 'function' && v._epWasPinching()) return;
           _swX = e.touches[0].clientX;
           _swY = e.touches[0].clientY;
+          _swStartTs = Date.now();
         }, { passive: true });
         rc.addEventListener('touchend', (e) => {
           if (_swX === null) return;
-          if (this.zoom > 1) { _swX = null; return; }
+          if (this.zoom > 1) { _swX = null; _swStartTs = 0; return; }
           const dx = e.changedTouches[0].clientX - _swX;
           const dy = e.changedTouches[0].clientY - _swY;
+          const dt = Date.now() - _swStartTs;
           _swX = null;
-          if (Math.abs(dx) < 55 || Math.abs(dx) <= Math.abs(dy) * 1.3) return;
+          _swStartTs = 0;
+          if (Math.abs(dx) < 72 || Math.abs(dx) <= Math.abs(dy) * 1.5 || dt > 700) return;
           dx < 0 ? this.changePage(1) : this.changePage(-1);
         }, { passive: true });
       }
@@ -467,6 +483,7 @@ const EP = {
       if (vEl) {
         vEl.addEventListener('touchend', (e) => {
           if (e.changedTouches.length !== 1) return;
+          if (typeof vEl._epWasPinching === 'function' && vEl._epWasPinching()) return;
           const now = Date.now();
           if (now - _lastTap < 300) {
             this.setZoom(this.zoom > 1.1 ? 1 : 2.5);
@@ -675,6 +692,14 @@ const EP = {
     return `${y}-${m}-${day}`;
   },
 
+  getUTCDateKey(d) {
+    return [
+      d.getUTCFullYear(),
+      String(d.getUTCMonth() + 1).padStart(2, '0'),
+      String(d.getUTCDate()).padStart(2, '0'),
+    ].join('-');
+  },
+
   // ── Calendar ──
   calendarMonth: null,
   calendarYear: null,
@@ -720,9 +745,10 @@ const EP = {
       grid.appendChild(el);
     });
 
-    const firstDay = new Date(this.calendarYear, this.calendarMonth, 1).getDay();
-    const daysInMonth = new Date(this.calendarYear, this.calendarMonth + 1, 0).getDate();
-    const today = new Date();
+    const firstDay = new Date(Date.UTC(this.calendarYear, this.calendarMonth, 1)).getUTCDay();
+    const daysInMonth = new Date(Date.UTC(this.calendarYear, this.calendarMonth + 1, 0)).getUTCDate();
+    const todayKey = this.getUTCDateKey(new Date());
+    const selectedKey = this.currentDate ? this.getUTCDateKey(this.currentDate) : '';
 
     for (let i = 0; i < firstDay; i++) {
       const el = document.createElement('div');
@@ -734,13 +760,14 @@ const EP = {
       el.className = 'ep-cal-day';
       el.textContent = day;
 
-      const d = new Date(this.calendarYear, this.calendarMonth, day);
-      if (d > today) el.classList.add('disabled');
-      if (d.toDateString() === today.toDateString()) el.classList.add('today');
-      if (d.toDateString() === this.currentDate.toDateString()) el.classList.add('selected');
+      const d = new Date(Date.UTC(this.calendarYear, this.calendarMonth, day));
+      const utcKey = this.getUTCDateKey(d);
+      if (utcKey > todayKey) el.classList.add('disabled');
+      if (utcKey === todayKey) el.classList.add('today');
+      if (utcKey === selectedKey) el.classList.add('selected');
 
       // Check if edition exists
-      const iso = this.formatDateISO(d);
+      const iso = utcKey;
       if (this.editions.some(e => e.date === iso)) el.classList.add('has-edition');
 
       if (!el.classList.contains('disabled')) {
@@ -964,6 +991,9 @@ const EP = {
     this.updatePageHeader(page, this.currentPage);
 
     const viewer = this.el.viewer || document.getElementById('epViewer');
+    if (viewer?.animate) {
+      viewer.animate([{ opacity: 0.72 }, { opacity: 1 }], { duration: 180, easing: 'ease-out' });
+    }
     document.getElementById('epEmptyState')?.style.setProperty('display', 'none');
 
     // Check if page uses new block format
@@ -1150,7 +1180,7 @@ const EP = {
         body_html: block.body_html || '',
         category_label: block.category_label,
         article_image_url: block.image_url,
-        gallery: block.gallery || [],
+        gallery: this.filterGalleryImages(block.gallery || []),
         has_video: !!(block.has_video || block.video_url || block.video),
         video_url: block.video_url || block.video || '',
       }) - 1;
@@ -1393,7 +1423,7 @@ const EP = {
     if (this.el.articleTitle) this.el.articleTitle.textContent = art.headline || '';
     if (this.el.articleDate) this.el.articleDate.textContent = art.created_at || this.formatDateISO(this.currentDate);
     // Only show admin-uploaded gallery images — never show the newspaper clipping
-    const gallery = art.gallery || [];
+    const gallery = this.filterGalleryImages(art.gallery || []);
     if (this.el.articleImg) {
       this.el.articleImg.style.display = 'none';
       this.el.articleImg.onclick = null;
@@ -1442,7 +1472,8 @@ const EP = {
   openGalleryViewer(artIndex, imgIndex) {
     const art = this.articles[artIndex];
     if (!art || !art.gallery) return;
-    const imgs = art.gallery;
+    const imgs = this.filterGalleryImages(art.gallery);
+    if (!imgs.length) return;
     this._galImgs = imgs;
     this._galIdx = imgIndex;
     this._openLightbox();
@@ -1639,8 +1670,18 @@ const EP = {
   _ttsCurrentSpan: -1,
   _estimatedTtsDuration: 0,
 
+  filterGalleryImages(gallery) {
+    if (!Array.isArray(gallery)) return [];
+    return gallery
+      .map(img => String(img || '').trim())
+      .filter(Boolean);
+  },
+
   _splitSentences(text) {
     text = text.replace(/\s+/g, ' ').trim();
+    if (!text) return [];
+    const matches = text.match(/[^.!?\u0964]+(?:[.!?\u0964]+(?=\s|$)|$)/g) || [];
+    return matches.map(s => s.trim()).filter(Boolean);
     const sentences = [];
     let buf = '';
     for (let i = 0; i < text.length; i++) {
@@ -2474,9 +2515,14 @@ const EP = {
   // ── Toast ──
   showToast(msg) {
     if (!this.el.toast) return;
+    if (this._toastTimer) clearTimeout(this._toastTimer);
     this.el.toast.textContent = msg;
     this.el.toast.classList.add('show');
-    setTimeout(() => this.el.toast.classList.remove('show'), 2500);
+    const duration = Math.max(1800, Math.min(5200, 1400 + String(msg || '').trim().length * 35));
+    this._toastTimer = setTimeout(() => {
+      this.el.toast.classList.remove('show');
+      this._toastTimer = null;
+    }, duration);
   },
 
   // ── News Sidebar ──
