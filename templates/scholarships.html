@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Scholarships | Vidyarthi Mitra</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root{--primary:#ff6600;--primary-600:#ea580c;--bg:#050a15;--text:#ffffff;--muted:#94a3b8}
+        body{margin:0;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+        .container{padding:36px 18px}
+        h1{font-family:'Poppins',sans-serif;font-size:2rem;margin:0 0 12px}
+        .breadcrumb a{color:var(--muted);text-decoration:none}
+        .panel{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);padding:22px;border-radius:12px}
+        .sch-card{display:flex;gap:16px;align-items:flex-start;padding:18px;border-radius:12px;border:1px solid rgba(255,255,255,0.04);background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent)}
+        .sch-badge{background:var(--primary);color:#000;padding:8px 12px;border-radius:8px;font-weight:700}
+        .sch-title{font-weight:700;color:#fff}
+        .sch-desc{color:#cbd5e1}
+        .btn-primary-ghost{background:transparent;border:1px solid rgba(255,255,255,0.08);color:#fff;padding:8px 14px;border-radius:10px}
+        /* Light mode overrides */
+        body.light-mode{background:#f8fafc;color:#0f172a}
+        body.light-mode .panel{background:#fff;border-color:#e6eef8}
+        body.light-mode .sch-card{background:#fff;border-color:#f1f5f9}
+        body.light-mode .sch-badge{background:var(--primary);color:#fff}
+        body.light-mode .sch-desc{color:#475569}
+        body.light-mode .sch-title{color:#0f172a}
+        body.light-mode .btn-primary-ghost{background:transparent;border:1px solid rgba(0,0,0,0.08);color:#0f172a;padding:8px 14px;border-radius:10px;transition:all .18s ease}
+        body.light-mode .btn-primary-ghost:hover{background:var(--primary);color:#fff;border-color:var(--primary);transform:translateY(-2px);box-shadow:0 6px 20px rgba(234,88,12,0.12)}
+        /* Badge: outlined in light mode to match theme */
+        body.light-mode .sch-badge{background:transparent;color:var(--primary);border:1px solid var(--primary);padding:6px 10px}
+        .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:18px}
+    </style>
+</head>
+
+<body>
+    {% include '_shared_index_navbar.html' %}
+
+    <main class="container">
+        <nav style="margin-bottom:16px" aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Home</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('universities') }}">Institutes &amp; Degrees</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Scholarships</li>
+            </ol>
+        </nav>
+
+        <div class="panel">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
+                <div>
+                    <h1>Scholarships</h1>
+                    <p style="margin:4px 0;color:var(--muted)">Find institute and degree level scholarships, merit awards, and need-based grants.</p>
+                </div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
+                    <a href="{{ url_for('scholarships') }}" class="sch-badge"><i class="fa fa-award"></i> Browse Scholarships</a>
+                </div>
+            </div>
+
+            <div class="grid">
+                {% for s in scholarships %}
+                <div class="sch-card">
+                    <div style="flex:0 0 84px">
+                        <div class="sch-badge">{{ loop.index }}</div>
+                    </div>
+                    <div style="flex:1">
+                        {% set link = s.url or s.link or '' %}
+                        {% set desc = s.description or s.summary or '' %}
+                        {% set subtitle = s.subtitle or s.source or '' %}
+                        <div class="sch-title">{{ s.title }}</div>
+                        {% if subtitle %}<div style="font-size:0.95rem;color:var(--muted);margin-top:6px">{{ subtitle }}</div>{% endif %}
+                        <p class="sch-desc" style="margin-top:10px">{{ desc }}</p>
+                        <div style="margin-top:8px">
+                            {% if link %}
+                                <a class="btn-primary-ghost" href="{{ url_for('scholarship_redirect') }}?url={{ link|urlencode }}&title={{ s.title|urlencode }}" target="_blank" rel="noopener noreferrer">View Details</a>
+                            {% else %}
+                                <span class="btn-primary-ghost" style="opacity:0.6;pointer-events:none">No link</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="sch-card">
+                    <div style="flex:1">
+                        <div class="sch-title">No scholarships found</div>
+                        <p class="sch-desc">We don't have scholarship listings yet. Check back later or contact us to add entries.</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
