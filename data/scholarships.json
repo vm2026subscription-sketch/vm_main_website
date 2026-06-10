@@ -1,0 +1,44 @@
+[
+  {
+    "title": "National Scholarship Portal (NSP)",
+    "url": "https://scholarships.gov.in/",
+    "subtitle": "Central government scholarship portal",
+    "description": "Apply for central and state scholarships such as Post Matric, Pre Matric, and Merit-cum-Means through the official NSP portal."
+  },
+  {
+    "title": "AICTE Pragati Scholarship",
+    "url": "https://www.aicte.gov.in/schemes/pragati-scholarship",
+    "subtitle": "Girls in technical education",
+    "description": "Scholarship for girls pursuing technical education, covering tuition fees and contingency support."
+  },
+  {
+    "title": "INSPIRE Scholarship for Higher Education",
+    "url": "https://online-inspire.gov.in/",
+    "subtitle": "Science and research talent",
+    "description": "Scholarship from the Department of Science & Technology for meritorious science students."
+  },
+  {
+    "title": "Prime Minister Scholarship Scheme",
+    "url": "https://ksb.gov.in/introduction-pmss.html",
+    "subtitle": "Defence personnel wards",
+    "description": "Scholarship for dependents of ex-servicemen and serving defence personnel."
+  },
+  {
+    "title": "MaahdBT Scholarship Portal",
+    "url": "https://mahadbt.maharashtra.gov.in/",
+    "subtitle": "Maharashtra scholarship portal",
+    "description": "State-sponsored scholarships and grants for Maharashtra students, including merit and need-based aid."
+  },
+  {
+    "title": "Saksham Scholarship",
+    "url": "https://dte.maharashtra.gov.in/saksham-scholarship-scheme/",
+    "subtitle": "Financial aid for students",
+    "description": "Scholarship program providing financial assistance to students based on merit and need."
+  },
+  {
+    "title": "Aditya Birla Scholarship",
+    "url": "https://www.adityabirlascholars.net/the-scholarship/",
+    "subtitle": "Corporate scholarship program",
+    "description": "Scholarship for meritorious students across various disciplines, sponsored by the Aditya Birla Group."
+  }
+]
