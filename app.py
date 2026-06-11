@@ -2697,6 +2697,11 @@ def scholarship_redirect():
     return redirect(url)
 
 
+@app.route("/scholarships-coming-soon")
+def scholarships_coming_soon():
+    return render_template("coming_soon.html", page_title="Browse More Scholarships")
+
+
 @app.route("/admissions")
 def admissions():
     admissions_data = []
