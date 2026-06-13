@@ -3609,8 +3609,11 @@ def privacy():
     return render_template('privacy.html')
 
 @app.route('/about')
+def about_redirect():
+    return redirect(url_for('about_us'))
+
 @app.route('/about-us')
-def about():
+def about_us():
     return render_template('about.html')
 
 @app.route("/joinus")
@@ -4121,7 +4124,7 @@ def sitemap_xml():
         ('/courses', '0.8', 'weekly'),
         ('/guide-me', '0.7', 'monthly'),
         ('/contact', '0.6', 'monthly'),
-        ('/about', '0.6', 'monthly'),
+        ('/about-us', '0.6', 'monthly'),
         ('/epaper', '0.7', 'daily'),
     ]
     urls = '\n'.join(
