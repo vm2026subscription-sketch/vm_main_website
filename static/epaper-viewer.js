@@ -693,10 +693,11 @@ const EP = {
   },
 
   getUTCDateKey(d) {
+    const safe = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 12));
     return [
-      d.getUTCFullYear(),
-      String(d.getUTCMonth() + 1).padStart(2, '0'),
-      String(d.getUTCDate()).padStart(2, '0'),
+      safe.getUTCFullYear(),
+      String(safe.getUTCMonth() + 1).padStart(2, '0'),
+      String(safe.getUTCDate()).padStart(2, '0'),
     ].join('-');
   },
 
