@@ -1928,13 +1928,40 @@ const EPAdmin = {
     const isPdf = file?.type === 'application/pdf' || file?.name?.toLowerCase().endsWith('.pdf');
     if (!file?.type.startsWith('image/') && !isPdf) return;
     try {
-      const imageUrl = await this.uploadImage(file);
+      let imageUrl;
+      if (isPdf) {
+        // Convert first page of PDF to PNG, then upload as image
+        this.showToast('Converting PDF to image…');
+        if (!window.pdfjsLib) {
+          await new Promise((res, rej) => {
+            const s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+            s.onload = res; s.onerror = rej;
+            document.head.appendChild(s);
+          });
+          window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+            'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const pdfPage = await pdf.getPage(1);
+        const viewport = pdfPage.getViewport({ scale: 3.0 });
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        await pdfPage.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+        const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+        const imgFile = new File([blob], file.name.replace(/\.pdf$/i, '.png'), { type: 'image/png' });
+        imageUrl = await this.uploadImage(imgFile);
+      } else {
+        imageUrl = await this.uploadImage(file);
+      }
       const page = this.pages[this.currentPageIdx];
       if (!page) return;
       page.page_image_url = imageUrl;
       page.image_path = imageUrl;
       this.renderCanvas();
-      this.showToast(isPdf ? 'PDF uploaded' : 'Page image uploaded');
+      this.showToast('Page image uploaded');
     } catch (e) {
       alert(e.message || 'Upload failed');
     }
