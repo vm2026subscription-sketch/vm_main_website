@@ -416,6 +416,41 @@ def _load_editions_from_pg():
         return None
 
 
+def _edition_key(edition):
+    return (
+        edition.get("date", ""),
+        edition.get("language", "Hindi"),
+    )
+
+
+def _edition_score(edition):
+    pages = edition.get("pages", []) or []
+    preview_pages = sum(
+        1 for page in pages
+        if (page.get("page_image_url") or page.get("image_path") or page.get("blocks"))
+    )
+    created_at = edition.get("created_at", "") or ""
+    return (
+        1 if edition.get("published", True) else 0,
+        len(pages),
+        preview_pages,
+        1 if edition.get("masthead_image_url") else 0,
+        len(edition.get("footer_links", []) or []),
+        created_at,
+    )
+
+
+def _merge_edition_lists(*sources):
+    merged = {}
+    for source in sources:
+        for edition in source or []:
+            key = _edition_key(edition)
+            current = merged.get(key)
+            if current is None or _edition_score(edition) > _edition_score(current):
+                merged[key] = edition
+    return list(merged.values())
+
+
 def _load_editions():
     """Load editions with in-memory cache (60s TTL) + parallel Postgres & MongoDB fetch."""
     global _editions_cache, _editions_cache_ts
@@ -433,19 +468,9 @@ def _load_editions():
         pg_data = pg_future.result()
         mongo_data = mongo_future.result()
 
-    # Merge: Postgres/file takes precedence; MongoDB fills in missing editions
+    # Merge sources by edition identity and keep the richer version for duplicates.
     base = pg_data if pg_data is not None else _load_editions_from_file()
-    if not mongo_data:
-        result = base or []
-    elif not base:
-        result = mongo_data
-    else:
-        existing_keys = {(e.get("date", ""), e.get("language", "Hindi")) for e in base}
-        merged = list(base)
-        for e in mongo_data:
-            if (e.get("date", ""), e.get("language", "Hindi")) not in existing_keys:
-                merged.append(e)
-        result = merged
+    result = _merge_edition_lists(base or [], mongo_data or [])
 
     # Store in cache
     with _editions_cache_lock:
