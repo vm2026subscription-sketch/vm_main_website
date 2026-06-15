@@ -960,7 +960,7 @@ const EPAdmin = {
     container.style.backgroundImage = (!isPdf && pageUrl) ? `url("${pageUrl}")` : '';
 
     const pdfBg = isPdf
-      ? `<iframe class="epc-pdf-bg" src="${pageUrl}" style="position:absolute;inset:0;width:100%;height:100%;border:none;pointer-events:none;z-index:0;"></iframe>`
+      ? `<div class="epc-pdf-bg" style="position:absolute;inset:0;width:100%;height:100%;border:none;pointer-events:none;z-index:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.08);color:#888;font-size:13px;"><i class="fa fa-file-pdf" style="margin-right:6px;color:#e41e26"></i>PDF Background</div>`
       : '';
 
     container.innerHTML = pdfBg + blocks.map((b, i) => {
