@@ -8,7 +8,7 @@
   <link rel="canonical" href="https://epaper.vidyarthimitra.org/"/>
   <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='epaper-viewer.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='epaper-viewer.css', v='20260615-epaper-fix') }}">
   <style>
     .ep-views-badge {
       display: inline-flex;
@@ -55,7 +55,7 @@
   }
   </script>
 </head>
-<body class="epaper-body">
+<body class="epaper-body" data-epaper-mode="{{ 'edition' if initial_date else 'landing' }}">
   {% include '_shared_index_navbar.html' %}
 
   <!-- ── CATEGORY NAV ── -->
@@ -87,8 +87,13 @@
     <!-- ── NEWS SIDEBAR ── -->
     <aside class="ep-news-sidebar sidebar-container" id="epNewsSidebar">
       <div class="ep-news-sidebar-header">
-        <i class="fa fa-bolt"></i>
-        <span>Latest News</span>
+        <div class="ep-news-sidebar-title">
+          <i class="fa fa-bolt"></i>
+          <span>Latest News</span>
+        </div>
+        <button class="ep-news-sidebar-close" id="epNewsToggleBtn" aria-label="Hide latest news" aria-pressed="true" type="button">
+          <i class="fa fa-xmark"></i>
+        </button>
       </div>
       <div id="epNewsCards">
         <!-- skeleton -->
@@ -110,7 +115,26 @@
     </aside>
 
     <!-- ── READER CONTAINER (fullscreen target) ── -->
+    <button class="ep-news-sidebar-reopen" id="epNewsReopenBtn" aria-label="Show latest news" type="button">
+      <i class="fa fa-bolt"></i>
+      <span>Latest News</span>
+    </button>
     <div class="ep-reader-container" id="epReaderContainer">
+      <section class="ep-edition-landing" id="epEditionLanding" aria-label="Available editions">
+        <div class="ep-edition-landing-header">
+          <div>
+            <p class="ep-edition-landing-kicker">Today Edition</p>
+            <h2>Select an edition to open the newspaper</h2>
+          </div>
+          <p class="ep-edition-landing-copy">Latest published editions appear here. Open any card to view the full newspaper.</p>
+        </div>
+        <div class="ep-edition-grid" id="epEditionGrid">
+          <div class="ep-edition-card-skeleton"></div>
+          <div class="ep-edition-card-skeleton"></div>
+          <div class="ep-edition-card-skeleton"></div>
+          <div class="ep-edition-card-skeleton"></div>
+        </div>
+      </section>
       <div class="ep-paper" id="epPaper">
         <div class="ep-masthead">
           <div class="ep-masthead-img" id="epMastheadImg">
@@ -366,7 +390,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="{{ url_for('static', filename='epaper-viewer.js') }}"></script>
+  <script src="{{ url_for('static', filename='epaper-viewer.js', v='20260615-epaper-fix') }}"></script>
 
   <!-- PWA Service Worker -->
   <script>
