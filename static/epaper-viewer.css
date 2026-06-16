@@ -304,7 +304,7 @@ body.epaper-body:not(.ep-edition-open) .ep-thumb-strip {
   display: none;
   position: fixed;
   left: 16px;
-  top: calc(var(--ep-nav-h) + 72px);
+  top: calc(var(--ep-nav-h) + 96px);
   writing-mode: vertical-rl;
   transform: rotate(180deg);
   gap: 10px;
@@ -319,7 +319,7 @@ body.epaper-body:not(.ep-edition-open) .ep-thumb-strip {
 }
 
 body.epaper-body:not(.ep-edition-open) .ep-news-sidebar-reopen {
-  top: calc(var(--ep-nav-h) + 104px);
+  top: calc(var(--ep-nav-h) + 128px);
 }
 
 .ep-news-sidebar-reopen i {
