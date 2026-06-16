@@ -318,6 +318,10 @@ body.epaper-body:not(.ep-edition-open) .ep-thumb-strip {
   z-index: 20;
 }
 
+body.epaper-body:not(.ep-edition-open) .ep-news-sidebar-reopen {
+  top: calc(var(--ep-nav-h) + 104px);
+}
+
 .ep-news-sidebar-reopen i {
   color: var(--ep-red);
   transform: rotate(90deg);
@@ -382,6 +386,39 @@ body.epaper-body:not(.ep-edition-open) .ep-paper {
   font-size: 13px;
   line-height: 1.7;
   color: rgba(255, 255, 255, 0.72);
+}
+
+.ep-edition-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.ep-edition-filter-btn {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.78);
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background .18s ease, color .18s ease, border-color .18s ease;
+}
+
+.ep-edition-filter-btn:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.26);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.ep-edition-filter-btn.active {
+  background: #fff;
+  color: #111827;
+  border-color: #fff;
 }
 
 .ep-edition-grid {
@@ -453,7 +490,8 @@ body.epaper-body:not(.ep-edition-open) .ep-paper {
   display: block;
   width: 100%;
   aspect-ratio: 0.78;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: top center;
   background: #ffffff;
   border: 1px solid #dbe2ea;
 }

@@ -24,6 +24,7 @@ const EP = {
   _toastTimer: null,
   isEditionOpen: false,
   newsSidebarOpen: true,
+  landingLanguageFilter: '',
 
   footerLinksDefault: [
     { key: 'search', icon: 'fa fa-magnifying-glass', url: '/epaper' },
@@ -272,6 +273,7 @@ const EP = {
       newsToggleBtn: document.getElementById('epNewsToggleBtn'),
       newsReopenBtn: document.getElementById('epNewsReopenBtn'),
       editionLanding: document.getElementById('epEditionLanding'),
+      editionFilterButtons: document.querySelectorAll('.ep-edition-filter-btn'),
       editionGrid: document.getElementById('epEditionGrid'),
       viewer: document.getElementById('epViewer'),
       pageContainer: document.getElementById('epPageContainer'),
@@ -353,6 +355,9 @@ const EP = {
     this.el.dateBtn?.addEventListener('click', async () => await this.toggleCalendar());
     this.el.newsToggleBtn?.addEventListener('click', () => this.toggleNewsSidebar());
     this.el.newsReopenBtn?.addEventListener('click', () => this.toggleNewsSidebar());
+    this.el.editionFilterButtons?.forEach(btn => {
+      btn.addEventListener('click', () => this.setLandingLanguageFilter(btn.dataset.language || ''));
+    });
     this.el.calendarOverlay?.addEventListener('click', async (e) => {
       if (e.target === this.el.calendarOverlay) await this.toggleCalendar(false);
     });
@@ -658,17 +663,28 @@ const EP = {
     this.loadEditionForDate(d);
   },
 
+  setLandingLanguageFilter(language = '') {
+    this.landingLanguageFilter = language;
+    this.el.editionFilterButtons?.forEach(btn => {
+      btn.classList.toggle('active', (btn.dataset.language || '') === this.landingLanguageFilter);
+    });
+    this.renderEditionLanding();
+  },
+
   async renderEditionLanding() {
     const grid = this.el.editionGrid;
     if (!grid) return;
 
+    const selectedLanguage = (this.landingLanguageFilter || '').trim().toLowerCase();
     const published = (Array.isArray(this.editions) ? this.editions : [])
       .filter(edition => edition && edition.published !== false)
+      .filter(edition => !selectedLanguage || (edition.language || '').trim().toLowerCase() === selectedLanguage)
       .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
       .slice(0, 12);
 
     if (!published.length) {
-      grid.innerHTML = '<div class="ep-edition-empty">No published editions are available right now.</div>';
+      const emptyLabel = this.landingLanguageFilter || 'published';
+      grid.innerHTML = `<div class="ep-edition-empty">No ${emptyLabel} editions are available right now.</div>`;
       if (!this.currentDate) {
         this.currentDate = new Date();
         this.updateDateButton(this.currentDate);
@@ -772,8 +788,6 @@ const EP = {
     if (firstPage) {
       if (firstPage.page_image_url) return this.optimizeCloudinaryUrl(firstPage.page_image_url, 640);
       if (firstPage.image_path) return this.optimizeCloudinaryUrl(firstPage.image_path, 640);
-      const firstBlockImage = (firstPage.blocks || []).find(block => block?.image_url);
-      if (firstBlockImage?.image_url) return this.optimizeCloudinaryUrl(firstBlockImage.image_url, 640);
     }
     return detail?.masthead_image_url ? this.optimizeCloudinaryUrl(detail.masthead_image_url, 640) : '';
   },
