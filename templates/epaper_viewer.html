@@ -8,7 +8,7 @@
   <link rel="canonical" href="https://epaper.vidyarthimitra.org/"/>
   <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='epaper-viewer.css', v='20260615-epaper-fix') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='epaper-viewer.css', v='20260616-epaper-live-fix') }}">
   <style>
     .ep-views-badge {
       display: inline-flex;
@@ -127,6 +127,12 @@
             <h2>Select an edition to open the newspaper</h2>
           </div>
           <p class="ep-edition-landing-copy">Latest published editions appear here. Open any card to view the full newspaper.</p>
+        </div>
+        <div class="ep-edition-filter" id="epEditionFilter" aria-label="Filter editions by language">
+          <button class="ep-edition-filter-btn active" data-language="" type="button">All</button>
+          <button class="ep-edition-filter-btn" data-language="Hindi" type="button">Hindi</button>
+          <button class="ep-edition-filter-btn" data-language="English" type="button">English</button>
+          <button class="ep-edition-filter-btn" data-language="Marathi" type="button">Marathi</button>
         </div>
         <div class="ep-edition-grid" id="epEditionGrid">
           <div class="ep-edition-card-skeleton"></div>
@@ -390,7 +396,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="{{ url_for('static', filename='epaper-viewer.js', v='20260615-epaper-fix') }}"></script>
+  <script src="{{ url_for('static', filename='epaper-viewer.js', v='20260616-epaper-live-fix') }}"></script>
 
   <!-- PWA Service Worker -->
   <script>
