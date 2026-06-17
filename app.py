@@ -1713,6 +1713,7 @@ def index():
 @app.route("/blogs")
 def blog():
     blogs = _load_blog_articles()
+    blogs = _sort_blog_articles_by_date(blogs)
     return render_template("blogs.html", blogs=blogs)
 
 
@@ -3761,6 +3762,25 @@ def _normalize_blog_article(article):
     }
 
 
+def _sort_blog_articles_by_date(blogs):
+    def parse_blog_date(item):
+        date_str = str(item.get('date', '') or '').strip()
+        if not date_str:
+            return datetime.min
+
+        # Try parsing common date formats.
+        for fmt in ('%Y-%m-%d', '%d-%m-%Y', '%d/%m/%Y', '%Y/%m/%d', '%d %B %Y', '%B %d, %Y', '%d %b %Y', '%b %d, %Y'):
+            try:
+                return datetime.strptime(date_str, fmt)
+            except ValueError:
+                continue
+
+        # Fallback: date values may be relative or incomplete; prefer string sort in reverse.
+        return datetime.min
+
+    return sorted(blogs, key=parse_blog_date, reverse=True)
+
+
 def _load_blog_articles():
     blogs = []
     try:
@@ -3798,7 +3818,7 @@ def _load_blog_articles():
             if normalized:
                 blogs.append(normalized)
 
-    return blogs
+    return _sort_blog_articles_by_date(blogs)
 
 @app.route('/api/blogs')
 def api_blogs():
@@ -3806,7 +3826,10 @@ def api_blogs():
     search = request.args.get('search', '').strip().lower()
     blogs = _load_blog_articles()
     if category and category != 'all':
-        blogs = [b for b in blogs if b.get('category', '').lower() == category]
+        blogs = [
+            b for b in blogs
+            if str(b.get('category', '')).strip().lower() == category
+        ]
     if search:
         blogs = [b for b in blogs if search in b.get('title', '').lower() or search in b.get('summary', '').lower()]
     return jsonify(blogs)
