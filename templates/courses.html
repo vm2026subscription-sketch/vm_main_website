@@ -190,6 +190,19 @@
   padding: 2px 8px;
   border-radius: 999px;
 }
+
+.filter-tab i,
+.section-icon i,
+.panel-hero-meta i,
+.dm-hero-meta i {
+  margin-right: 6px;
+}
+
+.filter-tab i,
+.section-icon i {
+  width: 18px;
+  text-align: center;
+}
 </style>
 {% endblock %}
 
@@ -231,7 +244,7 @@
       {% set info = level_index.get(lvl) %}
       {% if info %}
         <button class="filter-tab" data-filter="{{ lvl }}">
-          {{ info.meta.icon }} {{ info.meta.label }} ({{ info.count }})
+          <i class="{{ info.meta.icon }}" aria-hidden="true"></i>{{ info.meta.label }} ({{ info.count }})
         </button>
       {% endif %}
     {% endfor %}
@@ -250,7 +263,7 @@
              id="sec-{{ lvl | replace('/', '_') }}">
 
       <div class="section-header">
-        <div class="section-icon">{{ info.meta.icon }}</div>
+        <div class="section-icon"><i class="{{ info.meta.icon }}" aria-hidden="true"></i></div>
         <div class="section-meta">
           <div class="section-label">Level {{ info.meta.num }}</div>
           <div class="section-title">
@@ -310,7 +323,7 @@
           <span id="panelStream"></span>
         </div>
       </div>
-      <button class="panel-close-btn" id="panelClose" title="Close">✕</button>
+      <button class="panel-close-btn" id="panelClose" title="Close"><i class="fa fa-times" aria-hidden="true"></i></button>
     </div>
     <div class="panel-search-row">
       <input class="panel-search-input" id="panelSearch" type="text"
@@ -342,7 +355,7 @@
 <div id="detail-modal">
   <div class="dm-box">
     <div class="dm-hero" id="dmHero">
-      <button class="dm-close-btn" id="dmClose" title="Close">✕</button>
+      <button class="dm-close-btn" id="dmClose" title="Close"><i class="fa fa-times" aria-hidden="true"></i></button>
       <h3 id="dm-name"></h3>
       <div class="dm-hero-meta">
         <span id="dm-short"></span>
@@ -405,6 +418,22 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function setMetaText(id, iconClass, text) {
+  const el = document.getElementById(id);
+  if (!el) return;
+
+  el.textContent = '';
+
+  if (iconClass) {
+    const icon = document.createElement('i');
+    icon.className = iconClass;
+    icon.setAttribute('aria-hidden', 'true');
+    el.appendChild(icon);
+  }
+
+  el.appendChild(document.createTextNode(text ? ' ' + text : ''));
 }
 
 function getSuggestions(query) {
@@ -653,10 +682,10 @@ function openShortName(el) {
   document.getElementById('panelTitle').textContent =
     shortName + ' — ' + level.charAt(0).toUpperCase() + level.slice(1);
 
-  document.getElementById('panelLevel').textContent  = '🎓 ' + level;
+  setMetaText('panelLevel', 'fa fa-graduation-cap', level);
 
   const streams = [...new Set(panelCourses.map(c => c.stream))].join(', ');
-  document.getElementById('panelStream').textContent = '📂 ' + streams;
+  setMetaText('panelStream', 'fa fa-folder-open-o', streams);
 
   document.getElementById('panelSearch').value = '';
 
@@ -737,9 +766,9 @@ function openDetail(c) {
   document.getElementById('dmHero').style.background =
     `linear-gradient(135deg,${col},${col}bb)`;
   document.getElementById('dm-name').textContent       = c.course_name;
-  document.getElementById('dm-short').textContent      = '📌 ' + c.short_name;
-  document.getElementById('dm-level').textContent      = '🎓 ' + c.level;
-  document.getElementById('dm-stream').textContent     = '📂 ' + c.stream;
+  setMetaText('dm-short', 'fa fa-thumb-tack', c.short_name);
+  setMetaText('dm-level', 'fa fa-graduation-cap', c.level);
+  setMetaText('dm-stream', 'fa fa-folder-open-o', c.stream);
   document.getElementById('dm-id').textContent         = c.course_id   || '—';
   document.getElementById('dm-sub').textContent        = c.sub_stream  || '—';
   document.getElementById('dm-dur').textContent        =
