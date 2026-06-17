@@ -1712,42 +1712,9 @@ def index():
 @app.route("/blog")
 @app.route("/blogs")
 def blog():
-    return render_template("blogs.html")  # Placeholder
-
-
-def _normalize_blog_entry(blog):
-    if not isinstance(blog, dict):
-        return blog
-
-    category = str(blog.get('category', '') or '').strip().lower()
-    if not category:
-        fallback = str(blog.get('tag', '') or '').strip().lower()
-        if fallback.endswith('s') and fallback[:-1] in {'result', 'exam', 'admission', 'career'}:
-            fallback = fallback[:-1]
-        category = fallback or 'blog'
-
-    if category in {'results', 'exams', 'admissions', 'careers'}:
-        category = category[:-1]
-
-    blog['category'] = category
-    if not blog.get('tag'):
-        blog['tag'] = category.upper()
-    return blog
-
-
-def _load_blogs():
-    try:
-        with open(_BLOGS_FILE, 'r', encoding='utf-8') as f:
-            blogs = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return []
     blogs = _load_blog_articles()
+    blogs = _sort_blog_articles_by_date(blogs)
     return render_template("blogs.html", blogs=blogs)
-bfbb
-    if not isinstance(blogs, list):
-        return []
-
-    return [_normalize_blog_entry(blog) for blog in blogs if isinstance(blog, dict)]
 
 
 @app.route("/blog/<slug>")
@@ -3795,6 +3762,25 @@ def _normalize_blog_article(article):
     }
 
 
+def _sort_blog_articles_by_date(blogs):
+    def parse_blog_date(item):
+        date_str = str(item.get('date', '') or '').strip()
+        if not date_str:
+            return datetime.min
+
+        # Try parsing common date formats.
+        for fmt in ('%Y-%m-%d', '%d-%m-%Y', '%d/%m/%Y', '%Y/%m/%d', '%d %B %Y', '%B %d, %Y', '%d %b %Y', '%b %d, %Y'):
+            try:
+                return datetime.strptime(date_str, fmt)
+            except ValueError:
+                continue
+
+        # Fallback: date values may be relative or incomplete; prefer string sort in reverse.
+        return datetime.min
+
+    return sorted(blogs, key=parse_blog_date, reverse=True)
+
+
 def _load_blog_articles():
     blogs = []
     try:
@@ -3832,7 +3818,7 @@ def _load_blog_articles():
             if normalized:
                 blogs.append(normalized)
 
-    return blogs
+    return _sort_blog_articles_by_date(blogs)
 
 @app.route('/api/blogs')
 def api_blogs():
