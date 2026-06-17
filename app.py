@@ -1939,6 +1939,116 @@ def api_admin_responses(source):
     return jsonify({"data": list(reversed(data)), "count": len(data)})
 
 
+@app.route("/api/admin/blogs", methods=["GET"])
+def api_admin_blogs_list():
+    from epaper_routes import _is_epaper_admin
+    if not _is_epaper_admin():
+        return jsonify({"error": "Unauthorized"}), 401
+    blogs = []
+    try:
+        db_url = get_postgres_connection_url()
+        if db_url and psycopg2:
+            conn = psycopg2.connect(db_url, cursor_factory=psycopg2.extras.RealDictCursor, connect_timeout=5)
+            try:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT id, payload FROM blogs WHERE row_number >= 2 ORDER BY row_number ASC")
+                    rows = cur.fetchall()
+            finally:
+                conn.close()
+            for row in rows:
+                p = row.get('payload') or {}
+                blogs.append({
+                    'id': row['id'],
+                    'title': p.get('Title') or p.get('title') or '',
+                    'category': p.get('Category') or p.get('category') or '',
+                    'date': p.get('Date') or p.get('date') or '',
+                })
+            return jsonify({'blogs': blogs, 'source': 'db'})
+    except Exception as e:
+        app.logger.warning("admin blogs list DB failed: %s", e)
+    try:
+        with open(_BLOGS_FILE, 'r', encoding='utf-8') as f:
+            raw = json.load(f)
+        for b in raw:
+            blogs.append({
+                'id': None,
+                'title': b.get('Title') or b.get('title') or '',
+                'category': b.get('Category') or b.get('category') or '',
+                'date': b.get('Date') or b.get('date') or '',
+            })
+    except Exception:
+        pass
+    return jsonify({'blogs': blogs, 'source': 'json'})
+
+
+@app.route("/api/admin/blogs/add", methods=["POST"])
+def api_admin_blogs_add():
+    from epaper_routes import _is_epaper_admin
+    if not _is_epaper_admin():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.get_json(silent=True) or {}
+    title = (data.get('title') or '').strip()
+    if not title:
+        return jsonify({'error': 'Title is required'}), 400
+    payload = {
+        'Title': title,
+        'Category': (data.get('category') or '').strip(),
+        'Author': (data.get('author') or 'Vidyarthi Mitra News Service').strip(),
+        'Date': (data.get('date') or '').strip(),
+        'Summary': (data.get('summary') or '').strip(),
+        'Content': (data.get('content') or '').strip(),
+        'Tags': (data.get('tags') or '').strip(),
+        'Image': (data.get('image') or '').strip(),
+        'Status': 'Published',
+    }
+    inserted = False
+    try:
+        db_url = get_postgres_connection_url()
+        if db_url and psycopg2:
+            conn = psycopg2.connect(db_url, connect_timeout=5)
+            try:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT COALESCE(MAX(row_number), 1) FROM blogs")
+                    max_row = cur.fetchone()[0]
+                    cur.execute(
+                        "INSERT INTO blogs (file_name, sheet_name, row_number, payload) VALUES (%s, %s, %s, %s)",
+                        ('admin', 'admin', max_row + 1, json.dumps(payload))
+                    )
+                conn.commit()
+                inserted = True
+            finally:
+                conn.close()
+    except Exception as e:
+        app.logger.warning("admin blog add DB failed: %s", e)
+        return jsonify({'error': str(e)}), 500
+    return jsonify({'ok': True, 'db': inserted})
+
+
+@app.route("/api/admin/blogs/delete", methods=["POST"])
+def api_admin_blogs_delete():
+    from epaper_routes import _is_epaper_admin
+    if not _is_epaper_admin():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.get_json(silent=True) or {}
+    blog_id = data.get('id')
+    if not blog_id:
+        return jsonify({'error': 'id is required'}), 400
+    try:
+        db_url = get_postgres_connection_url()
+        if db_url and psycopg2:
+            conn = psycopg2.connect(db_url, connect_timeout=5)
+            try:
+                with conn.cursor() as cur:
+                    cur.execute("DELETE FROM blogs WHERE id = %s", (blog_id,))
+                conn.commit()
+            finally:
+                conn.close()
+    except Exception as e:
+        app.logger.warning("admin blog delete DB failed: %s", e)
+        return jsonify({'error': str(e)}), 500
+    return jsonify({'ok': True})
+
+
 @app.route("/api/vmadmin/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
 def vmadmin_proxy(subpath):
     if not VMADMIN_BASE_URL:
