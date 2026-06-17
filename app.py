@@ -24,34 +24,11 @@ except ImportError:
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
 from dotenv import load_dotenv
 from werkzeug.security import check_password_hash, generate_password_hash
-
-# Robustly import Flask-Compress and provide a no-op fallback so optional
-# compression doesn't block application startup.
-_FlaskCompress = None
-_has_compress = False
 try:
     from flask_compress import Compress as _FlaskCompress
     _has_compress = True
-except Exception:
-    try:
-        import flask_compress as _fc
-        _FlaskCompress = getattr(_fc, "Compress", None)
-        _has_compress = _FlaskCompress is not None
-    except Exception:
-        _FlaskCompress = None
-        _has_compress = False
-
-
-class _NoopCompress:
-    def __init__(self, app=None, **kwargs):
-        if app is not None:
-            self.init_app(app, **kwargs)
-
-    def init_app(self, app, **kwargs):
-        return
-
-if not _has_compress:
-    _FlaskCompress = _NoopCompress
+except ImportError:
+    _has_compress = False
 try:
     from psycopg2 import connect
     from psycopg2.extras import Json, execute_values
@@ -62,8 +39,12 @@ except ImportError:
 try:
     import psycopg2
     import psycopg2.extras
+    import psycopg2.pool as _pg_pool
 except ImportError:
     psycopg2 = None
+    _pg_pool = None
+
+import threading as _threading
 
 from supabase import create_client
 
@@ -77,26 +58,30 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 # Enable SECURE cookies only when not running locally
 if os.environ.get("FLASK_ENV") == "production" or os.environ.get("RENDER"):
     app.config["SESSION_COOKIE_SECURE"] = True
+if _has_compress:
+    app.config['COMPRESS_LEVEL'] = 6
+    app.config['COMPRESS_MIN_SIZE'] = 500
+    _FlaskCompress(app)
 
-# Initialize Compress extension if available. Prefer init_app API.
-try:
-    if _FlaskCompress:
-        try:
-            comp = _FlaskCompress()
-            if hasattr(comp, "init_app"):
-                comp.init_app(app)
-            else:
-                try:
-                    _FlaskCompress(app)
-                except Exception:
-                    pass
-        except TypeError:
-            try:
-                _FlaskCompress(app)
-            except Exception as exc:
-                app.logger.warning("Failed to initialize Compress extension: %s", exc)
-except Exception as exc:
-    app.logger.warning("Compress initialization skipped: %s", exc)
+
+@app.after_request
+def add_cache_headers(response):
+    """Add HTTP cache headers so browsers cache static assets aggressively."""
+    ct = response.content_type or ''
+    path = request.path or ''
+    # Long cache for static assets (JS, CSS, images, fonts)
+    if path.startswith('/static/'):
+        if any(x in ct for x in ('javascript', 'css', 'image', 'font')):
+            response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+        else:
+            response.headers['Cache-Control'] = 'public, max-age=86400'
+    # API responses — short cache or no-cache
+    elif path.startswith('/api/epaper/latest') or path.startswith('/api/epaper/editions'):
+        response.headers['Cache-Control'] = 'public, max-age=60, stale-while-revalidate=30'
+    elif path.startswith('/api/'):
+        response.headers['Cache-Control'] = 'no-store'
+    return response
+
 
 @app.errorhandler(413)
 def request_too_large(e):
@@ -160,7 +145,7 @@ GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile").strip() or "llam
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 
-def fetch_remote_json(url, timeout=12):
+def fetch_remote_json(url, timeout=4):
     request = Request(
         url,
         headers={
@@ -232,6 +217,33 @@ UPLOAD_TARGET_TABLES = [
 BTECH_CUTOFF_DIR = os.path.join(app.root_path, "data", "btech")
 _btech_cutoff_cache = None
 _btech_cutoff_error = None
+_btech_cutoff_lock = _threading.Lock()
+
+# ── Postgres connection pool ─────────────────────────────────────────
+_pg_conn_pool = None
+_pg_pool_lock = _threading.Lock()
+
+def _get_pg_pool():
+    global _pg_conn_pool
+    if _pg_conn_pool is not None:
+        return _pg_conn_pool
+    with _pg_pool_lock:
+        if _pg_conn_pool is not None:
+            return _pg_conn_pool
+        if psycopg2 is None or _pg_pool is None:
+            return None
+        db_url = (
+            os.getenv("SUPABASE_POSTGRES_URL", "").strip()
+            or os.getenv("DATABASE_URL", "").strip()
+            or COURSES_DB_URL
+        )
+        if not db_url:
+            return None
+        try:
+            _pg_conn_pool = _pg_pool.ThreadedConnectionPool(1, 8, db_url)
+        except Exception:
+            _pg_conn_pool = None
+        return _pg_conn_pool
 _college_website_cache = None
 FULL_CUTOFF_PRICE_RUPEES = 100
 FULL_CUTOFF_PRICE_PAISE = FULL_CUTOFF_PRICE_RUPEES * 100
@@ -271,7 +283,7 @@ CHATBOT_TOPIC_SOURCE_HINTS = {
     "entrance_exams": {"/entrance-exams", "/cutoffs", "/exam-updates", "/mock-exams"},
     "colleges": {"/colleges", "/cutoffs", "/universities"},
     "courses": {"/courses", "/entrance-exams", "/colleges"},
-    "careers": {"/blogs", "/articles", "/guideme", "/guide-me"},
+    "careers": {"/blogs", "/guideme", "/guide-me"},
 }
 
 CHATBOT_DDG_API_URL = "https://api.duckduckgo.com/"
@@ -1698,6 +1710,7 @@ def index():
 
 
 @app.route("/blog")
+@app.route("/blogs")
 def blog():
     return render_template("blogs.html")  # Placeholder
 
@@ -1728,31 +1741,28 @@ def _load_blogs():
             blogs = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         return []
-
+    blogs = _load_blog_articles()
+    return render_template("blogs.html", blogs=blogs)
+bfbb
     if not isinstance(blogs, list):
         return []
 
     return [_normalize_blog_entry(blog) for blog in blogs if isinstance(blog, dict)]
 
 
-def get_blog_by_id(blog_id):
-    for blog in _load_blogs():
-        if str(blog.get('id')) == str(blog_id):
-            return blog
-    return None
+@app.route("/blog/<slug>")
+@app.route("/blogs/<slug>")
+def blog_detail(slug):
+    blog_article = next((item for item in _load_blog_articles() if item.get('slug') == slug), None)
+    if blog_article is None:
+        return redirect(url_for("blog"))
 
-
-@app.route('/blogs/<int:blog_id>')
-def blog_detail(blog_id):
-    blog = get_blog_by_id(blog_id)
-    if blog is None:
-        return redirect(url_for('blog'))
-
-    blog_detail_data = {
-        **blog,
-        "paragraphs": build_article_paragraphs(blog.get("full", "")),
+    article_detail_data = {
+        "title": blog_article.get("title", ""),
+        "category": blog_article.get("category", "Blog"),
+        "paragraphs": build_article_paragraphs(blog_article.get("full", "")) or [blog_article.get("summary", "")],
     }
-    return render_template("blog_detail.html", blog=blog_detail_data)
+    return render_template("article_detail.html", article=article_detail_data)
 
 
 @app.route("/epaper-archive")
@@ -1961,6 +1971,149 @@ def api_admin_responses(source):
     # ── Fallback: JSON file ───────────────────────────────────────────
     data = _read_json_file(filepath, [])
     return jsonify({"data": list(reversed(data)), "count": len(data)})
+
+
+@app.route("/api/admin/blogs", methods=["GET"])
+def api_admin_blogs_list():
+    from epaper_routes import _is_epaper_admin
+    if not _is_epaper_admin():
+        return jsonify({"error": "Unauthorized"}), 401
+    blogs = []
+    try:
+        db_url = get_postgres_connection_url()
+        if db_url and psycopg2:
+            conn = psycopg2.connect(db_url, cursor_factory=psycopg2.extras.RealDictCursor, connect_timeout=5)
+            try:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT id, payload FROM blogs WHERE row_number >= 2 ORDER BY row_number ASC")
+                    rows = cur.fetchall()
+            finally:
+                conn.close()
+            for row in rows:
+                p = row.get('payload') or {}
+                blogs.append({
+                    'id': row['id'],
+                    'title': p.get('Title') or p.get('title') or '',
+                    'category': p.get('Category') or p.get('category') or '',
+                    'date': p.get('Date') or p.get('date') or '',
+                })
+            return jsonify({'blogs': blogs, 'source': 'db'})
+    except Exception as e:
+        app.logger.warning("admin blogs list DB failed: %s", e)
+    try:
+        with open(_BLOGS_FILE, 'r', encoding='utf-8') as f:
+            raw = json.load(f)
+        for b in raw:
+            blogs.append({
+                'id': None,
+                'title': b.get('Title') or b.get('title') or '',
+                'category': b.get('Category') or b.get('category') or '',
+                'date': b.get('Date') or b.get('date') or '',
+            })
+    except Exception:
+        pass
+    return jsonify({'blogs': blogs, 'source': 'json'})
+
+
+@app.route("/api/admin/blogs/add", methods=["POST"])
+def api_admin_blogs_add():
+    from epaper_routes import _is_epaper_admin
+    if not _is_epaper_admin():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.get_json(silent=True) or {}
+    title = (data.get('title') or '').strip()
+    if not title:
+        return jsonify({'error': 'Title is required'}), 400
+    payload = {
+        'Title': title,
+        'Category': (data.get('category') or '').strip(),
+        'Author': (data.get('author') or 'Vidyarthi Mitra News Service').strip(),
+        'Date': (data.get('date') or '').strip(),
+        'Summary': (data.get('summary') or '').strip(),
+        'Content': (data.get('content') or '').strip(),
+        'Tags': (data.get('tags') or '').strip(),
+        'Image': (data.get('image') or '').strip(),
+        'Status': 'Published',
+    }
+    inserted = False
+    try:
+        db_url = get_postgres_connection_url()
+        if db_url and psycopg2:
+            conn = psycopg2.connect(db_url, connect_timeout=5)
+            try:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT COALESCE(MAX(row_number), 1) FROM blogs")
+                    max_row = cur.fetchone()[0]
+                    cur.execute(
+                        "INSERT INTO blogs (file_name, sheet_name, row_number, payload) VALUES (%s, %s, %s, %s)",
+                        ('admin', 'admin', max_row + 1, json.dumps(payload))
+                    )
+                conn.commit()
+                inserted = True
+            finally:
+                conn.close()
+    except Exception as e:
+        app.logger.warning("admin blog add DB failed: %s", e)
+        return jsonify({'error': str(e)}), 500
+    return jsonify({'ok': True, 'db': inserted})
+
+
+@app.route("/api/admin/blogs/delete", methods=["POST"])
+def api_admin_blogs_delete():
+    from epaper_routes import _is_epaper_admin
+    if not _is_epaper_admin():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.get_json(silent=True) or {}
+    blog_id = data.get('id')
+    if not blog_id:
+        return jsonify({'error': 'id is required'}), 400
+    try:
+        db_url = get_postgres_connection_url()
+        if db_url and psycopg2:
+            conn = psycopg2.connect(db_url, connect_timeout=5)
+            try:
+                with conn.cursor() as cur:
+                    cur.execute("DELETE FROM blogs WHERE id = %s", (blog_id,))
+                conn.commit()
+            finally:
+                conn.close()
+    except Exception as e:
+        app.logger.warning("admin blog delete DB failed: %s", e)
+        return jsonify({'error': str(e)}), 500
+    return jsonify({'ok': True})
+
+
+@app.route("/api/admin/blogs/import-json", methods=["POST"])
+def api_admin_blogs_import_json():
+    from epaper_routes import _is_epaper_admin
+    if not _is_epaper_admin():
+        return jsonify({"error": "Unauthorized"}), 401
+    try:
+        with open(_BLOGS_FILE, 'r', encoding='utf-8') as f:
+            raw = json.load(f)
+    except Exception as e:
+        return jsonify({'error': 'Could not read blogs.json: ' + str(e)}), 500
+    if not raw:
+        return jsonify({'error': 'blogs.json is empty'}), 400
+    try:
+        db_url = get_postgres_connection_url()
+        if not db_url or not psycopg2:
+            return jsonify({'error': 'DB not available'}), 503
+        conn = psycopg2.connect(db_url, connect_timeout=5)
+        try:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM blogs WHERE row_number >= 2")
+                for i, payload in enumerate(raw):
+                    cur.execute(
+                        "INSERT INTO blogs (file_name, sheet_name, row_number, payload) VALUES (%s, %s, %s, %s)",
+                        ('admin', 'json-import', i + 2, json.dumps(payload))
+                    )
+            conn.commit()
+        finally:
+            conn.close()
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    return jsonify({'ok': True, 'imported': len(raw)})
 
 
 @app.route("/api/vmadmin/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
@@ -2793,78 +2946,12 @@ EXAM_UPDATES_DATA = [
 
 @app.route('/exam-updates')
 def exam_updates():
-    exams = []
-    try:
-        db_url = get_postgres_connection_url()
-        if db_url and psycopg2:
-            conn = psycopg2.connect(db_url, cursor_factory=psycopg2.extras.RealDictCursor)
-            with conn.cursor() as cur:
-                cur.execute("""
-                    SELECT payload FROM exam_updates
-                    WHERE row_number >= 2
-                    AND payload->>'exam_name' IS NOT NULL
-                    ORDER BY payload->>'date' DESC
-                """)
-                rows = cur.fetchall()
-            conn.close()
-            for r in rows:
-                p = r['payload']
-                exams.append({
-                    'title': p.get('update_title') or p.get('exam_name', ''),
-                    'desc': p.get('description', ''),
-                    'category': p.get('stream', p.get('category', 'general')).lower().split('/')[0].strip(),
-                    'exam_name': p.get('exam_name', ''),
-                    'date': p.get('date', ''),
-                    'link': p.get('link', ''),
-                    'importance': p.get('importance', 'Medium'),
-                    'conducting_body': p.get('conducting_body', ''),
-                    'state': p.get('state', ''),
-                    'badge': p.get('category', ''),
-                })
-    except Exception as e:
-        app.logger.warning("exam_updates DB fetch failed: %s", e)
-    if not exams:
-        exams = EXAM_UPDATES_DATA
-    return render_template('exam-updates.html', exams=exams)
+    return render_template('exam-updates.html', exams=EXAM_UPDATES_DATA)
 
 @app.route("/articles")
-@app.route("/career-articles")
 def articles():
-    category = request.args.get("category", "all").strip()
-    query = request.args.get("q", "").strip().lower()
-
-    valid_categories = {item["value"] for item in CATEGORIES}
-    if category not in valid_categories:
-        category = "all"
-
-    filtered_articles = ARTICLES
-    if category != "all":
-        filtered_articles = [
-            article for article in filtered_articles if article["category"] == category
-        ]
-    if query:
-        filtered_articles = [
-            article
-            for article in filtered_articles
-            if query in article["title"].lower() or query in article["desc"].lower()
-        ]
-
-    list_articles = [
-        {
-            **article,
-            "desc": build_article_teaser(article.get("desc", "")),
-        }
-        for article in filtered_articles
-    ]
-
-    return render_template(
-        "articles.html",
-        articles=list_articles,
-        categories=CATEGORIES,
-        active_category=category,
-        query=query,
-        total=len(filtered_articles),
-    )
+    # This page has been removed from the site. Redirect users to /news instead.
+    return redirect(url_for('news'))
 
 
 @app.route("/articles/<int:article_id>")
@@ -2904,14 +2991,13 @@ def api_articles():
 @app.route('/stories')
 @app.route('/student-stories')
 def student_stories():
-    # Flask looks in the 'templates' folder by default
-    return render_template('student-stories.html')
+    return redirect(url_for('blog'))
 
 
 @app.route('/submit_story')
 @app.route('/submit-story')
 def submit_story():
-    return render_template('submit_story.html')
+    return redirect(url_for('blog'))
 
 
 # ── Shared notification email + JSON file helpers ─────────────────────────────
@@ -2959,41 +3045,7 @@ def _save_stories(stories):
 
 @app.route('/api/submit-story', methods=['POST'])
 def api_submit_story():
-    data = request.get_json(silent=True) or {}
-    name  = str(data.get('name', '')).strip()
-    email = str(data.get('email', '')).strip()
-    exam  = str(data.get('exam', '')).strip()
-    story = str(data.get('story', '')).strip()
-
-    if not name or not email or not exam or not story:
-        return jsonify({'success': False, 'error': 'All fields are required.'}), 400
-    if len(story) < 50:
-        return jsonify({'success': False, 'error': 'Story must be at least 50 characters.'}), 400
-    if len(story) > 2000:
-        return jsonify({'success': False, 'error': 'Story must not exceed 2000 characters.'}), 400
-
-    entry = {
-        'id': int(datetime.utcnow().timestamp() * 1000),
-        'name': name, 'email': email, 'exam': exam, 'story': story,
-        'submitted_at': datetime.utcnow().isoformat() + 'Z',
-        'status': 'pending',
-    }
-    try:
-        stories = _load_stories()
-        stories.append(entry)
-        _save_stories(stories)
-    except Exception as e:
-        return jsonify({'success': False, 'error': f'Could not save story: {e}'}), 500
-
-    try:
-        _send_notification_email(
-            subject=f'New Student Story from {name}',
-            body=f'Name: {name}\nEmail: {email}\nExam: {exam}\n\nStory:\n{story}'
-        )
-    except Exception:
-        pass
-
-    return jsonify({'success': True, 'message': 'Story submitted successfully!'}), 201
+    return jsonify({'success': False, 'error': 'This feature has been removed.'}), 410
 
 
 _ALERTS_FILE = os.path.join(os.path.dirname(__file__), 'data', 'featured_alerts.json')
@@ -3071,37 +3123,7 @@ def _append_json_file(filepath, entry):
 
 @app.route("/feedback", methods=["GET", "POST"])
 def feedback():
-    if request.method == "POST":
-        required_fields = ["u_name", "u_mobile", "u_email", "u_designation", "u_feedback"]
-        missing_fields = [f for f in required_fields if not request.form.get(f, "").strip()]
-        if missing_fields:
-            flash("Please fill all required fields before submitting.", "error")
-            return render_template("feedback.html")
-
-        entry = {
-            'submitted_at': datetime.utcnow().isoformat() + 'Z',
-            'name':        request.form.get('u_name', '').strip(),
-            'mobile':      request.form.get('u_mobile', '').strip(),
-            'email':       request.form.get('u_email', '').strip(),
-            'designation': request.form.get('u_designation', '').strip(),
-            'feedback':    request.form.get('u_feedback', '').strip(),
-        }
-        try:
-            _append_json_file(_FEEDBACK_FILE, entry)
-        except Exception:
-            pass
-        try:
-            _send_notification_email(
-                subject=f"New Feedback from {entry['name']}",
-                body=f"Name: {entry['name']}\nMobile: {entry['mobile']}\nEmail: {entry['email']}\nDesignation: {entry['designation']}\n\nFeedback:\n{entry['feedback']}"
-            )
-        except Exception:
-            pass
-
-        flash("Feedback submitted successfully. Thank you!", "success")
-        return redirect(url_for("feedback"))
-
-    return render_template("feedback.html")
+    return redirect(url_for("contact"))
 
 
 def _clean_html_text(raw_html):
@@ -3724,30 +3746,106 @@ def subscribe():
 
 _BLOGS_FILE = os.path.join(os.path.dirname(__file__), 'data', 'blogs.json')
 
+
+def _sync_blogs_json_from_records(records):
+    """After a successful DB insert to blogs table, write payloads to local JSON
+    so the DB-down fallback always shows the latest uploaded content."""
+    payloads = [r['payload'] for r in records if r.get('payload')]
+    try:
+        with open(_BLOGS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(payloads, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        app.logger.warning("blogs JSON sync failed: %s", e)
+
+
+def _normalize_blog_article(article):
+    title = str(article.get('Title') or article.get('title') or '').strip()
+    category = str(article.get('Category') or article.get('category') or '').strip()
+    author = str(article.get('Author') or article.get('author') or '').strip()
+    date = str(article.get('Date') or article.get('date') or '').strip()
+    summary = str(article.get('Summary') or article.get('summary') or '').strip()
+    full = str(article.get('Content') or article.get('full') or '').strip()
+    tags = str(article.get('Tags') or article.get('tag') or article.get('tags') or '').strip()
+    image = str(article.get('Image') or article.get('image') or '').strip()
+    slug = str(article.get('Slug') or article.get('slug') or title).lower().replace(' ', '-').replace(',', '').replace(':', '')
+    status = str(article.get('Status') or article.get('status') or '').strip().lower()
+
+    if not title:
+        return None
+
+    if status and status not in {'published', 'publish'}:
+        return None
+
+    if image and not image.startswith(('http://', 'https://', '/')):
+        image = url_for('static', filename=image)
+    elif not image:
+        image = url_for('static', filename='logo.png')
+
+    return {
+        'title': title,
+        'category': category,
+        'author': author,
+        'date': date,
+        'summary': summary,
+        'full': full,
+        'tags': tags,
+        'image': image,
+        'slug': slug,
+        'href': url_for('blog_detail', slug=slug),
+    }
+
+
+def _load_blog_articles():
+    blogs = []
+    try:
+        db_url = get_postgres_connection_url()
+        if db_url and psycopg2:
+            conn = psycopg2.connect(db_url, cursor_factory=psycopg2.extras.RealDictCursor,
+                                    connect_timeout=5)
+            try:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT payload
+                        FROM blogs
+                        WHERE row_number >= 2
+                        ORDER BY row_number ASC
+                    """)
+                    rows = cur.fetchall()
+            finally:
+                conn.close()
+
+            for row in rows:
+                normalized = _normalize_blog_article(row.get('payload') or {})
+                if normalized:
+                    blogs.append(normalized)
+    except Exception as e:
+        app.logger.warning("blogs DB fetch failed: %s", e)
+
+    if not blogs:
+        try:
+            with open(_BLOGS_FILE, 'r', encoding='utf-8') as f:
+                raw_blogs = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            raw_blogs = []
+        for article in raw_blogs:
+            normalized = _normalize_blog_article(article)
+            if normalized:
+                blogs.append(normalized)
+
+    return blogs
+
 @app.route('/api/blogs')
 def api_blogs():
     category = request.args.get('category', '').strip().lower()
     search = request.args.get('search', '').strip().lower()
-    category_aliases = {
-        'results': 'result',
-        'exams': 'exam',
-        'admissions': 'admission',
-        'careers': 'career',
-    }
-    category = category_aliases.get(category, category)
-    blogs = _load_blogs()
+    blogs = _load_blog_articles()
     if category and category != 'all':
         blogs = [
             b for b in blogs
             if str(b.get('category', '')).strip().lower() == category
         ]
     if search:
-        blogs = [
-            b for b in blogs
-            if search in b.get('title', '').lower()
-            or search in b.get('summary', '').lower()
-            or search in b.get('full', '').lower()
-        ]
+        blogs = [b for b in blogs if search in b.get('title', '').lower() or search in b.get('summary', '').lower()]
     return jsonify(blogs)
 
 
@@ -4093,11 +4191,21 @@ def excel_upload():
 
         try:
             records = convert_excel_to_records(uploaded_file)
+            inserted_rows = 0
+            last_exc = None
+            # Try direct Postgres first; if DB is paused fall back to REST API
             if postgres_connection_url:
-                ensure_upload_table_exists(postgres_connection_url, selected_table)
-                inserted_rows = insert_records_via_postgres(postgres_connection_url, selected_table, records)
-            else:
+                try:
+                    ensure_upload_table_exists(postgres_connection_url, selected_table)
+                    inserted_rows = insert_records_via_postgres(postgres_connection_url, selected_table, records)
+                except Exception as pg_exc:
+                    last_exc = pg_exc
+                    app.logger.warning("Postgres upload failed, trying Supabase REST: %s", pg_exc)
+            if inserted_rows == 0 and supabase_client:
                 inserted_rows = insert_records_in_batches(supabase_client, selected_table, records)
+                last_exc = None
+            if inserted_rows == 0 and last_exc:
+                raise last_exc
         except Exception as exc:
             import traceback
             app.logger.error("Excel upload error: %s", traceback.format_exc())
@@ -4110,6 +4218,10 @@ def excel_upload():
                 upload_targets=UPLOAD_TARGET_TABLES,
                 connection_mode=connection_mode,
             )
+
+        # Dual-write: keep local JSON in sync so DB-down fallback stays fresh
+        if selected_table == 'blogs':
+            _sync_blogs_json_from_records(records)
 
         flash(f"Upload successful. Inserted {inserted_rows} row(s) into {selected_table}.", "success")
         return redirect(url_for("excel_upload"))
@@ -4153,7 +4265,7 @@ def sitemap_xml():
         ('/entrance-exams', '0.9', 'weekly'),
         ('/mock-exams', '0.8', 'weekly'),
         ('/exam-updates', '0.8', 'weekly'),
-        ('/articles', '0.8', 'weekly'),
+        ('/news', '0.8', 'daily'),
         ('/blogs', '0.8', 'weekly'),
         ('/news', '0.8', 'daily'),
         ('/courses', '0.8', 'weekly'),
@@ -4171,7 +4283,16 @@ def sitemap_xml():
     return Response(xml, mimetype='application/xml')
 
 
-# Auto-reload trigger after database upgrade
+# Preload heavy data in background so first HTTP request is fast
+def _preload_cutoff_data():
+    try:
+        load_btech_cutoff_data()
+    except Exception:
+        pass
+
+_threading.Thread(target=_preload_cutoff_data, daemon=True).start()
+
+
 if __name__ == "__main__":
     debug = os.environ.get("FLASK_ENV") != "production"
     port = int(os.environ.get("PORT", 5001))

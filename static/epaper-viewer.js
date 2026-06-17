@@ -21,6 +21,10 @@ const EP = {
   mastheadUrl: '',
   ttsUtterance: null,
   ttsPlaying: false,
+  _toastTimer: null,
+  isEditionOpen: false,
+  newsSidebarOpen: true,
+  landingLanguageFilter: '',
 
   footerLinksDefault: [
     { key: 'search', icon: 'fa fa-magnifying-glass', url: '/epaper' },
@@ -34,14 +38,43 @@ const EP = {
 
   init() {
     this.cacheDOM();
+    this.ensureArticleFeatureUI();
+    this.cacheDOM();
     this.bindEvents();
     this.renderFooterLinks(this.footerLinksDefault);
+    const shouldAutoOpen = document.body.dataset.epaperMode === 'edition';
+    this.setReaderMode(shouldAutoOpen);
+    this.setNewsSidebarState(true);
 
-    this.loadLatestEdition();
+    if (shouldAutoOpen) {
+      this.loadLatestEdition();
+    }
+
     this.loadEditions();
     this.startAutoRefreshPoll();
     this.loadNewsSidebar();
     this._initSwipeHint();
+  },
+
+  setReaderMode(isOpen) {
+    this.isEditionOpen = !!isOpen;
+    document.body.classList.toggle('ep-edition-open', this.isEditionOpen);
+  },
+
+  setNewsSidebarState(isOpen) {
+    this.newsSidebarOpen = !!isOpen;
+    this.el.main?.classList.toggle('news-sidebar-collapsed', !this.newsSidebarOpen);
+    if (this.el.newsToggleBtn) {
+      this.el.newsToggleBtn.setAttribute('aria-label', this.newsSidebarOpen ? 'Hide latest news' : 'Show latest news');
+      this.el.newsToggleBtn.setAttribute('aria-pressed', this.newsSidebarOpen ? 'true' : 'false');
+    }
+    if (this.el.newsReopenBtn) {
+      this.el.newsReopenBtn.setAttribute('aria-hidden', this.newsSidebarOpen ? 'true' : 'false');
+    }
+  },
+
+  toggleNewsSidebar() {
+    this.setNewsSidebarState(!this.newsSidebarOpen);
   },
 
   _initSwipeHint() {
@@ -62,26 +95,7 @@ const EP = {
       const data = _initEl
         ? JSON.parse(_initEl.textContent)
         : await this._cachedFetch('/api/epaper/latest');
-      const d = data.date ? new Date(data.date + 'T00:00:00') : new Date();
-      this.currentDate = d;
-      if (this.el.dateBtnText) {
-        const opts = { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' };
-        this.el.dateBtnText.textContent = d.toLocaleDateString('hi-IN', opts);
-      }
-      this.currentPage = 1;
-      this.currentEdition = data;
-      this.currentLanguage = data.language || 'Hindi';
-      this.pages = data.pages || [];
-      this.totalPages = this.pages.length || 1;
-      this.mastheadUrl = data.masthead_image_url || '';
-      this.updateEditionBrand(data);
-      this.applyMastheadImage(this.mastheadUrl);
-      this.renderFooterLinks(data.footer_links || this.footerLinksDefault);
-      document.getElementById('epEmptyState')?.style.setProperty('display', 'none');
-      this.fetchAndRenderLanguageTabs(data.date);
-      this.renderThumbnails();
-      this.showPage(1);
-      this.registerEditionView();
+      this.applyEditionData(data, false);
     } catch (e) {
       // No published editions — show empty state
       this.setDate(new Date());
@@ -89,6 +103,33 @@ const EP = {
   },
 
   // ── Auto-refresh poll ──────────────────────────────
+  applyEditionData(data, updateUrl = true) {
+    const d = data?.date ? new Date(`${data.date}T00:00:00`) : new Date();
+    this.currentDate = d;
+    this.updateDateButton(d);
+    this.currentPage = 1;
+    this.currentEdition = data;
+    this.currentLanguage = data.language || 'Hindi';
+    this.pages = data.pages || [];
+    this.totalPages = this.pages.length || 1;
+    this.mastheadUrl = data.masthead_image_url || '';
+    this.updateEditionBrand(data);
+    this.applyMastheadImage(this.mastheadUrl);
+    this.renderFooterLinks(data.footer_links || this.footerLinksDefault);
+    document.getElementById('epEmptyState')?.style.setProperty('display', 'none');
+    this.fetchAndRenderLanguageTabs(data.date);
+    this.renderThumbnails();
+    this.setReaderMode(true);
+    this.showPage(1);
+    this.registerEditionView();
+    if (updateUrl && data?.date) {
+      const editionUrl = `/epaper/${data.date}`;
+      if (window.location.pathname !== editionUrl) {
+        history.replaceState(null, '', editionUrl);
+      }
+    }
+  },
+
   startAutoRefreshPoll() {
     const POLL_MS = 5 * 60 * 1000; // every 5 minutes
     setInterval(async () => {
@@ -99,7 +140,9 @@ const EP = {
         const data = await res.json();
         if (!data.date) return;
         const currentISO = this.currentDate ? this.formatDateISO(this.currentDate) : '';
-        if (data.date > currentISO) {
+        const isFreshPublishForCurrentDate = data.date === currentISO && (!this.currentEdition || !this.pages.length);
+        if (data.date > currentISO || isFreshPublishForCurrentDate) {
+          this.invalidateEditionCache(data.date);
           this._showNewEditionBanner(data);
         }
       } catch (e) { /* silently ignore network errors */ }
@@ -130,6 +173,7 @@ const EP = {
 
   _loadNewEdition(date) {
     document.getElementById('epNewEditionBanner')?.remove();
+    this.invalidateEditionCache(date);
     this.setDate(new Date(date + 'T00:00:00'));
   },
 
@@ -154,6 +198,71 @@ const EP = {
     return url || '';
   },
 
+  invalidateEditionCache(date = '') {
+    delete this._apiCache['/api/epaper/latest'];
+    delete this._apiCache['/api/epaper/editions'];
+    Object.keys(this._apiCache).forEach(key => {
+      if (key.startsWith('/api/epaper/edition/')) delete this._apiCache[key];
+      if (key.startsWith('/api/epaper/editions-by-date/')) delete this._apiCache[key];
+    });
+    if (date) {
+      delete this._apiCache[`/api/epaper/edition/${date}`];
+      delete this._apiCache[`/api/epaper/editions-by-date/${date}`];
+    }
+  },
+
+  ensureArticleFeatureUI() {
+    const aiBar = document.getElementById('epTtsPrompt');
+    const summarizeTab = document.querySelector('.ep-ai-tab[data-tab="summarize"]');
+    if (aiBar && summarizeTab && !document.querySelector('.ep-ai-tab[data-tab="translate"]')) {
+      const translateTab = document.createElement('button');
+      translateTab.className = 'ep-ai-tab';
+      translateTab.dataset.tab = 'translate';
+      translateTab.innerHTML = '<i class="fa fa-language"></i><span>Translate</span>';
+      aiBar.insertBefore(translateTab, summarizeTab);
+    }
+
+    const summarizePane = document.querySelector('.ep-ai-content[data-tab="summarize"]');
+    if (summarizePane && !document.getElementById('epTranslateOutput')) {
+      const translatePane = document.createElement('div');
+      translatePane.className = 'ep-ai-content';
+      translatePane.dataset.tab = 'translate';
+      translatePane.innerHTML = `
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+          <label for="epTranslateSelect" style="font-size:12px;font-weight:600;color:#6b7280;">Language</label>
+          <select id="epTranslateSelect" class="ep-tts-voice-select" title="Select translation language">
+            <option value="en">English</option>
+            <option value="hi">Hindi</option>
+            <option value="mr">Marathi</option>
+            <option value="gu">Gujarati</option>
+            <option value="bn">Bengali</option>
+            <option value="ta">Tamil</option>
+            <option value="te">Telugu</option>
+            <option value="kn">Kannada</option>
+            <option value="ml">Malayalam</option>
+            <option value="ur">Urdu</option>
+          </select>
+        </div>
+        <div class="ep-summary-box" id="epTranslateOutput">
+          <p>Click Translate to view this article in another language.</p>
+        </div>
+      `;
+      summarizePane.parentNode.insertBefore(translatePane, summarizePane);
+    }
+
+    const articleDate = document.getElementById('epArtDate');
+    if (articleDate && !document.getElementById('epVideoBtn')) {
+      const videoBtn = document.createElement('button');
+      videoBtn.id = 'epVideoBtn';
+      videoBtn.className = 'ep-art-play-btn';
+      videoBtn.type = 'button';
+      videoBtn.style.display = 'none';
+      videoBtn.style.marginTop = '10px';
+      videoBtn.innerHTML = '<i class="fa fa-circle-play"></i> <span>Watch Video</span>';
+      articleDate.insertAdjacentElement('afterend', videoBtn);
+    }
+  },
+
   cacheDOM() {
     this.el = {
       header: document.getElementById('epHeader'),
@@ -161,6 +270,11 @@ const EP = {
       nav: document.getElementById('epNav'),
       navList: document.getElementById('epNavList'),
       main: document.getElementById('epMain'),
+      newsToggleBtn: document.getElementById('epNewsToggleBtn'),
+      newsReopenBtn: document.getElementById('epNewsReopenBtn'),
+      editionLanding: document.getElementById('epEditionLanding'),
+      editionFilterButtons: document.querySelectorAll('.ep-edition-filter-btn'),
+      editionGrid: document.getElementById('epEditionGrid'),
       viewer: document.getElementById('epViewer'),
       pageContainer: document.getElementById('epPageContainer'),
       pageImg: document.getElementById('epPageImg'),
@@ -238,9 +352,14 @@ const EP = {
     this.el.collapseBtn?.addEventListener('click', () => this.toggleHeader());
 
     // Date picker
-    this.el.dateBtn?.addEventListener('click', () => this.toggleCalendar());
-    this.el.calendarOverlay?.addEventListener('click', (e) => {
-      if (e.target === this.el.calendarOverlay) this.toggleCalendar(false);
+    this.el.dateBtn?.addEventListener('click', async () => await this.toggleCalendar());
+    this.el.newsToggleBtn?.addEventListener('click', () => this.toggleNewsSidebar());
+    this.el.newsReopenBtn?.addEventListener('click', () => this.toggleNewsSidebar());
+    this.el.editionFilterButtons?.forEach(btn => {
+      btn.addEventListener('click', () => this.setLandingLanguageFilter(btn.dataset.language || ''));
+    });
+    this.el.calendarOverlay?.addEventListener('click', async (e) => {
+      if (e.target === this.el.calendarOverlay) await this.toggleCalendar(false);
     });
 
     // Page nav
@@ -349,8 +468,10 @@ const EP = {
 
       // Pinch-to-zoom on touch
       let _lastDist = null;
+      let _pinchGesture = false;
       v.addEventListener('touchstart', (e) => {
         if (e.touches.length === 2) {
+          _pinchGesture = true;
           const dx = e.touches[0].clientX - e.touches[1].clientX;
           const dy = e.touches[0].clientY - e.touches[1].clientY;
           _lastDist = Math.hypot(dx, dy);
@@ -365,26 +486,39 @@ const EP = {
           _lastDist = dist;
         }
       }, { passive: true });
-      v.addEventListener('touchend', () => { _lastDist = null; }, { passive: true });
+      v.addEventListener('touchend', (e) => {
+        if (e.touches.length < 2) _lastDist = null;
+        if (e.touches.length === 0) _pinchGesture = false;
+      }, { passive: true });
+      v.addEventListener('touchcancel', () => {
+        _lastDist = null;
+        _pinchGesture = false;
+      }, { passive: true });
+
+      v._epWasPinching = () => _pinchGesture;
     }
 
     // Swipe left/right to change pages (single finger, only when not zoomed)
     {
       const rc = document.getElementById('epReaderContainer');
-      let _swX = null, _swY = null;
+      let _swX = null, _swY = null, _swStartTs = 0;
       if (rc) {
         rc.addEventListener('touchstart', (e) => {
           if (e.touches.length !== 1) return;
+          if (v && typeof v._epWasPinching === 'function' && v._epWasPinching()) return;
           _swX = e.touches[0].clientX;
           _swY = e.touches[0].clientY;
+          _swStartTs = Date.now();
         }, { passive: true });
         rc.addEventListener('touchend', (e) => {
           if (_swX === null) return;
-          if (this.zoom > 1) { _swX = null; return; }
+          if (this.zoom > 1) { _swX = null; _swStartTs = 0; return; }
           const dx = e.changedTouches[0].clientX - _swX;
           const dy = e.changedTouches[0].clientY - _swY;
+          const dt = Date.now() - _swStartTs;
           _swX = null;
-          if (Math.abs(dx) < 55 || Math.abs(dx) <= Math.abs(dy) * 1.3) return;
+          _swStartTs = 0;
+          if (Math.abs(dx) < 72 || Math.abs(dx) <= Math.abs(dy) * 1.5 || dt > 700) return;
           dx < 0 ? this.changePage(1) : this.changePage(-1);
         }, { passive: true });
       }
@@ -397,6 +531,7 @@ const EP = {
       if (vEl) {
         vEl.addEventListener('touchend', (e) => {
           if (e.changedTouches.length !== 1) return;
+          if (typeof vEl._epWasPinching === 'function' && vEl._epWasPinching()) return;
           const now = Date.now();
           if (now - _lastTap < 300) {
             this.setZoom(this.zoom > 1.1 ? 1 : 2.5);
@@ -448,6 +583,10 @@ const EP = {
 
     // Translate
     this.el.translateSelect?.addEventListener('change', () => this.translateArticle());
+    document.getElementById('epVideoBtn')?.addEventListener('click', () => {
+      const videoUrl = this.currentArticle?.video_url || this.currentArticle?.video || '';
+      this.playArticleVideo(videoUrl);
+    });
 
     // Keyboard
     document.addEventListener('keydown', (e) => {
@@ -506,18 +645,193 @@ const EP = {
   },
 
   // ── Date ──
-  setDate(d) {
-    this.currentDate = d;
+  updateDateButton(d) {
     const opts = { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' };
     if (this.el.dateBtnText) {
-      this.el.dateBtnText.textContent = d.toLocaleDateString('hi-IN', opts);
+      this.el.dateBtnText.textContent = d.toLocaleDateString('en-IN', opts);
     }
+  },
+
+  setDate(d) {
+    this.currentDate = d;
+    this.updateDateButton(d);
     this.currentPage = 1;
     // Clear API cache when switching dates so fresh data loads
     const iso = this.formatDateISO(d);
     delete this._apiCache[`/api/epaper/edition/${iso}`];
     delete this._apiCache['/api/epaper/editions'];
     this.loadEditionForDate(d);
+  },
+
+  setLandingLanguageFilter(language = '') {
+    this.landingLanguageFilter = language;
+    this.el.editionFilterButtons?.forEach(btn => {
+      btn.classList.toggle('active', (btn.dataset.language || '') === this.landingLanguageFilter);
+    });
+    this.renderEditionLanding();
+  },
+
+  async renderEditionLanding() {
+    const grid = this.el.editionGrid;
+    if (!grid) return;
+
+    const selectedLanguage = (this.landingLanguageFilter || '').trim().toLowerCase();
+    const published = (Array.isArray(this.editions) ? this.editions : [])
+      .filter(edition => edition && edition.published !== false)
+      .filter(edition => !selectedLanguage || (edition.language || '').trim().toLowerCase() === selectedLanguage)
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+      .slice(0, 12);
+
+    if (!published.length) {
+      const emptyLabel = this.landingLanguageFilter || 'published';
+      grid.innerHTML = `<div class="ep-edition-empty">No ${emptyLabel} editions are available right now.</div>`;
+      if (!this.currentDate) {
+        this.currentDate = new Date();
+        this.updateDateButton(this.currentDate);
+      }
+      return;
+    }
+
+    if (!this.currentDate) {
+      this.currentDate = new Date(`${published[0].date}T00:00:00`);
+      this.updateDateButton(this.currentDate);
+    }
+
+    const details = await Promise.all(published.map(edition => this.fetchEditionCardDetail(edition)));
+    const visibleEntries = published.map((edition, index) => {
+      const detail = details[index] || null;
+      const previewUrl = this.getEditionCardPreviewUrl(detail);
+      const totalPages = detail?.pages?.length || edition.total_pages || 0;
+      return { edition, detail, previewUrl, totalPages };
+    }).filter(entry => entry.totalPages > 0 || entry.previewUrl);
+
+    if (!visibleEntries.length) {
+      grid.innerHTML = '<div class="ep-edition-empty">No published editions with preview pages are available right now.</div>';
+      return;
+    }
+
+    grid.innerHTML = '';
+
+    visibleEntries.forEach(({ edition, previewUrl }) => {
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'ep-edition-card';
+      card.dataset.date = edition.date || '';
+      card.dataset.language = edition.language || '';
+
+      const cover = document.createElement('div');
+      cover.className = 'ep-edition-card-cover';
+
+      const previewFrame = document.createElement('div');
+      previewFrame.className = 'ep-edition-card-preview-frame';
+
+      if (previewUrl) {
+        const preview = document.createElement('img');
+        preview.className = 'ep-edition-card-preview';
+        preview.src = previewUrl;
+        preview.alt = `${(edition.name || 'Edition').trim()} preview`;
+        preview.loading = 'lazy';
+        previewFrame.appendChild(preview);
+      } else {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'ep-edition-card-preview-placeholder';
+        previewFrame.appendChild(placeholder);
+      }
+
+      cover.appendChild(previewFrame);
+
+      const body = document.createElement('div');
+      body.className = 'ep-edition-card-body';
+
+      const title = document.createElement('div');
+      title.className = 'ep-edition-card-title';
+      title.textContent = this.getEditionCardTitle(edition);
+
+      const subtitle = document.createElement('div');
+      subtitle.className = 'ep-edition-card-subtitle';
+      subtitle.textContent = this.formatEditionCardDate(edition.date);
+
+      const language = document.createElement('div');
+      language.className = 'ep-edition-card-language';
+      language.textContent = (edition.language || 'Edition').trim();
+
+      body.append(title, subtitle, language);
+
+      card.append(cover, body);
+      card.addEventListener('click', async () => {
+        await this.openEditionCard(edition.date, edition.language || '');
+      });
+
+      grid.appendChild(card);
+    });
+  },
+
+  getEditionRequestUrl(edition) {
+    const date = edition?.date || '';
+    const lang = edition?.language || '';
+    return lang
+      ? `/api/epaper/edition/${date}?lang=${encodeURIComponent(lang)}`
+      : `/api/epaper/edition/${date}`;
+  },
+
+  async fetchEditionCardDetail(edition) {
+    try {
+      const url = this.getEditionRequestUrl(edition);
+      return await this._cachedFetch(url);
+    } catch (e) {
+      return null;
+    }
+  },
+
+  getEditionCardPreviewUrl(detail) {
+    const firstPage = detail?.pages?.[0];
+    if (firstPage) {
+      if (firstPage.page_image_url) return this.optimizeCloudinaryUrl(firstPage.page_image_url, 640);
+      if (firstPage.image_path) return this.optimizeCloudinaryUrl(firstPage.image_path, 640);
+    }
+    return detail?.masthead_image_url ? this.optimizeCloudinaryUrl(detail.masthead_image_url, 640) : '';
+  },
+
+  getEditionCardTitle(edition) {
+    const rawName = (edition?.name || '').trim();
+    if (rawName) {
+      return `${rawName} ${edition.language || ''}`.trim();
+    }
+    return `VidyarthiMitra ${edition.language || 'Edition'}`.trim();
+  },
+
+  formatEditionCardDate(date) {
+    if (!date) return 'Date';
+    try {
+      return new Date(`${date}T00:00:00`).toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
+    } catch (e) {
+      return date;
+    }
+  },
+
+  async openEditionCard(date, lang = '') {
+    if (!date) return;
+    const url = lang
+      ? `/api/epaper/edition/${date}?lang=${encodeURIComponent(lang)}`
+      : `/api/epaper/edition/${date}`;
+    this.setReaderMode(true);
+    this.showLoadingSkeleton();
+    try {
+      const data = lang
+        ? await fetch(url).then(r => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.json();
+        })
+        : await this._cachedFetch(url);
+      this.applyEditionData(data, true);
+    } catch (e) {
+      console.warn('Edition open error:', e);
+      this.showDemoPage();
+    }
   },
 
   updateEditionBrand(edition = null) {
@@ -601,11 +915,20 @@ const EP = {
     return `${y}-${m}-${day}`;
   },
 
+  getUTCDateKey(d) {
+    const safe = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 12));
+    return [
+      safe.getUTCFullYear(),
+      String(safe.getUTCMonth() + 1).padStart(2, '0'),
+      String(safe.getUTCDate()).padStart(2, '0'),
+    ].join('-');
+  },
+
   // ── Calendar ──
   calendarMonth: null,
   calendarYear: null,
 
-  toggleCalendar(show) {
+  async toggleCalendar(show) {
     const overlay = this.el.calendarOverlay;
     if (!overlay) return;
     const isOpen = overlay.classList.contains('open');
@@ -614,6 +937,10 @@ const EP = {
     } else {
       this.calendarMonth = this.currentDate.getMonth();
       this.calendarYear = this.currentDate.getFullYear();
+      // Ensure editions are loaded so days with editions can be marked
+      if (!Array.isArray(this.editions) || this.editions.length === 0) {
+        try { await this.loadEditions(); } catch (e) { /* ignore */ }
+      }
       this.renderCalendar();
       overlay.classList.add('open');
     }
@@ -642,9 +969,10 @@ const EP = {
       grid.appendChild(el);
     });
 
-    const firstDay = new Date(this.calendarYear, this.calendarMonth, 1).getDay();
-    const daysInMonth = new Date(this.calendarYear, this.calendarMonth + 1, 0).getDate();
-    const today = new Date();
+    const firstDay = new Date(Date.UTC(this.calendarYear, this.calendarMonth, 1)).getUTCDay();
+    const daysInMonth = new Date(Date.UTC(this.calendarYear, this.calendarMonth + 1, 0)).getUTCDate();
+    const todayKey = this.getUTCDateKey(new Date());
+    const selectedKey = this.currentDate ? this.getUTCDateKey(this.currentDate) : '';
 
     for (let i = 0; i < firstDay; i++) {
       const el = document.createElement('div');
@@ -656,19 +984,20 @@ const EP = {
       el.className = 'ep-cal-day';
       el.textContent = day;
 
-      const d = new Date(this.calendarYear, this.calendarMonth, day);
-      if (d > today) el.classList.add('disabled');
-      if (d.toDateString() === today.toDateString()) el.classList.add('today');
-      if (d.toDateString() === this.currentDate.toDateString()) el.classList.add('selected');
+      const d = new Date(Date.UTC(this.calendarYear, this.calendarMonth, day));
+      const utcKey = this.getUTCDateKey(d);
+      if (utcKey > todayKey) el.classList.add('disabled');
+      if (utcKey === todayKey) el.classList.add('today');
+      if (utcKey === selectedKey) el.classList.add('selected');
 
       // Check if edition exists
-      const iso = this.formatDateISO(d);
+      const iso = utcKey;
       if (this.editions.some(e => e.date === iso)) el.classList.add('has-edition');
 
       if (!el.classList.contains('disabled')) {
-        el.addEventListener('click', () => {
+        el.addEventListener('click', async () => {
           this.setDate(new Date(this.calendarYear, this.calendarMonth, day));
-          this.toggleCalendar(false);
+          await this.toggleCalendar(false);
         });
       }
       grid.appendChild(el);
@@ -680,7 +1009,11 @@ const EP = {
     try {
       const data = await this._cachedFetch('/api/epaper/editions');
       this.editions = Array.isArray(data) ? data : (data.editions || data.results || []);
-    } catch (e) { console.warn('Could not load editions:', e); }
+    } catch (e) {
+      console.warn('Could not load editions:', e);
+      this.editions = [];
+    }
+    this.renderEditionLanding();
   },
 
   // ── Edition view counter ──
@@ -735,28 +1068,12 @@ const EP = {
     const iso = this.formatDateISO(d);
 
     // Show loading skeleton immediately
+    this.setReaderMode(true);
     this.showLoadingSkeleton();
 
     try {
       const data = await this._cachedFetch(`/api/epaper/edition/${iso}`);
-      this.currentEdition = data;
-      this.currentLanguage = data.language || 'Hindi';
-      this.pages = data.pages || [];
-      this.totalPages = this.pages.length || 1;
-      this.mastheadUrl = data.masthead_image_url || '';
-      this.updateEditionBrand(data);
-      this.applyMastheadImage(this.mastheadUrl);
-      this.renderFooterLinks(data.footer_links || this.footerLinksDefault);
-      document.getElementById('epEmptyState')?.style.setProperty('display', 'none');
-      this.fetchAndRenderLanguageTabs(data.date);
-      this.renderThumbnails();
-      this.showPage(1);
-      this.registerEditionView();
-      // Keep the browser URL in sync so sharing always links to this specific edition
-      const editionUrl = `/epaper/${iso}`;
-      if (window.location.pathname !== editionUrl) {
-        history.replaceState(null, '', editionUrl);
-      }
+      this.applyEditionData(data, true);
     } catch (e) {
       console.warn('Edition load error:', e);
       this.showDemoPage();
@@ -791,6 +1108,7 @@ const EP = {
   },
 
   showDemoPage() {
+    this.setReaderMode(true);
     this.currentEdition = null;
     this.totalPages = 1;
     this.pages = [];
@@ -848,25 +1166,17 @@ const EP = {
     // Bypass cache so unpublished state is always fresh
     const url = `/api/epaper/edition/${date}?lang=${encodeURIComponent(lang)}`;
     delete this._apiCache[url];
+    this.setReaderMode(true);
     this.showLoadingSkeleton();
     try {
-      const data = await fetch(url).then(r => r.json());
-      this.currentEdition = data;
-      this.currentLanguage = data.language || lang;
-      this.pages = data.pages || [];
-      this.totalPages = this.pages.length || 1;
-      this.mastheadUrl = data.masthead_image_url || '';
-      this.updateEditionBrand(data);
-      this.applyMastheadImage(this.mastheadUrl);
-      this.renderFooterLinks(data.footer_links || this.footerLinksDefault);
-      document.getElementById('epEmptyState')?.style.setProperty('display', 'none');
-      // Update active tab
+      const data = await fetch(url).then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      });
+      this.applyEditionData(data, true);
       this.el.navList?.querySelectorAll('.ep-nav-item').forEach(n => {
         n.classList.toggle('active', n.dataset.lang === this.currentLanguage);
       });
-      this.renderThumbnails();
-      this.showPage(1);
-      this.registerEditionView();
     } catch (e) {
       this.showToast('Edition not available');
     }
@@ -886,6 +1196,9 @@ const EP = {
     this.updatePageHeader(page, this.currentPage);
 
     const viewer = this.el.viewer || document.getElementById('epViewer');
+    if (viewer?.animate) {
+      viewer.animate([{ opacity: 0.72 }, { opacity: 1 }], { duration: 180, easing: 'ease-out' });
+    }
     document.getElementById('epEmptyState')?.style.setProperty('display', 'none');
 
     // Check if page uses new block format
@@ -1072,7 +1385,9 @@ const EP = {
         body_html: block.body_html || '',
         category_label: block.category_label,
         article_image_url: block.image_url,
-        gallery: block.gallery || [],
+        gallery: this.filterGalleryImages(block.gallery || []),
+        has_video: !!(block.has_video || block.video_url || block.video),
+        video_url: block.video_url || block.video || '',
       }) - 1;
 
       // Optimize Cloudinary images: smaller width for card thumbnails
@@ -1270,6 +1585,33 @@ const EP = {
   _origArticleTitle: null,
   _origArticleHTML: null,
 
+  sanitizeArticleHTML(html) {
+    if (!html) return '';
+
+    const container = document.createElement('div');
+    container.innerHTML = String(html);
+
+    container.querySelectorAll('script, iframe, object, embed, meta, link, style, base').forEach(el => el.remove());
+
+    container.querySelectorAll('*').forEach(el => {
+      Array.from(el.attributes).forEach(attr => {
+        const name = attr.name.toLowerCase();
+        const value = String(attr.value || '');
+        const normalized = value.replace(/[\u0000-\u0020\u007F]+/g, '').toLowerCase();
+        const isImageDataUrl = name === 'src' && el.tagName === 'IMG' && normalized.startsWith('data:image/');
+
+        if (name.startsWith('on') || name === 'srcdoc') {
+          el.removeAttribute(attr.name);
+        } else if ((name === 'href' || name === 'src' || name === 'xlink:href' || name === 'formaction')
+          && (normalized.startsWith('javascript:') || normalized.startsWith('vbscript:') || (normalized.startsWith('data:') && !isImageDataUrl))) {
+          el.removeAttribute(attr.name);
+        }
+      });
+    });
+
+    return container.innerHTML;
+  },
+
   openArticle(index) {
     const art = this.articles[index];
     if (!art) return;
@@ -1286,7 +1628,7 @@ const EP = {
     if (this.el.articleTitle) this.el.articleTitle.textContent = art.headline || '';
     if (this.el.articleDate) this.el.articleDate.textContent = art.created_at || this.formatDateISO(this.currentDate);
     // Only show admin-uploaded gallery images — never show the newspaper clipping
-    const gallery = art.gallery || [];
+    const gallery = this.filterGalleryImages(art.gallery || []);
     if (this.el.articleImg) {
       this.el.articleImg.style.display = 'none';
       this.el.articleImg.onclick = null;
@@ -1304,7 +1646,7 @@ const EP = {
       }
 
       if (art.body_html && art.body_html.length > 10) {
-        this.el.articleText.innerHTML = galHTML + art.body_html;
+        this.el.articleText.innerHTML = galHTML + this.sanitizeArticleHTML(art.body_html || '');
       } else {
         this.el.articleText.innerHTML = galHTML + (art.body_text || '').split('\n').map(p => `<p>${p}</p>`).join('');
       }
@@ -1325,7 +1667,8 @@ const EP = {
 
     // Show video button if article has video
     const vidBtn = document.getElementById('epVideoBtn');
-    if (vidBtn) vidBtn.style.display = art.has_video && art.video_url ? 'inline-flex' : 'none';
+    const videoUrl = art.video_url || art.video || '';
+    if (vidBtn) vidBtn.style.display = (art.has_video || videoUrl) ? 'inline-flex' : 'none';
 
     this.trackEvent('article_read', { headline: art.headline, category: art.category_label });
   },
@@ -1334,7 +1677,8 @@ const EP = {
   openGalleryViewer(artIndex, imgIndex) {
     const art = this.articles[artIndex];
     if (!art || !art.gallery) return;
-    const imgs = art.gallery;
+    const imgs = this.filterGalleryImages(art.gallery);
+    if (!imgs.length) return;
     this._galImgs = imgs;
     this._galIdx = imgIndex;
     this._openLightbox();
@@ -1397,6 +1741,7 @@ const EP = {
     if (tab === 'summarize') this.summarizeArticle();
     if (tab === 'translate') {
       this._autoSetTranslateLang();
+      this.translateArticle();
     }
   },
 
@@ -1530,8 +1875,18 @@ const EP = {
   _ttsCurrentSpan: -1,
   _estimatedTtsDuration: 0,
 
+  filterGalleryImages(gallery) {
+    if (!Array.isArray(gallery)) return [];
+    return gallery
+      .map(img => String(img || '').trim())
+      .filter(Boolean);
+  },
+
   _splitSentences(text) {
     text = text.replace(/\s+/g, ' ').trim();
+    if (!text) return [];
+    const matches = text.match(/[^.!?\u0964]+(?:[.!?\u0964]+(?=\s|$)|$)/g) || [];
+    return matches.map(s => s.trim()).filter(Boolean);
     const sentences = [];
     let buf = '';
     for (let i = 0; i < text.length; i++) {
@@ -2086,7 +2441,7 @@ const EP = {
   // ── Summarize ──
   async summarizeArticle() {
     if (!this.currentArticle || !this.el.summaryOutput) return;
-    const text = this.currentArticle.body_text || '';
+    const text = this._getArticleText();
     if (!text) { this.el.summaryOutput.innerHTML = '<p>No content to summarize.</p>'; return; }
 
     this.el.summaryOutput.innerHTML = '<div class="ep-summary-loading"><div class="spinner"></div>AI is summarizing...</div>';
@@ -2100,8 +2455,14 @@ const EP = {
       });
       if (res.ok) {
         const data = await res.json();
-        const points = data.summary || [];
-        this.el.summaryOutput.innerHTML = `<h4>✨ AI Summary</h4><ul>${points.map(p => `<li>${p}</li>`).join('')}</ul>`;
+        const summary = data.summary;
+        if (Array.isArray(summary) && summary.length) {
+          this.el.summaryOutput.innerHTML = `<h4>AI Summary</h4><ul>${summary.map(p => `<li>${p}</li>`).join('')}</ul>`;
+        } else if (typeof summary === 'string' && summary.trim()) {
+          this.el.summaryOutput.innerHTML = `<h4>AI Summary</h4><p>${summary}</p>`;
+        } else {
+          this.el.summaryOutput.innerHTML = '<p>Summary unavailable.</p>';
+        }
       } else {
         this.el.summaryOutput.innerHTML = '<p>Summary unavailable.</p>';
       }
@@ -2359,20 +2720,27 @@ const EP = {
   // ── Toast ──
   showToast(msg) {
     if (!this.el.toast) return;
+    if (this._toastTimer) clearTimeout(this._toastTimer);
     this.el.toast.textContent = msg;
     this.el.toast.classList.add('show');
-    setTimeout(() => this.el.toast.classList.remove('show'), 2500);
+    const duration = Math.max(1800, Math.min(5200, 1400 + String(msg || '').trim().length * 35));
+    this._toastTimer = setTimeout(() => {
+      this.el.toast.classList.remove('show');
+      this._toastTimer = null;
+    }, duration);
   },
 
   // ── News Sidebar ──
   async loadNewsSidebar() {
     const container = document.getElementById('epNewsCards');
     if (!container) return;
+    const fallbackHtml = '<p style="color:#6b7280;font-size:12px;padding:8px 0">Unable to load news right now</p>';
     try {
       // Fetch a large pool so we can pick 2 per category
       const res = await fetch('/api/news?limit=60&category=all');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      const pool = data.articles || [];
+      const pool = Array.isArray(data?.articles) ? data.articles : [];
       if (!pool.length) { container.innerHTML = '<p style="color:#6b7280;font-size:12px;padding:8px 0">No news available</p>'; return; }
 
       // Group by category, keep first 2 per category
@@ -2384,6 +2752,7 @@ const EP = {
         if (!seen[cat]) seen[cat] = 0;
         if (seen[cat] < PER_CAT) { picked.push(a); seen[cat]++; }
       }
+      if (!picked.length) { container.innerHTML = '<p style="color:#6b7280;font-size:12px;padding:8px 0">No news available</p>'; return; }
 
       container.innerHTML = picked.map(a => {
         const thumb = a.image || a.image_url || '';
@@ -2404,7 +2773,7 @@ const EP = {
           </a>`;
       }).join('');
     } catch (e) {
-      container.innerHTML = '';
+      container.innerHTML = fallbackHtml;
     }
   },
 
