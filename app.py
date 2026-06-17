@@ -2049,6 +2049,40 @@ def api_admin_blogs_delete():
     return jsonify({'ok': True})
 
 
+@app.route("/api/admin/blogs/import-json", methods=["POST"])
+def api_admin_blogs_import_json():
+    from epaper_routes import _is_epaper_admin
+    if not _is_epaper_admin():
+        return jsonify({"error": "Unauthorized"}), 401
+    try:
+        with open(_BLOGS_FILE, 'r', encoding='utf-8') as f:
+            raw = json.load(f)
+    except Exception as e:
+        return jsonify({'error': 'Could not read blogs.json: ' + str(e)}), 500
+    if not raw:
+        return jsonify({'error': 'blogs.json is empty'}), 400
+    try:
+        db_url = get_postgres_connection_url()
+        if not db_url or not psycopg2:
+            return jsonify({'error': 'DB not available'}), 503
+        conn = psycopg2.connect(db_url, connect_timeout=5)
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT COALESCE(MAX(row_number), 1) FROM blogs")
+                max_row = cur.fetchone()[0]
+                for i, payload in enumerate(raw):
+                    cur.execute(
+                        "INSERT INTO blogs (file_name, sheet_name, row_number, payload) VALUES (%s, %s, %s, %s)",
+                        ('admin', 'json-import', max_row + 1 + i, json.dumps(payload))
+                    )
+            conn.commit()
+        finally:
+            conn.close()
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    return jsonify({'ok': True, 'imported': len(raw)})
+
+
 @app.route("/api/vmadmin/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
 def vmadmin_proxy(subpath):
     if not VMADMIN_BASE_URL:
