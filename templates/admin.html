@@ -377,7 +377,7 @@
   }
 
   async function importFromJson() {
-    if (!confirm('Import all entries from blogs.json into Supabase DB?\n\nThis will add them on top of any existing DB blogs.')) return;
+    if (!confirm('This will DELETE all existing blogs from DB and replace with blogs.json entries.\n\nContinue?')) return;
     try {
       const res = await fetch('/api/admin/blogs/import-json', { method: 'POST' });
       const data = await res.json();
