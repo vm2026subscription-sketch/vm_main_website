@@ -2068,12 +2068,11 @@ def api_admin_blogs_import_json():
         conn = psycopg2.connect(db_url, connect_timeout=5)
         try:
             with conn.cursor() as cur:
-                cur.execute("SELECT COALESCE(MAX(row_number), 1) FROM blogs")
-                max_row = cur.fetchone()[0]
+                cur.execute("DELETE FROM blogs WHERE row_number >= 2")
                 for i, payload in enumerate(raw):
                     cur.execute(
                         "INSERT INTO blogs (file_name, sheet_name, row_number, payload) VALUES (%s, %s, %s, %s)",
-                        ('admin', 'json-import', max_row + 1 + i, json.dumps(payload))
+                        ('admin', 'json-import', i + 2, json.dumps(payload))
                     )
             conn.commit()
         finally:
