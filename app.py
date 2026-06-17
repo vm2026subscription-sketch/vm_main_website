@@ -283,7 +283,7 @@ CHATBOT_TOPIC_SOURCE_HINTS = {
     "entrance_exams": {"/entrance-exams", "/cutoffs", "/exam-updates", "/mock-exams"},
     "colleges": {"/colleges", "/cutoffs", "/universities"},
     "courses": {"/courses", "/entrance-exams", "/colleges"},
-    "careers": {"/blogs", "/articles", "/guideme", "/guide-me"},
+    "careers": {"/blogs", "/guideme", "/guide-me"},
 }
 
 CHATBOT_DDG_API_URL = "https://api.duckduckgo.com/"
@@ -2957,14 +2957,13 @@ def api_articles():
 @app.route('/stories')
 @app.route('/student-stories')
 def student_stories():
-    # Flask looks in the 'templates' folder by default
-    return render_template('student-stories.html')
+    return redirect(url_for('blog'))
 
 
 @app.route('/submit_story')
 @app.route('/submit-story')
 def submit_story():
-    return render_template('submit_story.html')
+    return redirect(url_for('blog'))
 
 
 # ── Shared notification email + JSON file helpers ─────────────────────────────
@@ -3012,41 +3011,7 @@ def _save_stories(stories):
 
 @app.route('/api/submit-story', methods=['POST'])
 def api_submit_story():
-    data = request.get_json(silent=True) or {}
-    name  = str(data.get('name', '')).strip()
-    email = str(data.get('email', '')).strip()
-    exam  = str(data.get('exam', '')).strip()
-    story = str(data.get('story', '')).strip()
-
-    if not name or not email or not exam or not story:
-        return jsonify({'success': False, 'error': 'All fields are required.'}), 400
-    if len(story) < 50:
-        return jsonify({'success': False, 'error': 'Story must be at least 50 characters.'}), 400
-    if len(story) > 2000:
-        return jsonify({'success': False, 'error': 'Story must not exceed 2000 characters.'}), 400
-
-    entry = {
-        'id': int(datetime.utcnow().timestamp() * 1000),
-        'name': name, 'email': email, 'exam': exam, 'story': story,
-        'submitted_at': datetime.utcnow().isoformat() + 'Z',
-        'status': 'pending',
-    }
-    try:
-        stories = _load_stories()
-        stories.append(entry)
-        _save_stories(stories)
-    except Exception as e:
-        return jsonify({'success': False, 'error': f'Could not save story: {e}'}), 500
-
-    try:
-        _send_notification_email(
-            subject=f'New Student Story from {name}',
-            body=f'Name: {name}\nEmail: {email}\nExam: {exam}\n\nStory:\n{story}'
-        )
-    except Exception:
-        pass
-
-    return jsonify({'success': True, 'message': 'Story submitted successfully!'}), 201
+    return jsonify({'success': False, 'error': 'This feature has been removed.'}), 410
 
 
 _ALERTS_FILE = os.path.join(os.path.dirname(__file__), 'data', 'featured_alerts.json')
@@ -3124,37 +3089,7 @@ def _append_json_file(filepath, entry):
 
 @app.route("/feedback", methods=["GET", "POST"])
 def feedback():
-    if request.method == "POST":
-        required_fields = ["u_name", "u_mobile", "u_email", "u_designation", "u_feedback"]
-        missing_fields = [f for f in required_fields if not request.form.get(f, "").strip()]
-        if missing_fields:
-            flash("Please fill all required fields before submitting.", "error")
-            return render_template("feedback.html")
-
-        entry = {
-            'submitted_at': datetime.utcnow().isoformat() + 'Z',
-            'name':        request.form.get('u_name', '').strip(),
-            'mobile':      request.form.get('u_mobile', '').strip(),
-            'email':       request.form.get('u_email', '').strip(),
-            'designation': request.form.get('u_designation', '').strip(),
-            'feedback':    request.form.get('u_feedback', '').strip(),
-        }
-        try:
-            _append_json_file(_FEEDBACK_FILE, entry)
-        except Exception:
-            pass
-        try:
-            _send_notification_email(
-                subject=f"New Feedback from {entry['name']}",
-                body=f"Name: {entry['name']}\nMobile: {entry['mobile']}\nEmail: {entry['email']}\nDesignation: {entry['designation']}\n\nFeedback:\n{entry['feedback']}"
-            )
-        except Exception:
-            pass
-
-        flash("Feedback submitted successfully. Thank you!", "success")
-        return redirect(url_for("feedback"))
-
-    return render_template("feedback.html")
+    return redirect(url_for("contact"))
 
 
 def _clean_html_text(raw_html):

@@ -2120,7 +2120,7 @@
     </head>
 
     <body>
-        <a href="{{ url_for('feedback') }}" class="left-feedback-btn">FEEDBACK</a>
+        <a href="{{ url_for('contact') }}" class="left-feedback-btn">FEEDBACK</a>
         <!-- HEADER & NAVIGATION (moved to shared component) -->
 
         <!-- HERO SECTION -->
@@ -2876,8 +2876,7 @@
                 { keywords: ['exam', 'exams', 'entrance', 'jee', 'neet', 'cet', 'mht-cet'], url: '{{ url_for("exams") }}', label: 'Entrance Exams' },
                 { keywords: ['mock', 'mock exam', 'mock test'], url: '{{ url_for("mock_exams") }}', label: 'Mock Exams' },
                 { keywords: ['news', 'update', 'updates'], url: '{{ url_for("news") }}', label: 'News' },
-                { keywords: ['article', 'articles', 'career', 'guide'], url: '{{ url_for("articles") }}', label: 'Career Articles' },
-                { keywords: ['story', 'stories', 'student'], url: '{{ url_for("student_stories") }}', label: 'Student Stories' }
+                { keywords: ['article', 'articles', 'career', 'blog', 'guide'], url: '{{ url_for("blog") }}', label: 'Blog Articles' }
             ];
 
             function openSearch() {
