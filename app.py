@@ -1702,12 +1702,37 @@ def blog():
     return render_template("blogs.html")  # Placeholder
 
 
+def _normalize_blog_entry(blog):
+    if not isinstance(blog, dict):
+        return blog
+
+    category = str(blog.get('category', '') or '').strip().lower()
+    if not category:
+        fallback = str(blog.get('tag', '') or '').strip().lower()
+        if fallback.endswith('s') and fallback[:-1] in {'result', 'exam', 'admission', 'career'}:
+            fallback = fallback[:-1]
+        category = fallback or 'blog'
+
+    if category in {'results', 'exams', 'admissions', 'careers'}:
+        category = category[:-1]
+
+    blog['category'] = category
+    if not blog.get('tag'):
+        blog['tag'] = category.upper()
+    return blog
+
+
 def _load_blogs():
     try:
         with open(_BLOGS_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
+            blogs = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         return []
+
+    if not isinstance(blogs, list):
+        return []
+
+    return [_normalize_blog_entry(blog) for blog in blogs if isinstance(blog, dict)]
 
 
 def get_blog_by_id(blog_id):
@@ -3703,9 +3728,19 @@ _BLOGS_FILE = os.path.join(os.path.dirname(__file__), 'data', 'blogs.json')
 def api_blogs():
     category = request.args.get('category', '').strip().lower()
     search = request.args.get('search', '').strip().lower()
+    category_aliases = {
+        'results': 'result',
+        'exams': 'exam',
+        'admissions': 'admission',
+        'careers': 'career',
+    }
+    category = category_aliases.get(category, category)
     blogs = _load_blogs()
     if category and category != 'all':
-        blogs = [b for b in blogs if b.get('category', '').lower() == category]
+        blogs = [
+            b for b in blogs
+            if str(b.get('category', '')).strip().lower() == category
+        ]
     if search:
         blogs = [
             b for b in blogs
