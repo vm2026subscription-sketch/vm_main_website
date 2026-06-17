@@ -176,6 +176,9 @@
       <!-- Blog List -->
       <div class="adm-card">
         <div class="adm-card-title"><i class="fa fa-list"></i> All Blogs <span class="badge" id="blog-count">0</span> <span id="blog-source-badge" style="font-size:11px;color:#64748b;font-weight:400;margin-left:8px"></span></div>
+        <div style="margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="importFromJson()"><i class="fa fa-file-import"></i> Import from blogs.json (7 entries)</button>
+        </div>
         <div id="blog-list-wrap">
           <div class="empty-state"><i class="fa fa-spinner fa-spin"></i>Loading…</div>
         </div>
@@ -371,6 +374,16 @@
           </tbody>
         </table>
       </div>`;
+  }
+
+  async function importFromJson() {
+    if (!confirm('Import all entries from blogs.json into Supabase DB?\n\nThis will add them on top of any existing DB blogs.')) return;
+    try {
+      const res = await fetch('/api/admin/blogs/import-json', { method: 'POST' });
+      const data = await res.json();
+      if (data.ok) { toast(`✓ Imported ${data.imported} blogs into DB`); loadBlogs(); }
+      else toast('✗ Import failed: ' + (data.error || ''));
+    } catch(e) { toast('✗ Network error'); }
   }
 
   async function deleteBlog(id, title) {
