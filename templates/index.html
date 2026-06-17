@@ -2120,7 +2120,7 @@
     </head>
 
     <body>
-        <a href="{{ url_for('feedback') }}" class="left-feedback-btn">FEEDBACK</a>
+        <a href="{{ url_for('contact') }}" class="left-feedback-btn">FEEDBACK</a>
         <!-- HEADER & NAVIGATION (moved to shared component) -->
 
         <!-- HERO SECTION -->
@@ -2138,13 +2138,13 @@
                 </div>
                 <div class="hero-right">
                     <div class="hero-card hero-card-1">
-                        <img src="{{ url_for('static', filename='hero_card_1.png') }}" alt="Student">
+                        <img src="{{ url_for('static', filename='hero_card_1.jpg') }}" alt="Student">
                     </div>
                     <div class="hero-card hero-card-2">
-                        <img src="{{ url_for('static', filename='hero_card_2.png') }}" alt="Students">
+                        <img src="{{ url_for('static', filename='hero_card_2.jpg') }}" alt="Students">
                     </div>
                     <div class="hero-card hero-card-3">
-                        <img src="{{ url_for('static', filename='hero_card_3.png') }}" alt="Student">
+                        <img src="{{ url_for('static', filename='hero_card_3.jpg') }}" alt="Student">
                     </div>
                 </div>
             </div>
@@ -2321,7 +2321,7 @@
                             <h5>CDAC (PUNE)</h5>
                         </div>
                         <div class="partner-logo-box">
-                            <img src="{{ url_for('static', filename='iit-roorkee.png') }}" alt="IIT Roorkee">
+                            <img src="{{ url_for('static', filename='iit-roorkee.jpg') }}" alt="IIT Roorkee">
                             <h5>IIT ROORKEE</h5>
                         </div>
                     </div>
@@ -2834,9 +2834,9 @@
             var hero = document.getElementById('heroSlider');
             var heroImages = [
                 "{{ url_for('static', filename='IITDELHI.jpg') }}",
-                "{{ url_for('static', filename='iit-roorkee.png') }}",
-                "{{ url_for('static', filename='pune_krishi_mahavidyalay.png') }}",
-                "{{ url_for('static', filename='Colleges.png') }}"
+                "{{ url_for('static', filename='iit-roorkee.jpg') }}",
+                "{{ url_for('static', filename='pune_krishi_mahavidyalay.jpg') }}",
+                "{{ url_for('static', filename='Colleges.jpg') }}"
             ];
 
             if (hero && heroImages.length) {
@@ -2876,8 +2876,7 @@
                 { keywords: ['exam', 'exams', 'entrance', 'jee', 'neet', 'cet', 'mht-cet'], url: '{{ url_for("exams") }}', label: 'Entrance Exams' },
                 { keywords: ['mock', 'mock exam', 'mock test'], url: '{{ url_for("mock_exams") }}', label: 'Mock Exams' },
                 { keywords: ['news', 'update', 'updates'], url: '{{ url_for("news") }}', label: 'News' },
-                { keywords: ['article', 'articles', 'career', 'guide'], url: '{{ url_for("articles") }}', label: 'Career Articles' },
-                { keywords: ['story', 'stories', 'student'], url: '{{ url_for("student_stories") }}', label: 'Student Stories' }
+                { keywords: ['article', 'articles', 'career', 'blog', 'guide'], url: '{{ url_for("blog") }}', label: 'Blog Articles' }
             ];
 
             function openSearch() {
