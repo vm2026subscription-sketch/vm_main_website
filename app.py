@@ -11,6 +11,7 @@ import secrets
 import smtplib
 import time
 from datetime import datetime
+from functools import wraps
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, quote, unquote, urljoin, urlparse, urlencode
 from urllib.request import Request, urlopen
@@ -1871,27 +1872,34 @@ def epaper_pdf_proxy():
     except (HTTPError, URLError, TimeoutError, ValueError):
         return jsonify({"error": "Unable to fetch PDF from source URL."}), 502
 
+def require_admin(f):
+    """Decorator: blocks non-admin requests. API routes get 401 JSON; page routes get login redirect."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        from epaper_routes import _is_epaper_admin
+        if not _is_epaper_admin():
+            if request.is_json or request.path.startswith('/api/'):
+                return jsonify({'error': 'Unauthorized'}), 401
+            return redirect(url_for('epaper.epaper_admin_login', next=request.path))
+        return f(*args, **kwargs)
+    return decorated
+
+
 @app.route("/admin")
+@require_admin
 def admin():
-    from epaper_routes import _is_epaper_admin
-    if not _is_epaper_admin():
-        return redirect(url_for("epaper.epaper_admin_login", next="/admin"))
     return render_template("admin.html", upload_targets=UPLOAD_TARGET_TABLES)
 
 
 @app.route("/api/admin/alerts", methods=["GET"])
+@require_admin
 def api_admin_get_alerts():
-    from epaper_routes import _is_epaper_admin
-    if not _is_epaper_admin():
-        return jsonify({"error": "Unauthorized"}), 401
     return jsonify({"alerts": _read_json_file(_ALERTS_FILE, _DEFAULT_ALERTS)})
 
 
 @app.route("/api/admin/alerts", methods=["POST"])
+@require_admin
 def api_admin_save_alerts():
-    from epaper_routes import _is_epaper_admin
-    if not _is_epaper_admin():
-        return jsonify({"error": "Unauthorized"}), 401
     data = request.get_json(silent=True) or {}
     alerts = data.get("alerts", [])
     _write_json_file(_ALERTS_FILE, alerts)
@@ -1899,10 +1907,8 @@ def api_admin_save_alerts():
 
 
 @app.route("/api/admin/responses/<source>")
+@require_admin
 def api_admin_responses(source):
-    from epaper_routes import _is_epaper_admin
-    if not _is_epaper_admin():
-        return jsonify({"error": "Unauthorized"}), 401
     source_map = {
         'feedback': _FEEDBACK_FILE,
         'guideme': _GUIDEME_FILE,
@@ -1941,10 +1947,8 @@ def api_admin_responses(source):
 
 
 @app.route("/api/admin/blogs", methods=["GET"])
+@require_admin
 def api_admin_blogs_list():
-    from epaper_routes import _is_epaper_admin
-    if not _is_epaper_admin():
-        return jsonify({"error": "Unauthorized"}), 401
     blogs = []
     try:
         db_url = get_postgres_connection_url()
@@ -1983,10 +1987,8 @@ def api_admin_blogs_list():
 
 
 @app.route("/api/admin/blogs/add", methods=["POST"])
+@require_admin
 def api_admin_blogs_add():
-    from epaper_routes import _is_epaper_admin
-    if not _is_epaper_admin():
-        return jsonify({"error": "Unauthorized"}), 401
     data = request.get_json(silent=True) or {}
     title = (data.get('title') or '').strip()
     if not title:
@@ -2026,10 +2028,8 @@ def api_admin_blogs_add():
 
 
 @app.route("/api/admin/blogs/delete", methods=["POST"])
+@require_admin
 def api_admin_blogs_delete():
-    from epaper_routes import _is_epaper_admin
-    if not _is_epaper_admin():
-        return jsonify({"error": "Unauthorized"}), 401
     data = request.get_json(silent=True) or {}
     blog_id = data.get('id')
     if not blog_id:
@@ -2051,10 +2051,8 @@ def api_admin_blogs_delete():
 
 
 @app.route("/api/admin/blogs/import-json", methods=["POST"])
+@require_admin
 def api_admin_blogs_import_json():
-    from epaper_routes import _is_epaper_admin
-    if not _is_epaper_admin():
-        return jsonify({"error": "Unauthorized"}), 401
     try:
         with open(_BLOGS_FILE, 'r', encoding='utf-8') as f:
             raw = json.load(f)
@@ -4152,10 +4150,8 @@ def _perform_excel_upload(uploaded_file, table_name):
 
 
 @app.route("/api/admin/data-upload", methods=["POST"])
+@require_admin
 def api_admin_data_upload():
-    from epaper_routes import _is_epaper_admin
-    if not _is_epaper_admin():
-        return jsonify({"error": "Unauthorized"}), 401
     table_name = request.form.get("target_table", "").strip()
     uploaded_file = request.files.get("excel_file")
     inserted, err = _perform_excel_upload(uploaded_file, table_name)
