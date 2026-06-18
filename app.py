@@ -1872,17 +1872,42 @@ def epaper_pdf_proxy():
     except (HTTPError, URLError, TimeoutError, ValueError):
         return jsonify({"error": "Unable to fetch PDF from source URL."}), 502
 
+def _is_admin():
+    return session.get('epaper_admin_auth') is True
+
 def require_admin(f):
-    """Decorator: blocks non-admin requests. API routes get 401 JSON; page routes get login redirect."""
+    """Decorator: blocks non-admin requests. API routes get 401 JSON; page routes redirect to /admin/login."""
     @wraps(f)
     def decorated(*args, **kwargs):
-        from epaper_routes import _is_epaper_admin
-        if not _is_epaper_admin():
+        if not _is_admin():
             if request.is_json or request.path.startswith('/api/'):
                 return jsonify({'error': 'Unauthorized'}), 401
-            return redirect(url_for('epaper.epaper_admin_login', next=request.path))
+            return redirect(url_for('admin_login', next=request.path))
         return f(*args, **kwargs)
     return decorated
+
+
+@app.route("/admin/login", methods=["GET", "POST"])
+def admin_login():
+    if _is_admin():
+        return redirect(url_for('admin'))
+    error = None
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        admin_pass = os.getenv("EPAPER_ADMIN_PASS", "vm2026")
+        if password == admin_pass:
+            session['epaper_admin_auth'] = True
+            next_url = request.form.get("next") or request.args.get("next") or url_for('admin')
+            return redirect(next_url)
+        error = "Incorrect password. Please try again."
+    next_url = request.args.get("next", "")
+    return render_template("admin_login.html", error=error, next=next_url)
+
+
+@app.route("/admin/logout")
+def admin_logout():
+    session.pop('epaper_admin_auth', None)
+    return redirect(url_for('admin_login'))
 
 
 @app.route("/admin")
