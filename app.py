@@ -1876,7 +1876,7 @@ def admin():
     from epaper_routes import _is_epaper_admin
     if not _is_epaper_admin():
         return redirect(url_for("epaper.epaper_admin_login", next="/admin"))
-    return render_template("admin.html")
+    return render_template("admin.html", upload_targets=UPLOAD_TARGET_TABLES)
 
 
 @app.route("/api/admin/alerts", methods=["GET"])
@@ -4112,114 +4112,61 @@ def logout():
     return redirect(url_for("index"))
 
 
-@app.route("/excel-upload", methods=["GET", "POST"])
-def excel_upload():
+def _perform_excel_upload(uploaded_file, table_name):
+    """Shared logic for Excel upload. Returns (inserted_rows, error_str)."""
     allowed_tables = {item["value"] for item in UPLOAD_TARGET_TABLES}
-    default_table = os.getenv("SUPABASE_EXCEL_TABLE", "universities").strip() or "universities"
-    if default_table not in allowed_tables:
-        default_table = "universities"
-
+    if table_name not in allowed_tables:
+        return 0, "Invalid table name."
+    if not uploaded_file or not uploaded_file.filename:
+        return 0, "No file provided."
+    if not uploaded_file.filename.lower().endswith((".xlsx", ".xls")):
+        return 0, "Invalid file type. Please upload .xlsx or .xls."
     supabase_client = get_supabase_client()
     postgres_connection_url = get_postgres_connection_url()
     configured = supabase_client is not None or bool(postgres_connection_url)
-    connection_mode = "postgres-url" if postgres_connection_url else "supabase-api"
-    selected_table = default_table
-
-    if request.method == "POST":
-        selected_table = request.form.get("target_table", default_table).strip()
-        if selected_table not in allowed_tables:
-            flash("Please choose a valid target table.", "error")
-            return render_template(
-                "excel_upload.html",
-                configured=configured,
-                table_name=default_table,
-                selected_table=default_table,
-                upload_targets=UPLOAD_TARGET_TABLES,
-                connection_mode=connection_mode,
-            )
-
-        if not configured:
-            flash(
-                "Supabase is not configured. Set SUPABASE_POSTGRES_URL (or DATABASE_URL), or set SUPABASE_URL with SUPABASE_SERVICE_ROLE_KEY.",
-                "error",
-            )
-            return render_template(
-                "excel_upload.html",
-                configured=False,
-                table_name=selected_table,
-                selected_table=selected_table,
-                upload_targets=UPLOAD_TARGET_TABLES,
-                connection_mode=connection_mode,
-            )
-
-        uploaded_file = request.files.get("excel_file")
-        if uploaded_file is None or not uploaded_file.filename:
-            flash("Please choose an Excel file to upload.", "error")
-            return render_template(
-                "excel_upload.html",
-                configured=True,
-                table_name=selected_table,
-                selected_table=selected_table,
-                upload_targets=UPLOAD_TARGET_TABLES,
-                connection_mode=connection_mode,
-            )
-
-        if not uploaded_file.filename.lower().endswith((".xlsx", ".xls")):
-            flash("Invalid file type. Please upload an .xlsx or .xls file.", "error")
-            return render_template(
-                "excel_upload.html",
-                configured=True,
-                table_name=selected_table,
-                selected_table=selected_table,
-                upload_targets=UPLOAD_TARGET_TABLES,
-                connection_mode=connection_mode,
-            )
-
-        try:
-            records = convert_excel_to_records(uploaded_file)
-            inserted_rows = 0
+    if not configured:
+        return 0, "Database not configured."
+    try:
+        records = convert_excel_to_records(uploaded_file)
+        inserted_rows = 0
+        last_exc = None
+        if postgres_connection_url:
+            try:
+                ensure_upload_table_exists(postgres_connection_url, table_name)
+                inserted_rows = insert_records_via_postgres(postgres_connection_url, table_name, records)
+            except Exception as pg_exc:
+                last_exc = pg_exc
+                app.logger.warning("Postgres upload failed: %s", pg_exc)
+        if inserted_rows == 0 and supabase_client:
+            inserted_rows = insert_records_in_batches(supabase_client, table_name, records)
             last_exc = None
-            # Try direct Postgres first; if DB is paused fall back to REST API
-            if postgres_connection_url:
-                try:
-                    ensure_upload_table_exists(postgres_connection_url, selected_table)
-                    inserted_rows = insert_records_via_postgres(postgres_connection_url, selected_table, records)
-                except Exception as pg_exc:
-                    last_exc = pg_exc
-                    app.logger.warning("Postgres upload failed, trying Supabase REST: %s", pg_exc)
-            if inserted_rows == 0 and supabase_client:
-                inserted_rows = insert_records_in_batches(supabase_client, selected_table, records)
-                last_exc = None
-            if inserted_rows == 0 and last_exc:
-                raise last_exc
-        except Exception as exc:
-            import traceback
-            app.logger.error("Excel upload error: %s", traceback.format_exc())
-            flash(f"Upload failed: {type(exc).__name__}: {exc}", "error")
-            return render_template(
-                "excel_upload.html",
-                configured=True,
-                table_name=selected_table,
-                selected_table=selected_table,
-                upload_targets=UPLOAD_TARGET_TABLES,
-                connection_mode=connection_mode,
-            )
-
-        # Dual-write: keep local JSON in sync so DB-down fallback stays fresh
-        if selected_table == 'blogs':
+        if inserted_rows == 0 and last_exc:
+            raise last_exc
+        if table_name == 'blogs':
             _sync_blogs_json_from_records(records)
+        return inserted_rows, None
+    except Exception as exc:
+        import traceback
+        app.logger.error("Excel upload error: %s", traceback.format_exc())
+        return 0, f"{type(exc).__name__}: {exc}"
 
-        flash(f"Upload successful. Inserted {inserted_rows} row(s) into {selected_table}.", "success")
-        return redirect(url_for("excel_upload"))
 
-    return render_template(
-        "excel_upload.html",
-        configured=configured,
-        table_name=selected_table,
-        selected_table=selected_table,
-        upload_targets=UPLOAD_TARGET_TABLES,
-        connection_mode=connection_mode,
-    )
+@app.route("/api/admin/data-upload", methods=["POST"])
+def api_admin_data_upload():
+    from epaper_routes import _is_epaper_admin
+    if not _is_epaper_admin():
+        return jsonify({"error": "Unauthorized"}), 401
+    table_name = request.form.get("target_table", "").strip()
+    uploaded_file = request.files.get("excel_file")
+    inserted, err = _perform_excel_upload(uploaded_file, table_name)
+    if err:
+        return jsonify({"error": err}), 400
+    return jsonify({"ok": True, "inserted": inserted, "table": table_name})
+
+
+@app.route("/excel-upload", methods=["GET", "POST"])
+def excel_upload():
+    return redirect(url_for("admin"))
 
 
 @app.route('/robots.txt')
