@@ -456,6 +456,13 @@ body {
   border: 2px solid var(--orange-mid);
 }
 
+.section-icon i,
+.prep-icon i,
+.career-icon i {
+  font-size: inherit;
+  line-height: 1;
+}
+
 .section-label {
   font-size: .75rem;
   font-weight: 600;

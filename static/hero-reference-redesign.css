@@ -511,6 +511,11 @@ section {
     transform: scale(1.1) !important;
 }
 
+.course-row .icon-box i,
+.epaper-card h3 i {
+    line-height: 1 !important;
+}
+
 /* Card Headings */
 .alert-box h5,
 .search-item a,
@@ -526,6 +531,12 @@ section {
     line-height: 1.4 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.02em !important;
+}
+
+.epaper-card h3 {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
 }
 
 /* Card Descriptions */
