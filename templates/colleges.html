@@ -6,6 +6,30 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='courses.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='colleges.css') }}">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<style>
+  .college-card-actions { display: inline-flex; align-items: center; gap: 10px; }
+  .vm-bookmark-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #ff6600;
+    background: rgba(255, 102, 0, 0.08);
+    border: 1px solid rgba(255, 102, 0, 0.35);
+    border-radius: 99px;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, opacity 0.2s ease;
+  }
+  .vm-bookmark-btn:hover { background: rgba(255, 102, 0, 0.16); }
+  .vm-bookmark-btn.vm-bookmarked {
+    color: #16a34a;
+    background: rgba(22, 163, 74, 0.1);
+    border-color: rgba(22, 163, 74, 0.4);
+  }
+  .vm-bookmark-btn.vm-bookmark-loading { opacity: 0.6; pointer-events: none; }
+</style>
 {% endblock %}
 
 {% macro college_card(college) %}
@@ -42,11 +66,20 @@
 
   <div class="exam-footer-row">
     <div class="exam-conducting">District: {{ college.city or 'N/A' }}</div>
-    {% if college.source_url %}
-    <a class="exam-link" href="{{ college.source_url }}" target="_blank" rel="noopener">
-      Website <i class="fa fa-arrow-right"></i>
-    </a>
-    {% endif %}
+    <div class="college-card-actions">
+      <button type="button" class="vm-bookmark-btn" aria-pressed="false"
+              data-type="college"
+              data-name="{{ college.name or 'College name unavailable' }}"
+              data-url="{{ college.source_url or '' }}">
+        <i class="fa-regular fa-bookmark"></i>
+        <span class="vm-bookmark-label">Save</span>
+      </button>
+      {% if college.source_url %}
+      <a class="exam-link" href="{{ college.source_url }}" target="_blank" rel="noopener">
+        Website <i class="fa fa-arrow-right"></i>
+      </a>
+      {% endif %}
+    </div>
   </div>
 </div>
 {% endmacro %}
@@ -269,4 +302,5 @@
     });
   });
 </script>
+<script src="{{ url_for('static', filename='bookmarks.js') }}" defer></script>
 {% endblock %}

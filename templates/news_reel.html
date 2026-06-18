@@ -567,9 +567,9 @@
                 <span>${ago}</span>
               </div>
               <div class="nr-actions">
-                <a class="nr-btn-read" href="${a.link || '#'}" target="_blank" rel="noopener">
+                <a class="nr-btn-read" href="/news/detail/${encodeURIComponent(a.link || '')}" rel="noopener">
                   <i class="fa fa-arrow-up-right-from-square" style="font-size:12px"></i>
-                  Read Full Article
+                  Open detailed story
                 </a>
                 <button class="nr-btn-icon" onclick="NR.share('${safeTitle}','${safeLink}')" title="Share">
                   <i class="fa fa-share-nodes"></i>
