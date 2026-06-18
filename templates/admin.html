@@ -68,8 +68,25 @@
     /* Toast */
     #adm-toast{position:fixed;bottom:24px;right:24px;background:#059669;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;}
     #adm-toast.show{opacity:1;}
+    /* Modal */
+    .modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:2000;align-items:center;justify-content:center;padding:20px;overflow-y:auto;}
+    .modal-overlay.show{display:flex;}
+    .modal-content{background:#0d1b2e;border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:28px;width:100%;max-width:700px;max-height:90vh;overflow-y:auto;}
+    .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+    .modal-header h3{font-size:18px;font-weight:700;color:#fff;margin:0;}
+    .modal-close{background:none;border:none;color:#94a3b8;cursor:pointer;font-size:24px;padding:0;transition:color .2s;}
+    .modal-close:hover{color:#fff;}
+    .modal-form{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .modal-form input,
+    .modal-form select,
+    .modal-form textarea{background:#131f35;border:1.5px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none;transition:border-color .2s;}
+    .modal-form input:focus,
+    .modal-form select:focus,
+    .modal-form textarea:focus{border-color:#ff6600;}
+    .modal-footer{margin-top:20px;display:flex;gap:10px;justify-content:flex-end;}
     @media(max-width:768px){
       .alert-editor-row{grid-template-columns:1fr;}.adm-tabs{overflow-x:auto;}
+      .modal-form{grid-template-columns:1fr;}
     }
   </style>
 </head>
@@ -124,20 +141,20 @@
     <div class="adm-panel" id="panel-blogs">
 
       <!-- Edit Blog Modal -->
-      <div id="edit-blog-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;overflow-y:auto;padding:20px">
-        <div style="background:#0d1b2e;border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:28px;max-width:700px;margin:40px auto">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-            <h3 style="font-size:18px;font-weight:700;color:#fff">Edit Blog</h3>
-            <button onclick="closeEditModal()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:24px">&times;</button>
+      <div id="edit-blog-modal" class="modal-overlay">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>Edit Blog</h3>
+            <button class="modal-close" onclick="closeEditModal()">&times;</button>
           </div>
-          <div id="edit-blog-form" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <form class="modal-form" id="edit-blog-form">
             <div class="field-wrap" style="grid-column:1/-1">
               <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block">Title *</label>
-              <input id="eb-title" type="text" placeholder="Blog title" style="width:100%;background:#131f35;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none">
+              <input id="eb-title" type="text" placeholder="Blog title" required>
             </div>
             <div class="field-wrap">
               <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block">Category</label>
-              <select id="eb-category" style="width:100%;background:#131f35;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none">
+              <select id="eb-category">
                 <option value="Admissions">Admissions</option>
                 <option value="Examinations">Examinations</option>
                 <option value="Examination">Examination</option>
@@ -149,30 +166,30 @@
             </div>
             <div class="field-wrap">
               <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block">Date (YYYY-MM-DD)</label>
-              <input id="eb-date" type="date" style="width:100%;background:#131f35;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none">
+              <input id="eb-date" type="date">
             </div>
             <div class="field-wrap">
               <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block">Author</label>
-              <input id="eb-author" type="text" style="width:100%;background:#131f35;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none">
+              <input id="eb-author" type="text">
             </div>
             <div class="field-wrap" style="grid-column:1/-1">
               <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block">Image URL</label>
-              <input id="eb-image" type="text" placeholder="https://..." style="width:100%;background:#131f35;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none">
+              <input id="eb-image" type="text" placeholder="https://...">
             </div>
             <div class="field-wrap" style="grid-column:1/-1">
-              <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block">Summary (1-2 lines shown on listing page)</label>
-              <textarea id="eb-summary" rows="2" placeholder="Short description..." style="width:100%;background:#131f35;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none;resize:vertical"></textarea>
+              <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block">Summary</label>
+              <textarea id="eb-summary" rows="2" placeholder="Short description..."></textarea>
             </div>
             <div class="field-wrap" style="grid-column:1/-1">
-              <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block">Content (full article body)</label>
-              <textarea id="eb-content" rows="8" placeholder="Full blog content..." style="width:100%;background:#131f35;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none;resize:vertical"></textarea>
+              <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block">Content</label>
+              <textarea id="eb-content" rows="6" placeholder="Full blog content..."></textarea>
             </div>
             <div class="field-wrap" style="grid-column:1/-1">
               <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block">Tags (comma separated)</label>
-              <input id="eb-tags" type="text" placeholder="NEET 2026, NTA, Medical Entrance" style="width:100%;background:#131f35;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none">
+              <input id="eb-tags" type="text" placeholder="NEET 2026, NTA, Medical Entrance">
             </div>
-          </div>
-          <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end">
+          </form>
+          <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
             <button class="btn btn-orange" onclick="submitEditBlog()"><i class="fa fa-save"></i> Save Changes</button>
           </div>
@@ -191,8 +208,7 @@
             <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block">Category</label>
             <select id="nb-category" style="width:100%;background:#131f35;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none">
               <option value="Admissions">Admissions</option>
-              <option value="Examinations">Examinations</option>
-              <option value="Examination">Examination</option>
+              <option value="Exams">Examinations</option>
               <option value="Career">Career</option>
               <option value="Scholarships">Scholarships</option>
               <option value="News">News</option>
@@ -509,20 +525,29 @@
     document.getElementById('eb-summary').value = blog.summary || '';
     document.getElementById('eb-content').value = blog.content || '';
     document.getElementById('eb-tags').value = blog.tags || '';
-    document.getElementById('edit-blog-modal').style.display = 'flex';
+    document.getElementById('edit-blog-modal').classList.add('show');
   }
 
   function closeEditModal() {
     editingBlogId = null;
-    document.getElementById('edit-blog-modal').style.display = 'none';
+    document.getElementById('edit-blog-modal').classList.remove('show');
   }
 
   // Close modal when clicking outside the modal content
-  document.getElementById('edit-blog-modal').addEventListener('click', function(e) {
-    if (e.target === this) {
-      closeEditModal();
-    }
-  });
+  (function() {
+    const modal = document.getElementById('edit-blog-modal');
+    modal.addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeEditModal();
+      }
+    });
+    // Also close on Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && modal.classList.contains('show')) {
+        closeEditModal();
+      }
+    });
+  })();
 
   async function submitEditBlog() {
     if (!editingBlogId) { toast('✗ No blog selected'); return; }
