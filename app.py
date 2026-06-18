@@ -1992,6 +1992,11 @@ def api_admin_blogs_list():
                     'title': p.get('Title') or p.get('title') or '',
                     'category': p.get('Category') or p.get('category') or '',
                     'date': p.get('Date') or p.get('date') or '',
+                    'author': p.get('Author') or p.get('author') or '',
+                    'summary': p.get('Summary') or p.get('summary') or '',
+                    'content': p.get('Content') or p.get('content') or '',
+                    'tags': p.get('Tags') or p.get('tags') or '',
+                    'image': p.get('Image') or p.get('image') or '',
                 })
             return jsonify({'blogs': blogs, 'source': 'db'})
     except Exception as e:
@@ -2071,6 +2076,48 @@ def api_admin_blogs_delete():
                 conn.close()
     except Exception as e:
         app.logger.warning("admin blog delete DB failed: %s", e)
+        return jsonify({'error': str(e)}), 500
+    return jsonify({'ok': True})
+
+
+@app.route("/api/admin/blogs/update", methods=["POST"])
+def api_admin_blogs_update():
+    from epaper_routes import _is_epaper_admin
+    if not _is_epaper_admin():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.get_json(silent=True) or {}
+    blog_id = data.get('id')
+    if not blog_id:
+        return jsonify({'error': 'id is required'}), 400
+    title = (data.get('title') or '').strip()
+    if not title:
+        return jsonify({'error': 'Title is required'}), 400
+    payload = {
+        'Title': title,
+        'Category': (data.get('category') or '').strip(),
+        'Author': (data.get('author') or 'Vidyarthi Mitra News Service').strip(),
+        'Date': (data.get('date') or '').strip(),
+        'Summary': (data.get('summary') or '').strip(),
+        'Content': (data.get('content') or '').strip(),
+        'Tags': (data.get('tags') or '').strip(),
+        'Image': (data.get('image') or '').strip(),
+        'Status': 'Published',
+    }
+    try:
+        db_url = get_postgres_connection_url()
+        if db_url and psycopg2:
+            conn = psycopg2.connect(db_url, connect_timeout=5)
+            try:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "UPDATE blogs SET payload = %s WHERE id = %s",
+                        (json.dumps(payload), blog_id)
+                    )
+                conn.commit()
+            finally:
+                conn.close()
+    except Exception as e:
+        app.logger.warning("admin blog update DB failed: %s", e)
         return jsonify({'error': str(e)}), 500
     return jsonify({'ok': True})
 
