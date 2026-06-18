@@ -1055,6 +1055,17 @@ def get_auth_db_connection():
                         created_at TIMESTAMPTZ DEFAULT NOW()
                     )
                 """)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS bookmarks (
+                        id BIGSERIAL PRIMARY KEY,
+                        user_email TEXT NOT NULL,
+                        item_type TEXT NOT NULL,
+                        item_name TEXT NOT NULL,
+                        item_url TEXT,
+                        created_at TIMESTAMPTZ DEFAULT NOW(),
+                        UNIQUE (user_email, item_type, item_name)
+                    )
+                """)
             conn.commit()
             # Wrap in a sqlite3-compatible shim so the rest of the code works unchanged
             return _PgAuthConn(conn)
@@ -1071,6 +1082,17 @@ def get_auth_db_connection():
             email TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS bookmarks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_email TEXT NOT NULL,
+            item_type TEXT NOT NULL,
+            item_name TEXT NOT NULL,
+            item_url TEXT,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (user_email, item_type, item_name)
         )
     """)
     connection.commit()
@@ -1120,6 +1142,51 @@ def get_logged_in_user():
     if isinstance(user, dict) and user.get("email"):
         return user
     return None
+
+
+def format_member_since(value):
+    """Render a users.created_at value (datetime from Postgres or string from
+    SQLite) as a readable 'DD Mon YYYY'. Returns '' for missing values."""
+    if not value:
+        return ""
+    try:
+        if isinstance(value, datetime):
+            dt = value
+        else:
+            dt = datetime.strptime(str(value)[:19], "%Y-%m-%d %H:%M:%S")
+        return dt.strftime("%d %b %Y")
+    except (ValueError, TypeError):
+        return str(value)[:10]
+
+
+# ── Allowed bookmark item types ──────────────────────────────────────
+BOOKMARK_ITEM_TYPES = {"college", "university"}
+
+
+def fetch_user_bookmarks(email):
+    """Return the logged-in user's saved colleges/universities as plain dicts,
+    newest first. Always scoped to the supplied email (ownership guard)."""
+    if not email:
+        return []
+    try:
+        with get_auth_db_connection() as connection:
+            rows = connection.execute(
+                "SELECT item_type, item_name, item_url, created_at "
+                "FROM bookmarks WHERE user_email = ? ORDER BY created_at DESC, id DESC",
+                (email,),
+            ).fetchall()
+    except Exception as exc:
+        app.logger.warning("Fetching bookmarks failed: %s", exc)
+        return []
+
+    bookmarks = []
+    for row in rows:
+        bookmarks.append({
+            "item_type": row["item_type"],
+            "item_name": row["item_name"],
+            "item_url": row["item_url"],
+        })
+    return bookmarks
 
 
 def generate_login_otp():
@@ -1690,7 +1757,104 @@ def dashboard():
     if not user:
         flash("Please login to access your dashboard.", "error")
         return redirect(url_for("login"))
-    return render_template("dashboard.html", user=user)
+
+    # The session only stores name + email; pull the join date from the users table.
+    member_since = ""
+    try:
+        with get_auth_db_connection() as connection:
+            record = connection.execute(
+                "SELECT created_at FROM users WHERE email = ?",
+                (user["email"],),
+            ).fetchone()
+        if record is not None:
+            member_since = format_member_since(record["created_at"])
+    except Exception as exc:
+        app.logger.warning("Loading dashboard profile failed: %s", exc)
+
+    bookmarks = fetch_user_bookmarks(user["email"])
+    return render_template(
+        "dashboard.html",
+        user=user,
+        member_since=member_since,
+        bookmarks=bookmarks,
+    )
+
+
+@app.route("/api/bookmarks", methods=["GET"])
+def api_list_bookmarks():
+    """Return the current user's saved colleges/universities."""
+    user = get_logged_in_user()
+    if not user:
+        return jsonify({"success": False, "error": "auth_required"}), 401
+    return jsonify({"success": True, "bookmarks": fetch_user_bookmarks(user["email"])})
+
+
+@app.route("/api/bookmarks", methods=["POST"])
+def api_add_bookmark():
+    """Save a college/university for the logged-in user. Duplicates are ignored."""
+    user = get_logged_in_user()
+    if not user:
+        return jsonify({"success": False, "error": "auth_required"}), 401
+
+    payload = request.get_json(silent=True) or {}
+    item_type = (payload.get("item_type") or "").strip().lower()
+    item_name = (payload.get("item_name") or "").strip()
+    item_url = (payload.get("item_url") or "").strip() or None
+
+    if item_type not in BOOKMARK_ITEM_TYPES or not item_name:
+        return jsonify({"success": False, "error": "invalid_item"}), 400
+
+    try:
+        with get_auth_db_connection() as connection:
+            existing = connection.execute(
+                "SELECT id FROM bookmarks "
+                "WHERE user_email = ? AND item_type = ? AND item_name = ?",
+                (user["email"], item_type, item_name),
+            ).fetchone()
+
+            if existing is not None:
+                return jsonify({"success": True, "status": "already_saved"})
+
+            connection.execute(
+                "INSERT INTO bookmarks (user_email, item_type, item_name, item_url) "
+                "VALUES (?, ?, ?, ?)",
+                (user["email"], item_type, item_name, item_url),
+            )
+            connection.commit()
+    except Exception as exc:
+        app.logger.warning("Saving bookmark failed: %s", exc)
+        return jsonify({"success": False, "error": "save_failed"}), 500
+
+    return jsonify({"success": True, "status": "saved"})
+
+
+@app.route("/api/bookmarks/remove", methods=["POST"])
+def api_remove_bookmark():
+    """Remove a saved item. Scoped to the logged-in user (ownership guard)."""
+    user = get_logged_in_user()
+    if not user:
+        return jsonify({"success": False, "error": "auth_required"}), 401
+
+    payload = request.get_json(silent=True) or {}
+    item_type = (payload.get("item_type") or "").strip().lower()
+    item_name = (payload.get("item_name") or "").strip()
+
+    if item_type not in BOOKMARK_ITEM_TYPES or not item_name:
+        return jsonify({"success": False, "error": "invalid_item"}), 400
+
+    try:
+        with get_auth_db_connection() as connection:
+            connection.execute(
+                "DELETE FROM bookmarks "
+                "WHERE user_email = ? AND item_type = ? AND item_name = ?",
+                (user["email"], item_type, item_name),
+            )
+            connection.commit()
+    except Exception as exc:
+        app.logger.warning("Removing bookmark failed: %s", exc)
+        return jsonify({"success": False, "error": "remove_failed"}), 500
+
+    return jsonify({"success": True, "status": "removed"})
 
 
 @app.route("/")

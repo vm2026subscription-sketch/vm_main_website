@@ -9,6 +9,68 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+  <style>
+    /* ── Profile + Saved Colleges (added) ── */
+    .dash-profile-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 22px 26px;
+      max-width: 560px;
+    }
+    .dash-profile-row {
+      display: flex;
+      gap: 10px;
+      padding: 10px 0;
+      font-size: 15px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .dash-profile-row:last-child { border-bottom: none; }
+    .dash-profile-label {
+      flex: 0 0 130px;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+    .dash-profile-value { color: #e2e8f0; font-weight: 600; word-break: break-word; }
+
+    .dash-saved-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+    .dash-saved-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 14px 18px;
+    }
+    .dash-saved-item .dsi-main { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .dash-saved-item .dsi-icon { color: #ff6600; font-size: 18px; flex: 0 0 auto; }
+    .dash-saved-item .dsi-name { color: #e2e8f0; font-weight: 600; text-decoration: none; }
+    .dash-saved-item .dsi-name:hover { color: #ff6600; }
+    .dash-saved-item .dsi-type {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #94a3b8;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 2px 8px;
+      border-radius: 99px;
+    }
+    .dash-saved-remove {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px 8px;
+      border-radius: 8px;
+      transition: color 0.2s ease, background 0.2s ease;
+    }
+    .dash-saved-remove:hover { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+    .dash-saved-empty { color: #94a3b8; font-size: 15px; }
+  </style>
 </head>
 <body>
   {% include '_shared_index_navbar.html' %}
@@ -27,6 +89,56 @@
       <div class="dash-hero-actions">
         <a href="{{ url_for('logout') }}" class="dash-btn dash-btn-outline"><i class="fa fa-sign-out-alt"></i> Logout</a>
       </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ USER PROFILE ═══════════════════════ -->
+  <section class="dash-section">
+    <div class="dash-container">
+      <h2 class="dash-section-title"><i class="fa fa-id-card" style="color:#ff6600;"></i> User Profile</h2>
+      <div class="dash-profile-card">
+        <div class="dash-profile-row">
+          <span class="dash-profile-label">Name</span>
+          <span class="dash-profile-value">{{ user.name or 'Not provided' }}</span>
+        </div>
+        <div class="dash-profile-row">
+          <span class="dash-profile-label">Email</span>
+          <span class="dash-profile-value">{{ user.email or 'Not provided' }}</span>
+        </div>
+        <div class="dash-profile-row">
+          <span class="dash-profile-label">Member Since</span>
+          <span class="dash-profile-value">{{ member_since or 'Not available' }}</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ SAVED COLLEGES ═══════════════════════ -->
+  <section class="dash-section">
+    <div class="dash-container">
+      <h2 class="dash-section-title"><i class="fa fa-bookmark" style="color:#ff6600;"></i> Saved Colleges</h2>
+      {% if bookmarks %}
+      <ul class="dash-saved-list">
+        {% for item in bookmarks %}
+        <li class="dash-saved-item" data-type="{{ item.item_type }}" data-name="{{ item.item_name }}">
+          <div class="dsi-main">
+            <i class="fa {{ 'fa-university' if item.item_type == 'university' else 'fa-building-columns' }} dsi-icon"></i>
+            {% if item.item_url %}
+            <a class="dsi-name" href="{{ item.item_url }}">{{ item.item_name }}</a>
+            {% else %}
+            <span class="dsi-name">{{ item.item_name }}</span>
+            {% endif %}
+            <span class="dsi-type">{{ item.item_type }}</span>
+          </div>
+          <button type="button" class="dash-saved-remove" aria-label="Remove saved item" title="Remove">
+            <i class="fa fa-times"></i>
+          </button>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="dash-saved-empty">You haven't saved any colleges yet.</p>
+      {% endif %}
     </div>
   </section>
 
@@ -191,6 +303,41 @@
       if (el) el.textContent = greeting + '! 🌟';
     })();
 
+    // ── Remove saved college/university ──
+    (function() {
+      document.querySelectorAll('.dash-saved-remove').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var li = btn.closest('.dash-saved-item');
+          if (!li) return;
+          btn.disabled = true;
+          fetch('/api/bookmarks/remove', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              item_type: li.getAttribute('data-type'),
+              item_name: li.getAttribute('data-name')
+            })
+          })
+          .then(function(r) { return r.ok ? r.json() : null; })
+          .then(function(data) {
+            if (data && data.success) {
+              li.remove();
+              var list = document.querySelector('.dash-saved-list');
+              if (list && !list.children.length) {
+                var p = document.createElement('p');
+                p.className = 'dash-saved-empty';
+                p.textContent = "You haven't saved any colleges yet.";
+                list.replaceWith(p);
+              }
+            } else {
+              btn.disabled = false;
+            }
+          })
+          .catch(function() { btn.disabled = false; });
+        });
+      });
+    })();
+
     // ── Fetch latest news for dashboard ──
     (function() {
       var grid = document.getElementById('dashNewsGrid');
@@ -249,7 +396,7 @@
             var diffH = Math.floor(diffMs / 3600000);
             var dateStr = diffH < 1 ? 'Just now' : diffH < 24 ? diffH + 'h ago' : Math.floor(diffMs / 86400000) + 'd ago';
 
-            html += '<a href="' + link + '" target="_blank" rel="noopener" class="dash-news-card">' +
+            html += '<a href="/news/detail/' + encodeURIComponent(link) + '" rel="noopener" class="dash-news-card">' +
               '<div class="dnc-img" style="background-image:url(' + imgUrl + ');">' +
                 '<span class="dnc-badge" style="background:' + color + ';">' + (cat === 'govtjobs' ? 'Govt Jobs' : cat.charAt(0).toUpperCase() + cat.slice(1)) + '</span>' +
               '</div>' +
