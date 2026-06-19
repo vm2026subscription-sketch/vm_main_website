@@ -13,11 +13,6 @@
       "dest": "app.py"
     }
   ],
-  "functions": {
-    "app.py": {
-      "maxDuration": 60
-    }
-  },
   "headers": [
     {
       "source": "/static/(.*)\\.(js|css|woff|woff2|ttf|otf)",
