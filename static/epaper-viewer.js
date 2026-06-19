@@ -2577,10 +2577,27 @@ const EP = {
     this.compilePDF();
   },
 
+  _loadScript(src) {
+    return new Promise((resolve, reject) => {
+      if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+      const s = document.createElement('script');
+      s.src = src; s.async = true;
+      s.onload = resolve; s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  },
+
   async compilePDF() {
     if (!this.pages.length) { this.showToast('No edition pages available'); return; }
-    if (typeof window.jspdf === 'undefined') { this.showToast('PDF library not loaded, please refresh'); return; }
-    if (typeof window.html2canvas !== 'function') { this.showToast('PDF renderer not loaded, please refresh'); return; }
+    if (typeof window.jspdf === 'undefined' || typeof window.html2canvas !== 'function') {
+      this.showToast('Loading PDF libraries…');
+      try {
+        await Promise.all([
+          this._loadScript('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'),
+          this._loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
+        ]);
+      } catch (e) { this.showToast('Failed to load PDF libraries'); return; }
+    }
 
     this._pdfCancelled = false;
     const originalPage = this.currentPage;
