@@ -588,18 +588,16 @@ def _find_epaper_article(article_id):
 def epaper_viewer(date=None, page=1):
     import json as _json
     initial_edition_json = None
-    try:
-        editions = _load_editions()
-        published = [e for e in editions if e.get("published", True)]
-        if date:
+    if date:
+        try:
+            editions = _load_editions()
+            published = [e for e in editions if e.get("published", True)]
             edition = next((e for e in published if e["date"] == date), None) or \
                       (sorted(published, key=lambda e: e["date"], reverse=True)[0] if published else None)
-        else:
-            edition = sorted(published, key=lambda e: e["date"], reverse=True)[0] if published else None
-        if edition:
-            initial_edition_json = _json.dumps(edition, ensure_ascii=False).replace('</script>', r'<\/script>')
-    except Exception:
-        pass
+            if edition:
+                initial_edition_json = _json.dumps(edition, ensure_ascii=False).replace('</script>', r'<\/script>')
+        except Exception:
+            pass
     return render_template("epaper_viewer.html", initial_date=date, initial_page=page,
                            initial_edition_json=initial_edition_json)
 
