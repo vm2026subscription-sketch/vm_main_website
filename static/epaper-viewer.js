@@ -2172,8 +2172,58 @@ const EP = {
       if (this.el.voiceBar) this.el.voiceBar.classList.remove('loading', 'topbar');
       if (this.el.ttsPrompt) this.el.ttsPrompt.style.display = '';
       this._clearHighlight();
-      this.showToast('Voice generation failed. Try again.');
       this._voiceUpdatePlayIcon();
+      // Fallback: use browser's built-in Web Speech API
+      if (window.speechSynthesis) {
+        this._voicePlayBrowser(rawText);
+      } else {
+        this.showToast('Voice generation failed. Try again.');
+      }
+    }
+  },
+
+  _voicePlayBrowser(text) {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    const voice = this._voice.selectedVoice || '';
+    utter.lang = voice.startsWith('mr') ? 'mr-IN'
+               : voice.startsWith('en') ? 'en-IN'
+               : 'hi-IN';
+    utter.rate = Math.min(this._voice.rate || 0.9, 1.2);
+    utter.pitch = 1.0;
+    // Try to match a system voice for the language
+    const voices = window.speechSynthesis.getVoices();
+    const match = voices.find(v => v.lang === utter.lang)
+               || voices.find(v => v.lang.startsWith(utter.lang.split('-')[0]));
+    if (match) utter.voice = match;
+
+    utter.onstart = () => {
+      this._voice.playing = true;
+      if (this.el.ttsStartBtn) this.el.ttsStartBtn.innerHTML = '<i class="fa fa-stop"></i> <span>Stop</span>';
+      if (this.el.voiceBar) this.el.voiceBar.classList.add('topbar');
+      if (this.el.voiceTitle) this.el.voiceTitle.textContent = 'Playing…';
+      this.showToast('Playing with browser voice');
+    };
+    utter.onend = utter.onerror = () => {
+      this._voice.playing = false;
+      window.speechSynthesis.cancel();
+      if (this.el.ttsStartBtn) { this.el.ttsStartBtn.innerHTML = '<i class="fa fa-play"></i> <span>Play</span>'; this.el.ttsStartBtn.classList.remove('loading'); }
+      if (this.el.voiceBar) this.el.voiceBar.classList.remove('loading', 'topbar');
+      this._voiceUpdatePlayIcon();
+    };
+    this._voice._utterance = utter;
+    // Voices may not be loaded yet — wait if needed
+    if (voices.length === 0) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.onvoiceschanged = null;
+        const v2 = window.speechSynthesis.getVoices();
+        const m2 = v2.find(v => v.lang === utter.lang) || v2.find(v => v.lang.startsWith(utter.lang.split('-')[0]));
+        if (m2) utter.voice = m2;
+        window.speechSynthesis.speak(utter);
+      };
+    } else {
+      window.speechSynthesis.speak(utter);
     }
   },
 
