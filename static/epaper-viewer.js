@@ -697,12 +697,13 @@ const EP = {
       this.updateDateButton(this.currentDate);
     }
 
-    const details = await Promise.all(published.map(edition => this.fetchEditionCardDetail(edition)));
-    const visibleEntries = published.map((edition, index) => {
-      const detail = details[index] || null;
-      const previewUrl = this.getEditionCardPreviewUrl(detail);
-      const totalPages = detail?.pages?.length || edition.total_pages || 0;
-      return { edition, detail, previewUrl, totalPages };
+    const visibleEntries = published.map((edition) => {
+      const previewUrl = edition.masthead_image_url ? this.optimizeCloudinaryUrl(edition.masthead_image_url, 640) : '';
+      return {
+        edition,
+        previewUrl,
+        totalPages: edition.total_pages || 0,
+      };
     }).filter(entry => entry.totalPages > 0 || entry.previewUrl);
 
     if (!visibleEntries.length) {
