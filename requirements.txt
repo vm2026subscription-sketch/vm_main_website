@@ -1,5 +1,7 @@
 Flask==3.0.3
+Flask-WTF==1.2.2
 Flask-Compress==1.15
+Flask-Limiter==3.8.0
 python-dotenv==1.0.1
 supabase==2.6.0
 pandas==2.2.3

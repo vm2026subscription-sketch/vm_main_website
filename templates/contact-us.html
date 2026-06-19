@@ -522,6 +522,7 @@
     <h3>Send Us a Message</h3>
     <p class="sub">Have a question? Fill out the form and we'll get back to you within 24 hours.</p>
     <form id="contactForm">
+       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="form-grid">
         <div class="form-group">
           <label>Full Name <span class="required">*</span></label>
@@ -650,14 +651,19 @@
 
     const button = this.querySelector('.btn-submit');
     
-    try {
-      const response = await fetch('{{ url_for("send_message") }}', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
-      
-      const result = await response.json();
+  try {
+  const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+
+  const response = await fetch('{{ url_for("send_message") }}', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': csrfToken
+    },
+    body: JSON.stringify(formData)
+  });
+
+  const result = await response.json();
       
       if (result.success) {
         button.textContent = '✓ Message Sent!';

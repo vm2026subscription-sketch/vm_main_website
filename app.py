@@ -16,6 +16,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, quote, unquote, urljoin, urlparse, urlencode
 from urllib.request import Request, urlopen
 from email.message import EmailMessage
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 try:
     import pandas as pd
@@ -23,6 +25,7 @@ except ImportError:
     pd = None
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
+from flask_wtf.csrf import CSRFProtect
 from dotenv import load_dotenv
 from werkzeug.security import check_password_hash, generate_password_hash
 try:
@@ -53,6 +56,12 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "vidyarthi-mitra-dev-key-change-in-production")
+csrf = CSRFProtect(app)
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=[]
+)
 app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024  # 200 MB upload limit
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
@@ -3781,6 +3790,7 @@ def chatbot():
 
 
 @app.route("/api/chatbot/query", methods=["POST"])
+@limiter.limit("5 per minute")
 def api_chatbot_query():
     if not GROQ_API_KEY:
         return jsonify({"error": "Chatbot is not configured. Set GROQ_API_KEY in environment variables."}), 503
@@ -4113,6 +4123,7 @@ def govt_job_detail(job_id):
 
 
 @app.route("/register", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
 def register():
     if request.method == "POST":
         name = request.form.get("name", "").strip()
@@ -4156,6 +4167,7 @@ def register():
 
 
 @app.route("/login", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
 def login():
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
@@ -4219,6 +4231,7 @@ def login():
 
 
 @app.route("/verify-otp", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
 def verify_otp():
     pending_otp = get_pending_login_otp()
     if pending_otp is None:
