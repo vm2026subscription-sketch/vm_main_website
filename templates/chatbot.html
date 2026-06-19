@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Unnati AI Chatbot</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
     :root {
       --primary: #ff6600; /* Neon Lime/Green */
@@ -68,6 +69,8 @@
       background: transparent;
       -webkit-font-smoothing: antialiased;
       transition: background var(--transition);
+      display: flex;
+      flex-direction: column;
     }
 
     /* ── Chat Trigger FAB ── */
@@ -88,6 +91,11 @@
       transition: all var(--transition);
       position: relative;
       z-index: 10;
+    }
+    #chat-trigger i {
+      font-size: 22px;
+      position: relative;
+      z-index: 1;
     }
     #chat-trigger:hover {
       transform: scale(1.08);
@@ -377,6 +385,9 @@
       font-size: 12.5px;
       font-weight: 500;
       color: var(--text);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
     }
     .msg-wrap.user .msg-bubble .md-next-step {
       background: rgba(0, 0, 0, 0.08);
@@ -407,7 +418,10 @@
       border-radius: 999px;
       display: inline-flex;
       align-items: center;
-      gap: 3px;
+      gap: 5px;
+    }
+    .msg-provider i {
+      font-size: 10px;
     }
     .msg-provider.db {
       background: rgba(16, 185, 129, 0.1);
@@ -454,7 +468,7 @@
       transition: all var(--transition);
       display: inline-flex;
       align-items: center;
-      gap: 3px;
+      gap: 5px;
     }
     .source-badge:hover {
       border-color: var(--primary);
@@ -463,6 +477,9 @@
     }
     .source-badge .src-icon {
       font-size: 10px;
+      width: 12px;
+      display: inline-flex;
+      justify-content: center;
     }
 
     /* ── SQL Query Viewer ── */
@@ -582,6 +599,9 @@
       cursor: pointer;
       transition: all var(--transition);
       font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
     }
     .quick-replies button:hover {
       background: var(--primary-light);
@@ -691,6 +711,10 @@
       margin-bottom: 8px;
       animation: float 3s ease-in-out infinite;
     }
+    .welcome-card .wc-emoji i {
+      color: var(--primary);
+      font-size: 30px;
+    }
     @keyframes float {
       0%, 100% { transform: translateY(0); }
       50% { transform: translateY(-6px); }
@@ -727,6 +751,25 @@
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
+
+    .chat-page-footer {
+      padding: 12px 16px 16px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      font-size: 11px;
+    }
+    .chat-page-footer a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color var(--transition);
+    }
+    .chat-page-footer a:hover {
+      color: var(--primary);
+    }
   </style>
 </head>
 <body>
@@ -755,7 +798,7 @@
     <!-- Body -->
     <div class="chat-body" id="chat-body">
       <div class="welcome-card" id="welcome-card">
-        <div class="wc-emoji">🎓</div>
+        <div class="wc-emoji"><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i></div>
         <h4 id="welcome-title">Hi! I'm Unnati</h4>
         <p id="welcome-text">Your AI education assistant. Ask me about courses, colleges, entrance exams, admissions, or careers.</p>
       </div>
@@ -764,9 +807,9 @@
 
     <!-- Quick Replies -->
     <div class="quick-replies" id="quickReplies">
-      <button type="button" data-topic="admissions">📋 Admissions</button>
-      <button type="button" data-topic="careers">🚀 Careers</button>
-      <button type="button" data-topic="exams">📝 Entrance Exams</button>
+      <button type="button" data-topic="admissions"><i class="fa-solid fa-file-signature" aria-hidden="true"></i> Admissions</button>
+      <button type="button" data-topic="careers"><i class="fa-solid fa-briefcase" aria-hidden="true"></i> Careers</button>
+      <button type="button" data-topic="exams"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Entrance Exams</button>
     </div>
 
     <!-- Input -->
@@ -781,12 +824,20 @@
         </svg>
       </button>
     </div>
+
+    <div class="chat-page-footer">
+      <a href="{{ url_for('about_us') }}">About Us</a>
+      <a href="{{ url_for('contact') }}">Contact Us</a>
+      <a href="{{ url_for('privacy') }}">Privacy Policy</a>
+      <a href="{{ url_for('terms') }}">Terms &amp; Conditions</a>
+      <a href="{{ url_for('refund_policy') }}">Refund &amp; Cancellation</a>
+    </div>
   </div>
 
   <!-- Trigger FAB -->
   <div id="chat-trigger" title="Open chat">
     <span class="trigger-pulse"></span>
-    💬
+    <i class="fa-solid fa-comments" aria-hidden="true"></i>
   </div>
 
   <script>
@@ -892,7 +943,7 @@
               i++;
             }
             if (nextContent) {
-              html += `<div class="md-next-step">💡 ${escHtml(nextContent)}</div>`;
+              html += `<div class="md-next-step"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> ${escHtml(nextContent)}</div>`;
             }
           } else {
             html += `<div class="md-section-title">${escHtml(title)}</div>`;
@@ -971,12 +1022,12 @@
     function providerBadge(provider) {
       if (!provider) return '';
       const map = {
-        'database+llm': { cls: 'db', icon: '🗄️', label: 'DB + AI' },
-        'database':     { cls: 'db', icon: '🗄️', label: 'Database' },
-        'groq':         { cls: 'llm', icon: '🤖', label: 'AI' },
-        'local-retrieval': { cls: 'local', icon: '📄', label: 'Local' }
+        'database+llm': { cls: 'db', icon: '<i class="fa-solid fa-database" aria-hidden="true"></i>', label: 'DB + AI' },
+        'database':     { cls: 'db', icon: '<i class="fa-solid fa-database" aria-hidden="true"></i>', label: 'Database' },
+        'groq':         { cls: 'llm', icon: '<i class="fa-solid fa-robot" aria-hidden="true"></i>', label: 'AI' },
+        'local-retrieval': { cls: 'local', icon: '<i class="fa-solid fa-file-lines" aria-hidden="true"></i>', label: 'Local' }
       };
-      const info = map[provider] || { cls: 'llm', icon: '⚡', label: provider };
+      const info = map[provider] || { cls: 'llm', icon: '<i class="fa-solid fa-bolt" aria-hidden="true"></i>', label: provider };
       return `<span class="msg-provider ${info.cls}">${info.icon} ${info.label}</span>`;
     }
 
@@ -987,7 +1038,9 @@
       if (!sources || !sources.length) return '';
       const badges = sources.slice(0, 5).map(src => {
         const isDb = src.startsWith('/db/');
-        const icon = isDb ? '🗄️' : '🔗';
+        const icon = isDb
+          ? '<i class="fa-solid fa-database" aria-hidden="true"></i>'
+          : '<i class="fa-solid fa-link" aria-hidden="true"></i>';
         const label = isDb ? src.replace('/db/', '').replace(/_/g, ' ') : src;
         return `<span class="source-badge"><span class="src-icon">${icon}</span>${escHtml(label)}</span>`;
       }).join('');
@@ -1067,7 +1120,7 @@
     function addError(text) {
       const el = document.createElement('div');
       el.className = 'msg-error';
-      el.innerHTML = `<span class="err-icon">⚠️</span><span>${escHtml(text || strings[currentLang].error)}</span>`;
+      el.innerHTML = `<span class="err-icon"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></span><span>${escHtml(text || strings[currentLang].error)}</span>`;
       body.appendChild(el);
       scrollToBottom();
       return el;
@@ -1186,7 +1239,7 @@
       const question = strings[currentLang].quick[topic];
       if (!question) return;
 
-      const labelMap = { admissions: '📋 Admissions', careers: '🚀 Careers', exams: '📝 Entrance Exams' };
+      const labelMap = { admissions: 'Admissions', careers: 'Careers', exams: 'Entrance Exams' };
       const apiTopicMap = { admissions: 'admissions', careers: 'careers', exams: 'entrance_exams' };
 
       addMessage(labelMap[topic] || topic, 'user');

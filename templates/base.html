@@ -61,6 +61,13 @@
             flex-wrap: wrap;
             gap: 10px;
             font-size: 13px;
+            align-items: center;
+        }
+        .site-footer .footer-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
         }
         .site-footer a { color: #ff8a33; text-decoration: none; }
         .site-footer a:hover { color: #fff; }
@@ -76,11 +83,13 @@
 
     <footer class="site-footer">
         <div class="footer-inner">
-            <div>© 2026 VidyarthiMitra.org - All Rights Reserved</div>
-            <div>
-                <a href="{{ url_for('refund_policy') }}">Refund & Cancellation</a>
-                <span> | </span>
+            <div>&copy; 2026 VidyarthiMitra.org - All Rights Reserved</div>
+            <div class="footer-links">
+                <a href="{{ url_for('about_us') }}">About Us</a>
                 <a href="{{ url_for('contact') }}">Contact Us</a>
+                <a href="{{ url_for('privacy') }}">Privacy Policy</a>
+                <a href="{{ url_for('terms') }}">Terms &amp; Conditions</a>
+                <a href="{{ url_for('refund_policy') }}">Refund &amp; Cancellation</a>
             </div>
         </div>
     </footer>

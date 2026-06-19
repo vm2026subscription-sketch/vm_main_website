@@ -65,7 +65,19 @@
     syncUrl(category, search);
     container.style.opacity = "0.6";
 
-    fetch(`/api/blogs?category=${encodeURIComponent(category)}&search=${encodeURIComponent(search)}`)
+    let url = '/api/blogs';
+    const params = new URLSearchParams();
+    if (category && category !== 'all') {
+      params.set('category', category);
+    }
+    if (search) {
+      params.set('search', search);
+    }
+    if ([...params].length) {
+      url += '?' + params.toString();
+    }
+
+    fetch(url)
       .then(function (response) {
         if (!response.ok) {
           throw new Error("Network error: " + response.status);

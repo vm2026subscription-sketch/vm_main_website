@@ -68,8 +68,25 @@
     /* Toast */
     #adm-toast{position:fixed;bottom:24px;right:24px;background:#059669;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;}
     #adm-toast.show{opacity:1;}
+    /* Modal */
+    .modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:2000;align-items:center;justify-content:center;padding:20px;overflow-y:auto;}
+    .modal-overlay.show{display:flex;}
+    .modal-content{background:#0d1b2e;border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:28px;width:100%;max-width:700px;max-height:90vh;overflow-y:auto;}
+    .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+    .modal-header h3{font-size:18px;font-weight:700;color:#fff;margin:0;}
+    .modal-close{background:none;border:none;color:#94a3b8;cursor:pointer;font-size:24px;padding:0;transition:color .2s;}
+    .modal-close:hover{color:#fff;}
+    .modal-form{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .modal-form input,
+    .modal-form select,
+    .modal-form textarea{background:#131f35;border:1.5px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none;transition:border-color .2s;}
+    .modal-form input:focus,
+    .modal-form select:focus,
+    .modal-form textarea:focus{border-color:#ff6600;}
+    .modal-footer{margin-top:20px;display:flex;gap:10px;justify-content:flex-end;}
     @media(max-width:768px){
       .alert-editor-row{grid-template-columns:1fr;}.adm-tabs{overflow-x:auto;}
+      .modal-form{grid-template-columns:1fr;}
     }
   </style>
 </head>
@@ -79,13 +96,15 @@
     <div>
       <a href="/"><i class="fa fa-house"></i> Homepage</a>
       <a href="/epaper-admin"><i class="fa fa-newspaper"></i> E-Paper Builder</a>
-      <a href="/epaper-admin/logout"><i class="fa fa-right-from-bracket"></i> Logout</a>
+      <a href="{{ url_for('admin_logout') }}"><i class="fa fa-right-from-bracket"></i> Logout</a>
     </div>
   </div>
 
   <div class="adm-tabs">
     <div class="adm-tab active" data-panel="alerts"><i class="fa fa-bell"></i> Featured Alerts</div>
     <div class="adm-tab" data-panel="responses"><i class="fa fa-inbox"></i> Form Responses</div>
+    <div class="adm-tab" data-panel="blogs"><i class="fa fa-pen-nib"></i> Blogs</div>
+    <div class="adm-tab" data-panel="upload"><i class="fa fa-upload"></i> Upload Data</div>
     <div class="adm-tab" data-panel="tools"><i class="fa fa-screwdriver-wrench"></i> Tools</div>
   </div>
 
@@ -119,6 +138,168 @@
       </div>
     </div>
 
+    <!-- ── BLOGS ── -->
+    <div class="adm-panel" id="panel-blogs">
+
+      <!-- Edit Blog Modal -->
+      <div id="edit-blog-modal" class="modal-overlay">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>Edit Blog</h3>
+            <button class="modal-close" onclick="closeEditModal()">&times;</button>
+          </div>
+          <form class="modal-form" id="edit-blog-form">
+            <div class="field-wrap" style="grid-column:1/-1">
+              <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block">Title *</label>
+              <input id="eb-title" type="text" placeholder="Blog title" required>
+            </div>
+            <div class="field-wrap">
+              <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block">Category</label>
+              <select id="eb-category">
+                <option value="Admissions">Admissions</option>
+                <option value="Exams">Exams</option>
+                <option value="Career">Career</option>
+                <option value="Scholarships">Scholarships</option>
+                <option value="News">News</option>
+                <option value="General">General</option>
+              </select>
+            </div>
+            <div class="field-wrap">
+              <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block">Date (YYYY-MM-DD)</label>
+              <input id="eb-date" type="date">
+            </div>
+            <div class="field-wrap">
+              <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block">Author</label>
+              <input id="eb-author" type="text">
+            </div>
+            <div class="field-wrap" style="grid-column:1/-1">
+              <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block">Image URL</label>
+              <input id="eb-image" type="text" placeholder="https://...">
+            </div>
+            <div class="field-wrap" style="grid-column:1/-1">
+              <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block">Summary</label>
+              <textarea id="eb-summary" rows="2" placeholder="Short description..."></textarea>
+            </div>
+            <div class="field-wrap" style="grid-column:1/-1">
+              <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block">Content</label>
+              <textarea id="eb-content" rows="6" placeholder="Full blog content..."></textarea>
+            </div>
+            <div class="field-wrap" style="grid-column:1/-1">
+              <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block">Tags (comma separated)</label>
+              <input id="eb-tags" type="text" placeholder="NEET 2026, NTA, Medical Entrance">
+            </div>
+          </form>
+          <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
+            <button class="btn btn-orange" onclick="submitEditBlog()"><i class="fa fa-save"></i> Save Changes</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add New Blog Form -->
+      <div class="adm-card" style="margin-bottom:20px">
+        <div class="adm-card-title"><i class="fa fa-plus"></i> Add New Blog</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" id="blog-add-grid">
+          <div class="field-wrap" style="grid-column:1/-1">
+            <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block">Title *</label>
+            <input id="nb-title" type="text" placeholder="Blog title" style="width:100%;background:#131f35;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none">
+          </div>
+          <div class="field-wrap">
+            <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block">Category</label>
+            <select id="nb-category" style="width:100%;background:#131f35;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none">
+              <option value="Admissions">Admissions</option>
+              <option value="Exams">Exams</option>
+              <option value="Career">Career</option>
+              <option value="Scholarships">Scholarships</option>
+              <option value="News">News</option>
+              <option value="General">General</option>
+            </select>
+          </div>
+          <div class="field-wrap">
+            <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block">Date (YYYY-MM-DD)</label>
+            <input id="nb-date" type="date" style="width:100%;background:#131f35;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none">
+          </div>
+          <div class="field-wrap">
+            <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block">Author</label>
+            <input id="nb-author" type="text" value="Vidyarthi Mitra News Service" style="width:100%;background:#131f35;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none">
+          </div>
+          <div class="field-wrap">
+            <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block">Image URL</label>
+            <input id="nb-image" type="text" placeholder="https://..." style="width:100%;background:#131f35;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none">
+          </div>
+          <div class="field-wrap" style="grid-column:1/-1">
+            <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block">Summary (1-2 lines shown on listing page)</label>
+            <textarea id="nb-summary" rows="2" placeholder="Short description..." style="width:100%;background:#131f35;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none;resize:vertical"></textarea>
+          </div>
+          <div class="field-wrap" style="grid-column:1/-1">
+            <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block">Content (full article body)</label>
+            <textarea id="nb-content" rows="8" placeholder="Full blog content..." style="width:100%;background:#131f35;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none;resize:vertical"></textarea>
+          </div>
+          <div class="field-wrap" style="grid-column:1/-1">
+            <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block">Tags (comma separated)</label>
+            <input id="nb-tags" type="text" placeholder="NEET 2026, NTA, Medical Entrance" style="width:100%;background:#131f35;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none">
+          </div>
+        </div>
+        <div style="margin-top:16px">
+          <button class="btn btn-orange" onclick="submitAddBlog()"><i class="fa fa-plus"></i> Add Blog</button>
+        </div>
+      </div>
+
+      <!-- Blog List -->
+      <div class="adm-card">
+        <div class="adm-card-title"><i class="fa fa-list"></i> All Blogs <span class="badge" id="blog-count">0</span> <span id="blog-source-badge" style="font-size:11px;color:#64748b;font-weight:400;margin-left:8px"></span></div>
+        <div style="margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="importFromJson()"><i class="fa fa-file-import"></i> Import from blogs.json (7 entries)</button>
+        </div>
+        <div id="blog-list-wrap">
+          <div class="empty-state"><i class="fa fa-spinner fa-spin"></i>Loading…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── UPLOAD DATA ── -->
+    <div class="adm-panel" id="panel-upload">
+      <div class="adm-card">
+        <div class="adm-card-title"><i class="fa fa-upload"></i> Upload Excel Data to Supabase</div>
+        <p style="color:#64748b;font-size:13px;margin-bottom:20px">Upload an .xlsx or .xls file to populate any database table. First row must be the header row with column names.</p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+          <div class="field-wrap">
+            <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:block">Target Table</label>
+            <select id="up-table" style="width:100%;background:#131f35;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:10px 12px;font-size:13px;font-family:inherit;outline:none">
+              {% for t in upload_targets %}
+              <option value="{{ t.value }}">{{ t.label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field-wrap">
+            <label style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:block">Excel File (.xlsx / .xls)</label>
+            <input type="file" id="up-file" accept=".xlsx,.xls" style="width:100%;background:#131f35;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:10px 12px;font-size:13px;font-family:inherit;outline:none">
+          </div>
+        </div>
+
+        <button class="btn btn-orange" id="up-btn" onclick="doUpload()"><i class="fa fa-upload"></i> Upload</button>
+
+        <div id="up-result" style="margin-top:16px;display:none;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600"></div>
+      </div>
+
+      <div class="adm-card" style="margin-top:4px">
+        <div class="adm-card-title" style="font-size:13px"><i class="fa fa-circle-info"></i> Column reference per table</div>
+        <div style="overflow-x:auto">
+          <table class="adm-table" style="font-size:12px">
+            <thead><tr><th>Table</th><th>Required columns in Excel</th></tr></thead>
+            <tbody>
+              <tr><td>blogs</td><td>Title, Category, Author, Date, Summary, Content, Tags, Image, Status</td></tr>
+              <tr><td>admissions</td><td>state, stream, course_name, process, description, status, important_dates, admission_body, exam_name, eligibility, official_link, level</td></tr>
+              <tr><td>universities</td><td>name, location, type, ranking, courses, website</td></tr>
+              <tr><td>entrance_exams</td><td>name, short_name, category, level, conducting_body, official_link</td></tr>
+              <tr><td>courses</td><td>name, stream, duration, eligibility, description</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- ── TOOLS ── -->
     <div class="adm-panel" id="panel-tools">
       <div class="link-card-grid">
@@ -126,11 +307,6 @@
           <i class="fa fa-newspaper"></i>
           <h3>E-Paper Builder</h3>
           <p>Create and manage newspaper editions, pages and articles</p>
-        </a>
-        <a href="/excel-upload" class="link-card">
-          <i class="fa fa-file-excel"></i>
-          <h3>Excel Upload</h3>
-          <p>Upload Excel files to populate Supabase database tables</p>
         </a>
         <a href="/epaper-archive" class="link-card">
           <i class="fa fa-archive"></i>
@@ -160,6 +336,7 @@
       tab.classList.add('active');
       document.getElementById('panel-' + tab.dataset.panel).classList.add('active');
       if (tab.dataset.panel === 'responses') loadResponses('feedback');
+      if (tab.dataset.panel === 'blogs') loadBlogs();
     });
   });
 
@@ -262,6 +439,223 @@
     } catch(e) {
       document.getElementById('response-content').innerHTML = '<div class="empty-state"><i class="fa fa-circle-xmark"></i>Failed to load</div>';
     }
+  }
+
+  // ── BLOGS ──
+  let blogList = [];
+
+  async function loadBlogs() {
+    document.getElementById('blog-list-wrap').innerHTML = '<div class="empty-state"><i class="fa fa-spinner fa-spin"></i>Loading…</div>';
+    try {
+      const res = await fetch('/api/admin/blogs');
+      const data = await res.json();
+      blogList = data.blogs || [];
+      document.getElementById('blog-count').textContent = blogList.length;
+      document.getElementById('blog-source-badge').textContent = data.source === 'db' ? '(from Supabase DB)' : '(from JSON fallback)';
+      renderBlogs();
+    } catch(e) {
+      document.getElementById('blog-list-wrap').innerHTML = '<div class="empty-state"><i class="fa fa-circle-xmark"></i>Failed to load blogs</div>';
+    }
+  }
+
+  function renderBlogs() {
+    if (!blogList.length) {
+      document.getElementById('blog-list-wrap').innerHTML = '<div class="empty-state"><i class="fa fa-pen-nib"></i>No blogs yet</div>';
+      return;
+    }
+    document.getElementById('blog-list-wrap').innerHTML = `
+      <div class="adm-table-wrap">
+        <table class="adm-table">
+          <thead><tr><th>#</th><th>Title</th><th>Category</th><th>Date</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${blogList.map((b, i) => `
+              <tr>
+                <td class="muted">${i + 1}</td>
+                <td>${escHtml(b.title)}</td>
+                <td><span class="badge">${escHtml(b.category)}</span></td>
+                <td class="muted">${escHtml(b.date)}</td>
+                <td>
+                  ${b.id
+                    ? `<div style="display:flex;gap:6px">
+                         <button class="btn btn-ghost btn-sm" onclick="openEditModal(${b.id})"><i class="fa fa-edit"></i> Edit</button>
+                         <button class="btn btn-red btn-sm" onclick="deleteBlog(${b.id}, '${escHtml(b.title).replace(/'/g,"\\'")}')"><i class="fa fa-trash"></i> Delete</button>
+                       </div>`
+                    : `<span style="color:#475569;font-size:12px">JSON fallback — delete from git</span>`
+                  }
+                </td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  }
+
+  async function doUpload() {
+    const table = document.getElementById('up-table').value;
+    const file = document.getElementById('up-file').files[0];
+    const btn = document.getElementById('up-btn');
+    const result = document.getElementById('up-result');
+    if (!file) { alert('Please select an Excel file.'); return; }
+    const fd = new FormData();
+    fd.append('target_table', table);
+    fd.append('excel_file', file);
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Uploading…';
+    result.style.display = 'none';
+    try {
+      const res = await fetch('/api/admin/data-upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      result.style.display = 'block';
+      if (data.ok) {
+        result.style.background = 'rgba(5,150,105,0.15)';
+        result.style.color = '#34d399';
+        result.style.border = '1px solid rgba(52,211,153,0.2)';
+        result.textContent = `Uploaded successfully. Inserted ${data.inserted} row(s) into "${data.table}".`;
+        document.getElementById('up-file').value = '';
+      } else {
+        result.style.background = 'rgba(220,38,38,0.12)';
+        result.style.color = '#f87171';
+        result.style.border = '1px solid rgba(248,113,113,0.2)';
+        result.textContent = 'Upload failed: ' + (data.error || 'Unknown error');
+      }
+    } catch(e) {
+      result.style.display = 'block';
+      result.style.background = 'rgba(220,38,38,0.12)';
+      result.style.color = '#f87171';
+      result.textContent = 'Network error. Please try again.';
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa fa-upload"></i> Upload';
+    }
+  }
+
+  async function importFromJson() {
+    if (!confirm('This will DELETE all existing blogs from DB and replace with blogs.json entries.\n\nContinue?')) return;
+    try {
+      const res = await fetch('/api/admin/blogs/import-json', { method: 'POST' });
+      const data = await res.json();
+      if (data.ok) { toast(`✓ Imported ${data.imported} blogs into DB`); loadBlogs(); }
+      else toast('✗ Import failed: ' + (data.error || ''));
+    } catch(e) { toast('✗ Network error'); }
+  }
+
+  async function deleteBlog(id, title) {
+    if (!confirm(`Delete blog: "${title}"?\n\nThis removes it from the database.`)) return;
+    try {
+      const res = await fetch('/api/admin/blogs/delete', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({id})
+      });
+      const data = await res.json();
+      if (data.ok) { toast('✓ Blog deleted'); loadBlogs(); }
+      else toast('✗ Delete failed: ' + (data.error || ''));
+    } catch(e) { toast('✗ Network error'); }
+  }
+
+  async function submitAddBlog() {
+    const title = document.getElementById('nb-title').value.trim();
+    if (!title) { toast('✗ Title is required'); return; }
+    const payload = {
+      title,
+      category: document.getElementById('nb-category').value,
+      author:   document.getElementById('nb-author').value.trim(),
+      date:     document.getElementById('nb-date').value,
+      summary:  document.getElementById('nb-summary').value.trim(),
+      content:  document.getElementById('nb-content').value.trim(),
+      tags:     document.getElementById('nb-tags').value.trim(),
+      image:    document.getElementById('nb-image').value.trim(),
+    };
+    try {
+      const res = await fetch('/api/admin/blogs/add', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.ok) {
+        toast('✓ Blog added to DB');
+        document.getElementById('nb-title').value = '';
+        document.getElementById('nb-summary').value = '';
+        document.getElementById('nb-content').value = '';
+        document.getElementById('nb-tags').value = '';
+        document.getElementById('nb-image').value = '';
+        document.getElementById('nb-date').value = '';
+        loadBlogs();
+      } else {
+        toast('✗ ' + (data.error || 'Add failed'));
+      }
+    } catch(e) { toast('✗ Network error'); }
+  }
+
+  // ── EDIT BLOG ──
+  let editingBlogId = null;
+
+  function openEditModal(id) {
+    const blog = blogList.find(b => b.id === id);
+    if (!blog) { toast('✗ Blog not found'); return; }
+    editingBlogId = id;
+    document.getElementById('eb-title').value = blog.title || '';
+    document.getElementById('eb-category').value = blog.category || '';
+    document.getElementById('eb-date').value = blog.date || '';
+    document.getElementById('eb-author').value = blog.author || '';
+    document.getElementById('eb-image').value = blog.image || '';
+    document.getElementById('eb-summary').value = blog.summary || '';
+    document.getElementById('eb-content').value = blog.content || '';
+    document.getElementById('eb-tags').value = blog.tags || '';
+    document.getElementById('edit-blog-modal').classList.add('show');
+  }
+
+  function closeEditModal() {
+    editingBlogId = null;
+    document.getElementById('edit-blog-modal').classList.remove('show');
+  }
+
+  // Close modal when clicking outside the modal content
+  (function() {
+    const modal = document.getElementById('edit-blog-modal');
+    modal.addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeEditModal();
+      }
+    });
+    // Also close on Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && modal.classList.contains('show')) {
+        closeEditModal();
+      }
+    });
+  })();
+
+  async function submitEditBlog() {
+    if (!editingBlogId) { toast('✗ No blog selected'); return; }
+    const title = document.getElementById('eb-title').value.trim();
+    if (!title) { toast('✗ Title is required'); return; }
+    const payload = {
+      id: editingBlogId,
+      title,
+      category: document.getElementById('eb-category').value,
+      author:   document.getElementById('eb-author').value.trim(),
+      date:     document.getElementById('eb-date').value,
+      summary:  document.getElementById('eb-summary').value.trim(),
+      content:  document.getElementById('eb-content').value.trim(),
+      tags:     document.getElementById('eb-tags').value.trim(),
+      image:    document.getElementById('eb-image').value.trim(),
+    };
+    try {
+      const res = await fetch('/api/admin/blogs/update', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.ok) {
+        toast('✓ Blog updated successfully');
+        closeEditModal();
+        loadBlogs();
+      } else {
+        toast('✗ ' + (data.error || 'Update failed'));
+      }
+    } catch(e) { toast('✗ Network error'); }
   }
 
   // ── UTILS ──
