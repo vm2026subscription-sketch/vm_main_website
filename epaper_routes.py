@@ -1394,59 +1394,47 @@ def _resolve_voice(text, voice, rate, pitch):
     return voice, rate, pitch
 
 
-def _stream_edge_tts(text, voice, rate, pitch, cache_key):
-    """Generator that streams edge_tts audio chunks and caches the full result."""
-    q = _queue.Queue()
-    collected = []
+def _collect_edge_tts_audio(text, voice, rate, pitch):
+    """Run edge_tts in a thread and return all audio as bytes. Raises on failure."""
+    chunks = []
+    error_holder = []
 
     async def _async():
         import edge_tts
-        try:
-            communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
-            async for chunk in communicate.stream():
-                if chunk["type"] == "audio":
-                    q.put(chunk["data"])
-        except Exception as exc:
-            q.put(exc)
-        finally:
-            q.put(None)
+        communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
+        async for chunk in communicate.stream():
+            if chunk["type"] == "audio":
+                chunks.append(chunk["data"])
 
-    def _run_thread():
+    def _run():
         if sys.platform == "win32":
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             loop.run_until_complete(_async())
+        except Exception as exc:
+            error_holder.append(exc)
         finally:
             loop.close()
             asyncio.set_event_loop(None)
 
-    t = threading.Thread(target=_run_thread, daemon=True)
+    t = threading.Thread(target=_run, daemon=True)
     t.start()
+    t.join(timeout=25)
 
-    while True:
-        try:
-            item = q.get(timeout=30)
-        except _queue.Empty:
-            break
-        if item is None:
-            break
-        if isinstance(item, Exception):
-            raise item
-        collected.append(item)
-        yield item
-
-    # Cache full audio after streaming completes
-    if collected and cache_key:
-        full = b"".join(collected)
-        _evict(_tts_cache, _TTS_CACHE_MAX)
-        _tts_cache[cache_key] = full
+    if t.is_alive():
+        raise TimeoutError("TTS generation timed out")
+    if error_holder:
+        raise error_holder[0]
+    if not chunks:
+        raise RuntimeError("TTS returned no audio data")
+    return b"".join(chunks)
 
 
 @epaper_bp.route("/api/epaper/tts", methods=["POST"])
 def api_tts():
-    """Server-side TTS using Microsoft Edge Neural voices — streams MP3 progressively."""
+    """Server-side TTS using Microsoft Edge Neural voices."""
     data = request.get_json(silent=True) or {}
     text = data.get("text", "").strip()
     voice = data.get("voice", "")
@@ -1462,31 +1450,23 @@ def api_tts():
 
     ck = _tts_cache_key(text, voice, rate, pitch)
 
-    # ── Serve from cache instantly ──────────────────────────────────────────
+    # Serve from cache
     if ck in _tts_cache:
         _tts_cache.move_to_end(ck)
-        return send_file(
-            io.BytesIO(_tts_cache[ck]),
-            mimetype="audio/mpeg",
-            as_attachment=False,
-            download_name="tts_audio.mp3",
-        )
+        return send_file(io.BytesIO(_tts_cache[ck]), mimetype="audio/mpeg",
+                         as_attachment=False, download_name="tts_audio.mp3")
 
-    # ── Stream from edge_tts (client starts playing on first chunk) ─────────
+    # Collect all audio first — ensures exceptions surface as proper JSON errors
     try:
-        return Response(
-            stream_with_context(_stream_edge_tts(text, voice, rate, pitch, ck)),
-            mimetype="audio/mpeg",
-            headers={
-                "Cache-Control": "no-store",
-                "X-Content-Type-Options": "nosniff",
-                "Transfer-Encoding": "chunked",
-            },
-        )
+        audio_bytes = _collect_edge_tts_audio(text, voice, rate, pitch)
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({"error": f"TTS generation failed: {str(e)}"}), 500
+        print(f"[TTS] edge_tts failed: {e}")
+        return jsonify({"error": f"TTS unavailable: {str(e)}"}), 500
+
+    _evict(_tts_cache, _TTS_CACHE_MAX)
+    _tts_cache[ck] = audio_bytes
+    return send_file(io.BytesIO(audio_bytes), mimetype="audio/mpeg",
+                     as_attachment=False, download_name="tts_audio.mp3")
 
 
 # ── API: Available TTS voices ───────────────────────
