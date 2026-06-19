@@ -8,7 +8,7 @@
   <link rel="canonical" href="https://epaper.vidyarthimitra.org/"/>
   <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='epaper-viewer.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='epaper-viewer.css', v='20260619-epaper-landing-fix-1') }}">
   <style>
     .ep-views-badge {
       display: inline-flex;
@@ -55,12 +55,12 @@
   }
   </script>
 </head>
-<body class="epaper-body">
+<body class="epaper-body" data-epaper-mode="{{ 'edition' if initial_date else 'landing' }}">
   {% include '_shared_index_navbar.html' %}
 
   <!-- ── CATEGORY NAV ── -->
   <nav class="ep-nav" id="epNav">
-    <button class="ep-date-btn" id="epDateBtn">
+    <button class="ep-date-btn" id="epDateBtn" aria-label="Choose edition date">
       <i class="fa fa-calendar-alt"></i>
       <span id="epDateText">Loading...</span>
       <i class="fa fa-chevron-down" style="font-size:10px"></i>
@@ -68,9 +68,9 @@
     <span class="ep-views-badge" id="epViews" style="display:none" title="Edition views">
       <i class="fa fa-eye"></i> <span class="ep-views-num">0</span> views
     </span>
-    <button class="ep-nav-scroll-btn" id="epNavLeft"><i class="fa fa-chevron-left"></i></button>
+    <button class="ep-nav-scroll-btn" id="epNavLeft" aria-label="Scroll language tabs left"><i class="fa fa-chevron-left"></i></button>
     <div class="ep-nav-list" id="epNavList"></div>
-    <button class="ep-nav-scroll-btn" id="epNavRight"><i class="fa fa-chevron-right"></i></button>
+    <button class="ep-nav-scroll-btn" id="epNavRight" aria-label="Scroll language tabs right"><i class="fa fa-chevron-right"></i></button>
   </nav>
 
   <!-- ── SIDE NAV CLICK ZONES ── -->
@@ -87,8 +87,13 @@
     <!-- ── NEWS SIDEBAR ── -->
     <aside class="ep-news-sidebar sidebar-container" id="epNewsSidebar">
       <div class="ep-news-sidebar-header">
-        <i class="fa fa-bolt"></i>
-        <span>Latest News</span>
+        <div class="ep-news-sidebar-title">
+          <i class="fa fa-bolt"></i>
+          <span>Latest News</span>
+        </div>
+        <button class="ep-news-sidebar-close" id="epNewsToggleBtn" aria-label="Hide latest news" aria-pressed="true" type="button">
+          <i class="fa fa-xmark"></i>
+        </button>
       </div>
       <div id="epNewsCards">
         <!-- skeleton -->
@@ -110,7 +115,32 @@
     </aside>
 
     <!-- ── READER CONTAINER (fullscreen target) ── -->
+    <button class="ep-news-sidebar-reopen" id="epNewsReopenBtn" aria-label="Show latest news" type="button">
+      <i class="fa fa-bolt"></i>
+      <span>Latest News</span>
+    </button>
     <div class="ep-reader-container" id="epReaderContainer">
+      <section class="ep-edition-landing" id="epEditionLanding" aria-label="Available editions">
+        <div class="ep-edition-landing-header">
+          <div>
+            <p class="ep-edition-landing-kicker">Today Edition</p>
+            <h2>Select an edition to open the newspaper</h2>
+          </div>
+          <p class="ep-edition-landing-copy">Latest published editions appear here. Open any card to view the full newspaper.</p>
+        </div>
+        <div class="ep-edition-filter" id="epEditionFilter" aria-label="Filter editions by language">
+          <button class="ep-edition-filter-btn active" data-language="" type="button">All</button>
+          <button class="ep-edition-filter-btn" data-language="Hindi" type="button">Hindi</button>
+          <button class="ep-edition-filter-btn" data-language="English" type="button">English</button>
+          <button class="ep-edition-filter-btn" data-language="Marathi" type="button">Marathi</button>
+        </div>
+        <div class="ep-edition-grid" id="epEditionGrid">
+          <div class="ep-edition-card-skeleton"></div>
+          <div class="ep-edition-card-skeleton"></div>
+          <div class="ep-edition-card-skeleton"></div>
+          <div class="ep-edition-card-skeleton"></div>
+        </div>
+      </section>
       <div class="ep-paper" id="epPaper">
         <div class="ep-masthead">
           <div class="ep-masthead-img" id="epMastheadImg">
@@ -148,17 +178,17 @@
 
       <!-- ── FLOATING TOOLBAR ── -->
       <div class="ep-toolbar">
-        <button class="ep-tool-btn" id="epZoomIn" title="Zoom In" type="button"><i class="fa fa-plus"></i></button>
-        <button class="ep-tool-btn" id="epZoomOut" title="Zoom Out" type="button"><i class="fa fa-minus"></i></button>
+        <button class="ep-tool-btn" id="epZoomIn" title="Zoom In" aria-label="Zoom in" type="button"><i class="fa fa-plus"></i></button>
+        <button class="ep-tool-btn" id="epZoomOut" title="Zoom Out" aria-label="Zoom out" type="button"><i class="fa fa-minus"></i></button>
         <div class="ep-tool-divider"></div>
-        <button class="ep-tool-btn" id="epFitPage" title="Fit Page" type="button"><i class="fa fa-expand-arrows-alt"></i></button>
-        <button class="ep-tool-btn" id="epFullscreen" title="Fullscreen" type="button"><i class="fa fa-expand"></i></button>
+        <button class="ep-tool-btn" id="epFitPage" title="Fit Page" aria-label="Fit page" type="button"><i class="fa fa-expand-arrows-alt"></i></button>
+        <button class="ep-tool-btn" id="epFullscreen" title="Fullscreen" aria-label="Toggle fullscreen" type="button"><i class="fa fa-expand"></i></button>
         <div class="ep-tool-divider"></div>
-        <button class="ep-tool-btn" id="epScrollUp" title="Scroll Up" type="button"><i class="fa fa-arrow-up"></i></button>
-        <button class="ep-tool-btn" id="epScrollDown" title="Scroll Down" type="button"><i class="fa fa-arrow-down"></i></button>
+        <button class="ep-tool-btn" id="epScrollUp" title="Scroll Up" aria-label="Scroll up" type="button"><i class="fa fa-arrow-up"></i></button>
+        <button class="ep-tool-btn" id="epScrollDown" title="Scroll Down" aria-label="Scroll down" type="button"><i class="fa fa-arrow-down"></i></button>
         <div class="ep-tool-divider"></div>
         <div class="ep-share-container">
-          <button class="ep-tool-btn" id="epShareBtn" title="Share" type="button"><i class="fa fa-share-alt"></i></button>
+          <button class="ep-tool-btn" id="epShareBtn" title="Share" aria-label="Share edition" type="button"><i class="fa fa-share-alt"></i></button>
           <div class="ep-share-dropdown" id="epShareDropdown">
             <button class="ep-share-dropdown-item" onclick="EP.shareEdition('whatsapp')"><i class="fab fa-whatsapp" style="color:#25d366"></i> WhatsApp</button>
             <button class="ep-share-dropdown-item" onclick="EP.shareEdition('twitter')"><i class="fab fa-x-twitter"></i> Twitter / X</button>
@@ -167,14 +197,14 @@
           </div>
         </div>
         <div class="ep-tool-divider"></div>
-        <button class="ep-tool-btn" id="epSavePdfBtn" onclick="EP.savePDF()" title="Save Edition as PDF" type="button"><i class="fa fa-file-pdf"></i></button>
+        <button class="ep-tool-btn" id="epSavePdfBtn" onclick="EP.savePDF()" title="Save Edition as PDF" aria-label="Save edition as PDF" type="button"><i class="fa fa-file-pdf"></i></button>
       </div>
 
       <!-- ── PAGE NAVIGATION ── -->
       <div class="ep-pager">
-        <button class="ep-pager-btn" id="epPrevPage" title="Previous Page"><i class="fa fa-chevron-left"></i></button>
+        <button class="ep-pager-btn" id="epPrevPage" title="Previous Page" aria-label="Previous page"><i class="fa fa-chevron-left"></i></button>
         <span class="ep-pager-info" id="epPageInfo">1 / 1</span>
-        <button class="ep-pager-btn" id="epNextPage" title="Next Page"><i class="fa fa-chevron-right"></i></button>
+        <button class="ep-pager-btn" id="epNextPage" title="Next Page" aria-label="Next page"><i class="fa fa-chevron-right"></i></button>
       </div>
 
       <!-- ── SWIPE HINT (mobile, first visit only) ── -->
@@ -184,9 +214,9 @@
 
       <!-- ── THUMBNAIL STRIP ── -->
       <div class="ep-thumb-strip" id="epThumbStrip">
-        <button class="ep-thumb-nav-btn" id="epThumbLeft" title="Scroll left"><i class="fa fa-chevron-left"></i></button>
+        <button class="ep-thumb-nav-btn" id="epThumbLeft" title="Scroll left" aria-label="Scroll thumbnails left"><i class="fa fa-chevron-left"></i></button>
         <div class="ep-thumb-scroll" id="epThumbScroll"></div>
-        <button class="ep-thumb-nav-btn" id="epThumbRight" title="Scroll right"><i class="fa fa-chevron-right"></i></button>
+        <button class="ep-thumb-nav-btn" id="epThumbRight" title="Scroll right" aria-label="Scroll thumbnails right"><i class="fa fa-chevron-right"></i></button>
       </div>
     </div>
   </div>
@@ -195,9 +225,9 @@
   <div class="ep-calendar-overlay" id="epCalendarOverlay">
     <div class="ep-calendar">
       <div class="ep-cal-header">
-        <button class="ep-cal-nav-btn" id="epCalPrev"><i class="fa fa-chevron-left"></i></button>
+        <button class="ep-cal-nav-btn" id="epCalPrev" aria-label="Previous calendar month"><i class="fa fa-chevron-left"></i></button>
         <h3 id="epCalTitle">April 2026</h3>
-        <button class="ep-cal-nav-btn" id="epCalNext"><i class="fa fa-chevron-right"></i></button>
+        <button class="ep-cal-nav-btn" id="epCalNext" aria-label="Next calendar month"><i class="fa fa-chevron-right"></i></button>
       </div>
       <div class="ep-cal-grid" id="epCalGrid"></div>
     </div>
@@ -223,13 +253,13 @@
       </div>
       <div class="ep-inpl-controls">
         <div class="ep-inpl-left">
-          <button class="ep-inpl-skip" id="epVoiceBack" title="Back 10s">
+          <button class="ep-inpl-skip" id="epVoiceBack" title="Back 10s" aria-label="Skip back 10 seconds">
             <i class="fa fa-rotate-left"></i><b>10</b>
           </button>
-          <button class="ep-inpl-play" id="epVoicePlayBtn">
+          <button class="ep-inpl-play" id="epVoicePlayBtn" aria-label="Play or pause audio">
             <i class="fa fa-play" id="epVoicePlayIcon"></i>
           </button>
-          <button class="ep-inpl-skip" id="epVoiceForward" title="Forward 10s">
+          <button class="ep-inpl-skip" id="epVoiceForward" title="Forward 10s" aria-label="Skip forward 10 seconds">
             <i class="fa fa-rotate-right"></i><b>10</b>
           </button>
         </div>
@@ -246,14 +276,14 @@
         </div>
         <div class="ep-inpl-right">
           <span class="ep-inpl-time" id="epVoiceDuration">0:00</span>
-          <button class="ep-inpl-vol" id="epVoiceVolBtn" title="Mute/Unmute">
+          <button class="ep-inpl-vol" id="epVoiceVolBtn" title="Mute/Unmute" aria-label="Mute or unmute audio">
             <i class="fa fa-volume-high"></i>
           </button>
-          <button class="ep-inpl-speed" id="epVoiceSpeedBtn">1x</button>
-          <button class="ep-inpl-dl" id="epVoiceDlBtn" onclick="EP.downloadAudio()" title="Download audio">
+          <button class="ep-inpl-speed" id="epVoiceSpeedBtn" aria-label="Change playback speed">1x</button>
+          <button class="ep-inpl-dl" id="epVoiceDlBtn" onclick="EP.downloadAudio()" title="Download audio" aria-label="Download audio">
             <i class="fa fa-download"></i>
           </button>
-          <button class="ep-inpl-close" id="epVoiceCloseBtn" title="Stop">
+          <button class="ep-inpl-close" id="epVoiceCloseBtn" title="Stop" aria-label="Stop audio">
             <i class="fa fa-stop"></i>
           </button>
         </div>
@@ -264,7 +294,7 @@
     <div class="ep-ai-bar" id="epTtsPrompt">
       <!-- Voice slot replaces Translate tab -->
       <div class="ep-voice-tab-slot">
-        <select class="ep-tts-voice-select" id="epVoiceSelect" title="Select voice">
+        <select class="ep-tts-voice-select" id="epVoiceSelect" title="Select voice" aria-label="Select voice">
           <optgroup label="Hindi">
             <option value="hi-IN-MadhurNeural">Hindi – Madhur (Male)</option>
             <option value="hi-IN-SwaraNeural">Hindi – Swara (Female)</option>
@@ -307,7 +337,7 @@
             <option value="en-IN-NeerjaNeural">English – Neerja (Female)</option>
           </optgroup>
         </select>
-        <button class="ep-art-play-btn" id="epTtsStartBtn">
+        <button class="ep-art-play-btn" id="epTtsStartBtn" aria-label="Play article audio">
           <i class="fa fa-play"></i> <span>Play</span>
         </button>
       </div>
@@ -351,7 +381,7 @@
   <!-- ── Video Overlay ── -->
   <div class="ep-video-overlay" id="epVideoOverlay">
     <div class="ep-video-wrap">
-      <button class="ep-video-close" onclick="EP.closeVideo()"><i class="fa fa-times"></i></button>
+      <button class="ep-video-close" onclick="EP.closeVideo()" aria-label="Close video"><i class="fa fa-times"></i></button>
       <video id="epVideoPlayer" controls playsinline class="ep-video-player"></video>
     </div>
   </div>
@@ -364,14 +394,12 @@
   <!-- ── Toast ── -->
   <div class="ep-toast" id="epToast"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="{{ url_for('static', filename='epaper-viewer.js') }}"></script>
+  <script src="{{ url_for('static', filename='epaper-viewer.js', v='20260619-epaper-landing-fix-3') }}"></script>
 
   <!-- PWA Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/static/epaper-sw.js')
+      navigator.serviceWorker.register('/static/epaper-sw.js?v=20260619-epaper-sw-v2')
         .then(reg => console.log('SW registered:', reg.scope))
         .catch(err => console.warn('SW registration failed:', err));
     }

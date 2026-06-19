@@ -2120,7 +2120,7 @@
     </head>
 
     <body>
-        <a href="{{ url_for('feedback') }}" class="left-feedback-btn">FEEDBACK</a>
+        <a href="{{ url_for('contact') }}" class="left-feedback-btn">FEEDBACK</a>
         <!-- HEADER & NAVIGATION (moved to shared component) -->
 
         <!-- HERO SECTION -->
@@ -2132,7 +2132,7 @@
                     <p class="hero-subtitle">Ditch the boring brochures. Get the real tea on colleges, careers, and the
                         vibes that actually matter.</p>
                     <div class="hero-buttons">
-                        <a href="{{ url_for('fyjc_rank') }}" class="btn btn-primary">START YOUR SEARCH NOW 🚀</a>
+                        <a href="{{ url_for('fyjc_rank') }}" class="btn btn-primary">START YOUR SEARCH NOW <i class="fa fa-arrow-right"></i></a>
                         <a href="{{ url_for('guide_me') }}" class="btn btn-default">GUIDE ME</a>
                     </div>
                 </div>
@@ -2212,19 +2212,19 @@
                 <div class="epaper-grid">
                     <a href="{{ url_for('epaper.epaper_viewer') }}" class="card-link">
                         <div class="epaper-card">
-                            <h3>&#128240; Today's Edition</h3>
+                            <h3><i class="fa fa-newspaper-o"></i> Today's Edition</h3>
                             <p>Read the latest edition with education &amp; exam news.</p>
                         </div>
                     </a>
                     <a href="{{ url_for('epaper.epaper_viewer') }}" class="card-link">
                         <div class="epaper-card">
-                            <h3>&#127908; Listen in Marathi</h3>
+                            <h3><i class="fa fa-volume-up"></i> Listen in Marathi</h3>
                             <p>Audio read-aloud of articles — मनोहर / आरोही voices.</p>
                         </div>
                     </a>
                     <a href="{{ url_for('epaper_archive') }}" class="card-link">
                         <div class="epaper-card">
-                            <h3>&#128197; Past Editions</h3>
+                            <h3><i class="fa fa-calendar"></i> Past Editions</h3>
                             <p>Browse all past editions from our archive.</p>
                         </div>
                     </a>
@@ -2392,7 +2392,7 @@
                     <div class="course-row-wrapper filter-item eng">
                         <div class="course-row">
                             <div class="row-main">
-                                <div class="icon-box">⚙️</div>
+                                <div class="icon-box"><i class="fa fa-cogs" aria-hidden="true"></i></div>
                                 <div class="details">
                                     <h3>Engineering (B.E / B.Tech)</h3>
                                     <p>Top Institutes: IITs, NITs, COEP, VJTI</p>
@@ -2416,7 +2416,7 @@
                     <div class="course-row-wrapper filter-item med">
                         <div class="course-row">
                             <div class="row-main">
-                                <div class="icon-box">🏥</div>
+                                <div class="icon-box"><i class="fa fa-hospital-o" aria-hidden="true"></i></div>
                                 <div class="details">
                                     <h3>MBBS / BDS</h3>
                                     <p>Government &amp; Private Medical Colleges across India</p>
@@ -2440,7 +2440,7 @@
                     <div class="course-row-wrapper filter-item med">
                         <div class="course-row">
                             <div class="row-main">
-                                <div class="icon-box">💊</div>
+                                <div class="icon-box"><i class="fa fa-medkit" aria-hidden="true"></i></div>
                                 <div class="details">
                                     <h3>Pharmacy (B.Pharm)</h3>
                                     <p>Healthcare and Pharmaceutical Research</p>
@@ -2464,7 +2464,7 @@
                     <div class="course-row-wrapper filter-item eng">
                         <div class="course-row">
                             <div class="row-main">
-                                <div class="icon-box">🏛️</div>
+                                <div class="icon-box"><i class="fa fa-university" aria-hidden="true"></i></div>
                                 <div class="details">
                                     <h3>Architecture (B.Arch)</h3>
                                     <p>Top Institutes: SPA Delhi, CEPT, NIT Trichy</p>
@@ -2488,7 +2488,7 @@
                     <div class="course-row-wrapper filter-item special">
                         <div class="course-row">
                             <div class="row-main">
-                                <div class="icon-box">🌾</div>
+                                <div class="icon-box"><i class="fa fa-leaf" aria-hidden="true"></i></div>
                                 <div class="details">
                                     <h3>Agriculture &amp; Forestry</h3>
                                     <p>B.Sc. Hons in Agri, Horticulture, Forestry</p>
@@ -2510,7 +2510,7 @@
                     <div class="course-row-wrapper filter-item special">
                         <div class="course-row">
                             <div class="row-main">
-                                <div class="icon-box">⚖️</div>
+                                <div class="icon-box"><i class="fa fa-balance-scale" aria-hidden="true"></i></div>
                                 <div class="details">
                                     <h3>Law (BA LLB / BBA LLB)</h3>
                                     <p>NLUs, Government Law Colleges, Private Institutions</p>
@@ -2533,7 +2533,7 @@
                     <div class="course-row-wrapper filter-item special">
                         <div class="course-row">
                             <div class="row-main">
-                                <div class="icon-box">📊</div>
+                                <div class="icon-box"><i class="fa fa-line-chart" aria-hidden="true"></i></div>
                                 <div class="details">
                                     <h3>Management (BMS / BBA / MBA)</h3>
                                     <p>IIMs, SPJIMR, Symbiosis, MIT-WPU</p>
@@ -2758,7 +2758,7 @@
                     <p>&copy; 2026 VidyarthiMitra.org - All Rights Reserved |
                         <a href="/terms">Terms and Conditions</a> |
                         <a href="/privacy">Privacy Policy</a> |
-                        <a href="/about">About Us</a> |
+                        <a href="/about-us">About Us</a> |
                         <a href="{{ url_for('contact') }}">Contact Us</a> |
                         <a href="{{ url_for('register') }}">Join Us</a> |
                         <a href="{{ url_for('refund_policy') }}">Refund &amp; Cancellation</a>
@@ -2876,8 +2876,7 @@
                 { keywords: ['exam', 'exams', 'entrance', 'jee', 'neet', 'cet', 'mht-cet'], url: '{{ url_for("exams") }}', label: 'Entrance Exams' },
                 { keywords: ['mock', 'mock exam', 'mock test'], url: '{{ url_for("mock_exams") }}', label: 'Mock Exams' },
                 { keywords: ['news', 'update', 'updates'], url: '{{ url_for("news") }}', label: 'News' },
-                { keywords: ['article', 'articles', 'career', 'guide'], url: '{{ url_for("articles") }}', label: 'Career Articles' },
-                { keywords: ['story', 'stories', 'student'], url: '{{ url_for("student_stories") }}', label: 'Student Stories' }
+                { keywords: ['article', 'articles', 'career', 'blog', 'guide'], url: '{{ url_for("blog") }}', label: 'Blog Articles' }
             ];
 
             function openSearch() {
@@ -2999,15 +2998,15 @@
                     body: JSON.stringify(formData)
                 });
 
-                // ✅ Show success message
-                button.innerText = "Subscribed ✅";
+                // Show success message
+                button.innerText = "Subscribed";
 
                 // Optional: reset form
                 this.reset();
 
             } catch (error) {
                 console.error(error);
-                button.innerText = "Try Again ❌";
+                button.innerText = "Try Again";
                 button.disabled = false;
             }
         });

@@ -631,6 +631,7 @@
           <a href="{{ url_for('universities') }}">Universities</a>
           <a href="{{ url_for('colleges') }}">Colleges</a>
           <a href="{{ url_for('courses') }}">Courses</a>
+          <a href="{{ url_for('scholarships') }}">Scholarships</a>
           <a href="{{ url_for('admissions') }}">Admissions</a>
         </div>
       </div>
@@ -721,8 +722,7 @@
       { keywords: ['exam', 'exams', 'entrance', 'jee', 'neet', 'cet', 'mht-cet', 'nda', 'upsc'], url: '{{ url_for("exams") }}', label: 'Entrance Exams' },
       { keywords: ['mock', 'mock exam', 'mock test', 'practice test', 'test series'], url: '{{ url_for("mock_exams") }}', label: 'Mock Exams' },
       { keywords: ['news', 'update', 'updates', 'latest', 'notification', 'alert'], url: '{{ url_for("news") }}', label: 'Latest News & Updates' },
-      { keywords: ['article', 'articles', 'career', 'blog', 'tips'], url: '{{ url_for("articles") }}', label: 'Career Articles' },
-      { keywords: ['story', 'stories', 'student', 'success', 'testimonial'], url: '{{ url_for("student_stories") }}', label: 'Student Stories' },
+      { keywords: ['article', 'articles', 'career', 'blog', 'tips'], url: '{{ url_for("blog") }}', label: 'Blog Articles' },
       { keywords: ['guide', 'guide me', 'guideme', 'counselor', 'expert advice', 'career guidance'], url: '{{ url_for("guide_me") }}', label: 'Guide Me (Expert Advice)' },
       { keywords: ['epaper', 'e-paper', 'newspaper', 'daily news'], url: '{{ url_for("epaper.epaper_viewer") }}', label: 'E-Paper' }
     ];

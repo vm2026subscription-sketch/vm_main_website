@@ -83,7 +83,7 @@
       </div>
       <div class="dash-hero-text">
         <h1 id="dashGreeting">Hello</h1>
-        <p class="dash-hero-sub">Welcome back, <strong>{{ user.name }}</strong> 👋</p>
+        <p class="dash-hero-sub">Welcome back, <strong>{{ user.name }}</strong></p>
         <p class="dash-hero-email"><i class="fa fa-envelope"></i> {{ user.email }}</p>
       </div>
       <div class="dash-hero-actions">
@@ -246,37 +246,31 @@
       <div class="dash-tools-grid">
 
         <a href="{{ url_for('fyjc_rank') }}" class="dash-tool-card">
-          <div class="dtc-icon">🎯</div>
+          <div class="dtc-icon"><i class="fa fa-bullseye" aria-hidden="true"></i></div>
           <h4>FYJC Rank Predictor</h4>
           <p>Predict your 11th admission rank</p>
         </a>
 
         <a href="{{ url_for('epaper.epaper_viewer') }}" class="dash-tool-card">
-          <div class="dtc-icon">📰</div>
+          <div class="dtc-icon"><i class="fa fa-newspaper" aria-hidden="true"></i></div>
           <h4>E-Paper</h4>
           <p>Read today's education newspaper</p>
         </a>
 
         <a href="{{ url_for('news') }}" class="dash-tool-card">
-          <div class="dtc-icon">📰</div>
+          <div class="dtc-icon"><i class="fa fa-rss" aria-hidden="true"></i></div>
           <h4>News</h4>
           <p>Latest education news & updates</p>
         </a>
 
         <a href="{{ url_for('govt_jobs') }}" class="dash-tool-card">
-          <div class="dtc-icon">👮</div>
+          <div class="dtc-icon"><i class="fa fa-briefcase" aria-hidden="true"></i></div>
           <h4>Govt Jobs</h4>
           <p>Latest government job openings</p>
         </a>
 
-        <a href="{{ url_for('student_stories') }}" class="dash-tool-card">
-          <div class="dtc-icon">✍️</div>
-          <h4>Student Stories</h4>
-          <p>Read inspiring student journeys</p>
-        </a>
-
-        <a href="{{ url_for('courses') }}" class="dash-tool-card">
-          <div class="dtc-icon">🎓</div>
+<a href="{{ url_for('courses') }}" class="dash-tool-card">
+          <div class="dtc-icon"><i class="fa fa-graduation-cap" aria-hidden="true"></i></div>
           <h4>Courses</h4>
           <p>Browse all available courses</p>
         </a>
@@ -288,9 +282,11 @@
   <!-- ═══════════════════════ FOOTER ═══════════════════════ -->
   <footer class="dash-footer">
     <p>&copy; 2026 VidyarthiMitra.org — All Rights Reserved |
-      <a href="{{ url_for('terms') }}">Terms</a> |
-      <a href="{{ url_for('privacy') }}">Privacy</a> |
-      <a href="{{ url_for('contact') }}">Contact Us</a>
+      <a href="{{ url_for('about_us') }}">About Us</a> |
+      <a href="{{ url_for('contact') }}">Contact Us</a> |
+      <a href="{{ url_for('terms') }}">Terms &amp; Conditions</a> |
+      <a href="{{ url_for('privacy') }}">Privacy Policy</a> |
+      <a href="{{ url_for('refund_policy') }}">Refund &amp; Cancellation</a>
     </p>
   </footer>
 
@@ -300,7 +296,7 @@
       var h = new Date().getHours();
       var greeting = h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening';
       var el = document.getElementById('dashGreeting');
-      if (el) el.textContent = greeting + '! 🌟';
+      if (el) el.textContent = greeting + '!';
     })();
 
     // ── Remove saved college/university ──
