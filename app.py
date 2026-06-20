@@ -1905,6 +1905,7 @@ def blog_detail(slug):
     article_detail_data = {
         "title": blog_article.get("title", ""),
         "category": blog_article.get("category", "Blog"),
+        "image": blog_article.get("image", url_for('static', filename='logo.png')),
         "paragraphs": build_article_paragraphs(blog_article.get("full", "")) or [blog_article.get("summary", "")],
     }
     return render_template("article_detail.html", article=article_detail_data)
