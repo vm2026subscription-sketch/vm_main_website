@@ -45,6 +45,7 @@
     font-weight: 800;
     margin: 0 0 12px;
     background: linear-gradient(90deg, var(--primary), #ffffff);
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     display: inline-block;
@@ -232,8 +233,10 @@
     width: fit-content;
   }
 
-  /* Hide small tag pills below images on the blogs listing */
-  .blog-card .tag { display: none !important; }
+  .blog-card .tag {
+    display: inline-block !important;
+    margin-bottom: 12px !important;
+  }
   
   .tag.result    { background: rgba(239, 68, 68, 0.1) !important; color: #f87171 !important; border: 1px solid rgba(239, 68, 68, 0.2); }
   .tag.exam      { background: rgba(59, 130, 246, 0.1) !important; color: #60a5fa !important; border: 1px solid rgba(59, 130, 246, 0.2); }
@@ -258,6 +261,7 @@
   
   body.light-mode .blog-hero h1 {
     background: linear-gradient(90deg, #c2410c, #0f172a);
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
@@ -349,9 +353,9 @@
   {% if blogs %}
     {% for blog in blogs %}
       <div class="blog-card {{ blog.category|lower|replace(' ', '-') }}" data-category="{{ blog.category|lower }}">
-        <img src="{{ blog.image }}" alt="{{ blog.title }}" class="blog-card-img" loading="lazy" onerror="this.src='{{ url_for('static', filename='logo.png') }}'">
+        <img src="{{ blog.image }}" alt="{{ blog.title }}" class="blog-card-img" loading="lazy" data-fallback="{{ url_for('static', filename='logo.png') }}">
         <div class="blog-content">
-          <span class="tag {{ blog.category|lower }}">{{ blog.tags or blog.category or 'BLOG' }}</span>
+          <span class="tag {{ blog.category|lower }}">{{ blog.category or blog.tags or 'BLOG' }}</span>
           <h3>{{ blog.title }}</h3>
           <p>{{ blog.summary }}</p>
           <a href="{{ blog.href or blog.url or '#' }}" class="read-more-btn">Read More <i class="fa fa-arrow-right" style="margin-left: 6px;"></i></a>
@@ -385,5 +389,14 @@ function searchBlog(q) {
     card.style.display = (!query || text.includes(query)) ? '' : 'none';
   });
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('img.blog-card-img').forEach(function(img) {
+    img.addEventListener('error', function() {
+      this.onerror = null;
+      this.src = this.dataset.fallback;
+    });
+  });
+});
 </script>
 {% endblock %}
