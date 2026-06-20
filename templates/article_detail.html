@@ -44,6 +44,17 @@
       border-color: rgba(255,102,0, 0.25);
     }
 
+    .hero-image {
+      width: 100%;
+      height: auto;
+      max-width: 100%;
+      object-fit: contain;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      margin-bottom: 28px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
     .meta {
       display: inline-block;
       font-size: 11px;
@@ -160,6 +171,7 @@
 <body>
   {% include '_shared_index_navbar.html' %}
   <main class="wrap">
+    <img class="hero-image" src="{{ article.image }}" alt="{{ article.title }}" onerror="this.src='{{ url_for('static', filename='logo.png') }}'">
     <span class="meta">{{ article.category }}</span>
     <br>
     <h1>{{ article.title }}</h1>
