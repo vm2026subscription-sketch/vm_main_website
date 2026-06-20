@@ -56,6 +56,10 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "vidyarthi-mitra-dev-key-change-in-production")
+# Disable CSRF on JSON/API requests — they are protected by session auth
+# (require_admin / _require_epaper_admin). CSRF tokens are only enforced on
+# HTML form submissions (login, register) via the admin_login.html hidden field.
+app.config['WTF_CSRF_CHECK_DEFAULT'] = False
 csrf = CSRFProtect(app)
 limiter = Limiter(
     get_remote_address,
