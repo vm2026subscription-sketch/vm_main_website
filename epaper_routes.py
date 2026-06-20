@@ -1034,10 +1034,11 @@ def api_article(article_id):
 def api_create_edition():
     guard = _require_epaper_admin()
     if guard is not None: return guard
-    data = request.get_json(silent=True) or {}
-    date_str = data.get("date", "")
-    if not re.match(r"\d{4}-\d{2}-\d{2}$", date_str):
-        return jsonify({"error": "date required (YYYY-MM-DD)."}), 400
+    # force=True so Flask parses even if Content-Type isn't exactly application/json
+    data = request.get_json(force=True, silent=True) or {}
+    date_str = (data.get("date", "") or "").strip()
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", date_str):
+        return jsonify({"error": f"Invalid date: '{date_str}'. Expected YYYY-MM-DD."}), 400
 
     lang_str = data.get("language", "Hindi")
     original_date = data.get("original_date", "")
