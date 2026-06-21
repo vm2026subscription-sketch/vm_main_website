@@ -880,6 +880,17 @@ def epaper_article(article_id):
 
 
 # ── API: List editions ─────────────────────────────
+def _edition_preview_url(edition):
+    """Return the best preview image for an edition card — first page image or masthead."""
+    pages = edition.get("pages", [])
+    if pages:
+        first = pages[0]
+        url = first.get("page_image_url") or first.get("image_path") or ""
+        if url:
+            return url
+    return edition.get("masthead_image_url", "")
+
+
 @epaper_bp.route("/api/epaper/editions")
 def api_editions():
     editions = _load_editions()
@@ -891,6 +902,7 @@ def api_editions():
             "total_pages": len(e.get("pages", [])),
             "published": e.get("published", True),
             "masthead_image_url": e.get("masthead_image_url", ""),
+            "preview_image_url": _edition_preview_url(e),
         }
         for e in editions
     ]})
