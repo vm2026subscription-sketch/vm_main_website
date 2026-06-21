@@ -698,7 +698,8 @@ const EP = {
     }
 
     const visibleEntries = published.map((edition) => {
-      const previewUrl = edition.masthead_image_url ? this.optimizeCloudinaryUrl(edition.masthead_image_url, 640) : '';
+      const _prevSrc = edition.preview_image_url || edition.masthead_image_url || '';
+      const previewUrl = _prevSrc ? this.optimizeCloudinaryUrl(_prevSrc, 640) : '';
       return {
         edition,
         previewUrl,
