@@ -175,7 +175,13 @@ def _pg_connect():
     return conn
 
 
+# Skip repeated DDL on warm instances — reset to False on cold start
+_tables_ensured = False
+
 def _pg_ensure_table(conn):
+    global _tables_ensured
+    if _tables_ensured:
+        return
     with conn.cursor() as cur:
         cur.execute("""
             CREATE TABLE IF NOT EXISTS epaper_editions_store (
@@ -210,15 +216,19 @@ def _pg_ensure_table(conn):
             )
         """)
     conn.commit()
+    _tables_ensured = True
 
 
-def _save_edition_backup(edition):
-    """Save a snapshot of one edition to the backup table. Keeps last 30 per edition."""
+def _save_edition_backup(edition, conn=None):
+    """Save a snapshot of one edition to the backup table. Keeps last 30 per edition.
+    Accepts an existing conn to avoid opening a second DB connection."""
     if not _pg_url():
         return
+    owns_conn = conn is None
     try:
-        conn = _pg_connect()
-        _pg_ensure_table(conn)
+        if owns_conn:
+            conn = _pg_connect()
+            _pg_ensure_table(conn)
         with conn.cursor() as cur:
             cur.execute("""
                 INSERT INTO epaper_edition_backups
@@ -242,7 +252,8 @@ def _save_edition_backup(edition):
                 )
             """, (edition.get("date", ""), edition.get("language", "")))
         conn.commit()
-        conn.close()
+        if owns_conn:
+            conn.close()
     except Exception as e:
         print(f"[epaper] Backup save failed (non-fatal): {e}")
 
@@ -1124,6 +1135,8 @@ def api_create_edition():
                     ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()
                 """, (json.dumps(editions, ensure_ascii=False),))
             conn.commit()
+            # Reuse same connection for backup — avoids second DB connection
+            _save_edition_backup(saved_edition, conn=conn)
             conn.close()
             # Dual-write to local file so fallback stays in sync with Postgres
             try:
@@ -1138,7 +1151,9 @@ def api_create_edition():
             except: pass
         return jsonify({"error": f"Save failed: {exc}"}), 500
 
-    _save_edition_backup(saved_edition)
+    if not conn:
+        # conn was None (file-only path) — backup still needs its own connection
+        _save_edition_backup(saved_edition)
     return jsonify({"success": True}), 201
 
 
