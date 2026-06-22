@@ -126,7 +126,7 @@
     <div class="upload-card">
         <div class="upload-head">
             <h1>
-                Upload Excel To Supabase
+                Upload Data To Supabase
                 {% if configured %}
                     <span class="status-pill status-on">Connected</span>
                 {% else %}
@@ -134,7 +134,7 @@
                 {% endif %}
             </h1>
             <p>
-                Excel rows are stored in table: <strong>{{ table_name }}</strong> (as JSON payload per row).
+                Data rows are stored in table: <strong>{{ table_name }}</strong> (as JSON payload per row).
                 Current mode: <strong>{{ connection_mode }}</strong>
             </p>
         </div>
@@ -158,8 +158,8 @@
                     </select>
                 </div>
                 <div>
-                    <label class="label" for="excel_file">Excel File (.xlsx or .xls)</label>
-                    <input class="input" type="file" id="excel_file" name="excel_file" accept=".xlsx,.xls" required>
+                    <label class="label" for="excel_file">Data File (.csv, .xlsx or .xls)</label>
+                    <input class="input" type="file" id="excel_file" name="excel_file" accept=".csv,.xlsx,.xls" required>
                 </div>
                 <button class="upload-btn" type="submit">Upload And Insert</button>
             </form>
