@@ -169,8 +169,13 @@ def _pg_url():
 
 def _pg_connect():
     import psycopg2
-    url = _pg_url()
-    conn = psycopg2.connect(url, connect_timeout=5)
+    # Prefer pooler URL (pgBouncer port 6543) — much faster on serverless
+    url = os.getenv("SUPABASE_POOLER_URL") or _pg_url()
+    conn = psycopg2.connect(
+        url,
+        connect_timeout=8,
+        options="-c statement_timeout=25000",  # 25s max per query — prevents hanging
+    )
     conn.autocommit = False
     return conn
 
