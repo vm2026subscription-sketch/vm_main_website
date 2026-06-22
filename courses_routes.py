@@ -41,15 +41,15 @@ DB_URL = os.environ.get(
 
 # ── Level display metadata ─────────────────────────────────────────────────────
 LEVEL_META = {
-    "undergraduate":   {"icon": "fa fa-graduation-cap", "label": "Undergraduate",    "color": "#4f46e5", "num": "01"},
-    "postgraduate":    {"icon": "fa fa-book",           "label": "Postgraduate",     "color": "#7c3aed", "num": "02"},
-    "doctoral":        {"icon": "fa fa-flask",          "label": "Doctoral / PhD",   "color": "#db2777", "num": "03"},
-    "integrated":      {"icon": "fa fa-link",           "label": "Integrated",       "color": "#0891b2", "num": "04"},
-    "diploma":         {"icon": "fa fa-file-text-o",    "label": "Diploma",          "color": "#d97706", "num": "05"},
-    "certificate":     {"icon": "fa fa-certificate",    "label": "Certificate",      "color": "#059669", "num": "06"},
-    "vocational":      {"icon": "fa fa-wrench",         "label": "Vocational / ITI", "color": "#dc2626", "num": "07"},
-    "professional":    {"icon": "fa fa-trophy",         "label": "Professional",     "color": "#9333ea", "num": "08"},
-    "online/distance": {"icon": "fa fa-globe",          "label": "Online & Distance","color": "#0369a1", "num": "09"},
+    "undergraduate":   {"icon": '<i class="fa fa-graduation-cap"></i>', "label": "Undergraduate",    "color": "#4f46e5", "num": "01"},
+    "postgraduate":    {"icon": '<i class="fa fa-book-open"></i>', "label": "Postgraduate",     "color": "#7c3aed", "num": "02"},
+    "doctoral":        {"icon": '<i class="fa fa-microscope"></i>', "label": "Doctoral / PhD",   "color": "#db2777", "num": "03"},
+    "integrated":      {"icon": '<i class="fa fa-link"></i>', "label": "Integrated",       "color": "#0891b2", "num": "04"},
+    "diploma":         {"icon": '<i class="fa fa-scroll"></i>', "label": "Diploma",          "color": "#d97706", "num": "05"},
+    "certificate":     {"icon": '<i class="fa fa-award"></i>', "label": "Certificate",      "color": "#059669", "num": "06"},
+    "vocational":      {"icon": '<i class="fa fa-wrench"></i>', "label": "Vocational / ITI", "color": "#dc2626", "num": "07"},
+    "professional":    {"icon": '<i class="fa fa-briefcase"></i>', "label": "Professional",     "color": "#9333ea", "num": "08"},
+    "online/distance": {"icon": '<i class="fa fa-globe"></i>', "label": "Online & Distance","color": "#0369a1", "num": "09"},
 }
 
 LEVEL_ORDER = [

@@ -3,6 +3,7 @@
 {% block title %}Courses | Vidyarthi Mitra{% endblock %}
 
 {% block page_styles %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <link rel="stylesheet" href="{{ url_for('static', filename='courses.css') }}">
 <style>
 /* ── Overlay backdrop ─────────────────────────── */
@@ -238,19 +239,6 @@ body.light-mode .search-suggestion-item:hover, body.light-mode .search-suggestio
   border-radius: 999px;
   font-weight: 600;
 }
-.filter-tab i,
-.section-icon i,
-.panel-hero-meta i,
-.dm-hero-meta i {
-  margin-right: 6px;
-}
-
-.filter-tab i,
-.section-icon i {
-  width: 18px;
-  text-align: center;
-}
-
 /* ── Pathways Section ─────────────────────────── */
 .pathway-section {
   padding: 30px 40px; margin: 20px auto; max-width: 1200px;
@@ -259,26 +247,27 @@ body.light-mode .search-suggestion-item:hover, body.light-mode .search-suggestio
 body.light-mode .pathway-section h2 { color: #0f172a; }
 
 .pathway-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;
+  display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-start;
 }
 .pathway-card {
   background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px; padding: 20px; text-align: center; cursor: pointer;
-  transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  border-radius: 12px; padding: 12px 16px; text-align: center; cursor: pointer;
+  transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  min-width: 150px;
 }
 body.light-mode .pathway-card { background: #f8fafc; border-color: #e2e8f0; }
 
 .pathway-card:hover, .pathway-card.active {
-  transform: translateY(-4px); background: rgba(255,102,0,0.1); border-color: rgba(255,102,0,0.4);
+  transform: translateY(-2px); background: rgba(255,102,0,0.1); border-color: rgba(255,102,0,0.4);
 }
-body.light-mode .pathway-card:hover, body.light-mode .pathway-card.active { background: #fff; border-color: #ff6600; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+body.light-mode .pathway-card:hover, body.light-mode .pathway-card.active { background: #fff; border-color: #ff6600; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
 
-.pathway-icon { font-size: 2rem; }
-.pathway-title { font-weight: 700; font-size: 1rem; color: #cbd5e1; }
+.pathway-icon { font-size: 1.5rem; color: #ff6600; }
+.pathway-title { font-weight: 700; font-size: 0.9rem; color: #cbd5e1; }
 body.light-mode .pathway-title { color: #475569; }
 .pathway-card:hover .pathway-title, .pathway-card.active .pathway-title { color: #ff6600; }
 
-.pathway-subtitle { font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;}
+.pathway-subtitle { font-size: 0.7rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;}
 </style>
 {% endblock %}
 
@@ -312,6 +301,44 @@ body.light-mode .pathway-title { color: #475569; }
   </div>
 </section>
 
+{# ─────────────── PATHWAYS TABS ─────────────── #}
+<section class="pathway-section">
+  <h2>Explore Pathways By Stage</h2>
+  <div class="pathway-grid" id="pathwayGrid">
+    <div class="pathway-card" data-pathway="after_10th">
+      <div class="pathway-icon"><i class="fa fa-school"></i></div>
+      <div class="pathway-title">After 10th</div>
+      <div class="pathway-subtitle">11th/12th, ITI, Diplomas</div>
+    </div>
+    <div class="pathway-card" data-pathway="after_12th_science_pcm">
+      <div class="pathway-icon"><i class="fa fa-flask"></i></div>
+      <div class="pathway-title">Science (PCM)</div>
+      <div class="pathway-subtitle">B.Tech, B.Arch, B.Sc</div>
+    </div>
+    <div class="pathway-card" data-pathway="after_12th_science_pcb">
+      <div class="pathway-icon"><i class="fa fa-dna"></i></div>
+      <div class="pathway-title">Science (PCB)</div>
+      <div class="pathway-subtitle">MBBS, B.Pharm, Agri</div>
+    </div>
+    <div class="pathway-card" data-pathway="after_12th_commerce">
+      <div class="pathway-icon"><i class="fa fa-chart-line"></i></div>
+      <div class="pathway-title">Commerce</div>
+      <div class="pathway-subtitle">B.Com, BBA, CA, CS, BAF</div>
+    </div>
+    <div class="pathway-card" data-pathway="after_12th_arts">
+      <div class="pathway-icon"><i class="fa fa-palette"></i></div>
+      <div class="pathway-title">Arts & Humanities</div>
+      <div class="pathway-subtitle">B.A, Fine Arts, Law</div>
+    </div>
+    <div class="pathway-card" data-pathway="after_graduation">
+      <div class="pathway-icon"><i class="fa fa-graduation-cap"></i></div>
+      <div class="pathway-title">After Graduation</div>
+      <div class="pathway-subtitle">PG, PhD, B.Ed, MBA</div>
+    </div>
+  </div>
+</section>
+
+
 {# ─────────────── FILTER TABS ─────────────── #}
 <div class="filter-bar" id="courses">
   <div class="filter-tabs">
@@ -320,7 +347,7 @@ body.light-mode .pathway-title { color: #475569; }
       {% set info = level_index.get(lvl) %}
       {% if info %}
         <button class="filter-tab" data-filter="{{ lvl }}">
-          <i class="{{ info.meta.icon }}" aria-hidden="true"></i>{{ info.meta.label }} ({{ info.count }})
+          {{ info.meta.icon | safe }} {{ info.meta.label }} ({{ info.count }})
         </button>
       {% endif %}
     {% endfor %}
@@ -339,7 +366,7 @@ body.light-mode .pathway-title { color: #475569; }
              id="sec-{{ lvl | replace('/', '_') }}">
 
       <div class="section-header">
-        <div class="section-icon"><i class="{{ info.meta.icon }}" aria-hidden="true"></i></div>
+        <div class="section-icon">{{ info.meta.icon | safe }}</div>
         <div class="section-meta">
           <div class="section-label">Level {{ info.meta.num }}</div>
           <div class="section-title">
@@ -388,42 +415,7 @@ body.light-mode .pathway-title { color: #475569; }
 
 </div>{# end .exam-sections #}
 
-{# ─────────────── PATHWAYS TABS ─────────────── #}
-<section class="pathway-section">
-  <h2>Explore Pathways By Stage</h2>
-  <div class="pathway-grid" id="pathwayGrid">
-    <div class="pathway-card" data-pathway="after_10th">
-      <div class="pathway-icon">🛠️</div>
-      <div class="pathway-title">After 10th</div>
-      <div class="pathway-subtitle">11th/12th, ITI, Diplomas</div>
-    </div>
-    <div class="pathway-card" data-pathway="after_12th_science_pcm">
-      <div class="pathway-icon">🔬</div>
-      <div class="pathway-title">Science (PCM)</div>
-      <div class="pathway-subtitle">B.Tech, B.Arch, B.Sc</div>
-    </div>
-    <div class="pathway-card" data-pathway="after_12th_science_pcb">
-      <div class="pathway-icon">🧬</div>
-      <div class="pathway-title">Science (PCB)</div>
-      <div class="pathway-subtitle">MBBS, B.Pharm, Agri</div>
-    </div>
-    <div class="pathway-card" data-pathway="after_12th_commerce">
-      <div class="pathway-icon">📊</div>
-      <div class="pathway-title">Commerce</div>
-      <div class="pathway-subtitle">B.Com, BBA, CA, CS, BAF</div>
-    </div>
-    <div class="pathway-card" data-pathway="after_12th_arts">
-      <div class="pathway-icon">🎨</div>
-      <div class="pathway-title">Arts & Humanities</div>
-      <div class="pathway-subtitle">B.A, Fine Arts, Law</div>
-    </div>
-    <div class="pathway-card" data-pathway="after_graduation">
-      <div class="pathway-icon">🎓</div>
-      <div class="pathway-title">After Graduation</div>
-      <div class="pathway-subtitle">PG, PhD, B.Ed, MBA</div>
-    </div>
-  </div>
-</section>
+
 
 {# ─────────────── SHORT-NAME PANEL ─────────────── #}
 <div id="course-panel">
@@ -436,7 +428,7 @@ body.light-mode .pathway-title { color: #475569; }
           <span id="panelStream"></span>
         </div>
       </div>
-      <button class="panel-close-btn" id="panelClose" title="Close"><i class="fa fa-times" aria-hidden="true"></i></button>
+      <button class="panel-close-btn" id="panelClose" title="Close">✕</button>
     </div>
     <div class="panel-search-row">
       <input class="panel-search-input" id="panelSearch" type="text"
@@ -468,7 +460,7 @@ body.light-mode .pathway-title { color: #475569; }
 <div id="detail-modal">
   <div class="dm-box">
     <div class="dm-hero" id="dmHero">
-      <button class="dm-close-btn" id="dmClose" title="Close"><i class="fa fa-times" aria-hidden="true"></i></button>
+      <button class="dm-close-btn" id="dmClose" title="Close">✕</button>
       <h3 id="dm-name"></h3>
       <div class="dm-hero-meta">
         <span id="dm-short"></span>
@@ -531,22 +523,6 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
-}
-
-function setMetaText(id, iconClass, text) {
-  const el = document.getElementById(id);
-  if (!el) return;
-
-  el.textContent = '';
-
-  if (iconClass) {
-    const icon = document.createElement('i');
-    icon.className = iconClass;
-    icon.setAttribute('aria-hidden', 'true');
-    el.appendChild(icon);
-  }
-
-  el.appendChild(document.createTextNode(text ? ' ' + text : ''));
 }
 
 function getSuggestions(query) {
@@ -858,10 +834,10 @@ function openShortName(el) {
   document.getElementById('panelTitle').textContent =
     shortName + ' — ' + level.charAt(0).toUpperCase() + level.slice(1);
 
-  setMetaText('panelLevel', 'fa fa-graduation-cap', level);
+  document.getElementById('panelLevel').textContent  = '🎓 ' + level;
 
   const streams = [...new Set(panelCourses.map(c => c.stream))].join(', ');
-  setMetaText('panelStream', 'fa fa-folder-open-o', streams);
+  document.getElementById('panelStream').textContent = '📂 ' + streams;
 
   document.getElementById('panelSearch').value = '';
 
@@ -942,9 +918,9 @@ function openDetail(c) {
   document.getElementById('dmHero').style.background =
     `linear-gradient(135deg,${col},${col}bb)`;
   document.getElementById('dm-name').textContent       = c.course_name;
-  setMetaText('dm-short', 'fa fa-thumb-tack', c.short_name);
-  setMetaText('dm-level', 'fa fa-graduation-cap', c.level);
-  setMetaText('dm-stream', 'fa fa-folder-open-o', c.stream);
+  document.getElementById('dm-short').textContent      = '📌 ' + c.short_name;
+  document.getElementById('dm-level').textContent      = '🎓 ' + c.level;
+  document.getElementById('dm-stream').textContent     = '📂 ' + c.stream;
   document.getElementById('dm-id').textContent         = c.course_id   || '—';
   document.getElementById('dm-sub').textContent        = c.sub_stream  || '—';
   document.getElementById('dm-dur').textContent        =
