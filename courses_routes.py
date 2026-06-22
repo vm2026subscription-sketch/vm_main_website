@@ -23,8 +23,12 @@ import time
 import threading
 from collections import defaultdict
 
-import psycopg2
-import psycopg2.extras
+try:
+    import psycopg2
+    import psycopg2.extras
+except ImportError:
+    psycopg2 = None
+
 from flask import Blueprint, render_template, current_app
 
 courses_bp = Blueprint("courses", __name__)
@@ -33,12 +37,6 @@ courses_bp = Blueprint("courses", __name__)
 DB_URL = os.environ.get(
     "SUPABASE_POSTGRES_URL",
     os.environ.get("DATABASE_URL", ""),
-)
-
-# ── Column list we actually need (matches your table exactly) ──────────────────
-SELECT_COLS = (
-    "course_id, course_name, short_name, level, stream, sub_stream, "
-    "duration_years, eligibility, entrance_exams, top_institutes, avg_fee_inr_per_year"
 )
 
 # ── Level display metadata ─────────────────────────────────────────────────────
@@ -74,30 +72,38 @@ _COURSES_CACHE = {
 
 def _get_connection():
     """Open a fresh psycopg2 connection (no pool — works fine for Flask dev)."""
+    if psycopg2 is None:
+        raise RuntimeError("psycopg2 is not installed.")
     if not DB_URL or not str(DB_URL).strip():
         raise RuntimeError("SUPABASE_POSTGRES_URL or DATABASE_URL is not configured.")
     return psycopg2.connect(DB_URL, cursor_factory=psycopg2.extras.RealDictCursor)
 
-
 def _fetch_courses() -> list[dict]:
-    """Fetch all rows from the courses table, ordered by level then course_name."""
-    sql = f"""
-        SELECT {SELECT_COLS}
-        FROM   courses
-        ORDER  BY level, short_name, course_name
-    """
-    conn = _get_connection()
+    """Return courses data from Supabase DB, fallback to data/courses.json."""
+    courses_path = os.path.join(current_app.root_path, "data", "courses.json")
+    
+    # Try fetching from DB first
     try:
-        with conn.cursor() as cur:
-            cur.execute(sql)
-            rows = cur.fetchall()
-        # Convert RealDictRow → plain dict, replace None → ""
-        return [
-            {k: (v if v is not None else "") for k, v in row.items()}
-            for row in rows
-        ]
-    finally:
-        conn.close()
+        conn = _get_connection()
+        try:
+            with conn.cursor() as cur:
+                # Query the generic excel-upload payload column
+                cur.execute("SELECT payload FROM courses")
+                rows = cur.fetchall()
+            if rows:
+                return [row['payload'] for row in rows if 'payload' in row]
+        finally:
+            conn.close()
+    except Exception as db_exc:
+        current_app.logger.warning(f"Could not load courses from DB, falling back to JSON: {db_exc}")
+
+    # Fallback to local JSON
+    try:
+        with open(courses_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        current_app.logger.error(f"Failed to load courses from {courses_path}: {e}")
+        return []
 
 
 def _build_level_index(courses: list[dict]) -> dict:
@@ -176,6 +182,7 @@ def _build_courses_json(all_courses: list[dict]) -> str:
                 "entrance_exams":      r.get("entrance_exams", ""),
                 "top_institutes":      r.get("top_institutes", ""),
                 "avg_fee_inr_per_year":r.get("avg_fee_inr_per_year", ""),
+                "pathway_tags":        r.get("pathway_tags", []),
             }
             for r in all_courses
         ],
