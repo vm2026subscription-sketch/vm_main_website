@@ -1,0 +1,101 @@
+avg_fee_inr_per_year,course_id,course_name,duration_years,eligibility,entrance_exams,level,pathway_tags,short_name,stream,sub_stream,top_institutes
+5000,VOC_1,ITI in Fitter,1-2,10th Pass,Merit,vocational,after_10th,ITI,Vocational,Fitter,Govt ITIs
+5000,VOC_2,ITI in Electrician,1-2,10th Pass,Merit,vocational,after_10th,ITI,Vocational,Electrician,Govt ITIs
+5000,VOC_3,ITI in Welder,1-2,10th Pass,Merit,vocational,after_10th,ITI,Vocational,Welder,Govt ITIs
+5000,VOC_4,ITI in Machinist,1-2,10th Pass,Merit,vocational,after_10th,ITI,Vocational,Machinist,Govt ITIs
+5000,VOC_5,ITI in COPA,1-2,10th Pass,Merit,vocational,after_10th,ITI,Vocational,COPA,Govt ITIs
+5000,VOC_6,ITI in Motor Mechanic,1-2,10th Pass,Merit,vocational,after_10th,ITI,Vocational,Motor Mechanic,Govt ITIs
+5000,VOC_7,ITI in Plumber,1-2,10th Pass,Merit,vocational,after_10th,ITI,Vocational,Plumber,Govt ITIs
+5000,VOC_8,ITI in Turner,1-2,10th Pass,Merit,vocational,after_10th,ITI,Vocational,Turner,Govt ITIs
+5000,VOC_9,ITI in Draftsman Civil,1-2,10th Pass,Merit,vocational,after_10th,ITI,Vocational,Draftsman Civil,Govt ITIs
+20000,DIP_10_1,Diploma in Civil Engineering,3,10th Pass,State Poly CET,diploma,after_10th,Diploma,Engineering,Civil,Govt Polytechnics
+20000,DIP_10_2,Diploma in Mechanical Engineering,3,10th Pass,State Poly CET,diploma,after_10th,Diploma,Engineering,Mechanical,Govt Polytechnics
+20000,DIP_10_3,Diploma in Computer Engineering,3,10th Pass,State Poly CET,diploma,after_10th,Diploma,Engineering,Computer,Govt Polytechnics
+20000,DIP_10_4,Diploma in Electrical Engineering,3,10th Pass,State Poly CET,diploma,after_10th,Diploma,Engineering,Electrical,Govt Polytechnics
+20000,DIP_10_5,Diploma in Automobile Engineering,3,10th Pass,State Poly CET,diploma,after_10th,Diploma,Engineering,Automobile,Govt Polytechnics
+20000,DIP_10_6,Diploma in Agriculture,3,10th Pass,State Poly CET,diploma,after_10th,Diploma,Science,Agriculture,Govt Polytechnics
+250000,U_ENG_1,Bachelor of Technology in Computer Science,4,10+2 PCM,"JEE Main, JEE Adv, MHT CET",undergraduate,after_12th_science_pcm,B.Tech,Engineering,Computer Science,"IITs, NITs, BITS"
+150000,U_ENG_2,Bachelor of Technology in Mechanical,4,10+2 PCM,"JEE Main, JEE Adv, MHT CET",undergraduate,after_12th_science_pcm,B.Tech,Engineering,Mechanical,"IITs, NITs, BITS"
+140000,U_ENG_3,Bachelor of Technology in Civil,4,10+2 PCM,"JEE Main, JEE Adv, MHT CET",undergraduate,after_12th_science_pcm,B.Tech,Engineering,Civil,"IITs, NITs, BITS"
+145000,U_ENG_4,Bachelor of Technology in Electrical,4,10+2 PCM,"JEE Main, JEE Adv, MHT CET",undergraduate,after_12th_science_pcm,B.Tech,Engineering,Electrical,"IITs, NITs, BITS"
+160000,U_ENG_5,Bachelor of Technology in Electronics & Comm.,4,10+2 PCM,"JEE Main, JEE Adv, MHT CET",undergraduate,after_12th_science_pcm,B.Tech,Engineering,Electronics & Comm.,"IITs, NITs, BITS"
+200000,U_ENG_6,Bachelor of Technology in Information Technology,4,10+2 PCM,"JEE Main, JEE Adv, MHT CET",undergraduate,after_12th_science_pcm,B.Tech,Engineering,Information Technology,"IITs, NITs, BITS"
+300000,U_ENG_7,Bachelor of Technology in Aerospace,4,10+2 PCM,"JEE Main, JEE Adv, MHT CET",undergraduate,after_12th_science_pcm,B.Tech,Engineering,Aerospace,"IITs, NITs, BITS"
+130000,U_ENG_8,Bachelor of Technology in Chemical,4,10+2 PCM,"JEE Main, JEE Adv, MHT CET",undergraduate,after_12th_science_pcm,B.Tech,Engineering,Chemical,"IITs, NITs, BITS"
+350000,U_ENG_9,Bachelor of Technology in Robotics & AI,4,10+2 PCM,"JEE Main, JEE Adv, MHT CET",undergraduate,after_12th_science_pcm,B.Tech,Engineering,Robotics & AI,"IITs, NITs, BITS"
+320000,U_ENG_10,Bachelor of Technology in Data Science,4,10+2 PCM,"JEE Main, JEE Adv, MHT CET",undergraduate,after_12th_science_pcm,B.Tech,Engineering,Data Science,"IITs, NITs, BITS"
+200000,U_ENG_11,Bachelor of Technology in Marine,4,10+2 PCM,"JEE Main, JEE Adv, MHT CET",undergraduate,after_12th_science_pcm,B.Tech,Engineering,Marine,"IITs, NITs, BITS"
+180000,U_ENG_12,Bachelor of Technology in Automobile,4,10+2 PCM,"JEE Main, JEE Adv, MHT CET",undergraduate,after_12th_science_pcm,B.Tech,Engineering,Automobile,"IITs, NITs, BITS"
+200000,U_ARCH_1,Bachelor of Architecture,5,10+2 PCM,"NATA, JEE Main Paper 2",undergraduate,after_12th_science_pcm,B.Arch,Architecture,General,"SPAs, CEPT, IIT Roorkee"
+2500000,U_AVI_1,Commercial Pilot Training,2,10+2 PCM,DGCA Exams,professional,after_12th_science_pcm,CPL,Aviation,Pilot,"IGRUA, Flight Schools"
+40000,U_BSC_PCM_1,B.Sc Physics,3,10+2 PCM,CUET,undergraduate,after_12th_science_pcm,B.Sc,Science,Physics,"DU, BHU"
+40000,U_BSC_PCM_2,B.Sc Mathematics,3,10+2 PCM,CUET,undergraduate,after_12th_science_pcm,B.Sc,Science,Mathematics,"DU, CMI"
+1500000,U_MED_1,Bachelor of Medicine & Surgery,5.5,10+2 PCB,NEET UG,undergraduate,after_12th_science_pcb,MBBS,Medical,Medicine & Surgery,"AIIMS, CMC Vellore"
+600000,U_MED_2,Bachelor of Dental Surgery,5,10+2 PCB,NEET UG,undergraduate,after_12th_science_pcb,BDS,Medical,Dental Surgery,"Maulana Azad, Manipal"
+300000,U_MED_3,Bachelor of Ayurvedic Medicine,5.5,10+2 PCB,NEET UG,undergraduate,after_12th_science_pcb,BAMS,Medical,Ayurvedic Medicine,"BHU, Patanjali"
+200000,U_MED_4,Bachelor of Homeopathic Medicine,5.5,10+2 PCB,NEET UG,undergraduate,after_12th_science_pcb,BHMS,Medical,Homeopathic Medicine,National Institute of Homeopathy
+150000,U_MED_5,Bachelor of Veterinary Science,5.5,10+2 PCB,NEET UG,undergraduate,after_12th_science_pcb,BVSc,Medical,Veterinary Science,IVRI Bareilly
+100000,U_PARA_1,Bachelor of Nursing,4,10+2 PCB,NEET/State Exams,undergraduate,after_12th_science_pcb,B.Sc Nursing,Medical,Nursing,"AIIMS, CMC"
+100000,U_PARA_2,Bachelor of Physiotherapy,4,10+2 PCB,NEET/State Exams,undergraduate,after_12th_science_pcb,BPT,Medical,Physiotherapy,"AIIMS, CMC"
+100000,U_PARA_3,Bachelor of Medical Lab Tech,4,10+2 PCB,NEET/State Exams,undergraduate,after_12th_science_pcb,BMLT,Medical,Medical Lab Tech,"AIIMS, CMC"
+100000,U_PARA_4,Bachelor of Optometry,4,10+2 PCB,NEET/State Exams,undergraduate,after_12th_science_pcb,B.Optom,Medical,Optometry,"AIIMS, CMC"
+100000,U_PARA_5,Bachelor of Radiography,4,10+2 PCB,NEET/State Exams,undergraduate,after_12th_science_pcb,B.Sc Radiography,Medical,Radiography,"AIIMS, CMC"
+120000,U_PHARM_1,Bachelor of Pharmacy,4,10+2 PCB/PCM,"State Exams, BITSAT",undergraduate,"after_12th_science_pcb,after_12th_science_pcm",B.Pharm,Medical,Pharmacy,Jamia Hamdard
+50000,U_AGRI_1,B.Sc Agriculture,4,10+2 PCB/PCM,ICAR AIEEA,undergraduate,"after_12th_science_pcb,after_12th_science_pcm",B.Sc,Science,Agriculture,ICAR Institutes
+40000,U_BSC_BIO_1,B.Sc Biology,3,10+2 PCB,CUET,undergraduate,after_12th_science_pcb,B.Sc,Science,Biology,"DU, BHU"
+60000,U_BSC_BIO_2,B.Sc Biotechnology,3,10+2 PCB,CUET,undergraduate,after_12th_science_pcb,B.Sc,Science,Biotechnology,"DU, Christ"
+50000,U_BCOM_1,Bachelor of Commerce (General),3,10+2 Commerce,"CUET, Merit",undergraduate,"after_12th_commerce,after_12th_arts",B.Com,Commerce,General,"SRCC, Hindu College"
+60000,U_BCOM_2,Bachelor of Commerce (Honours),3,10+2 Commerce (Maths),CUET,undergraduate,after_12th_commerce,B.Com Hons,Commerce,Honours,SRCC
+70000,U_BAF_1,Bachelor of Accounting & Finance,3,10+2 Commerce,Merit,undergraduate,after_12th_commerce,BAF,Commerce,Accounting & Finance,"HR College, NM College"
+60000,U_BBI_1,Bachelor of Banking & Insurance,3,10+2 Commerce,Merit,undergraduate,after_12th_commerce,BBI,Commerce,Banking,Mumbai Univ Colleges
+80000,U_BFM_1,Bachelor of Financial Markets,3,10+2 Commerce,Merit,undergraduate,after_12th_commerce,BFM,Commerce,Financial Markets,NM College
+200000,U_BBA_1,Bachelor of Business Administration in General,3,10+2 Any Stream,"IPMAT, SET, CUET",undergraduate,"after_12th_commerce,after_12th_arts,after_12th_science_pcm,after_12th_science_pcb",BBA,Management,General,"NMIMS, Christ, IIM Indore"
+200000,U_BBA_2,Bachelor of Business Administration in Finance,3,10+2 Any Stream,"IPMAT, SET, CUET",undergraduate,"after_12th_commerce,after_12th_arts,after_12th_science_pcm,after_12th_science_pcb",BBA,Management,Finance,"NMIMS, Christ, IIM Indore"
+200000,U_BBA_3,Bachelor of Business Administration in Marketing,3,10+2 Any Stream,"IPMAT, SET, CUET",undergraduate,"after_12th_commerce,after_12th_arts,after_12th_science_pcm,after_12th_science_pcb",BBA,Management,Marketing,"NMIMS, Christ, IIM Indore"
+200000,U_BBA_4,Bachelor of Business Administration in HR,3,10+2 Any Stream,"IPMAT, SET, CUET",undergraduate,"after_12th_commerce,after_12th_arts,after_12th_science_pcm,after_12th_science_pcb",BBA,Management,HR,"NMIMS, Christ, IIM Indore"
+200000,U_BBA_5,Bachelor of Business Administration in International Business,3,10+2 Any Stream,"IPMAT, SET, CUET",undergraduate,"after_12th_commerce,after_12th_arts,after_12th_science_pcm,after_12th_science_pcb",BBA,Management,International Business,"NMIMS, Christ, IIM Indore"
+50000,PRO_1,Chartered Accountancy,4.5,10+2 Any Stream,CA Foundation,professional,"after_12th_commerce,after_12th_arts,after_12th_science_pcm",CA,Commerce,Accounting,ICAI
+50000,PRO_2,Company Secretary,3,10+2 Any Stream,CSEET,professional,"after_12th_commerce,after_12th_arts,after_12th_science_pcm",CS,Commerce,Corporate Law,ICSI
+50000,PRO_3,Cost & Management Accountancy,3,10+2 Any Stream,CMA Foundation,professional,"after_12th_commerce,after_12th_arts,after_12th_science_pcm",CMA,Commerce,Cost Accounting,ICMAI
+30000,U_BA_1,Bachelor of Arts in English,3,10+2 Any Stream,CUET,undergraduate,"after_12th_arts,after_12th_commerce",B.A,Arts,English,"LSR, St. Stephen's"
+30000,U_BA_2,Bachelor of Arts in History,3,10+2 Any Stream,CUET,undergraduate,"after_12th_arts,after_12th_commerce",B.A,Arts,History,"LSR, St. Stephen's"
+30000,U_BA_3,Bachelor of Arts in Political Science,3,10+2 Any Stream,CUET,undergraduate,"after_12th_arts,after_12th_commerce",B.A,Arts,Political Science,"LSR, St. Stephen's"
+30000,U_BA_4,Bachelor of Arts in Psychology,3,10+2 Any Stream,CUET,undergraduate,"after_12th_arts,after_12th_commerce",B.A,Arts,Psychology,"LSR, St. Stephen's"
+30000,U_BA_5,Bachelor of Arts in Economics,3,10+2 Any Stream,CUET,undergraduate,"after_12th_arts,after_12th_commerce",B.A,Arts,Economics,"LSR, St. Stephen's"
+30000,U_BA_6,Bachelor of Arts in Sociology,3,10+2 Any Stream,CUET,undergraduate,"after_12th_arts,after_12th_commerce",B.A,Arts,Sociology,"LSR, St. Stephen's"
+30000,U_BA_7,Bachelor of Arts in Geography,3,10+2 Any Stream,CUET,undergraduate,"after_12th_arts,after_12th_commerce",B.A,Arts,Geography,"LSR, St. Stephen's"
+150000,U_ART_1,Bachelor of Fine Arts,4,10+2 Any Stream,Merit/Aptitude,undergraduate,"after_12th_arts,after_12th_commerce,after_12th_science_pcm",BFA,Arts,Fine Arts,Sir JJ School of Art
+150000,U_ART_2,Bachelor of Mass Media,3,10+2 Any Stream,CUET/Merit,undergraduate,"after_12th_arts,after_12th_commerce,after_12th_science_pcm",BMM,Media,Journalism,Xavier's
+150000,U_ART_3,Bachelor of Hotel Management,3-4,10+2 Any Stream,NCHMCT JEE,undergraduate,"after_12th_arts,after_12th_commerce,after_12th_science_pcm",BHM,Management,Hospitality,IHMs
+150000,U_ART_4,Bachelor of Design,4,10+2 Any Stream,"NID DAT, NIFT",undergraduate,"after_12th_arts,after_12th_commerce,after_12th_science_pcm",B.Des,Design,Fashion/Product,"NID, NIFT"
+250000,U_LAW_1,Bachelor of Laws (B.A LLB),5,10+2 Any Stream,"CLAT, AILET, LSAT",integrated,"after_12th_arts,after_12th_commerce,after_12th_science_pcm,after_12th_science_pcb",B.A LLB,Law,Integrated Law,"NLSIU, NLU Delhi"
+250000,U_LAW_2,Bachelor of Laws (BBA LLB),5,10+2 Any Stream,"CLAT, AILET",integrated,"after_12th_arts,after_12th_commerce,after_12th_science_pcm,after_12th_science_pcb",BBA LLB,Law,Integrated Law,"NLSIU, NLU Delhi"
+250000,U_LAW_3,Bachelor of Laws (B.Com LLB),5,10+2 Any Stream,"CLAT, AILET",integrated,"after_12th_arts,after_12th_commerce,after_12th_science_pcm,after_12th_science_pcb",B.Com LLB,Law,Integrated Law,"NLSIU, NLU Delhi"
+1500000,PG_1,Master of Business Administration,2,Bachelor's Degree,"CAT, XAT, GMAT",postgraduate,after_graduation,MBA,Management,General/Finance/HR/IT,"IIMs, ISB, XLRI"
+100000,PG_2,Master of Technology,2,B.Tech,GATE,postgraduate,after_graduation,M.Tech,Engineering,Specialised,"IITs, NITs"
+50000,PG_3,Master of Science,2,B.Sc,"IIT JAM, CUET PG",postgraduate,after_graduation,M.Sc,Science,Physics/Chem/Maths,"IITs, Central Univs"
+30000,PG_4,Master of Arts,2,B.A,CUET PG,postgraduate,after_graduation,M.A,Arts,Various,"JNU, DU, TISS"
+40000,PG_5,Master of Commerce,2,B.Com/BBA,CUET PG,postgraduate,after_graduation,M.Com,Commerce,Accounting,"DU, BHU"
+80000,PG_6,Master of Computer Applications,2,BCA/B.Sc,NIMCET,postgraduate,after_graduation,MCA,IT,Computer Apps,NITs
+150000,PG_7,Master of Laws,1-2,LLB,CLAT PG,postgraduate,after_graduation,LLM,Law,Corporate/Criminal,NLUs
+500000,PG_8,Doctor of Medicine,3,MBBS,NEET PG,postgraduate,after_graduation,MD,Medical,Specialisation,AIIMS
+500000,PG_9,Master of Surgery,3,MBBS,NEET PG,postgraduate,after_graduation,MS,Medical,Surgery,AIIMS
+50000,PG_10,Bachelor of Education,2,Bachelor's Degree,State B.Ed CET,undergraduate,after_graduation,B.Ed,Education,Teaching,"RIE, State Univs"
+20000,PG_11,Bachelor of Library Science,1,Bachelor's Degree,Merit,undergraduate,after_graduation,B.Lib.I.Sc,Arts,Library,DU
+60000,PG_12,Master of Education,2,B.Ed,CUET PG,postgraduate,after_graduation,M.Ed,Education,Teaching,State Univs
+40000,PG_13,Bachelor of Physical Education,2,Bachelor's Degree,Fitness Test + Merit,undergraduate,after_graduation,B.P.Ed,Education,Sports,LNIPE
+100000,PG_14,Bachelor of Laws,3,Bachelor's Degree,"DU LLB, MH CET Law",undergraduate,after_graduation,LLB,Law,General,"DU, GLC Mumbai"
+40000,D_PHD_1,Doctor of Philosophy in Engineering,3-5,Master's Degree,"UGC NET, GATE",doctoral,after_graduation,Ph.D,Engineering,Research,"IITs, Central Univs"
+40000,D_PHD_2,Doctor of Philosophy in Sciences,3-5,Master's Degree,"UGC NET, GATE",doctoral,after_graduation,Ph.D,Sciences,Research,"IITs, Central Univs"
+40000,D_PHD_3,Doctor of Philosophy in Humanities & Social Sciences,3-5,Master's Degree,"UGC NET, GATE",doctoral,after_graduation,Ph.D,Humanities & Social Sciences,Research,"IITs, Central Univs"
+40000,D_PHD_4,Doctor of Philosophy in Management,3-5,Master's Degree,"UGC NET, GATE",doctoral,after_graduation,Ph.D,Management,Research,"IITs, Central Univs"
+40000,D_PHD_5,Doctor of Philosophy in Law,3-5,Master's Degree,"UGC NET, GATE",doctoral,after_graduation,Ph.D,Law,Research,"IITs, Central Univs"
+40000,D_PHD_6,Doctor of Philosophy in Medicine,3-5,Master's Degree,"UGC NET, GATE",doctoral,after_graduation,Ph.D,Medicine,Research,"IITs, Central Univs"
+60000,ONL_1,Online MBA,2-3,Relevant Degree/12th,None,online/distance,after_graduation,Online MBA,Management,General,"IGNOU, NMIMS Online"
+60000,ONL_2,Online MCA,2-3,Relevant Degree/12th,None,online/distance,after_graduation,Online MCA,IT,Computer Apps,"IGNOU, NMIMS Online"
+60000,ONL_3,Online BBA,2-3,Relevant Degree/12th,None,online/distance,"after_12th_commerce,after_12th_arts,after_12th_science_pcm,after_12th_science_pcb",Online BBA,Management,General,"IGNOU, NMIMS Online"
+60000,ONL_4,Online BCA,2-3,Relevant Degree/12th,None,online/distance,"after_12th_commerce,after_12th_arts,after_12th_science_pcm,after_12th_science_pcb",Online BCA,IT,Computer Apps,"IGNOU, NMIMS Online"
+60000,ONL_5,Online B.Com,2-3,Relevant Degree/12th,None,online/distance,"after_12th_commerce,after_12th_arts,after_12th_science_pcm,after_12th_science_pcb",Online B.Com,Commerce,General,"IGNOU, NMIMS Online"
+10000,HSC_SCI,11th & 12th (Science),2,10th Pass,Merit / FYJC Allotment,certificate,after_10th,HSC Science,Science,PCM / PCB,Junior Colleges
+10000,HSC_COM,11th & 12th (Commerce),2,10th Pass,Merit / FYJC Allotment,certificate,after_10th,HSC Commerce,Commerce,General,Junior Colleges
+8000,HSC_ART,11th & 12th (Arts),2,10th Pass,Merit / FYJC Allotment,certificate,after_10th,HSC Arts,Arts,Humanities,Junior Colleges

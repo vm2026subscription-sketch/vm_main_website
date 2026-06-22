@@ -6,103 +6,120 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='courses.css') }}">
 <style>
 /* ── Overlay backdrop ─────────────────────────── */
-#course-panel {
+#course-panel, #detail-modal {
   display:none; position:fixed; inset:0; z-index:2000;
-  background:rgba(15,23,42,.55); overflow-y:auto; padding:24px 12px;
+  background: rgba(5, 10, 21, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  overflow-y:auto; padding:40px 20px;
 }
-#course-panel.open { display:flex; align-items:flex-start; justify-content:center; }
+#course-panel.open, #detail-modal.open { display:flex; align-items:flex-start; justify-content:center; }
 
 /* ── Panel box ───────────────────────────────── */
-.panel-box {
-  background:#fff; border-radius:18px; max-width:940px; width:100%;
-  margin:auto; box-shadow:0 24px 64px rgba(0,0,0,.22);
-  overflow:hidden; animation:cpSlide .28s ease;
+.panel-box, .dm-box {
+  background: rgba(13, 22, 39, 0.85); border-radius: 24px; max-width: 960px; width:100%;
+  margin:auto; box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.1);
+  overflow:hidden; animation: cpSlide 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
-@keyframes cpSlide { from{transform:translateY(28px);opacity:0} to{transform:none;opacity:1} }
+body.light-mode .panel-box, body.light-mode .dm-box {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255,255,255,0.5);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.15);
+}
+
+@keyframes cpSlide { from{transform:translateY(40px) scale(0.98);opacity:0} to{transform:none;opacity:1} }
 
 /* ── Panel hero ──────────────────────────────── */
-.panel-hero {
-  padding:28px 32px 20px; color:#fff;
-  display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+.panel-hero, .dm-hero {
+  padding: 32px 40px 24px; color:#fff;
+  display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
+  position: relative; overflow: hidden;
 }
-.panel-hero h2 { margin:0 0 6px; font-size:1.4rem; font-weight:800; }
-.panel-hero-meta { opacity:.88; font-size:.87rem; display:flex; gap:16px; flex-wrap:wrap; margin-top:4px; }
-.panel-close-btn {
-  background:rgba(255,255,255,.2); border:none; color:#fff;
-  width:34px; height:34px; border-radius:50%; font-size:1.1rem;
-  cursor:pointer; flex-shrink:0; line-height:34px; text-align:center; transition:.2s;
+.panel-hero h2, .dm-hero h3 { margin:0 0 8px; font-size:1.8rem; font-weight:800; font-family: 'Poppins', sans-serif; position: relative; z-index: 2; }
+.panel-hero-meta, .dm-hero-meta { opacity:.9; font-size:.9rem; display:flex; gap:16px; flex-wrap:wrap; margin-top:6px; position: relative; z-index: 2; font-weight: 500; }
+.panel-close-btn, .dm-close-btn {
+  background:rgba(255,255,255,.15); border:none; color:#fff;
+  width:40px; height:40px; border-radius:50%; font-size:1.2rem;
+  cursor:pointer; flex-shrink:0; line-height:40px; text-align:center; transition:all 0.3s ease;
+  position: relative; z-index: 2; backdrop-filter: blur(4px);
 }
-.panel-close-btn:hover { background:rgba(255,255,255,.4); }
+.panel-close-btn:hover, .dm-close-btn:hover { background:rgba(255,255,255,.3); transform: rotate(90deg); }
 
 /* ── Panel search ────────────────────────────── */
 .panel-search-row {
-  padding:14px 28px 6px; background:#f8fafc; border-bottom:1px solid #e2e8f0;
+  padding:20px 40px; background: rgba(0,0,0,0.15); border-bottom:1px solid rgba(255,255,255,0.06);
 }
+body.light-mode .panel-search-row { background: #f8fafc; border-bottom:1px solid #e2e8f0; }
+
 .panel-search-input {
-  width:100%; padding:9px 16px 9px 36px; border-radius:50px;
-  border:1.5px solid #e2e8f0; font-size:.88rem; outline:none; box-sizing:border-box;
-  background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='M21 21l-4.35-4.35'/%3E%3C/svg%3E") no-repeat 13px center;
-  font-family:inherit;
+  width:100%; padding:14px 20px 14px 44px; border-radius:50px;
+  border:1px solid rgba(255,255,255,0.1); font-size:1rem; outline:none; box-sizing:border-box;
+  background: rgba(255,255,255,0.05) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='M21 21l-4.35-4.35'/%3E%3C/svg%3E") no-repeat 16px center;
+  font-family:inherit; color: #fff; transition: all 0.3s ease;
 }
-.panel-search-input:focus { border-color:#4f46e5; }
-.panel-count-label { font-size:.8rem; color:#64748b; padding:4px 28px 10px; }
+body.light-mode .panel-search-input {
+  background-color: #fff; border-color: #cbd5e1; color: #0f172a;
+}
+.panel-search-input:focus { border-color:#ff6600; box-shadow: 0 0 0 4px rgba(255,102,0,0.15); background-color: rgba(255,255,255,0.08); }
+body.light-mode .panel-search-input:focus { background-color: #fff; }
+
+.panel-count-label { font-size:.85rem; color:#94a3b8; padding:12px 40px; font-weight: 500; }
+body.light-mode .panel-count-label { color: #64748b; }
 
 /* ── Panel table ─────────────────────────────── */
-.panel-table-wrap { overflow-x:auto; max-height:58vh; overflow-y:auto; }
-.ctable { width:100%; border-collapse:collapse; font-size:.83rem; }
+.panel-table-wrap { overflow-x:auto; max-height:50vh; overflow-y:auto; padding: 0 20px 20px; }
+.ctable { width:100%; border-collapse: separate; border-spacing: 0; font-size:.9rem; }
 .ctable thead { position:sticky; top:0; z-index:5; }
 .ctable thead th {
-  background:#1e293b; color:#fff; padding:10px 12px;
-  text-align:left; font-size:.76rem; font-weight:700;
-  letter-spacing:.04em; white-space:nowrap;
+  background: rgba(5, 10, 21, 0.95); color:#fff; padding:16px;
+  text-align:left; font-size:.8rem; font-weight:700;
+  letter-spacing:.05em; white-space:nowrap; text-transform: uppercase;
+  backdrop-filter: blur(8px);
 }
-.ctable tbody tr { border-bottom:1px solid #f1f5f9; cursor:pointer; transition:.14s; }
-.ctable tbody tr:hover { background:#f8fafc; }
-.ctable td { padding:10px 12px; vertical-align:top; color:#1e293b; }
-.ctable td:first-child { color:#94a3b8; font-size:.74rem; text-align:center; width:30px; }
-.c-name { font-weight:700; font-size:.87rem; }
-.c-sub  { color:#64748b; font-size:.77rem; margin-top:2px; }
-.c-badge {
-  display:inline-block; padding:2px 8px; border-radius:20px;
-  font-size:.71rem; font-weight:700; background:#ede9fe; color:#5b21b6;
-}
-.c-fee { color:#059669; font-weight:700; }
-.c-view-btn {
-  background:#ff6600; color:#fff; border:none; padding:4px 12px;
-  border-radius:20px; font-size:.74rem; cursor:pointer; font-weight:600;
-  white-space:nowrap; font-family:inherit;
-}
-.c-view-btn:hover { background:#e65c00; }
+body.light-mode .ctable thead th { background: rgba(241, 245, 249, 0.95); color: #0f172a; border-bottom: 1px solid #e2e8f0; }
 
-/* ── Detail modal ────────────────────────────── */
-#detail-modal {
-  display:none; position:fixed; inset:0; z-index:3000;
-  background:rgba(0,0,0,.5); overflow-y:auto; padding:20px 12px;
+.ctable tbody tr { transition:all 0.2s ease; cursor:pointer; }
+.ctable tbody tr td { border-bottom: 1px solid rgba(255,255,255,0.04); padding: 16px; vertical-align: top; color: #cbd5e1; }
+body.light-mode .ctable tbody tr td { border-bottom: 1px solid #f1f5f9; color: #475569; }
+
+.ctable tbody tr:hover { background: rgba(255,255,255,0.03); transform: scale(1.01); }
+body.light-mode .ctable tbody tr:hover { background: #f8fafc; }
+
+.ctable td:first-child { color:#64748b; font-size:.8rem; text-align:center; width:40px; font-weight: 600; }
+.c-name { font-weight:700; font-size:1rem; color: #fff; margin-bottom: 4px; }
+body.light-mode .c-name { color: #0f172a; }
+.c-sub  { color:#94a3b8; font-size:.85rem; }
+body.light-mode .c-sub { color: #64748b; }
+
+.c-badge {
+  display:inline-block; padding:4px 10px; border-radius:20px;
+  font-size:.75rem; font-weight:700; background: rgba(255,102,0,0.15); color: #ff6600;
+  border: 1px solid rgba(255,102,0,0.3);
 }
-#detail-modal.open { display:flex; align-items:flex-start; justify-content:center; }
-.dm-box {
-  background:#fff; border-radius:18px; max-width:700px; width:100%;
-  margin:auto; box-shadow:0 20px 60px rgba(0,0,0,.24);
-  overflow:hidden; animation:cpSlide .24s ease;
+.c-fee { color:#10b981; font-weight:700; }
+.c-view-btn {
+  background:#ff6600; color:#fff; border:none; padding:8px 16px;
+  border-radius:20px; font-size:.85rem; cursor:pointer; font-weight:600;
+  white-space:nowrap; font-family:inherit; transition: all 0.3s ease;
 }
-.dm-hero { padding:24px 28px 18px; color:#fff; }
-.dm-hero h3 { margin:0 0 4px; font-size:1.3rem; font-weight:800; }
-.dm-hero-meta { font-size:.83rem; opacity:.88; display:flex; gap:12px; flex-wrap:wrap; }
-.dm-close-btn {
-  float:right; background:rgba(255,255,255,.2); border:none; color:#fff;
-  width:32px; height:32px; border-radius:50%; font-size:1rem; cursor:pointer;
-  line-height:32px; text-align:center; transition:.2s;
-}
-.dm-close-btn:hover { background:rgba(255,255,255,.4); }
-.dm-body { padding:22px 28px; }
-.dm-grid { display:grid; grid-template-columns:1fr 1fr; gap:13px; }
-@media(max-width:520px){ .dm-grid{ grid-template-columns:1fr; } }
-.dm-field { background:#f8fafc; border-radius:10px; padding:12px 14px; }
+.c-view-btn:hover { background:#e65c00; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(255,102,0,0.3); }
+
+/* ── Detail modal body ───────────────────────── */
+.dm-body { padding:32px 40px; }
+.dm-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+@media(max-width:600px){ .dm-grid{ grid-template-columns:1fr; } .panel-hero, .dm-hero { padding: 24px; } .panel-search-row { padding: 16px 24px; } .dm-body { padding: 24px; } }
+.dm-field { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius:16px; padding:16px 20px; transition: all 0.3s ease; }
+body.light-mode .dm-field { background: #f8fafc; border-color: #e2e8f0; }
+.dm-field:hover { transform: translateY(-2px); background: rgba(255,255,255,0.05); border-color: rgba(255,102,0,0.3); }
+body.light-mode .dm-field:hover { background: #fff; border-color: #cbd5e1; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+
 .dm-field label {
-  display:block; font-size:.68rem; font-weight:800; color:#94a3b8;
-  text-transform:uppercase; letter-spacing:.07em; margin-bottom:4px;
+  display:block; font-size:.75rem; font-weight:800; color:#94a3b8;
+  text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px;
 }
-.dm-field span { font-size:.88rem; color:#1e293b; font-weight:500; line-height:1.5; }
+body.light-mode .dm-field label { color: #64748b; }
+
+.dm-field span { font-size:.95rem; color:#fff; font-weight:500; line-height:1.6; display: block; }
+body.light-mode .dm-field span { color: #0f172a; }
 .dm-field.full { grid-column:1/-1; }
 
 /* ── DB error banner ─────────────────────────── */
@@ -112,84 +129,143 @@
 }
 
 /* ── Level-specific styles ───────────────────── */
-.exam-level { font-size:.72rem; padding:2px 10px; border-radius:20px; font-weight:700; border:none; }
-.level-undergraduate { background: #4f46e522; color: #4f46e5; }
-.level-postgraduate { background: #7c3aed22; color: #7c3aed; }
-.level-doctoral { background: #db277722; color: #db2777; }
-.level-integrated { background: #0891b222; color: #0891b2; }
-.level-diploma { background: #d9770622; color: #d97706; }
-.level-certificate { background: #05966922; color: #059669; }
-.level-vocational { background: #dc262622; color: #dc2626; }
-.level-professional { background: #9333ea22; color: #9333ea; }
-.level-online-distance { background: #0369a122; color: #0369a1; }
+.exam-level { font-size:.72rem; padding:4px 12px; border-radius:20px; font-weight:700; border:none; display: inline-block; }
+.level-undergraduate { background: rgba(79, 70, 229, 0.15) !important; color: #818cf8 !important; border: 1px solid rgba(79, 70, 229, 0.3) !important; }
+.level-postgraduate { background: rgba(124, 58, 237, 0.15) !important; color: #a78bfa !important; border: 1px solid rgba(124, 58, 237, 0.3) !important; }
+.level-doctoral { background: rgba(219, 39, 119, 0.15) !important; color: #f472b6 !important; border: 1px solid rgba(219, 39, 119, 0.3) !important; }
+.level-integrated { background: rgba(8, 145, 178, 0.15) !important; color: #22d3ee !important; border: 1px solid rgba(8, 145, 178, 0.3) !important; }
+.level-diploma { background: rgba(217, 119, 6, 0.15) !important; color: #fbbf24 !important; border: 1px solid rgba(217, 119, 6, 0.3) !important; }
+.level-certificate { background: rgba(5, 150, 105, 0.15) !important; color: #34d399 !important; border: 1px solid rgba(5, 150, 105, 0.3) !important; }
+.level-vocational { background: rgba(220, 38, 38, 0.15) !important; color: #f87171 !important; border: 1px solid rgba(220, 38, 38, 0.3) !important; }
+.level-professional { background: rgba(147, 51, 234, 0.15) !important; color: #c084fc !important; border: 1px solid rgba(147, 51, 234, 0.3) !important; }
+.level-online-distance { background: rgba(3, 105, 161, 0.15) !important; color: #38bdf8 !important; border: 1px solid rgba(3, 105, 161, 0.3) !important; }
 
-.level-link-undergraduate { color: #4f46e5; }
-.level-link-postgraduate { color: #7c3aed; }
-.level-link-doctoral { color: #db2777; }
-.level-link-integrated { color: #0891b2; }
-.level-link-diploma { color: #d97706; }
-.level-link-certificate { color: #059669; }
-.level-link-vocational { color: #dc2626; }
-.level-link-professional { color: #9333ea; }
-.level-link-online-distance { color: #0369a1; }
+/* Light mode level badges overrides */
+body.light-mode .level-undergraduate { background: #e0e7ff !important; color: #4338ca !important; border-color: #c7d2fe !important; }
+body.light-mode .level-postgraduate { background: #ede9fe !important; color: #6d28d9 !important; border-color: #ddd6fe !important; }
+body.light-mode .level-doctoral { background: #fce7f3 !important; color: #be185d !important; border-color: #fbcfe8 !important; }
+body.light-mode .level-integrated { background: #cffafe !important; color: #0e7490 !important; border-color: #a5f3fc !important; }
+body.light-mode .level-diploma { background: #fef3c7 !important; color: #b45309 !important; border-color: #fde68a !important; }
+body.light-mode .level-certificate { background: #d1fae5 !important; color: #047857 !important; border-color: #a7f3d0 !important; }
+body.light-mode .level-vocational { background: #fee2e2 !important; color: #b91c1c !important; border-color: #fecaca !important; }
+body.light-mode .level-professional { background: #f3e8ff !important; color: #7e22ce !important; border-color: #e9d5ff !important; }
+body.light-mode .level-online-distance { background: #e0f2fe !important; color: #0369a1 !important; border-color: #bae6fd !important; }
+
+
+.level-link-undergraduate { color: #818cf8; }
+.level-link-postgraduate { color: #a78bfa; }
+.level-link-doctoral { color: #f472b6; }
+.level-link-integrated { color: #22d3ee; }
+.level-link-diploma { color: #fbbf24; }
+.level-link-certificate { color: #34d399; }
+.level-link-vocational { color: #f87171; }
+.level-link-professional { color: #c084fc; }
+.level-link-online-distance { color: #38bdf8; }
+
+body.light-mode .level-link-undergraduate { color: #4338ca; }
+body.light-mode .level-link-postgraduate { color: #6d28d9; }
+body.light-mode .level-link-doctoral { color: #be185d; }
+body.light-mode .level-link-integrated { color: #0e7490; }
+body.light-mode .level-link-diploma { color: #b45309; }
+body.light-mode .level-link-certificate { color: #047857; }
+body.light-mode .level-link-vocational { color: #b91c1c; }
+body.light-mode .level-link-professional { color: #7e22ce; }
+body.light-mode .level-link-online-distance { color: #0369a1; }
 
 .hidden-card { display:none !important; }
-.section-actions { text-align:center; margin-top:18px; }
+.section-actions { text-align:center; margin-top:24px; }
 .view-more-btn {
-  border:none; background:#1d4ed8; color:#fff;
-  padding:10px 18px; border-radius:999px; font-size:.9rem;
-  cursor:pointer; transition:.2s;
+  border: 1px solid rgba(255,102,0,0.5); background: transparent; color: #ff6600;
+  padding:12px 24px; border-radius:999px; font-size:.95rem; font-weight: 600;
+  cursor:pointer; transition:all 0.3s ease;
 }
-.view-more-btn:hover { background:#4338ca; }
+.view-more-btn:hover { background:rgba(255,102,0,0.1); transform: translateY(-2px); }
 
 .clear-search-btn {
-  background: #f1f5f9 !important;
-  color: #334155 !important;
-  border-left: 1px solid #e2e8f0 !important;
-  border-right: 1px solid #e2e8f0 !important;
+  background: rgba(255,255,255,0.05) !important;
+  color: #fff !important;
+  border-left: 1px solid rgba(255,255,255,0.1) !important;
+  border-right: 1px solid rgba(255,255,255,0.1) !important;
 }
+body.light-mode .clear-search-btn { background: #f1f5f9 !important; color: #475569 !important; border-color: #cbd5e1 !important; }
 
-.clear-search-btn:hover { background: #e2e8f0 !important; }
+.clear-search-btn:hover { background: rgba(255,255,255,0.1) !important; }
+body.light-mode .clear-search-btn:hover { background: #e2e8f0 !important; }
 
 .search-suggestions {
-  margin-top: 8px;
-  border-radius: 12px;
-  background: #ffffff;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
-  border: 1px solid #e2e8f0;
+  margin-top: 12px;
+  border-radius: 16px;
+  background: rgba(13, 22, 39, 0.9);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
   text-align: left;
   display: none;
 }
+body.light-mode .search-suggestions { background: rgba(255,255,255,0.95); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.1); border-color: #cbd5e1; }
 
 .search-suggestion-item {
   width: 100%;
   text-align: left;
   border: none;
-  background: #fff;
-  padding: 10px 14px;
+  background: transparent;
+  padding: 12px 20px;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  font-size: .88rem;
-  color: #0f172a;
+  gap: 12px;
+  font-size: .95rem;
+  color: #fff;
+  transition: all 0.2s ease;
 }
+body.light-mode .search-suggestion-item { color: #0f172a; }
 
 .search-suggestion-item:hover,
 .search-suggestion-item.active {
-  background: #fff3e8;
+  background: rgba(255,102,0,0.15);
+  padding-left: 24px;
 }
+body.light-mode .search-suggestion-item:hover, body.light-mode .search-suggestion-item.active { background: rgba(255,102,0,0.1); }
 
 .search-suggestion-type {
-  color: #64748b;
-  font-size: .74rem;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  padding: 2px 8px;
+  color: #94a3b8;
+  font-size: .75rem;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 4px 10px;
   border-radius: 999px;
+  font-weight: 600;
 }
+/* ── Pathways Section ─────────────────────────── */
+.pathway-section {
+  padding: 30px 40px; margin: 20px auto; max-width: 1200px;
+}
+.pathway-section h2 { margin-top: 0; font-family: 'Poppins', sans-serif; font-size: 1.5rem; font-weight: 700; color: #fff; margin-bottom: 20px; }
+body.light-mode .pathway-section h2 { color: #0f172a; }
+
+.pathway-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;
+}
+.pathway-card {
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px; padding: 20px; text-align: center; cursor: pointer;
+  transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+}
+body.light-mode .pathway-card { background: #f8fafc; border-color: #e2e8f0; }
+
+.pathway-card:hover, .pathway-card.active {
+  transform: translateY(-4px); background: rgba(255,102,0,0.1); border-color: rgba(255,102,0,0.4);
+}
+body.light-mode .pathway-card:hover, body.light-mode .pathway-card.active { background: #fff; border-color: #ff6600; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+
+.pathway-icon { font-size: 2rem; }
+.pathway-title { font-weight: 700; font-size: 1rem; color: #cbd5e1; }
+body.light-mode .pathway-title { color: #475569; }
+.pathway-card:hover .pathway-title, .pathway-card.active .pathway-title { color: #ff6600; }
+
+.pathway-subtitle { font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;}
 </style>
 {% endblock %}
 
@@ -298,6 +374,43 @@
   {% endfor %}
 
 </div>{# end .exam-sections #}
+
+{# ─────────────── PATHWAYS TABS ─────────────── #}
+<section class="pathway-section">
+  <h2>Explore Pathways By Stage</h2>
+  <div class="pathway-grid" id="pathwayGrid">
+    <div class="pathway-card" data-pathway="after_10th">
+      <div class="pathway-icon">🛠️</div>
+      <div class="pathway-title">After 10th</div>
+      <div class="pathway-subtitle">11th/12th, ITI, Diplomas</div>
+    </div>
+    <div class="pathway-card" data-pathway="after_12th_science_pcm">
+      <div class="pathway-icon">🔬</div>
+      <div class="pathway-title">Science (PCM)</div>
+      <div class="pathway-subtitle">B.Tech, B.Arch, B.Sc</div>
+    </div>
+    <div class="pathway-card" data-pathway="after_12th_science_pcb">
+      <div class="pathway-icon">🧬</div>
+      <div class="pathway-title">Science (PCB)</div>
+      <div class="pathway-subtitle">MBBS, B.Pharm, Agri</div>
+    </div>
+    <div class="pathway-card" data-pathway="after_12th_commerce">
+      <div class="pathway-icon">📊</div>
+      <div class="pathway-title">Commerce</div>
+      <div class="pathway-subtitle">B.Com, BBA, CA, CS, BAF</div>
+    </div>
+    <div class="pathway-card" data-pathway="after_12th_arts">
+      <div class="pathway-icon">🎨</div>
+      <div class="pathway-title">Arts & Humanities</div>
+      <div class="pathway-subtitle">B.A, Fine Arts, Law</div>
+    </div>
+    <div class="pathway-card" data-pathway="after_graduation">
+      <div class="pathway-icon">🎓</div>
+      <div class="pathway-title">After Graduation</div>
+      <div class="pathway-subtitle">PG, PhD, B.Ed, MBA</div>
+    </div>
+  </div>
+</section>
 
 {# ─────────────── SHORT-NAME PANEL ─────────────── #}
 <div id="course-panel">
@@ -490,6 +603,14 @@ function clearSearchInput() {
 /* ─── Filter tabs ────────────────────────────────────────────────────────── */
 document.querySelectorAll('.filter-tab').forEach(btn => {
   btn.addEventListener('click', function () {
+    // 1. Reset Pathway filter if active
+    if (typeof currentPathway !== 'undefined' && currentPathway) {
+      currentPathway = null;
+      document.querySelectorAll('.pathway-card').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('.exam-card').forEach(c => c.style.display = '');
+    }
+
+    // 2. Do normal level filtering
     document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
     this.classList.add('active');
     const f = this.dataset.filter;
@@ -580,6 +701,57 @@ function globalSearch() {
   searchResultsEl.innerHTML = html;
 }
 
+/* ─── Pathway filter logic ────────────────────────────────────────────────── */
+let currentPathway = null;
+const pathwayCards = document.querySelectorAll('.pathway-card');
+const examSections = document.querySelectorAll('.exam-section');
+
+pathwayCards.forEach(card => {
+  card.addEventListener('click', () => {
+    const p = card.dataset.pathway;
+    if (currentPathway === p) {
+      // Toggle off
+      currentPathway = null;
+      card.classList.remove('active');
+      document.querySelectorAll('.exam-card').forEach(c => c.style.display = '');
+      examSections.forEach(sec => sec.style.display = '');
+    } else {
+      // Toggle on
+      pathwayCards.forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      currentPathway = p;
+      
+      // Reset Level Tabs to "All Levels"
+      document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+      const allBtn = document.querySelector('.filter-tab[data-filter="all"]');
+      if (allBtn) allBtn.classList.add('active');
+
+      // We must filter the exam cards inside the sections.
+      // An exam-card's course pool can have multiple items. We need to check if ANY of its items have the pathway_tag.
+      // Since the card has data-level and data-sn, we find its underlying courses.
+      document.querySelectorAll('.exam-card').forEach(cCard => {
+        if(cCard.closest('#searchResults')) return; // ignore search results cards
+        const level = cCard.dataset.level;
+        const sn = cCard.dataset.sn;
+        const matches = ALL_COURSES.some(course => 
+          course.level === level && course.short_name === sn && 
+          course.pathway_tags && course.pathway_tags.includes(p)
+        );
+        cCard.style.display = matches ? '' : 'none';
+      });
+
+      // Hide sections that have no visible cards
+      examSections.forEach(sec => {
+        const visibleCards = Array.from(sec.querySelectorAll('.exam-card')).filter(c => c.style.display !== 'none');
+        sec.style.display = visibleCards.length > 0 ? '' : 'none';
+      });
+      
+      // Auto-scroll to courses
+      document.getElementById('courses').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+});
+
 courseInputEl.addEventListener('input', () => {
   toggleClearButton();
 
@@ -644,6 +816,10 @@ function openShortName(el) {
   panelCourses = ALL_COURSES.filter(
     c => c.level === level && c.short_name === shortName
   );
+  
+  if (currentPathway) {
+      panelCourses = panelCourses.filter(c => c.pathway_tags && c.pathway_tags.includes(currentPathway));
+  }
 
   const col = LEVEL_COLORS[level] || '#ff6600';
 
