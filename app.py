@@ -112,13 +112,12 @@ COURSES_DB_URL = (
     os.getenv("SUPABASE_POSTGRES_URL", "").strip()
     or os.getenv("DATABASE_URL", "").strip()
 )
-if COURSES_DB_URL:
-    try:
-        from courses_routes import courses_bp
+try:
+    from courses_routes import courses_bp
 
-        app.register_blueprint(courses_bp)
-    except Exception as exc:
-        app.logger.warning("Skipping courses blueprint registration: %s", exc)
+    app.register_blueprint(courses_bp)
+except Exception as exc:
+    app.logger.warning("Skipping courses blueprint registration: %s", exc)
 
 # Register news blueprint
 try:
@@ -1406,9 +1405,15 @@ def convert_excel_to_records(uploaded_file):
     if not excel_bytes:
         raise ValueError("The uploaded file is empty.")
 
-    workbook = pd.read_excel(io.BytesIO(excel_bytes), sheet_name=None)
+    if uploaded_file.filename.lower().endswith('.csv'):
+        # Parse CSV as a single sheet "Sheet1"
+        dataframe = pd.read_csv(io.BytesIO(excel_bytes))
+        workbook = {"Sheet1": dataframe}
+    else:
+        workbook = pd.read_excel(io.BytesIO(excel_bytes), sheet_name=None)
+        
     if not workbook:
-        raise ValueError("No sheets found in the uploaded Excel file.")
+        raise ValueError("No sheets found in the uploaded file.")
 
     records = []
     for sheet_name, dataframe in workbook.items():
@@ -1519,7 +1524,28 @@ def _load_universities_data():
             {"slug": "university-of-mumbai", "name": "University of Mumbai", "location": "Mumbai", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "45", "source_url": "https://mu.ac.in", "logo_url": "https://www.google.com/s2/favicons?sz=128&domain=mu.ac.in"},
         ]
 
-UNIVERSITIES_DATA = _load_universities_data()
+def _fetch_universities():
+    """Fetch universities from Postgres payload, fallback to JSON."""
+    try:
+        from psycopg2 import connect
+        from psycopg2.extras import RealDictCursor
+        db_url = get_postgres_connection_url()
+        if not db_url:
+            raise RuntimeError("Database URL not configured")
+        conn = connect(db_url, cursor_factory=RealDictCursor)
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT payload FROM universities")
+                rows = cur.fetchall()
+            if rows:
+                return [row['payload'] for row in rows if 'payload' in row]
+        finally:
+            conn.close()
+    except Exception as db_exc:
+        app.logger.warning(f"Could not load universities from DB, falling back to JSON: {db_exc}")
+        return _load_universities_data()
+
+UNIVERSITIES_DATA = _load_universities_data()  # Keep for initial cache or backward compat if needed
 
 
 
@@ -2374,13 +2400,14 @@ def vmadmin_proxy(subpath):
 
 @app.route("/universities")
 def universities():
-    states = sorted({item["state"] for item in UNIVERSITIES_DATA})
-    cities = sorted({item["location"] for item in UNIVERSITIES_DATA})
-    types = sorted({item["type"] for item in UNIVERSITIES_DATA})
-    streams = sorted({item["stream"] for item in UNIVERSITIES_DATA})
+    universities_data = _fetch_universities()
+    states = sorted({item.get("state", "Unknown") for item in universities_data if "state" in item})
+    cities = sorted({item.get("location", "Unknown") for item in universities_data if "location" in item})
+    types = sorted({item.get("type", "Government") for item in universities_data if "type" in item})
+    streams = sorted({item.get("stream", "General") for item in universities_data if "stream" in item})
     return render_template(
         "universities.html",
-        universities=UNIVERSITIES_DATA,
+        universities=universities_data,
         states=states,
         cities=cities,
         types=types,
@@ -2419,7 +2446,8 @@ def generate_university_description(uni):
 
 @app.route("/universities/<slug>")
 def university_detail(slug):
-    university = next((item for item in UNIVERSITIES_DATA if item["slug"] == slug), None)
+    universities_data = _fetch_universities()
+    university = next((item for item in universities_data if item.get("slug") == slug), None)
     if university is None:
         return redirect(url_for("universities"))
     
@@ -2551,10 +2579,23 @@ def colleges():
         error=error,
     )
 
-
 @app.route("/courses")
 def courses():
-    return render_template("courses.html")
+    try:
+        from courses_routes import _get_courses_bundle, LEVEL_ORDER, LEVEL_META
+        bundle = _get_courses_bundle()
+        return render_template(
+            "courses.html",
+            level_index   = bundle["level_index"],
+            level_order   = LEVEL_ORDER,
+            level_meta    = LEVEL_META,
+            total_courses = bundle["total_courses"],
+            courses_json  = bundle["courses_json"],
+            error         = None,
+        )
+    except Exception as exc:
+        app.logger.error("Error loading courses mock data: %s", exc)
+        return render_template("courses.html", total_courses=0, courses_json="[]", error=str(exc))
 
 
 @app.route("/entrance-exams")
@@ -3871,6 +3912,10 @@ def terms():
 def privacy():
     return render_template('privacy.html')
 
+@app.route('/careers')
+def careers():
+    return render_template('careers.html')
+
 @app.route('/about')
 def about_redirect():
     return redirect(url_for('about_us'))
@@ -4371,8 +4416,8 @@ def _perform_excel_upload(uploaded_file, table_name):
         return 0, "Invalid table name."
     if not uploaded_file or not uploaded_file.filename:
         return 0, "No file provided."
-    if not uploaded_file.filename.lower().endswith((".xlsx", ".xls")):
-        return 0, "Invalid file type. Please upload .xlsx or .xls."
+    if not uploaded_file.filename.lower().endswith((".xlsx", ".xls", ".csv")):
+        return 0, "Invalid file type. Please upload .csv, .xlsx or .xls."
     supabase_client = get_supabase_client()
     postgres_connection_url = get_postgres_connection_url()
     configured = supabase_client is not None or bool(postgres_connection_url)
@@ -4412,7 +4457,6 @@ def api_admin_data_upload():
     if err:
         return jsonify({"error": err}), 400
     return jsonify({"ok": True, "inserted": inserted, "table": table_name})
-
 
 @app.route("/excel-upload", methods=["GET", "POST"])
 def excel_upload():

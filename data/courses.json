@@ -1,0 +1,1659 @@
+[
+  {
+    "course_id": "VOC_1",
+    "course_name": "ITI in Fitter",
+    "short_name": "ITI",
+    "level": "vocational",
+    "stream": "Vocational",
+    "sub_stream": "Fitter",
+    "duration_years": "1-2",
+    "eligibility": "10th Pass",
+    "entrance_exams": "Merit",
+    "top_institutes": "Govt ITIs",
+    "avg_fee_inr_per_year": "5000",
+    "pathway_tags": [
+      "after_10th"
+    ]
+  },
+  {
+    "course_id": "VOC_2",
+    "course_name": "ITI in Electrician",
+    "short_name": "ITI",
+    "level": "vocational",
+    "stream": "Vocational",
+    "sub_stream": "Electrician",
+    "duration_years": "1-2",
+    "eligibility": "10th Pass",
+    "entrance_exams": "Merit",
+    "top_institutes": "Govt ITIs",
+    "avg_fee_inr_per_year": "5000",
+    "pathway_tags": [
+      "after_10th"
+    ]
+  },
+  {
+    "course_id": "VOC_3",
+    "course_name": "ITI in Welder",
+    "short_name": "ITI",
+    "level": "vocational",
+    "stream": "Vocational",
+    "sub_stream": "Welder",
+    "duration_years": "1-2",
+    "eligibility": "10th Pass",
+    "entrance_exams": "Merit",
+    "top_institutes": "Govt ITIs",
+    "avg_fee_inr_per_year": "5000",
+    "pathway_tags": [
+      "after_10th"
+    ]
+  },
+  {
+    "course_id": "VOC_4",
+    "course_name": "ITI in Machinist",
+    "short_name": "ITI",
+    "level": "vocational",
+    "stream": "Vocational",
+    "sub_stream": "Machinist",
+    "duration_years": "1-2",
+    "eligibility": "10th Pass",
+    "entrance_exams": "Merit",
+    "top_institutes": "Govt ITIs",
+    "avg_fee_inr_per_year": "5000",
+    "pathway_tags": [
+      "after_10th"
+    ]
+  },
+  {
+    "course_id": "VOC_5",
+    "course_name": "ITI in COPA",
+    "short_name": "ITI",
+    "level": "vocational",
+    "stream": "Vocational",
+    "sub_stream": "COPA",
+    "duration_years": "1-2",
+    "eligibility": "10th Pass",
+    "entrance_exams": "Merit",
+    "top_institutes": "Govt ITIs",
+    "avg_fee_inr_per_year": "5000",
+    "pathway_tags": [
+      "after_10th"
+    ]
+  },
+  {
+    "course_id": "VOC_6",
+    "course_name": "ITI in Motor Mechanic",
+    "short_name": "ITI",
+    "level": "vocational",
+    "stream": "Vocational",
+    "sub_stream": "Motor Mechanic",
+    "duration_years": "1-2",
+    "eligibility": "10th Pass",
+    "entrance_exams": "Merit",
+    "top_institutes": "Govt ITIs",
+    "avg_fee_inr_per_year": "5000",
+    "pathway_tags": [
+      "after_10th"
+    ]
+  },
+  {
+    "course_id": "VOC_7",
+    "course_name": "ITI in Plumber",
+    "short_name": "ITI",
+    "level": "vocational",
+    "stream": "Vocational",
+    "sub_stream": "Plumber",
+    "duration_years": "1-2",
+    "eligibility": "10th Pass",
+    "entrance_exams": "Merit",
+    "top_institutes": "Govt ITIs",
+    "avg_fee_inr_per_year": "5000",
+    "pathway_tags": [
+      "after_10th"
+    ]
+  },
+  {
+    "course_id": "VOC_8",
+    "course_name": "ITI in Turner",
+    "short_name": "ITI",
+    "level": "vocational",
+    "stream": "Vocational",
+    "sub_stream": "Turner",
+    "duration_years": "1-2",
+    "eligibility": "10th Pass",
+    "entrance_exams": "Merit",
+    "top_institutes": "Govt ITIs",
+    "avg_fee_inr_per_year": "5000",
+    "pathway_tags": [
+      "after_10th"
+    ]
+  },
+  {
+    "course_id": "VOC_9",
+    "course_name": "ITI in Draftsman Civil",
+    "short_name": "ITI",
+    "level": "vocational",
+    "stream": "Vocational",
+    "sub_stream": "Draftsman Civil",
+    "duration_years": "1-2",
+    "eligibility": "10th Pass",
+    "entrance_exams": "Merit",
+    "top_institutes": "Govt ITIs",
+    "avg_fee_inr_per_year": "5000",
+    "pathway_tags": [
+      "after_10th"
+    ]
+  },
+  {
+    "course_id": "DIP_10_1",
+    "course_name": "Diploma in Civil Engineering",
+    "short_name": "Diploma",
+    "level": "diploma",
+    "stream": "Engineering",
+    "sub_stream": "Civil",
+    "duration_years": "3",
+    "eligibility": "10th Pass",
+    "entrance_exams": "State Poly CET",
+    "top_institutes": "Govt Polytechnics",
+    "avg_fee_inr_per_year": "20000",
+    "pathway_tags": [
+      "after_10th"
+    ]
+  },
+  {
+    "course_id": "DIP_10_2",
+    "course_name": "Diploma in Mechanical Engineering",
+    "short_name": "Diploma",
+    "level": "diploma",
+    "stream": "Engineering",
+    "sub_stream": "Mechanical",
+    "duration_years": "3",
+    "eligibility": "10th Pass",
+    "entrance_exams": "State Poly CET",
+    "top_institutes": "Govt Polytechnics",
+    "avg_fee_inr_per_year": "20000",
+    "pathway_tags": [
+      "after_10th"
+    ]
+  },
+  {
+    "course_id": "DIP_10_3",
+    "course_name": "Diploma in Computer Engineering",
+    "short_name": "Diploma",
+    "level": "diploma",
+    "stream": "Engineering",
+    "sub_stream": "Computer",
+    "duration_years": "3",
+    "eligibility": "10th Pass",
+    "entrance_exams": "State Poly CET",
+    "top_institutes": "Govt Polytechnics",
+    "avg_fee_inr_per_year": "20000",
+    "pathway_tags": [
+      "after_10th"
+    ]
+  },
+  {
+    "course_id": "DIP_10_4",
+    "course_name": "Diploma in Electrical Engineering",
+    "short_name": "Diploma",
+    "level": "diploma",
+    "stream": "Engineering",
+    "sub_stream": "Electrical",
+    "duration_years": "3",
+    "eligibility": "10th Pass",
+    "entrance_exams": "State Poly CET",
+    "top_institutes": "Govt Polytechnics",
+    "avg_fee_inr_per_year": "20000",
+    "pathway_tags": [
+      "after_10th"
+    ]
+  },
+  {
+    "course_id": "DIP_10_5",
+    "course_name": "Diploma in Automobile Engineering",
+    "short_name": "Diploma",
+    "level": "diploma",
+    "stream": "Engineering",
+    "sub_stream": "Automobile",
+    "duration_years": "3",
+    "eligibility": "10th Pass",
+    "entrance_exams": "State Poly CET",
+    "top_institutes": "Govt Polytechnics",
+    "avg_fee_inr_per_year": "20000",
+    "pathway_tags": [
+      "after_10th"
+    ]
+  },
+  {
+    "course_id": "DIP_10_6",
+    "course_name": "Diploma in Agriculture",
+    "short_name": "Diploma",
+    "level": "diploma",
+    "stream": "Science",
+    "sub_stream": "Agriculture",
+    "duration_years": "3",
+    "eligibility": "10th Pass",
+    "entrance_exams": "State Poly CET",
+    "top_institutes": "Govt Polytechnics",
+    "avg_fee_inr_per_year": "20000",
+    "pathway_tags": [
+      "after_10th"
+    ]
+  },
+  {
+    "course_id": "U_ENG_1",
+    "course_name": "Bachelor of Technology in Computer Science",
+    "short_name": "B.Tech",
+    "level": "undergraduate",
+    "stream": "Engineering",
+    "sub_stream": "Computer Science",
+    "duration_years": "4",
+    "eligibility": "10+2 PCM",
+    "entrance_exams": "JEE Main, JEE Adv, MHT CET",
+    "top_institutes": "IITs, NITs, BITS",
+    "avg_fee_inr_per_year": "250000",
+    "pathway_tags": [
+      "after_12th_science_pcm"
+    ]
+  },
+  {
+    "course_id": "U_ENG_2",
+    "course_name": "Bachelor of Technology in Mechanical",
+    "short_name": "B.Tech",
+    "level": "undergraduate",
+    "stream": "Engineering",
+    "sub_stream": "Mechanical",
+    "duration_years": "4",
+    "eligibility": "10+2 PCM",
+    "entrance_exams": "JEE Main, JEE Adv, MHT CET",
+    "top_institutes": "IITs, NITs, BITS",
+    "avg_fee_inr_per_year": "150000",
+    "pathway_tags": [
+      "after_12th_science_pcm"
+    ]
+  },
+  {
+    "course_id": "U_ENG_3",
+    "course_name": "Bachelor of Technology in Civil",
+    "short_name": "B.Tech",
+    "level": "undergraduate",
+    "stream": "Engineering",
+    "sub_stream": "Civil",
+    "duration_years": "4",
+    "eligibility": "10+2 PCM",
+    "entrance_exams": "JEE Main, JEE Adv, MHT CET",
+    "top_institutes": "IITs, NITs, BITS",
+    "avg_fee_inr_per_year": "140000",
+    "pathway_tags": [
+      "after_12th_science_pcm"
+    ]
+  },
+  {
+    "course_id": "U_ENG_4",
+    "course_name": "Bachelor of Technology in Electrical",
+    "short_name": "B.Tech",
+    "level": "undergraduate",
+    "stream": "Engineering",
+    "sub_stream": "Electrical",
+    "duration_years": "4",
+    "eligibility": "10+2 PCM",
+    "entrance_exams": "JEE Main, JEE Adv, MHT CET",
+    "top_institutes": "IITs, NITs, BITS",
+    "avg_fee_inr_per_year": "145000",
+    "pathway_tags": [
+      "after_12th_science_pcm"
+    ]
+  },
+  {
+    "course_id": "U_ENG_5",
+    "course_name": "Bachelor of Technology in Electronics & Comm.",
+    "short_name": "B.Tech",
+    "level": "undergraduate",
+    "stream": "Engineering",
+    "sub_stream": "Electronics & Comm.",
+    "duration_years": "4",
+    "eligibility": "10+2 PCM",
+    "entrance_exams": "JEE Main, JEE Adv, MHT CET",
+    "top_institutes": "IITs, NITs, BITS",
+    "avg_fee_inr_per_year": "160000",
+    "pathway_tags": [
+      "after_12th_science_pcm"
+    ]
+  },
+  {
+    "course_id": "U_ENG_6",
+    "course_name": "Bachelor of Technology in Information Technology",
+    "short_name": "B.Tech",
+    "level": "undergraduate",
+    "stream": "Engineering",
+    "sub_stream": "Information Technology",
+    "duration_years": "4",
+    "eligibility": "10+2 PCM",
+    "entrance_exams": "JEE Main, JEE Adv, MHT CET",
+    "top_institutes": "IITs, NITs, BITS",
+    "avg_fee_inr_per_year": "200000",
+    "pathway_tags": [
+      "after_12th_science_pcm"
+    ]
+  },
+  {
+    "course_id": "U_ENG_7",
+    "course_name": "Bachelor of Technology in Aerospace",
+    "short_name": "B.Tech",
+    "level": "undergraduate",
+    "stream": "Engineering",
+    "sub_stream": "Aerospace",
+    "duration_years": "4",
+    "eligibility": "10+2 PCM",
+    "entrance_exams": "JEE Main, JEE Adv, MHT CET",
+    "top_institutes": "IITs, NITs, BITS",
+    "avg_fee_inr_per_year": "300000",
+    "pathway_tags": [
+      "after_12th_science_pcm"
+    ]
+  },
+  {
+    "course_id": "U_ENG_8",
+    "course_name": "Bachelor of Technology in Chemical",
+    "short_name": "B.Tech",
+    "level": "undergraduate",
+    "stream": "Engineering",
+    "sub_stream": "Chemical",
+    "duration_years": "4",
+    "eligibility": "10+2 PCM",
+    "entrance_exams": "JEE Main, JEE Adv, MHT CET",
+    "top_institutes": "IITs, NITs, BITS",
+    "avg_fee_inr_per_year": "130000",
+    "pathway_tags": [
+      "after_12th_science_pcm"
+    ]
+  },
+  {
+    "course_id": "U_ENG_9",
+    "course_name": "Bachelor of Technology in Robotics & AI",
+    "short_name": "B.Tech",
+    "level": "undergraduate",
+    "stream": "Engineering",
+    "sub_stream": "Robotics & AI",
+    "duration_years": "4",
+    "eligibility": "10+2 PCM",
+    "entrance_exams": "JEE Main, JEE Adv, MHT CET",
+    "top_institutes": "IITs, NITs, BITS",
+    "avg_fee_inr_per_year": "350000",
+    "pathway_tags": [
+      "after_12th_science_pcm"
+    ]
+  },
+  {
+    "course_id": "U_ENG_10",
+    "course_name": "Bachelor of Technology in Data Science",
+    "short_name": "B.Tech",
+    "level": "undergraduate",
+    "stream": "Engineering",
+    "sub_stream": "Data Science",
+    "duration_years": "4",
+    "eligibility": "10+2 PCM",
+    "entrance_exams": "JEE Main, JEE Adv, MHT CET",
+    "top_institutes": "IITs, NITs, BITS",
+    "avg_fee_inr_per_year": "320000",
+    "pathway_tags": [
+      "after_12th_science_pcm"
+    ]
+  },
+  {
+    "course_id": "U_ENG_11",
+    "course_name": "Bachelor of Technology in Marine",
+    "short_name": "B.Tech",
+    "level": "undergraduate",
+    "stream": "Engineering",
+    "sub_stream": "Marine",
+    "duration_years": "4",
+    "eligibility": "10+2 PCM",
+    "entrance_exams": "JEE Main, JEE Adv, MHT CET",
+    "top_institutes": "IITs, NITs, BITS",
+    "avg_fee_inr_per_year": "200000",
+    "pathway_tags": [
+      "after_12th_science_pcm"
+    ]
+  },
+  {
+    "course_id": "U_ENG_12",
+    "course_name": "Bachelor of Technology in Automobile",
+    "short_name": "B.Tech",
+    "level": "undergraduate",
+    "stream": "Engineering",
+    "sub_stream": "Automobile",
+    "duration_years": "4",
+    "eligibility": "10+2 PCM",
+    "entrance_exams": "JEE Main, JEE Adv, MHT CET",
+    "top_institutes": "IITs, NITs, BITS",
+    "avg_fee_inr_per_year": "180000",
+    "pathway_tags": [
+      "after_12th_science_pcm"
+    ]
+  },
+  {
+    "course_id": "U_ARCH_1",
+    "course_name": "Bachelor of Architecture",
+    "short_name": "B.Arch",
+    "level": "undergraduate",
+    "stream": "Architecture",
+    "sub_stream": "General",
+    "duration_years": "5",
+    "eligibility": "10+2 PCM",
+    "entrance_exams": "NATA, JEE Main Paper 2",
+    "top_institutes": "SPAs, CEPT, IIT Roorkee",
+    "avg_fee_inr_per_year": "200000",
+    "pathway_tags": [
+      "after_12th_science_pcm"
+    ]
+  },
+  {
+    "course_id": "U_AVI_1",
+    "course_name": "Commercial Pilot Training",
+    "short_name": "CPL",
+    "level": "professional",
+    "stream": "Aviation",
+    "sub_stream": "Pilot",
+    "duration_years": "2",
+    "eligibility": "10+2 PCM",
+    "entrance_exams": "DGCA Exams",
+    "top_institutes": "IGRUA, Flight Schools",
+    "avg_fee_inr_per_year": "2500000",
+    "pathway_tags": [
+      "after_12th_science_pcm"
+    ]
+  },
+  {
+    "course_id": "U_BSC_PCM_1",
+    "course_name": "B.Sc Physics",
+    "short_name": "B.Sc",
+    "level": "undergraduate",
+    "stream": "Science",
+    "sub_stream": "Physics",
+    "duration_years": "3",
+    "eligibility": "10+2 PCM",
+    "entrance_exams": "CUET",
+    "top_institutes": "DU, BHU",
+    "avg_fee_inr_per_year": "40000",
+    "pathway_tags": [
+      "after_12th_science_pcm"
+    ]
+  },
+  {
+    "course_id": "U_BSC_PCM_2",
+    "course_name": "B.Sc Mathematics",
+    "short_name": "B.Sc",
+    "level": "undergraduate",
+    "stream": "Science",
+    "sub_stream": "Mathematics",
+    "duration_years": "3",
+    "eligibility": "10+2 PCM",
+    "entrance_exams": "CUET",
+    "top_institutes": "DU, CMI",
+    "avg_fee_inr_per_year": "40000",
+    "pathway_tags": [
+      "after_12th_science_pcm"
+    ]
+  },
+  {
+    "course_id": "U_MED_1",
+    "course_name": "Bachelor of Medicine & Surgery",
+    "short_name": "MBBS",
+    "level": "undergraduate",
+    "stream": "Medical",
+    "sub_stream": "Medicine & Surgery",
+    "duration_years": "5.5",
+    "eligibility": "10+2 PCB",
+    "entrance_exams": "NEET UG",
+    "top_institutes": "AIIMS, CMC Vellore",
+    "avg_fee_inr_per_year": "1500000",
+    "pathway_tags": [
+      "after_12th_science_pcb"
+    ]
+  },
+  {
+    "course_id": "U_MED_2",
+    "course_name": "Bachelor of Dental Surgery",
+    "short_name": "BDS",
+    "level": "undergraduate",
+    "stream": "Medical",
+    "sub_stream": "Dental Surgery",
+    "duration_years": "5",
+    "eligibility": "10+2 PCB",
+    "entrance_exams": "NEET UG",
+    "top_institutes": "Maulana Azad, Manipal",
+    "avg_fee_inr_per_year": "600000",
+    "pathway_tags": [
+      "after_12th_science_pcb"
+    ]
+  },
+  {
+    "course_id": "U_MED_3",
+    "course_name": "Bachelor of Ayurvedic Medicine",
+    "short_name": "BAMS",
+    "level": "undergraduate",
+    "stream": "Medical",
+    "sub_stream": "Ayurvedic Medicine",
+    "duration_years": "5.5",
+    "eligibility": "10+2 PCB",
+    "entrance_exams": "NEET UG",
+    "top_institutes": "BHU, Patanjali",
+    "avg_fee_inr_per_year": "300000",
+    "pathway_tags": [
+      "after_12th_science_pcb"
+    ]
+  },
+  {
+    "course_id": "U_MED_4",
+    "course_name": "Bachelor of Homeopathic Medicine",
+    "short_name": "BHMS",
+    "level": "undergraduate",
+    "stream": "Medical",
+    "sub_stream": "Homeopathic Medicine",
+    "duration_years": "5.5",
+    "eligibility": "10+2 PCB",
+    "entrance_exams": "NEET UG",
+    "top_institutes": "National Institute of Homeopathy",
+    "avg_fee_inr_per_year": "200000",
+    "pathway_tags": [
+      "after_12th_science_pcb"
+    ]
+  },
+  {
+    "course_id": "U_MED_5",
+    "course_name": "Bachelor of Veterinary Science",
+    "short_name": "BVSc",
+    "level": "undergraduate",
+    "stream": "Medical",
+    "sub_stream": "Veterinary Science",
+    "duration_years": "5.5",
+    "eligibility": "10+2 PCB",
+    "entrance_exams": "NEET UG",
+    "top_institutes": "IVRI Bareilly",
+    "avg_fee_inr_per_year": "150000",
+    "pathway_tags": [
+      "after_12th_science_pcb"
+    ]
+  },
+  {
+    "course_id": "U_PARA_1",
+    "course_name": "Bachelor of Nursing",
+    "short_name": "B.Sc Nursing",
+    "level": "undergraduate",
+    "stream": "Medical",
+    "sub_stream": "Nursing",
+    "duration_years": "4",
+    "eligibility": "10+2 PCB",
+    "entrance_exams": "NEET/State Exams",
+    "top_institutes": "AIIMS, CMC",
+    "avg_fee_inr_per_year": "100000",
+    "pathway_tags": [
+      "after_12th_science_pcb"
+    ]
+  },
+  {
+    "course_id": "U_PARA_2",
+    "course_name": "Bachelor of Physiotherapy",
+    "short_name": "BPT",
+    "level": "undergraduate",
+    "stream": "Medical",
+    "sub_stream": "Physiotherapy",
+    "duration_years": "4",
+    "eligibility": "10+2 PCB",
+    "entrance_exams": "NEET/State Exams",
+    "top_institutes": "AIIMS, CMC",
+    "avg_fee_inr_per_year": "100000",
+    "pathway_tags": [
+      "after_12th_science_pcb"
+    ]
+  },
+  {
+    "course_id": "U_PARA_3",
+    "course_name": "Bachelor of Medical Lab Tech",
+    "short_name": "BMLT",
+    "level": "undergraduate",
+    "stream": "Medical",
+    "sub_stream": "Medical Lab Tech",
+    "duration_years": "4",
+    "eligibility": "10+2 PCB",
+    "entrance_exams": "NEET/State Exams",
+    "top_institutes": "AIIMS, CMC",
+    "avg_fee_inr_per_year": "100000",
+    "pathway_tags": [
+      "after_12th_science_pcb"
+    ]
+  },
+  {
+    "course_id": "U_PARA_4",
+    "course_name": "Bachelor of Optometry",
+    "short_name": "B.Optom",
+    "level": "undergraduate",
+    "stream": "Medical",
+    "sub_stream": "Optometry",
+    "duration_years": "4",
+    "eligibility": "10+2 PCB",
+    "entrance_exams": "NEET/State Exams",
+    "top_institutes": "AIIMS, CMC",
+    "avg_fee_inr_per_year": "100000",
+    "pathway_tags": [
+      "after_12th_science_pcb"
+    ]
+  },
+  {
+    "course_id": "U_PARA_5",
+    "course_name": "Bachelor of Radiography",
+    "short_name": "B.Sc Radiography",
+    "level": "undergraduate",
+    "stream": "Medical",
+    "sub_stream": "Radiography",
+    "duration_years": "4",
+    "eligibility": "10+2 PCB",
+    "entrance_exams": "NEET/State Exams",
+    "top_institutes": "AIIMS, CMC",
+    "avg_fee_inr_per_year": "100000",
+    "pathway_tags": [
+      "after_12th_science_pcb"
+    ]
+  },
+  {
+    "course_id": "U_PHARM_1",
+    "course_name": "Bachelor of Pharmacy",
+    "short_name": "B.Pharm",
+    "level": "undergraduate",
+    "stream": "Medical",
+    "sub_stream": "Pharmacy",
+    "duration_years": "4",
+    "eligibility": "10+2 PCB/PCM",
+    "entrance_exams": "State Exams, BITSAT",
+    "top_institutes": "Jamia Hamdard",
+    "avg_fee_inr_per_year": "120000",
+    "pathway_tags": [
+      "after_12th_science_pcb",
+      "after_12th_science_pcm"
+    ]
+  },
+  {
+    "course_id": "U_AGRI_1",
+    "course_name": "B.Sc Agriculture",
+    "short_name": "B.Sc",
+    "level": "undergraduate",
+    "stream": "Science",
+    "sub_stream": "Agriculture",
+    "duration_years": "4",
+    "eligibility": "10+2 PCB/PCM",
+    "entrance_exams": "ICAR AIEEA",
+    "top_institutes": "ICAR Institutes",
+    "avg_fee_inr_per_year": "50000",
+    "pathway_tags": [
+      "after_12th_science_pcb",
+      "after_12th_science_pcm"
+    ]
+  },
+  {
+    "course_id": "U_BSC_BIO_1",
+    "course_name": "B.Sc Biology",
+    "short_name": "B.Sc",
+    "level": "undergraduate",
+    "stream": "Science",
+    "sub_stream": "Biology",
+    "duration_years": "3",
+    "eligibility": "10+2 PCB",
+    "entrance_exams": "CUET",
+    "top_institutes": "DU, BHU",
+    "avg_fee_inr_per_year": "40000",
+    "pathway_tags": [
+      "after_12th_science_pcb"
+    ]
+  },
+  {
+    "course_id": "U_BSC_BIO_2",
+    "course_name": "B.Sc Biotechnology",
+    "short_name": "B.Sc",
+    "level": "undergraduate",
+    "stream": "Science",
+    "sub_stream": "Biotechnology",
+    "duration_years": "3",
+    "eligibility": "10+2 PCB",
+    "entrance_exams": "CUET",
+    "top_institutes": "DU, Christ",
+    "avg_fee_inr_per_year": "60000",
+    "pathway_tags": [
+      "after_12th_science_pcb"
+    ]
+  },
+  {
+    "course_id": "U_BCOM_1",
+    "course_name": "Bachelor of Commerce (General)",
+    "short_name": "B.Com",
+    "level": "undergraduate",
+    "stream": "Commerce",
+    "sub_stream": "General",
+    "duration_years": "3",
+    "eligibility": "10+2 Commerce",
+    "entrance_exams": "CUET, Merit",
+    "top_institutes": "SRCC, Hindu College",
+    "avg_fee_inr_per_year": "50000",
+    "pathway_tags": [
+      "after_12th_commerce",
+      "after_12th_arts"
+    ]
+  },
+  {
+    "course_id": "U_BCOM_2",
+    "course_name": "Bachelor of Commerce (Honours)",
+    "short_name": "B.Com Hons",
+    "level": "undergraduate",
+    "stream": "Commerce",
+    "sub_stream": "Honours",
+    "duration_years": "3",
+    "eligibility": "10+2 Commerce (Maths)",
+    "entrance_exams": "CUET",
+    "top_institutes": "SRCC",
+    "avg_fee_inr_per_year": "60000",
+    "pathway_tags": [
+      "after_12th_commerce"
+    ]
+  },
+  {
+    "course_id": "U_BAF_1",
+    "course_name": "Bachelor of Accounting & Finance",
+    "short_name": "BAF",
+    "level": "undergraduate",
+    "stream": "Commerce",
+    "sub_stream": "Accounting & Finance",
+    "duration_years": "3",
+    "eligibility": "10+2 Commerce",
+    "entrance_exams": "Merit",
+    "top_institutes": "HR College, NM College",
+    "avg_fee_inr_per_year": "70000",
+    "pathway_tags": [
+      "after_12th_commerce"
+    ]
+  },
+  {
+    "course_id": "U_BBI_1",
+    "course_name": "Bachelor of Banking & Insurance",
+    "short_name": "BBI",
+    "level": "undergraduate",
+    "stream": "Commerce",
+    "sub_stream": "Banking",
+    "duration_years": "3",
+    "eligibility": "10+2 Commerce",
+    "entrance_exams": "Merit",
+    "top_institutes": "Mumbai Univ Colleges",
+    "avg_fee_inr_per_year": "60000",
+    "pathway_tags": [
+      "after_12th_commerce"
+    ]
+  },
+  {
+    "course_id": "U_BFM_1",
+    "course_name": "Bachelor of Financial Markets",
+    "short_name": "BFM",
+    "level": "undergraduate",
+    "stream": "Commerce",
+    "sub_stream": "Financial Markets",
+    "duration_years": "3",
+    "eligibility": "10+2 Commerce",
+    "entrance_exams": "Merit",
+    "top_institutes": "NM College",
+    "avg_fee_inr_per_year": "80000",
+    "pathway_tags": [
+      "after_12th_commerce"
+    ]
+  },
+  {
+    "course_id": "U_BBA_1",
+    "course_name": "Bachelor of Business Administration in General",
+    "short_name": "BBA",
+    "level": "undergraduate",
+    "stream": "Management",
+    "sub_stream": "General",
+    "duration_years": "3",
+    "eligibility": "10+2 Any Stream",
+    "entrance_exams": "IPMAT, SET, CUET",
+    "top_institutes": "NMIMS, Christ, IIM Indore",
+    "avg_fee_inr_per_year": "200000",
+    "pathway_tags": [
+      "after_12th_commerce",
+      "after_12th_arts",
+      "after_12th_science_pcm",
+      "after_12th_science_pcb"
+    ]
+  },
+  {
+    "course_id": "U_BBA_2",
+    "course_name": "Bachelor of Business Administration in Finance",
+    "short_name": "BBA",
+    "level": "undergraduate",
+    "stream": "Management",
+    "sub_stream": "Finance",
+    "duration_years": "3",
+    "eligibility": "10+2 Any Stream",
+    "entrance_exams": "IPMAT, SET, CUET",
+    "top_institutes": "NMIMS, Christ, IIM Indore",
+    "avg_fee_inr_per_year": "200000",
+    "pathway_tags": [
+      "after_12th_commerce",
+      "after_12th_arts",
+      "after_12th_science_pcm",
+      "after_12th_science_pcb"
+    ]
+  },
+  {
+    "course_id": "U_BBA_3",
+    "course_name": "Bachelor of Business Administration in Marketing",
+    "short_name": "BBA",
+    "level": "undergraduate",
+    "stream": "Management",
+    "sub_stream": "Marketing",
+    "duration_years": "3",
+    "eligibility": "10+2 Any Stream",
+    "entrance_exams": "IPMAT, SET, CUET",
+    "top_institutes": "NMIMS, Christ, IIM Indore",
+    "avg_fee_inr_per_year": "200000",
+    "pathway_tags": [
+      "after_12th_commerce",
+      "after_12th_arts",
+      "after_12th_science_pcm",
+      "after_12th_science_pcb"
+    ]
+  },
+  {
+    "course_id": "U_BBA_4",
+    "course_name": "Bachelor of Business Administration in HR",
+    "short_name": "BBA",
+    "level": "undergraduate",
+    "stream": "Management",
+    "sub_stream": "HR",
+    "duration_years": "3",
+    "eligibility": "10+2 Any Stream",
+    "entrance_exams": "IPMAT, SET, CUET",
+    "top_institutes": "NMIMS, Christ, IIM Indore",
+    "avg_fee_inr_per_year": "200000",
+    "pathway_tags": [
+      "after_12th_commerce",
+      "after_12th_arts",
+      "after_12th_science_pcm",
+      "after_12th_science_pcb"
+    ]
+  },
+  {
+    "course_id": "U_BBA_5",
+    "course_name": "Bachelor of Business Administration in International Business",
+    "short_name": "BBA",
+    "level": "undergraduate",
+    "stream": "Management",
+    "sub_stream": "International Business",
+    "duration_years": "3",
+    "eligibility": "10+2 Any Stream",
+    "entrance_exams": "IPMAT, SET, CUET",
+    "top_institutes": "NMIMS, Christ, IIM Indore",
+    "avg_fee_inr_per_year": "200000",
+    "pathway_tags": [
+      "after_12th_commerce",
+      "after_12th_arts",
+      "after_12th_science_pcm",
+      "after_12th_science_pcb"
+    ]
+  },
+  {
+    "course_id": "PRO_1",
+    "course_name": "Chartered Accountancy",
+    "short_name": "CA",
+    "level": "professional",
+    "stream": "Commerce",
+    "sub_stream": "Accounting",
+    "duration_years": "4.5",
+    "eligibility": "10+2 Any Stream",
+    "entrance_exams": "CA Foundation",
+    "top_institutes": "ICAI",
+    "avg_fee_inr_per_year": "50000",
+    "pathway_tags": [
+      "after_12th_commerce",
+      "after_12th_arts",
+      "after_12th_science_pcm"
+    ]
+  },
+  {
+    "course_id": "PRO_2",
+    "course_name": "Company Secretary",
+    "short_name": "CS",
+    "level": "professional",
+    "stream": "Commerce",
+    "sub_stream": "Corporate Law",
+    "duration_years": "3",
+    "eligibility": "10+2 Any Stream",
+    "entrance_exams": "CSEET",
+    "top_institutes": "ICSI",
+    "avg_fee_inr_per_year": "50000",
+    "pathway_tags": [
+      "after_12th_commerce",
+      "after_12th_arts",
+      "after_12th_science_pcm"
+    ]
+  },
+  {
+    "course_id": "PRO_3",
+    "course_name": "Cost & Management Accountancy",
+    "short_name": "CMA",
+    "level": "professional",
+    "stream": "Commerce",
+    "sub_stream": "Cost Accounting",
+    "duration_years": "3",
+    "eligibility": "10+2 Any Stream",
+    "entrance_exams": "CMA Foundation",
+    "top_institutes": "ICMAI",
+    "avg_fee_inr_per_year": "50000",
+    "pathway_tags": [
+      "after_12th_commerce",
+      "after_12th_arts",
+      "after_12th_science_pcm"
+    ]
+  },
+  {
+    "course_id": "U_BA_1",
+    "course_name": "Bachelor of Arts in English",
+    "short_name": "B.A",
+    "level": "undergraduate",
+    "stream": "Arts",
+    "sub_stream": "English",
+    "duration_years": "3",
+    "eligibility": "10+2 Any Stream",
+    "entrance_exams": "CUET",
+    "top_institutes": "LSR, St. Stephen's",
+    "avg_fee_inr_per_year": "30000",
+    "pathway_tags": [
+      "after_12th_arts",
+      "after_12th_commerce"
+    ]
+  },
+  {
+    "course_id": "U_BA_2",
+    "course_name": "Bachelor of Arts in History",
+    "short_name": "B.A",
+    "level": "undergraduate",
+    "stream": "Arts",
+    "sub_stream": "History",
+    "duration_years": "3",
+    "eligibility": "10+2 Any Stream",
+    "entrance_exams": "CUET",
+    "top_institutes": "LSR, St. Stephen's",
+    "avg_fee_inr_per_year": "30000",
+    "pathway_tags": [
+      "after_12th_arts",
+      "after_12th_commerce"
+    ]
+  },
+  {
+    "course_id": "U_BA_3",
+    "course_name": "Bachelor of Arts in Political Science",
+    "short_name": "B.A",
+    "level": "undergraduate",
+    "stream": "Arts",
+    "sub_stream": "Political Science",
+    "duration_years": "3",
+    "eligibility": "10+2 Any Stream",
+    "entrance_exams": "CUET",
+    "top_institutes": "LSR, St. Stephen's",
+    "avg_fee_inr_per_year": "30000",
+    "pathway_tags": [
+      "after_12th_arts",
+      "after_12th_commerce"
+    ]
+  },
+  {
+    "course_id": "U_BA_4",
+    "course_name": "Bachelor of Arts in Psychology",
+    "short_name": "B.A",
+    "level": "undergraduate",
+    "stream": "Arts",
+    "sub_stream": "Psychology",
+    "duration_years": "3",
+    "eligibility": "10+2 Any Stream",
+    "entrance_exams": "CUET",
+    "top_institutes": "LSR, St. Stephen's",
+    "avg_fee_inr_per_year": "30000",
+    "pathway_tags": [
+      "after_12th_arts",
+      "after_12th_commerce"
+    ]
+  },
+  {
+    "course_id": "U_BA_5",
+    "course_name": "Bachelor of Arts in Economics",
+    "short_name": "B.A",
+    "level": "undergraduate",
+    "stream": "Arts",
+    "sub_stream": "Economics",
+    "duration_years": "3",
+    "eligibility": "10+2 Any Stream",
+    "entrance_exams": "CUET",
+    "top_institutes": "LSR, St. Stephen's",
+    "avg_fee_inr_per_year": "30000",
+    "pathway_tags": [
+      "after_12th_arts",
+      "after_12th_commerce"
+    ]
+  },
+  {
+    "course_id": "U_BA_6",
+    "course_name": "Bachelor of Arts in Sociology",
+    "short_name": "B.A",
+    "level": "undergraduate",
+    "stream": "Arts",
+    "sub_stream": "Sociology",
+    "duration_years": "3",
+    "eligibility": "10+2 Any Stream",
+    "entrance_exams": "CUET",
+    "top_institutes": "LSR, St. Stephen's",
+    "avg_fee_inr_per_year": "30000",
+    "pathway_tags": [
+      "after_12th_arts",
+      "after_12th_commerce"
+    ]
+  },
+  {
+    "course_id": "U_BA_7",
+    "course_name": "Bachelor of Arts in Geography",
+    "short_name": "B.A",
+    "level": "undergraduate",
+    "stream": "Arts",
+    "sub_stream": "Geography",
+    "duration_years": "3",
+    "eligibility": "10+2 Any Stream",
+    "entrance_exams": "CUET",
+    "top_institutes": "LSR, St. Stephen's",
+    "avg_fee_inr_per_year": "30000",
+    "pathway_tags": [
+      "after_12th_arts",
+      "after_12th_commerce"
+    ]
+  },
+  {
+    "course_id": "U_ART_1",
+    "course_name": "Bachelor of Fine Arts",
+    "short_name": "BFA",
+    "level": "undergraduate",
+    "stream": "Arts",
+    "sub_stream": "Fine Arts",
+    "duration_years": "4",
+    "eligibility": "10+2 Any Stream",
+    "entrance_exams": "Merit/Aptitude",
+    "top_institutes": "Sir JJ School of Art",
+    "avg_fee_inr_per_year": "150000",
+    "pathway_tags": [
+      "after_12th_arts",
+      "after_12th_commerce",
+      "after_12th_science_pcm"
+    ]
+  },
+  {
+    "course_id": "U_ART_2",
+    "course_name": "Bachelor of Mass Media",
+    "short_name": "BMM",
+    "level": "undergraduate",
+    "stream": "Media",
+    "sub_stream": "Journalism",
+    "duration_years": "3",
+    "eligibility": "10+2 Any Stream",
+    "entrance_exams": "CUET/Merit",
+    "top_institutes": "Xavier's",
+    "avg_fee_inr_per_year": "150000",
+    "pathway_tags": [
+      "after_12th_arts",
+      "after_12th_commerce",
+      "after_12th_science_pcm"
+    ]
+  },
+  {
+    "course_id": "U_ART_3",
+    "course_name": "Bachelor of Hotel Management",
+    "short_name": "BHM",
+    "level": "undergraduate",
+    "stream": "Management",
+    "sub_stream": "Hospitality",
+    "duration_years": "3-4",
+    "eligibility": "10+2 Any Stream",
+    "entrance_exams": "NCHMCT JEE",
+    "top_institutes": "IHMs",
+    "avg_fee_inr_per_year": "150000",
+    "pathway_tags": [
+      "after_12th_arts",
+      "after_12th_commerce",
+      "after_12th_science_pcm"
+    ]
+  },
+  {
+    "course_id": "U_ART_4",
+    "course_name": "Bachelor of Design",
+    "short_name": "B.Des",
+    "level": "undergraduate",
+    "stream": "Design",
+    "sub_stream": "Fashion/Product",
+    "duration_years": "4",
+    "eligibility": "10+2 Any Stream",
+    "entrance_exams": "NID DAT, NIFT",
+    "top_institutes": "NID, NIFT",
+    "avg_fee_inr_per_year": "150000",
+    "pathway_tags": [
+      "after_12th_arts",
+      "after_12th_commerce",
+      "after_12th_science_pcm"
+    ]
+  },
+  {
+    "course_id": "U_LAW_1",
+    "course_name": "Bachelor of Laws (B.A LLB)",
+    "short_name": "B.A LLB",
+    "level": "integrated",
+    "stream": "Law",
+    "sub_stream": "Integrated Law",
+    "duration_years": "5",
+    "eligibility": "10+2 Any Stream",
+    "entrance_exams": "CLAT, AILET, LSAT",
+    "top_institutes": "NLSIU, NLU Delhi",
+    "avg_fee_inr_per_year": "250000",
+    "pathway_tags": [
+      "after_12th_arts",
+      "after_12th_commerce",
+      "after_12th_science_pcm",
+      "after_12th_science_pcb"
+    ]
+  },
+  {
+    "course_id": "U_LAW_2",
+    "course_name": "Bachelor of Laws (BBA LLB)",
+    "short_name": "BBA LLB",
+    "level": "integrated",
+    "stream": "Law",
+    "sub_stream": "Integrated Law",
+    "duration_years": "5",
+    "eligibility": "10+2 Any Stream",
+    "entrance_exams": "CLAT, AILET",
+    "top_institutes": "NLSIU, NLU Delhi",
+    "avg_fee_inr_per_year": "250000",
+    "pathway_tags": [
+      "after_12th_arts",
+      "after_12th_commerce",
+      "after_12th_science_pcm",
+      "after_12th_science_pcb"
+    ]
+  },
+  {
+    "course_id": "U_LAW_3",
+    "course_name": "Bachelor of Laws (B.Com LLB)",
+    "short_name": "B.Com LLB",
+    "level": "integrated",
+    "stream": "Law",
+    "sub_stream": "Integrated Law",
+    "duration_years": "5",
+    "eligibility": "10+2 Any Stream",
+    "entrance_exams": "CLAT, AILET",
+    "top_institutes": "NLSIU, NLU Delhi",
+    "avg_fee_inr_per_year": "250000",
+    "pathway_tags": [
+      "after_12th_arts",
+      "after_12th_commerce",
+      "after_12th_science_pcm",
+      "after_12th_science_pcb"
+    ]
+  },
+  {
+    "course_id": "PG_1",
+    "course_name": "Master of Business Administration",
+    "short_name": "MBA",
+    "level": "postgraduate",
+    "stream": "Management",
+    "sub_stream": "General/Finance/HR/IT",
+    "duration_years": "2",
+    "eligibility": "Bachelor's Degree",
+    "entrance_exams": "CAT, XAT, GMAT",
+    "top_institutes": "IIMs, ISB, XLRI",
+    "avg_fee_inr_per_year": "1500000",
+    "pathway_tags": [
+      "after_graduation"
+    ]
+  },
+  {
+    "course_id": "PG_2",
+    "course_name": "Master of Technology",
+    "short_name": "M.Tech",
+    "level": "postgraduate",
+    "stream": "Engineering",
+    "sub_stream": "Specialised",
+    "duration_years": "2",
+    "eligibility": "B.Tech",
+    "entrance_exams": "GATE",
+    "top_institutes": "IITs, NITs",
+    "avg_fee_inr_per_year": "100000",
+    "pathway_tags": [
+      "after_graduation"
+    ]
+  },
+  {
+    "course_id": "PG_3",
+    "course_name": "Master of Science",
+    "short_name": "M.Sc",
+    "level": "postgraduate",
+    "stream": "Science",
+    "sub_stream": "Physics/Chem/Maths",
+    "duration_years": "2",
+    "eligibility": "B.Sc",
+    "entrance_exams": "IIT JAM, CUET PG",
+    "top_institutes": "IITs, Central Univs",
+    "avg_fee_inr_per_year": "50000",
+    "pathway_tags": [
+      "after_graduation"
+    ]
+  },
+  {
+    "course_id": "PG_4",
+    "course_name": "Master of Arts",
+    "short_name": "M.A",
+    "level": "postgraduate",
+    "stream": "Arts",
+    "sub_stream": "Various",
+    "duration_years": "2",
+    "eligibility": "B.A",
+    "entrance_exams": "CUET PG",
+    "top_institutes": "JNU, DU, TISS",
+    "avg_fee_inr_per_year": "30000",
+    "pathway_tags": [
+      "after_graduation"
+    ]
+  },
+  {
+    "course_id": "PG_5",
+    "course_name": "Master of Commerce",
+    "short_name": "M.Com",
+    "level": "postgraduate",
+    "stream": "Commerce",
+    "sub_stream": "Accounting",
+    "duration_years": "2",
+    "eligibility": "B.Com/BBA",
+    "entrance_exams": "CUET PG",
+    "top_institutes": "DU, BHU",
+    "avg_fee_inr_per_year": "40000",
+    "pathway_tags": [
+      "after_graduation"
+    ]
+  },
+  {
+    "course_id": "PG_6",
+    "course_name": "Master of Computer Applications",
+    "short_name": "MCA",
+    "level": "postgraduate",
+    "stream": "IT",
+    "sub_stream": "Computer Apps",
+    "duration_years": "2",
+    "eligibility": "BCA/B.Sc",
+    "entrance_exams": "NIMCET",
+    "top_institutes": "NITs",
+    "avg_fee_inr_per_year": "80000",
+    "pathway_tags": [
+      "after_graduation"
+    ]
+  },
+  {
+    "course_id": "PG_7",
+    "course_name": "Master of Laws",
+    "short_name": "LLM",
+    "level": "postgraduate",
+    "stream": "Law",
+    "sub_stream": "Corporate/Criminal",
+    "duration_years": "1-2",
+    "eligibility": "LLB",
+    "entrance_exams": "CLAT PG",
+    "top_institutes": "NLUs",
+    "avg_fee_inr_per_year": "150000",
+    "pathway_tags": [
+      "after_graduation"
+    ]
+  },
+  {
+    "course_id": "PG_8",
+    "course_name": "Doctor of Medicine",
+    "short_name": "MD",
+    "level": "postgraduate",
+    "stream": "Medical",
+    "sub_stream": "Specialisation",
+    "duration_years": "3",
+    "eligibility": "MBBS",
+    "entrance_exams": "NEET PG",
+    "top_institutes": "AIIMS",
+    "avg_fee_inr_per_year": "500000",
+    "pathway_tags": [
+      "after_graduation"
+    ]
+  },
+  {
+    "course_id": "PG_9",
+    "course_name": "Master of Surgery",
+    "short_name": "MS",
+    "level": "postgraduate",
+    "stream": "Medical",
+    "sub_stream": "Surgery",
+    "duration_years": "3",
+    "eligibility": "MBBS",
+    "entrance_exams": "NEET PG",
+    "top_institutes": "AIIMS",
+    "avg_fee_inr_per_year": "500000",
+    "pathway_tags": [
+      "after_graduation"
+    ]
+  },
+  {
+    "course_id": "PG_10",
+    "course_name": "Bachelor of Education",
+    "short_name": "B.Ed",
+    "level": "undergraduate",
+    "stream": "Education",
+    "sub_stream": "Teaching",
+    "duration_years": "2",
+    "eligibility": "Bachelor's Degree",
+    "entrance_exams": "State B.Ed CET",
+    "top_institutes": "RIE, State Univs",
+    "avg_fee_inr_per_year": "50000",
+    "pathway_tags": [
+      "after_graduation"
+    ]
+  },
+  {
+    "course_id": "PG_11",
+    "course_name": "Bachelor of Library Science",
+    "short_name": "B.Lib.I.Sc",
+    "level": "undergraduate",
+    "stream": "Arts",
+    "sub_stream": "Library",
+    "duration_years": "1",
+    "eligibility": "Bachelor's Degree",
+    "entrance_exams": "Merit",
+    "top_institutes": "DU",
+    "avg_fee_inr_per_year": "20000",
+    "pathway_tags": [
+      "after_graduation"
+    ]
+  },
+  {
+    "course_id": "PG_12",
+    "course_name": "Master of Education",
+    "short_name": "M.Ed",
+    "level": "postgraduate",
+    "stream": "Education",
+    "sub_stream": "Teaching",
+    "duration_years": "2",
+    "eligibility": "B.Ed",
+    "entrance_exams": "CUET PG",
+    "top_institutes": "State Univs",
+    "avg_fee_inr_per_year": "60000",
+    "pathway_tags": [
+      "after_graduation"
+    ]
+  },
+  {
+    "course_id": "PG_13",
+    "course_name": "Bachelor of Physical Education",
+    "short_name": "B.P.Ed",
+    "level": "undergraduate",
+    "stream": "Education",
+    "sub_stream": "Sports",
+    "duration_years": "2",
+    "eligibility": "Bachelor's Degree",
+    "entrance_exams": "Fitness Test + Merit",
+    "top_institutes": "LNIPE",
+    "avg_fee_inr_per_year": "40000",
+    "pathway_tags": [
+      "after_graduation"
+    ]
+  },
+  {
+    "course_id": "PG_14",
+    "course_name": "Bachelor of Laws",
+    "short_name": "LLB",
+    "level": "undergraduate",
+    "stream": "Law",
+    "sub_stream": "General",
+    "duration_years": "3",
+    "eligibility": "Bachelor's Degree",
+    "entrance_exams": "DU LLB, MH CET Law",
+    "top_institutes": "DU, GLC Mumbai",
+    "avg_fee_inr_per_year": "100000",
+    "pathway_tags": [
+      "after_graduation"
+    ]
+  },
+  {
+    "course_id": "D_PHD_1",
+    "course_name": "Doctor of Philosophy in Engineering",
+    "short_name": "Ph.D",
+    "level": "doctoral",
+    "stream": "Engineering",
+    "sub_stream": "Research",
+    "duration_years": "3-5",
+    "eligibility": "Master's Degree",
+    "entrance_exams": "UGC NET, GATE",
+    "top_institutes": "IITs, Central Univs",
+    "avg_fee_inr_per_year": "40000",
+    "pathway_tags": [
+      "after_graduation"
+    ]
+  },
+  {
+    "course_id": "D_PHD_2",
+    "course_name": "Doctor of Philosophy in Sciences",
+    "short_name": "Ph.D",
+    "level": "doctoral",
+    "stream": "Sciences",
+    "sub_stream": "Research",
+    "duration_years": "3-5",
+    "eligibility": "Master's Degree",
+    "entrance_exams": "UGC NET, GATE",
+    "top_institutes": "IITs, Central Univs",
+    "avg_fee_inr_per_year": "40000",
+    "pathway_tags": [
+      "after_graduation"
+    ]
+  },
+  {
+    "course_id": "D_PHD_3",
+    "course_name": "Doctor of Philosophy in Humanities & Social Sciences",
+    "short_name": "Ph.D",
+    "level": "doctoral",
+    "stream": "Humanities & Social Sciences",
+    "sub_stream": "Research",
+    "duration_years": "3-5",
+    "eligibility": "Master's Degree",
+    "entrance_exams": "UGC NET, GATE",
+    "top_institutes": "IITs, Central Univs",
+    "avg_fee_inr_per_year": "40000",
+    "pathway_tags": [
+      "after_graduation"
+    ]
+  },
+  {
+    "course_id": "D_PHD_4",
+    "course_name": "Doctor of Philosophy in Management",
+    "short_name": "Ph.D",
+    "level": "doctoral",
+    "stream": "Management",
+    "sub_stream": "Research",
+    "duration_years": "3-5",
+    "eligibility": "Master's Degree",
+    "entrance_exams": "UGC NET, GATE",
+    "top_institutes": "IITs, Central Univs",
+    "avg_fee_inr_per_year": "40000",
+    "pathway_tags": [
+      "after_graduation"
+    ]
+  },
+  {
+    "course_id": "D_PHD_5",
+    "course_name": "Doctor of Philosophy in Law",
+    "short_name": "Ph.D",
+    "level": "doctoral",
+    "stream": "Law",
+    "sub_stream": "Research",
+    "duration_years": "3-5",
+    "eligibility": "Master's Degree",
+    "entrance_exams": "UGC NET, GATE",
+    "top_institutes": "IITs, Central Univs",
+    "avg_fee_inr_per_year": "40000",
+    "pathway_tags": [
+      "after_graduation"
+    ]
+  },
+  {
+    "course_id": "D_PHD_6",
+    "course_name": "Doctor of Philosophy in Medicine",
+    "short_name": "Ph.D",
+    "level": "doctoral",
+    "stream": "Medicine",
+    "sub_stream": "Research",
+    "duration_years": "3-5",
+    "eligibility": "Master's Degree",
+    "entrance_exams": "UGC NET, GATE",
+    "top_institutes": "IITs, Central Univs",
+    "avg_fee_inr_per_year": "40000",
+    "pathway_tags": [
+      "after_graduation"
+    ]
+  },
+  {
+    "course_id": "ONL_1",
+    "course_name": "Online MBA",
+    "short_name": "Online MBA",
+    "level": "online/distance",
+    "stream": "Management",
+    "sub_stream": "General",
+    "duration_years": "2-3",
+    "eligibility": "Relevant Degree/12th",
+    "entrance_exams": "None",
+    "top_institutes": "IGNOU, NMIMS Online",
+    "avg_fee_inr_per_year": "60000",
+    "pathway_tags": [
+      "after_graduation"
+    ]
+  },
+  {
+    "course_id": "ONL_2",
+    "course_name": "Online MCA",
+    "short_name": "Online MCA",
+    "level": "online/distance",
+    "stream": "IT",
+    "sub_stream": "Computer Apps",
+    "duration_years": "2-3",
+    "eligibility": "Relevant Degree/12th",
+    "entrance_exams": "None",
+    "top_institutes": "IGNOU, NMIMS Online",
+    "avg_fee_inr_per_year": "60000",
+    "pathway_tags": [
+      "after_graduation"
+    ]
+  },
+  {
+    "course_id": "ONL_3",
+    "course_name": "Online BBA",
+    "short_name": "Online BBA",
+    "level": "online/distance",
+    "stream": "Management",
+    "sub_stream": "General",
+    "duration_years": "2-3",
+    "eligibility": "Relevant Degree/12th",
+    "entrance_exams": "None",
+    "top_institutes": "IGNOU, NMIMS Online",
+    "avg_fee_inr_per_year": "60000",
+    "pathway_tags": [
+      "after_12th_commerce",
+      "after_12th_arts",
+      "after_12th_science_pcm",
+      "after_12th_science_pcb"
+    ]
+  },
+  {
+    "course_id": "ONL_4",
+    "course_name": "Online BCA",
+    "short_name": "Online BCA",
+    "level": "online/distance",
+    "stream": "IT",
+    "sub_stream": "Computer Apps",
+    "duration_years": "2-3",
+    "eligibility": "Relevant Degree/12th",
+    "entrance_exams": "None",
+    "top_institutes": "IGNOU, NMIMS Online",
+    "avg_fee_inr_per_year": "60000",
+    "pathway_tags": [
+      "after_12th_commerce",
+      "after_12th_arts",
+      "after_12th_science_pcm",
+      "after_12th_science_pcb"
+    ]
+  },
+  {
+    "course_id": "ONL_5",
+    "course_name": "Online B.Com",
+    "short_name": "Online B.Com",
+    "level": "online/distance",
+    "stream": "Commerce",
+    "sub_stream": "General",
+    "duration_years": "2-3",
+    "eligibility": "Relevant Degree/12th",
+    "entrance_exams": "None",
+    "top_institutes": "IGNOU, NMIMS Online",
+    "avg_fee_inr_per_year": "60000",
+    "pathway_tags": [
+      "after_12th_commerce",
+      "after_12th_arts",
+      "after_12th_science_pcm",
+      "after_12th_science_pcb"
+    ]
+  },
+  {
+    "course_id": "HSC_SCI",
+    "course_name": "11th & 12th (Science)",
+    "short_name": "HSC Science",
+    "level": "certificate",
+    "stream": "Science",
+    "sub_stream": "PCM / PCB",
+    "duration_years": "2",
+    "eligibility": "10th Pass",
+    "entrance_exams": "Merit / FYJC Allotment",
+    "top_institutes": "Junior Colleges",
+    "avg_fee_inr_per_year": "10000",
+    "pathway_tags": [
+      "after_10th"
+    ]
+  },
+  {
+    "course_id": "HSC_COM",
+    "course_name": "11th & 12th (Commerce)",
+    "short_name": "HSC Commerce",
+    "level": "certificate",
+    "stream": "Commerce",
+    "sub_stream": "General",
+    "duration_years": "2",
+    "eligibility": "10th Pass",
+    "entrance_exams": "Merit / FYJC Allotment",
+    "top_institutes": "Junior Colleges",
+    "avg_fee_inr_per_year": "10000",
+    "pathway_tags": [
+      "after_10th"
+    ]
+  },
+  {
+    "course_id": "HSC_ART",
+    "course_name": "11th & 12th (Arts)",
+    "short_name": "HSC Arts",
+    "level": "certificate",
+    "stream": "Arts",
+    "sub_stream": "Humanities",
+    "duration_years": "2",
+    "eligibility": "10th Pass",
+    "entrance_exams": "Merit / FYJC Allotment",
+    "top_institutes": "Junior Colleges",
+    "avg_fee_inr_per_year": "8000",
+    "pathway_tags": [
+      "after_10th"
+    ]
+  }
+]
