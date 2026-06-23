@@ -10,12 +10,16 @@
   <meta property="og:title" content="{{ og_title }}"/>
   <meta property="og:description" content="{{ og_description }}"/>
   <meta property="og:image" content="{{ og_image }}"/>
+  <meta property="og:image:secure_url" content="{{ og_image }}"/>
+  <meta property="og:image:type" content="{{ og_image_type }}"/>
+  <meta property="og:image:alt" content="{{ og_image_alt }}"/>
   <meta property="og:url" content="{{ og_url }}"/>
   <meta property="og:type" content="website"/>
   <meta name="twitter:card" content="summary_large_image"/>
   <meta name="twitter:title" content="{{ og_title }}"/>
   <meta name="twitter:description" content="{{ og_description }}"/>
   <meta name="twitter:image" content="{{ og_image }}"/>
+  <meta name="twitter:image:alt" content="{{ og_image_alt }}"/>
   <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='epaper-viewer.css', v='20260619-epaper-landing-fix-1') }}">
