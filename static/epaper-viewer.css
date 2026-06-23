@@ -3582,3 +3582,207 @@ body.epaper-body:not(.has-masthead) .ep-masthead {
     min-height: 44px;
   }
 }
+
+/* ══════════════════════════════════════════════════
+   RESPONSIVE OVERLAY FIX
+   Prevents toolbar, pager, thumbnail strip and other
+   floating controls from overlapping the newspaper
+   content on mobile and tablet devices.
+
+   Strategy:
+   - ≤900px  → fixed controls become inline-flow
+               elements inside .ep-reader-container,
+               reordered via CSS `order` so toolbar
+               sits above the paper and pager/thumbs
+               sit below it.
+   - 901–1100px → right padding added to .ep-main
+               so the fixed right-side toolbar does
+               not overlap the paper edge.
+
+   All selectors use body.epaper-body.ep-edition-open
+   for higher specificity, ensuring they override the
+   existing media-query rules above without !important.
+   ══════════════════════════════════════════════════ */
+
+/* ── 901–1100px: Right clearance for fixed toolbar ─ */
+@media (min-width: 901px) and (max-width: 1100px) {
+  body.epaper-body.ep-edition-open .ep-main {
+    padding-right: 64px;
+  }
+}
+
+/* ── ≤900px: All controls inline ───────────────── */
+@media (max-width: 900px) {
+
+  /* ── Toolbar → horizontal bar above paper ── */
+  body.epaper-body.ep-edition-open .ep-toolbar {
+    position: relative;
+    right: auto;
+    top: auto;
+    bottom: auto;
+    transform: none;
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+    order: -1;
+    background: #14141a;
+    border-radius: 0;
+    padding: 8px 12px;
+    gap: 6px;
+    justify-content: center;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  }
+
+  body.epaper-body.ep-edition-open .ep-tool-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 14px;
+  }
+
+  /* Dividers rotate to vertical separators in the row */
+  body.epaper-body.ep-edition-open .ep-tool-divider {
+    width: 1px;
+    height: 24px;
+    margin: 0 2px;
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  /* Share dropdown pops downward in horizontal toolbar */
+  body.epaper-body.ep-edition-open .ep-share-container {
+    width: auto;
+    height: auto;
+  }
+
+  body.epaper-body.ep-edition-open .ep-share-dropdown {
+    right: 0;
+    left: auto;
+    top: calc(100% + 8px);
+    transform: translateY(0) scale(0.92);
+  }
+
+  body.epaper-body.ep-edition-open .ep-share-dropdown.show {
+    transform: translateY(0) scale(1);
+  }
+
+  /* ── Pager → inline below paper ── */
+  body.epaper-body.ep-edition-open .ep-pager {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    transform: none;
+    width: auto;
+    align-self: center;
+    margin: 12px auto;
+    order: 1;
+  }
+
+  /* ── Thumbnail strip → inline below pager ── */
+  body.epaper-body.ep-edition-open .ep-thumb-strip {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    right: auto;
+    order: 2;
+  }
+
+  /* ── Main area: remove fixed-element bottom padding ── */
+  body.epaper-body.ep-edition-open .ep-main {
+    padding-bottom: 16px;
+  }
+
+  /* ── WhatsApp FAB: clear of inline controls ── */
+  body.epaper-body.ep-edition-open .ep-whatsapp-btn {
+    bottom: 16px;
+    right: 16px;
+  }
+
+  /* ── Toast: reposition near bottom ── */
+  body.epaper-body.ep-edition-open .ep-toast {
+    bottom: 70px;
+  }
+
+  /* ── Swipe hint: adjust for inline layout ── */
+  body.epaper-body.ep-edition-open .ep-swipe-hint {
+    bottom: 20px;
+  }
+
+  /* ── Fullscreen: paper fills remaining space ── */
+  body.epaper-body.ep-fullscreen .ep-viewer {
+    max-height: none;
+  }
+
+  .ep-reader-container:fullscreen .ep-paper {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto !important;
+  }
+
+  .ep-reader-container:fullscreen .ep-viewer {
+    flex: 1;
+    max-height: none !important;
+    height: auto !important;
+  }
+
+  .ep-reader-container:fullscreen .ep-thumb-strip {
+    height: 80px;
+  }
+}
+
+/* ── ≤480px: Compact mobile ────────────────────── */
+@media (max-width: 480px) {
+  body.epaper-body.ep-edition-open .ep-toolbar {
+    padding: 6px 8px;
+    gap: 3px;
+  }
+
+  body.epaper-body.ep-edition-open .ep-tool-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 13px;
+  }
+
+  body.epaper-body.ep-edition-open .ep-tool-divider {
+    height: 20px;
+  }
+
+  body.epaper-body.ep-edition-open .ep-pager {
+    margin: 8px auto;
+  }
+
+  body.epaper-body.ep-edition-open .ep-thumb-strip {
+    height: 100px;
+  }
+}
+
+/* ── ≤360px: Small phones ──────────────────────── */
+@media (max-width: 360px) {
+  body.epaper-body.ep-edition-open .ep-toolbar {
+    padding: 4px 6px;
+    gap: 2px;
+  }
+
+  body.epaper-body.ep-edition-open .ep-tool-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 11px;
+    border-radius: 6px;
+  }
+
+  body.epaper-body.ep-edition-open .ep-tool-divider {
+    height: 16px;
+  }
+
+  body.epaper-body.ep-edition-open .ep-pager {
+    padding: 4px 10px;
+    gap: 6px;
+  }
+
+  body.epaper-body.ep-edition-open .ep-pager-btn {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
+  }
+}
