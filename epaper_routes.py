@@ -509,27 +509,22 @@ def _epaper_preview_image_type(image_url):
 
 
 def _epaper_preview_title(edition, requested_date=None):
-    if not edition:
-        return "Vidyarthi Mitra ePaper | Latest Edition"
-    name = (edition.get("name") or "Vidyarthi Mitra ePaper").strip()
-    language = (edition.get("language") or "").strip()
-    edition_date = (edition.get("date") or requested_date or "").strip()
-    title_parts = [name]
-    if language:
-        title_parts.append(language)
-    if edition_date:
-        title_parts.append(edition_date)
-    return " | ".join(title_parts)
+    return "Vidyarthi Mitra ePaper - Read Marathi, Hindi & English Newspaper Online"
 
 
 def _epaper_preview_description(edition):
-    if not edition:
-        return "Read the latest Vidyarthi Mitra ePaper online for education news, exam updates, and career guidance."
-    language = (edition.get("language") or "latest").strip()
-    edition_date = (edition.get("date") or "").strip()
-    if edition_date:
-        return f"Read the {language} Vidyarthi Mitra ePaper dated {edition_date} online."
-    return f"Read the latest {language} Vidyarthi Mitra ePaper online."
+    language = (edition.get("language") or "").strip() if edition else ""
+    edition_date = (edition.get("date") or "").strip() if edition else ""
+    base = (
+        "Vidyarthi Mitra ePaper: Read today's latest education newspaper online with updates on "
+        "entrance exams, results, careers, government jobs, scholarships and student news in "
+        "Marathi, Hindi and English."
+    )
+    if language and edition_date:
+        return f"{base} Current featured edition: {language} ePaper dated {edition_date}."
+    if language:
+        return f"{base} Current featured edition: {language} ePaper."
+    return base
 
 
 def _edition_score(edition):
