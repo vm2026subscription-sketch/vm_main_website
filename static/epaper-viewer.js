@@ -10,6 +10,10 @@ const EP = {
   zoom: 1,
   minZoom: 1,
   maxZoom: 3,
+  baseFitZoom: 1,
+  _fitRaf: null,
+  _resizeTimer: null,
+  _viewerResizeObserver: null,
   isDragging: false,
   dragStart: { x: 0, y: 0, scrollLeft: 0, scrollTop: 0 },
   panOffset: { x: 0, y: 0 },
@@ -54,11 +58,13 @@ const EP = {
     this.startAutoRefreshPoll();
     this.loadNewsSidebar();
     this._initSwipeHint();
+    this._initViewportFit();
   },
 
   setReaderMode(isOpen) {
     this.isEditionOpen = !!isOpen;
     document.body.classList.toggle('ep-edition-open', this.isEditionOpen);
+    if (this.isEditionOpen) this.scheduleFitToWidth();
   },
 
   setNewsSidebarState(isOpen) {
@@ -377,14 +383,14 @@ const EP = {
     // Zoom
     this.el.zoomIn?.addEventListener('click', () => this.setZoom(this.zoom + 0.25));
     this.el.zoomOut?.addEventListener('click', () => this.setZoom(this.zoom - 0.25));
-    this.el.fitPage?.addEventListener('click', () => this.setZoom(1));
+    this.el.fitPage?.addEventListener('click', () => this.fitToWidth());
     this.el.fullscreen?.addEventListener('click', () => this.toggleFullscreen());
 
     // Drag-to-pan when zoomed in
     const viewer = this.el.viewer;
     if (viewer) {
       viewer.addEventListener('mousedown', (e) => {
-        if (this.zoom <= 1) return;
+        if (this.zoom <= this.getMinZoom() + 0.01) return;
         if (e.button !== 0) return;
         this.isDragging = true;
         this.dragStart = { x: e.clientX, y: e.clientY, scrollLeft: viewer.scrollLeft, scrollTop: viewer.scrollTop };
@@ -440,7 +446,10 @@ const EP = {
       if (!document.fullscreenElement) {
         document.body.classList.remove('ep-fullscreen');
       }
+      this.scheduleFitToWidth();
     });
+
+    this.el.pageImg?.addEventListener('load', () => this.scheduleFitToWidth());
 
     // Reset zoom when navigating away
     window.addEventListener('pagehide', () => {
@@ -512,7 +521,8 @@ const EP = {
         }, { passive: true });
         rc.addEventListener('touchend', (e) => {
           if (_swX === null) return;
-          if (this.zoom > 1) { _swX = null; _swStartTs = 0; return; }
+          const fitLevel = this.isMobileReader() ? this.baseFitZoom : 1;
+          if (this.zoom > fitLevel + 0.05) { _swX = null; _swStartTs = 0; return; }
           const dx = e.changedTouches[0].clientX - _swX;
           const dy = e.changedTouches[0].clientY - _swY;
           const dt = Date.now() - _swStartTs;
@@ -534,7 +544,9 @@ const EP = {
           if (typeof vEl._epWasPinching === 'function' && vEl._epWasPinching()) return;
           const now = Date.now();
           if (now - _lastTap < 300) {
-            this.setZoom(this.zoom > 1.1 ? 1 : 2.5);
+            const fitLevel = this.isMobileReader() ? this.baseFitZoom : 1;
+            const zoomInLevel = Math.min(2, this.maxZoom);
+            this.setZoom(this.zoom > fitLevel + 0.1 ? fitLevel : zoomInLevel);
           }
           _lastTap = now;
         }, { passive: true });
@@ -1187,9 +1199,7 @@ const EP = {
   // ── Page Display ──
   showPage(num) {
     this.currentPage = Math.max(1, Math.min(num, this.totalPages));
-    this.setZoom(1);
     this.panOffset = { x: 0, y: 0 };
-    this.applyTransform();
     this.updatePager();
 
     const page = this.pages[this.currentPage - 1];
@@ -1232,6 +1242,7 @@ const EP = {
         if (this.el.pageImg) {
           this.el.pageImg.style.display = 'block';
           this.el.pageImg.src = page.page_image_url;
+          if (this.el.pageImg.complete) this.scheduleFitToWidth();
         }
         if (this.el.hotspotsLayer) this.el.hotspotsLayer.style.display = 'block';
         this.renderHotspots(page.articles || []);
@@ -1246,6 +1257,7 @@ const EP = {
 
     // Update thumbnail active state
     this.updateThumbActive();
+    this.scheduleFitToWidth();
   },
 
   changePage(dir) {
@@ -1428,44 +1440,157 @@ const EP = {
   },
 
   // ── Zoom ──
+  isMobileReader() {
+    return window.matchMedia('(max-width: 900px)').matches;
+  },
+
+  getViewerContentWidth() {
+    if (this.isMobileReader() && this.isEditionOpen) {
+      const paper = document.getElementById('epPaper');
+      if (paper && paper.clientWidth > 0) return paper.clientWidth;
+    }
+
+    const viewer = this.el.viewer;
+    if (!viewer) return 0;
+    const style = getComputedStyle(viewer);
+    const pad = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+    return Math.max(0, viewer.clientWidth - pad);
+  },
+
+  getActiveContentEl() {
+    const grid = document.getElementById('epBlockGrid');
+    if (grid && grid.style.display !== 'none') return grid;
+    if (this.el.pageContainer && this.el.pageContainer.style.display !== 'none') {
+      return this.el.pageContainer;
+    }
+    return this.el.pageContainer || grid || null;
+  },
+
+  getMinZoom() {
+    return this.isMobileReader() ? this.baseFitZoom : this.minZoom;
+  },
+
+  _initViewportFit() {
+    const onChange = () => this._onViewportChange();
+    window.addEventListener('resize', onChange);
+    window.addEventListener('orientationchange', onChange);
+
+    if (typeof ResizeObserver !== 'undefined') {
+      this._viewerResizeObserver = new ResizeObserver(onChange);
+      if (this.el.viewer) this._viewerResizeObserver.observe(this.el.viewer);
+      const reader = document.getElementById('epReaderContainer');
+      const paper = document.getElementById('epPaper');
+      if (reader) this._viewerResizeObserver.observe(reader);
+      if (paper) this._viewerResizeObserver.observe(paper);
+    }
+  },
+
+  _onViewportChange() {
+    clearTimeout(this._resizeTimer);
+    this._resizeTimer = setTimeout(() => {
+      if (!this.isEditionOpen) return;
+      const fitLevel = this.getMinZoom();
+      if (this.zoom <= fitLevel + 0.05) {
+        this.fitToWidth();
+      }
+    }, 150);
+  },
+
+  scheduleFitToWidth() {
+    if (this._fitRaf) cancelAnimationFrame(this._fitRaf);
+    this._fitRaf = requestAnimationFrame(() => {
+      this._fitRaf = requestAnimationFrame(() => {
+        this._fitRaf = null;
+        this.fitToWidth();
+      });
+    });
+  },
+
+  fitToWidth() {
+    if (!this.isEditionOpen) return;
+
+    if (!this.isMobileReader()) {
+      this.zoom = 1;
+      this.baseFitZoom = 1;
+      this.applyTransform();
+      this._updateZoomButtons();
+      return;
+    }
+
+    const contentW = this.getViewerContentWidth();
+    if (!contentW) return;
+
+    this.zoom = 1;
+    this.baseFitZoom = 1;
+    this.applyTransform();
+    this._correctUnderfill(contentW);
+    this._updateZoomButtons();
+  },
+
+  _correctUnderfill(targetW) {
+    const el = this.getActiveContentEl();
+    if (!el) return;
+
+    const actualW = el.getBoundingClientRect().width;
+    if (actualW > 0 && actualW < targetW * 0.97) {
+      const boost = targetW / actualW;
+      this.zoom = Math.min(this.maxZoom, boost);
+      this.baseFitZoom = this.zoom;
+      this.applyTransform();
+    }
+  },
+
+  _updateZoomButtons() {
+    const minZ = this.getMinZoom();
+    if (this.el.zoomOut) this.el.zoomOut.disabled = this.zoom <= minZ + 0.01;
+    if (this.el.zoomIn) this.el.zoomIn.disabled = this.zoom >= this.maxZoom;
+  },
+
   setZoom(level) {
     const oldZoom = this.zoom;
-    const newZoom = Math.max(this.minZoom, Math.min(this.maxZoom, level));
+    const minZ = this.getMinZoom();
+    const newZoom = Math.max(minZ, Math.min(this.maxZoom, level));
     if (oldZoom === newZoom) return;
+
+    const contentEl = this.getActiveContentEl();
+    if (!contentEl) {
+      this.zoom = newZoom;
+      this.applyTransform();
+      this._updateZoomButtons();
+      return;
+    }
 
     // Determine the scroll container and viewport dimensions
     const isFullscreen = document.body.classList.contains('ep-fullscreen');
     const scrollContainer = isFullscreen && this.el.viewer ? this.el.viewer : window;
-    
+
     const clientW = scrollContainer === window ? window.innerWidth : scrollContainer.clientWidth;
     const clientH = scrollContainer === window ? window.innerHeight : scrollContainer.clientHeight;
-    
-    // Find the center of the screen
+
     const screenCenterX = clientW / 2;
     const screenCenterY = clientH / 2;
 
-    // Find where the screen center is relative to the pageContainer BEFORE zoom
-    const containerRectBefore = this.el.pageContainer.getBoundingClientRect();
-    
-    // Calculate the ratio (0 to 1) of where the screen center intersects the container
+    const containerRectBefore = contentEl.getBoundingClientRect();
+    if (!containerRectBefore.width) {
+      this.zoom = newZoom;
+      this.applyTransform();
+      this._updateZoomButtons();
+      return;
+    }
+
     const ratioX = (screenCenterX - containerRectBefore.left) / containerRectBefore.width;
     const ratioY = (screenCenterY - containerRectBefore.top) / containerRectBefore.height;
 
-    // Apply zoom
     this.zoom = newZoom;
     this.applyTransform();
 
-    // After applying transform, recalculate container layout
-    const containerRectAfter = this.el.pageContainer.getBoundingClientRect();
-    
-    // Find where that same ratio point is NOW on the screen
+    const containerRectAfter = contentEl.getBoundingClientRect();
     const newPointXOnScreen = containerRectAfter.left + (containerRectAfter.width * ratioX);
     const newPointYOnScreen = containerRectAfter.top + (containerRectAfter.height * ratioY);
-    
-    // Calculate how much we need to scroll to bring that point back to screenCenter
+
     const diffX = newPointXOnScreen - screenCenterX;
     const diffY = newPointYOnScreen - screenCenterY;
-    
+
     if (scrollContainer === window) {
       window.scrollBy({ left: diffX, top: diffY, behavior: 'auto' });
     } else {
@@ -1473,43 +1598,42 @@ const EP = {
       scrollContainer.scrollTop += diffY;
     }
 
-    // Reflect button disabled state
-    if (this.el.zoomOut) this.el.zoomOut.disabled = this.zoom <= this.minZoom;
-    if (this.el.zoomIn) this.el.zoomIn.disabled = this.zoom >= this.maxZoom;
+    this._updateZoomButtons();
   },
 
   applyTransform() {
     const z = this.zoom;
+    const contentW = this.getViewerContentWidth();
+    const usePixelWidth = this.isMobileReader() && contentW > 0;
+    const targetWidth = usePixelWidth ? `${contentW * z}px` : `${z * 100}%`;
+    const fitLevel = this.getMinZoom();
 
-    // Clear any previously applied zoom on ep-paper or document (legacy approaches that
-    // broke position:fixed elements by causing body overflow under overflow:hidden).
     document.documentElement.style.zoom = '';
     const paper = document.getElementById('epPaper');
     if (paper) paper.style.zoom = '';
 
-    // Adjust justifyContent and pan cursor dynamically
     if (this.el.viewer) {
-      if (z > 1) {
+      const needsPan = z > fitLevel + 0.01;
+      if (needsPan) {
         this.el.viewer.style.justifyContent = 'flex-start';
         this.el.viewer.classList.add('can-pan');
       } else {
-        this.el.viewer.style.justifyContent = 'center';
+        this.el.viewer.style.justifyContent = this.isMobileReader() ? 'flex-start' : 'center';
         this.el.viewer.classList.remove('can-pan');
       }
     }
 
-    // Zoom inside the scroll container (paper-viewer-container) by adjusting width natively
     const grid = document.getElementById('epBlockGrid');
     const container = this.el.pageContainer;
 
     if (grid) {
       grid.style.zoom = '';
-      grid.style.width = `${z * 100}%`;
-      grid.style.maxWidth = z > 1 ? `${z * 860}px` : '';
+      grid.style.width = targetWidth;
+      grid.style.maxWidth = usePixelWidth ? 'none' : (z > 1 ? `${z * 860}px` : '');
     }
     if (container) {
       container.style.zoom = '';
-      container.style.width = `${z * 100}%`;
+      container.style.width = targetWidth;
       container.style.maxWidth = 'none';
     }
   },
@@ -2664,7 +2788,6 @@ const EP = {
 
         // Navigate to the page — updatePageHeader sets masthead for pg1, section header for pg2+
         this.showPage(i + 1);
-        this.setZoom(1);
         await this.waitPageToLoad();
         await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
