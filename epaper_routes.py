@@ -439,6 +439,61 @@ def _edition_key(edition):
     )
 
 
+def _public_request_root():
+    proto = (request.headers.get("X-Forwarded-Proto") or request.scheme or "https").split(",")[0].strip()
+    host = (request.headers.get("X-Forwarded-Host") or request.host or "").split(",")[0].strip()
+    if host:
+        return f"{proto}://{host}/"
+    return request.url_root
+
+
+def _absolute_public_url(value):
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    parsed = urllib.parse.urlparse(raw)
+    if parsed.scheme and parsed.netloc:
+        return raw
+    if raw.startswith("//"):
+        scheme = (request.headers.get("X-Forwarded-Proto") or request.scheme or "https").split(",")[0].strip()
+        return f"{scheme}:{raw}"
+    return urllib.parse.urljoin(_public_request_root(), raw)
+
+
+def _epaper_preview_image_url(edition):
+    pages = (edition or {}).get("pages", []) or []
+    first_page = pages[0] if pages else {}
+    for key in ("page_image_url", "image_path"):
+        image_url = _absolute_public_url(first_page.get(key))
+        if image_url:
+            return image_url
+    return _absolute_public_url(url_for("static", filename="logo.png"))
+
+
+def _epaper_preview_title(edition, requested_date=None):
+    if not edition:
+        return "Vidyarthi Mitra ePaper | Latest Edition"
+    name = (edition.get("name") or "Vidyarthi Mitra ePaper").strip()
+    language = (edition.get("language") or "").strip()
+    edition_date = (edition.get("date") or requested_date or "").strip()
+    title_parts = [name]
+    if language:
+        title_parts.append(language)
+    if edition_date:
+        title_parts.append(edition_date)
+    return " | ".join(title_parts)
+
+
+def _epaper_preview_description(edition):
+    if not edition:
+        return "Read the latest Vidyarthi Mitra ePaper online for education news, exam updates, and career guidance."
+    language = (edition.get("language") or "latest").strip()
+    edition_date = (edition.get("date") or "").strip()
+    if edition_date:
+        return f"Read the {language} Vidyarthi Mitra ePaper dated {edition_date} online."
+    return f"Read the latest {language} Vidyarthi Mitra ePaper online."
+
+
 def _edition_score(edition):
     pages = edition.get("pages", []) or []
     preview_pages = sum(
@@ -604,18 +659,31 @@ def _find_epaper_article(article_id):
 def epaper_viewer(date=None, page=1):
     import json as _json
     initial_edition_json = None
-    if date:
-        try:
-            editions = _load_editions()
-            published = [e for e in editions if e.get("published", True)]
+    edition = None
+    try:
+        editions = _load_editions()
+        published = [e for e in editions if e.get("published", True)]
+        if date:
             edition = next((e for e in published if e["date"] == date), None) or \
                       (sorted(published, key=lambda e: e["date"], reverse=True)[0] if published else None)
             if edition:
                 initial_edition_json = _json.dumps(edition, ensure_ascii=False).replace('</script>', r'<\/script>')
-        except Exception:
-            pass
+        else:
+            edition = sorted(published, key=lambda e: e["date"], reverse=True)[0] if published else None
+        if edition and initial_edition_json is None and date:
+            initial_edition_json = _json.dumps(edition, ensure_ascii=False).replace('</script>', r'<\/script>')
+    except Exception:
+        pass
+    og_url = _absolute_public_url(request.path)
+    og_image = _epaper_preview_image_url(edition)
+    og_title = _epaper_preview_title(edition, date)
+    og_description = _epaper_preview_description(edition)
     return render_template("epaper_viewer.html", initial_date=date, initial_page=page,
-                           initial_edition_json=initial_edition_json)
+                           initial_edition_json=initial_edition_json,
+                           og_url=og_url,
+                           og_image=og_image,
+                           og_title=og_title,
+                           og_description=og_description)
 
 
 # ── Epaper Admin Login / Logout ───────────────────
