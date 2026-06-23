@@ -460,14 +460,43 @@ def _absolute_public_url(value):
     return urllib.parse.urljoin(_public_request_root(), raw)
 
 
-def _epaper_preview_image_url(edition):
+def _epaper_preview_image_meta(edition):
     pages = (edition or {}).get("pages", []) or []
     first_page = pages[0] if pages else {}
+    image_url = ""
     for key in ("page_image_url", "image_path"):
         image_url = _absolute_public_url(first_page.get(key))
         if image_url:
-            return image_url
-    return _absolute_public_url(url_for("static", filename="logo.png"))
+            break
+    if not image_url:
+        fallback = _absolute_public_url(url_for("static", filename="logo.png"))
+        return {
+            "url": fallback,
+            "type": _epaper_preview_image_type(fallback),
+            "width": 512,
+            "height": 512,
+        }
+    parsed = urllib.parse.urlparse(image_url)
+    cloudinary_marker = "/image/upload/"
+    if parsed.netloc.endswith("cloudinary.com") and cloudinary_marker in parsed.path:
+        transformed_path = parsed.path.replace(
+            cloudinary_marker,
+            "/image/upload/f_jpg,q_auto,c_pad,b_white,w_1200,h_1600/",
+            1,
+        )
+        transformed_url = urllib.parse.urlunparse(parsed._replace(path=transformed_path))
+        return {
+            "url": transformed_url,
+            "type": "image/jpeg",
+            "width": 1200,
+            "height": 1600,
+        }
+    return {
+        "url": image_url,
+        "type": _epaper_preview_image_type(image_url),
+        "width": None,
+        "height": None,
+    }
 
 
 def _epaper_preview_image_type(image_url):
@@ -684,10 +713,11 @@ def epaper_viewer(date=None, page=1):
     except Exception:
         pass
     og_url = _absolute_public_url(request.path)
-    og_image = _epaper_preview_image_url(edition)
+    og_image_meta = _epaper_preview_image_meta(edition)
+    og_image = og_image_meta["url"]
     og_title = _epaper_preview_title(edition, date)
     og_description = _epaper_preview_description(edition)
-    og_image_type = _epaper_preview_image_type(og_image)
+    og_image_type = og_image_meta["type"]
     return render_template("epaper_viewer.html", initial_date=date, initial_page=page,
                            initial_edition_json=initial_edition_json,
                            og_url=og_url,
@@ -695,6 +725,8 @@ def epaper_viewer(date=None, page=1):
                            og_title=og_title,
                            og_description=og_description,
                            og_image_type=og_image_type,
+                           og_image_width=og_image_meta["width"],
+                           og_image_height=og_image_meta["height"],
                            og_image_alt=og_title)
 
 
