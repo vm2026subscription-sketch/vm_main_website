@@ -940,6 +940,7 @@ body.epaper-body:not(.has-masthead) .ep-masthead {
   justify-content: center;
   padding: 20px 20px 48px;
   user-select: none;
+  overflow-anchor: none;
 }
 
 .ep-viewer.can-pan {
@@ -3398,6 +3399,15 @@ body.epaper-body:not(.has-masthead) .ep-masthead {
 .ep-reader-container:fullscreen .ep-viewer {
   max-height: calc(100vh - 72px - 53px) !important;
   height: 100% !important;
+  align-items: stretch;
+  justify-content: flex-start;
+  overflow-anchor: none;
+}
+
+.ep-reader-container:fullscreen .ep-page-container,
+.ep-reader-container:fullscreen .ep-block-grid {
+  margin-left: 0;
+  margin-right: 0;
 }
 
 /* Custom scrolling paper-viewer-container */
