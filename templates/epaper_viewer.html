@@ -2,10 +2,20 @@
 <html lang="hi">
 <head>
   <meta charset="UTF-8"/>
-  <title>Vidyarthi Mitra — E-Paper Reader</title>
+  <title>{{ og_title }}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-  <meta name="description" content="Vidyarthi Mitra E-Paper: Read today's latest education news, exam updates, career guidance and more."/>
-  <link rel="canonical" href="https://epaper.vidyarthimitra.org/"/>
+  <meta name="description" content="{{ og_description }}"/>
+  <link rel="canonical" href="{{ og_url }}"/>
+  <meta property="og:site_name" content="Vidyarthi Mitra"/>
+  <meta property="og:title" content="{{ og_title }}"/>
+  <meta property="og:description" content="{{ og_description }}"/>
+  <meta property="og:image" content="{{ og_image }}"/>
+  <meta property="og:url" content="{{ og_url }}"/>
+  <meta property="og:type" content="website"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:title" content="{{ og_title }}"/>
+  <meta name="twitter:description" content="{{ og_description }}"/>
+  <meta name="twitter:image" content="{{ og_image }}"/>
   <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='epaper-viewer.css', v='20260616-epaper-live-fix-2') }}">
@@ -46,7 +56,7 @@
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": "Vidyarthi Mitra ePaper",
-    "url": "{{ request.url_root }}epaper",
+    "url": "{{ og_url }}",
     "publisher": {
       "@type": "Organization",
       "name": "Vidyarthi Mitra",
