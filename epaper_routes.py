@@ -470,6 +470,15 @@ def _epaper_preview_image_url(edition):
     return _absolute_public_url(url_for("static", filename="logo.png"))
 
 
+def _epaper_preview_image_type(image_url):
+    path = urllib.parse.urlparse(str(image_url or "")).path.lower()
+    if path.endswith(".png"):
+        return "image/png"
+    if path.endswith(".webp"):
+        return "image/webp"
+    return "image/jpeg"
+
+
 def _epaper_preview_title(edition, requested_date=None):
     if not edition:
         return "Vidyarthi Mitra ePaper | Latest Edition"
@@ -678,12 +687,15 @@ def epaper_viewer(date=None, page=1):
     og_image = _epaper_preview_image_url(edition)
     og_title = _epaper_preview_title(edition, date)
     og_description = _epaper_preview_description(edition)
+    og_image_type = _epaper_preview_image_type(og_image)
     return render_template("epaper_viewer.html", initial_date=date, initial_page=page,
                            initial_edition_json=initial_edition_json,
                            og_url=og_url,
                            og_image=og_image,
                            og_title=og_title,
-                           og_description=og_description)
+                           og_description=og_description,
+                           og_image_type=og_image_type,
+                           og_image_alt=og_title)
 
 
 # ── Epaper Admin Login / Logout ───────────────────
