@@ -1200,6 +1200,7 @@ const EP = {
   showPage(num) {
     this.currentPage = Math.max(1, Math.min(num, this.totalPages));
     this.panOffset = { x: 0, y: 0 };
+    this._resetPageScroll();
     this.updatePager();
 
     const page = this.pages[this.currentPage - 1];
@@ -1253,7 +1254,7 @@ const EP = {
     }
 
     // Scroll viewer to top when switching pages
-    if (this.el.viewer) this.el.viewer.scrollTop = 0;
+    this._resetPageScroll();
 
     // Update thumbnail active state
     this.updateThumbActive();
@@ -1470,6 +1471,33 @@ const EP = {
     return this.isMobileReader() ? this.baseFitZoom : this.minZoom;
   },
 
+  _isReaderFullscreen() {
+    const reader = document.getElementById('epReaderContainer');
+    return !!(document.fullscreenElement && reader && document.fullscreenElement === reader);
+  },
+
+  _getScrollContainer() {
+    if (this._isReaderFullscreen() && this.el.viewer) return this.el.viewer;
+    if (document.body.classList.contains('ep-fullscreen') && this.el.viewer) return this.el.viewer;
+    return window;
+  },
+
+  _resetPageScroll() {
+    const viewer = this.el.viewer;
+    if (viewer) {
+      viewer.scrollLeft = 0;
+      viewer.scrollTop = 0;
+    }
+    const reader = document.getElementById('epReaderContainer');
+    if (reader) {
+      reader.scrollLeft = 0;
+      reader.scrollTop = 0;
+    }
+    if (this._isReaderFullscreen()) {
+      window.scrollTo(0, 0);
+    }
+  },
+
   _initViewportFit() {
     const onChange = () => this._onViewportChange();
     window.addEventListener('resize', onChange);
@@ -1514,6 +1542,7 @@ const EP = {
       this.baseFitZoom = 1;
       this.applyTransform();
       this._updateZoomButtons();
+      this._resetPageScroll();
       return;
     }
 
@@ -1525,6 +1554,9 @@ const EP = {
     this.applyTransform();
     this._correctUnderfill(contentW);
     this._updateZoomButtons();
+    if (this.zoom <= this.getMinZoom() + 0.05) {
+      this._resetPageScroll();
+    }
   },
 
   _correctUnderfill(targetW) {
@@ -1561,14 +1593,18 @@ const EP = {
     }
 
     // Determine the scroll container and viewport dimensions
-    const isFullscreen = document.body.classList.contains('ep-fullscreen');
-    const scrollContainer = isFullscreen && this.el.viewer ? this.el.viewer : window;
+    const scrollContainer = this._getScrollContainer();
 
-    const clientW = scrollContainer === window ? window.innerWidth : scrollContainer.clientWidth;
-    const clientH = scrollContainer === window ? window.innerHeight : scrollContainer.clientHeight;
-
-    const screenCenterX = clientW / 2;
-    const screenCenterY = clientH / 2;
+    let screenCenterX;
+    let screenCenterY;
+    if (scrollContainer === window) {
+      screenCenterX = window.innerWidth / 2;
+      screenCenterY = window.innerHeight / 2;
+    } else {
+      const scRect = scrollContainer.getBoundingClientRect();
+      screenCenterX = scRect.left + scrollContainer.clientWidth / 2;
+      screenCenterY = scRect.top + scrollContainer.clientHeight / 2;
+    }
 
     const containerRectBefore = contentEl.getBoundingClientRect();
     if (!containerRectBefore.width) {
@@ -1699,11 +1735,18 @@ const EP = {
     container.querySelectorAll('.ep-thumb-card').forEach((card, i) => {
       card.classList.toggle('active', (i + 1) === this.currentPage);
     });
-    // Scroll active thumbnail into view
     const activeCard = container.querySelector('.ep-thumb-card.active');
-    if (activeCard) {
-      activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    }
+    if (!activeCard) return;
+
+    // Scroll only the thumb strip — scrollIntoView shifts fullscreen paper off-screen
+    const cardLeft = activeCard.offsetLeft;
+    const cardWidth = activeCard.offsetWidth;
+    const containerWidth = container.clientWidth;
+    const scrollTarget = cardLeft - (containerWidth / 2) + (cardWidth / 2);
+    container.scrollTo({
+      left: Math.max(0, scrollTarget),
+      behavior: 'smooth',
+    });
   },
 
   // ── Article Panel ──
