@@ -481,7 +481,7 @@ def _epaper_preview_image_meta(edition):
     if parsed.netloc.endswith("cloudinary.com") and cloudinary_marker in parsed.path:
         transformed_path = parsed.path.replace(
             cloudinary_marker,
-            "/image/upload/f_jpg,q_auto,c_pad,b_white,w_1200,h_1600/",
+            "/image/upload/f_jpg,q_auto,c_fill,g_north,w_1200,h_1500/",
             1,
         )
         transformed_url = urllib.parse.urlunparse(parsed._replace(path=transformed_path))
@@ -489,7 +489,7 @@ def _epaper_preview_image_meta(edition):
             "url": transformed_url,
             "type": "image/jpeg",
             "width": 1200,
-            "height": 1600,
+            "height": 1500,
         }
     return {
         "url": image_url,
