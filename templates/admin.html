@@ -404,7 +404,7 @@
       body: JSON.stringify({alerts})
     });
     const data = await res.json();
-    toast(data.success ? '✓ Alerts saved! Reload homepage to see changes.' : '✗ Save failed: ' + (data.error||''));
+    toast(data.success ? '<i class="fa fa-check-circle" style="color:#22c55e"></i> Alerts saved! Reload homepage to see changes.' : '<i class="fa fa-times-circle" style="color:#ef4444"></i> Save failed: ' + (data.error||''));
   }
 
   // ── FORM RESPONSES ──
@@ -533,9 +533,9 @@
     try {
       const res = await fetch('/api/admin/blogs/import-json', { method: 'POST' });
       const data = await res.json();
-      if (data.ok) { toast(`✓ Imported ${data.imported} blogs into DB`); loadBlogs(); }
-      else toast('✗ Import failed: ' + (data.error || ''));
-    } catch(e) { toast('✗ Network error'); }
+      if (data.ok) { toast(`<i class="fa fa-check-circle" style="color:#22c55e"></i> Imported ${data.imported} blogs into DB`); loadBlogs(); }
+      else toast('<i class="fa fa-times-circle" style="color:#ef4444"></i> Import failed: ' + (data.error || ''));
+    } catch(e) { toast('<i class="fa fa-times-circle" style="color:#ef4444"></i> Network error'); }
   }
 
   async function deleteBlog(id, title) {
@@ -547,14 +547,14 @@
         body: JSON.stringify({id})
       });
       const data = await res.json();
-      if (data.ok) { toast('✓ Blog deleted'); loadBlogs(); }
-      else toast('✗ Delete failed: ' + (data.error || ''));
-    } catch(e) { toast('✗ Network error'); }
+      if (data.ok) { toast('<i class="fa fa-check-circle" style="color:#22c55e"></i> Blog deleted'); loadBlogs(); }
+      else toast('<i class="fa fa-times-circle" style="color:#ef4444"></i> Delete failed: ' + (data.error || ''));
+    } catch(e) { toast('<i class="fa fa-times-circle" style="color:#ef4444"></i> Network error'); }
   }
 
   async function submitAddBlog() {
     const title = document.getElementById('nb-title').value.trim();
-    if (!title) { toast('✗ Title is required'); return; }
+    if (!title) { toast('<i class="fa fa-times-circle" style="color:#ef4444"></i> Title is required'); return; }
     const payload = {
       title,
       category: document.getElementById('nb-category').value,
@@ -573,7 +573,7 @@
       });
       const data = await res.json();
       if (data.ok) {
-        toast('✓ Blog added to DB');
+        toast('<i class="fa fa-check-circle" style="color:#22c55e"></i> Blog added to DB');
         document.getElementById('nb-title').value = '';
         document.getElementById('nb-summary').value = '';
         document.getElementById('nb-content').value = '';
@@ -582,9 +582,9 @@
         document.getElementById('nb-date').value = '';
         loadBlogs();
       } else {
-        toast('✗ ' + (data.error || 'Add failed'));
+        toast('<i class="fa fa-times-circle" style="color:#ef4444"></i> ' + (data.error || 'Add failed'));
       }
-    } catch(e) { toast('✗ Network error'); }
+    } catch(e) { toast('<i class="fa fa-times-circle" style="color:#ef4444"></i> Network error'); }
   }
 
   // ── EDIT BLOG ──
@@ -592,7 +592,7 @@
 
   function openEditModal(id) {
     const blog = blogList.find(b => b.id === id);
-    if (!blog) { toast('✗ Blog not found'); return; }
+    if (!blog) { toast('<i class="fa fa-times-circle" style="color:#ef4444"></i> Blog not found'); return; }
     editingBlogId = id;
     document.getElementById('eb-title').value = blog.title || '';
     document.getElementById('eb-category').value = blog.category || '';
@@ -627,9 +627,9 @@
   })();
 
   async function submitEditBlog() {
-    if (!editingBlogId) { toast('✗ No blog selected'); return; }
+    if (!editingBlogId) { toast('<i class="fa fa-times-circle" style="color:#ef4444"></i> No blog selected'); return; }
     const title = document.getElementById('eb-title').value.trim();
-    if (!title) { toast('✗ Title is required'); return; }
+    if (!title) { toast('<i class="fa fa-times-circle" style="color:#ef4444"></i> Title is required'); return; }
     const payload = {
       id: editingBlogId,
       title,
@@ -649,13 +649,13 @@
       });
       const data = await res.json();
       if (data.ok) {
-        toast('✓ Blog updated successfully');
+        toast('<i class="fa fa-check-circle" style="color:#22c55e"></i> Blog updated successfully');
         closeEditModal();
         loadBlogs();
       } else {
-        toast('✗ ' + (data.error || 'Update failed'));
+        toast('<i class="fa fa-times-circle" style="color:#ef4444"></i> ' + (data.error || 'Update failed'));
       }
-    } catch(e) { toast('✗ Network error'); }
+    } catch(e) { toast('<i class="fa fa-times-circle" style="color:#ef4444"></i> Network error'); }
   }
 
   // ── UTILS ──
@@ -663,7 +663,7 @@
 
   function toast(msg) {
     const el = document.getElementById('adm-toast');
-    el.textContent = msg;
+    el.innerHTML = msg;
     el.classList.add('show');
     setTimeout(() => el.classList.remove('show'), 3000);
   }

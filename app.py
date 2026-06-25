@@ -4518,7 +4518,8 @@ def _preload_cutoff_data():
     except Exception:
         pass
 
-_threading.Thread(target=_preload_cutoff_data, daemon=True).start()
+if os.environ.get("VERCEL") != "1" and os.environ.get("FLASK_ENV") != "production":
+    _threading.Thread(target=_preload_cutoff_data, daemon=True).start()
 
 
 if __name__ == "__main__":

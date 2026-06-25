@@ -1032,7 +1032,7 @@ const EPAdmin = {
     list.innerHTML = this.editions.slice().sort((a, b) => b.date.localeCompare(a.date)).map(ed => {
       const isPublished = ed.published !== false;
       const pubBadge = isPublished
-        ? `<span style="background:#fff7ed;color:#c2410c;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">✓ Published</span>`
+        ? `<span style="background:#fff7ed;color:#c2410c;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;"><i class="fa fa-check"></i> Published</span>`
         : `<span style="background:#fef9c3;color:#854d0e;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">Draft</span>`;
       return `
         <div class="epa-edition-card">
@@ -1134,7 +1134,7 @@ const EPAdmin = {
       const res = await fetch(`/api/epaper/admin/backups/${backupId}/restore`, { method: 'POST' });
       const data = await res.json();
       if (res.ok) {
-        this.showToast('✅ ' + (data.message || 'Edition restored successfully!'));
+        this.showToast('<i class="fa fa-check-circle" style="color:#22c55e"></i> ' + (data.message || 'Edition restored successfully!'));
         this.closeBackupPanel();
         this.loadEditions();
       } else {
@@ -1154,7 +1154,7 @@ const EPAdmin = {
         body: JSON.stringify({ published: publish }),
       });
       if (res.ok) {
-        this.showToast(publish ? '✅ Edition published!' : '⚠ Edition unpublished');
+        this.showToast(publish ? '<i class="fa fa-check-circle" style="color:#22c55e"></i> Edition published!' : '<i class="fa fa-exclamation-triangle" style="color:#f59e0b"></i> Edition unpublished');
         this.loadEditions();
       } else {
         const err = await res.json().catch(() => ({}));
@@ -1291,11 +1291,11 @@ const EPAdmin = {
         this._originalDate = date;
         this._originalLang = lang;
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        this._updateAutoSaveStatus(`✓ Saved ${timeStr}`, '#22c55e');
+        this._updateAutoSaveStatus(`<i class="fa fa-check"></i> Saved ${timeStr}`, '#22c55e');
         if (silent) {
-          this.showToast(`✅ Auto-saved at ${timeStr}`);
+          this.showToast(`<i class="fa fa-check-circle" style="color:#22c55e"></i> Auto-saved at ${timeStr}`);
         } else {
-          this.showToast('✅ Edition saved!');
+          this.showToast('<i class="fa fa-check-circle" style="color:#22c55e"></i> Edition saved!');
         }
         this.loadEditions();
       } else {
@@ -1538,7 +1538,7 @@ const EPAdmin = {
     if (!page) return;
     this._copiedPage = JSON.parse(JSON.stringify(page));
     this.renderPageTabs();
-    this.showToast('📋 Page copied — open any edition and click "Paste Page"');
+    this.showToast('<i class="fa fa-clipboard"></i> Page copied — open any edition and click "Paste Page"');
   },
 
   pastePage() {
@@ -1557,7 +1557,7 @@ const EPAdmin = {
     this.pages.push(clone);
     this.renderPageTabs();
     this.openPage(this.pages.length - 1);
-    this.showToast('✅ Page pasted!');
+    this.showToast('<i class="fa fa-check-circle" style="color:#22c55e"></i> Page pasted!');
   },
 
   // ══════ BLOCK CRUD ══════
@@ -1794,7 +1794,7 @@ const EPAdmin = {
     block.goto_page = gotoVal >= 1 ? gotoVal : null;
 
     this.renderCanvas();
-    this.showToast('✅ Block saved');
+    this.showToast('<i class="fa fa-check-circle" style="color:#22c55e"></i> Block saved');
   },
 
   applyGotoPage() {
@@ -2097,7 +2097,7 @@ const EPAdmin = {
   showToast(msg) {
     const t = document.getElementById('adminToast');
     if (!t) return;
-    t.textContent = msg; t.classList.add('show');
+    t.innerHTML = msg; t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 2500);
   },
 };

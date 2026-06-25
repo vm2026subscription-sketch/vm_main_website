@@ -197,7 +197,7 @@
 
     // simulate async submit
     setTimeout(() => {
-      btn.textContent = '✓ Message Sent!';
+      btn.innerHTML = '<i class="fa fa-check"></i> Message Sent!';
       btn.classList.add('success');
       setTimeout(closeModal, 1600);
     }, 900);

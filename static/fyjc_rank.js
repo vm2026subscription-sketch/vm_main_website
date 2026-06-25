@@ -55,7 +55,7 @@ async function predict() {
     } else {
         errEl.style.display = 'none';
     }
-    alert('⚠️ Please complete the following required fields:\n• ' + payload.messages.join('\n• '));
+    alert('Please complete the following required fields:\n• ' + payload.messages.join('\n• '));
     return;
   }
 
@@ -63,7 +63,7 @@ async function predict() {
 
   // Loading state
   btn.disabled    = true;
-  btn.textContent = '⏳ Predicting…';
+  btn.innerHTML   = '<i class="fa fa-spinner fa-spin"></i> Predicting…';
 
   try {
     const res  = await fetch('/predict', {
@@ -86,7 +86,7 @@ async function predict() {
     alert('Network error. Please try again.');
   } finally {
     btn.disabled    = false;
-    btn.textContent = '🔍 Predict My FYJC Rank';
+    btn.innerHTML   = '<i class="fa fa-search"></i> Predict My FYJC Rank';
   }
 }
 
@@ -94,7 +94,7 @@ async function predict() {
 const BOARD_NAMES    = { maharashtra: 'SSC Maharashtra', cbse: 'CBSE', icse: 'ICSE', other: 'Other Board' };
 const CAT_NAMES      = { open: 'Open/General', obc: 'OBC', sc: 'SC', st: 'ST', nt: 'NT', vj: 'VJ/DT', sbc: 'SBC', ews: 'EWS' };
 const STREAM_NAMES   = { science: 'Science', commerce: 'Commerce', arts: 'Arts/Humanities' };
-const CHANCE_LABELS  = { high: '✓ High', moderate: '~ Moderate', borderline: '~ Borderline', low: '✗ Low' };
+const CHANCE_LABELS  = { high: '<i class="fa fa-check"></i> High', moderate: '~ Moderate', borderline: '~ Borderline', low: '<i class="fa fa-times"></i> Low' };
 
 function fmt(n) {
   return Number(n).toLocaleString('en-IN');
@@ -131,7 +131,7 @@ function renderResults(d) {
       <tr>
         <td>
           <div class="college-name">${escHtml(c.name)}</div>
-          <div class="college-loc">📍 ${escHtml(c.loc)}</div>
+          <div class="college-loc"><i class="fa fa-map-marker-alt"></i> ${escHtml(c.loc)}</div>
         </td>
         <td><strong>${c.cutoff}%</strong></td>
         <td><span class="chance-badge chance-${chance}">${label}</span></td>

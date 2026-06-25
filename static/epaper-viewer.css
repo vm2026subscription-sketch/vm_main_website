@@ -1305,7 +1305,9 @@ body.epaper-body:not(.has-masthead) .ep-masthead {
 }
 
 .ep-hotspot::after {
-  content: '📰 ' attr(title);
+  content: '\f1ea  ' attr(title);
+  font-family: 'FontAwesome', 'Font Awesome 5 Free', var(--ep-font-sans, sans-serif);
+  font-weight: 900;
   position: absolute;
   bottom: calc(100% + 6px);
   left: 50%;

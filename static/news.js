@@ -209,7 +209,7 @@ function toggleBookmark(e, id) {
     showToast('Removed from saved articles');
   } else {
     bookmarks.add(id);
-    showToast('✅ Article saved!');
+    showToast('<i class="fa fa-check-circle" style="color:#22c55e"></i> Article saved!');
   }
   renderGrid();
 }
@@ -228,7 +228,7 @@ function shareArticle(title) {
     navigator.share({ title: t, url: window.location.href });
   } else {
     navigator.clipboard.writeText(window.location.href)
-      .then(() => showToast('🔗 Link copied to clipboard!'));
+      .then(() => showToast('<i class="fa fa-link"></i> Link copied to clipboard!'));
   }
 }
 
@@ -293,7 +293,7 @@ function toggleModalBookmark() {
     showToast('Removed from saved articles');
   } else {
     bookmarks.add(currentModal);
-    showToast('✅ Article saved!');
+    showToast('<i class="fa fa-check-circle" style="color:#22c55e"></i> Article saved!');
   }
   updateModalBookmark();
   renderGrid();
@@ -312,7 +312,7 @@ function updateModalBookmark() {
 ══════════════════════════════════════════════════ */
 function showToast(msg) {
   const t = document.getElementById('toast');
-  document.getElementById('toastMsg').textContent = msg;
+  document.getElementById('toastMsg').innerHTML = msg;
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2500);
 }
