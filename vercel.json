@@ -8,7 +8,7 @@
     }
   ],
   "functions": {
-    "app.py": { "maxDuration": 60 }
+    "app.py": { "maxDuration": 10 }
   },
   "routes": [
     {
