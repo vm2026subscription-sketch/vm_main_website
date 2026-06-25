@@ -5,137 +5,317 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Scholarships | Vidyarthi Mitra</title>
     <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
-
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
-        :root{--primary:#ff6600;--primary-600:#ea580c;--bg:#050a15;--text:#ffffff;--muted:#94a3b8}
-        body{margin:0;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-        .container{padding:36px 18px}
-        h1{font-family:'Poppins',sans-serif;font-size:2rem;margin:0 0 12px}
-        .breadcrumb a{color:var(--muted);text-decoration:none}
-        .panel{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);padding:22px;border-radius:12px}
-        .sch-card{display:flex;gap:16px;align-items:flex-start;padding:18px;border-radius:12px;border:1px solid rgba(255,255,255,0.04);background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent)}
-        .sch-badge{background:var(--primary);color:#000;padding:8px 12px;border-radius:8px;font-weight:700}
-        .sch-button{display:inline-flex;align-items:center;gap:8px;background:var(--primary);color:#000;padding:10px 16px;border-radius:10px;font-weight:700;text-decoration:none;transition:all .18s ease}
-        .sch-button:hover{background:#e55a00;color:#000;transform:translateY(-1px)}
-        .sch-title{font-weight:700;color:#fff}
-        .sch-desc{color:#cbd5e1}
-        .btn-primary-ghost{background:transparent;border:1px solid rgba(255,255,255,0.08);color:#fff;padding:8px 14px;border-radius:10px}
-        /* Light mode overrides */
-        body.light-mode{background:#f8fafc;color:#0f172a}
-        body.light-mode .panel{background:#fff;border-color:#e6eef8}
-        body.light-mode .sch-card{background:#fff;border-color:#f1f5f9}
-        body.light-mode .sch-badge{background:var(--primary);color:#fff}
-        body.light-mode .sch-desc{color:#475569}
-        body.light-mode .sch-title{color:#0f172a}
-        body.light-mode .btn-primary-ghost{background:transparent;border:1px solid rgba(0,0,0,0.08);color:#0f172a;padding:8px 14px;border-radius:10px;transition:all .18s ease}
-        body.light-mode .btn-primary-ghost:hover{background:var(--primary);color:#fff;border-color:var(--primary);transform:translateY(-2px);box-shadow:0 6px 20px rgba(234,88,12,0.12)}
-        /* Badge: outlined in light mode to match theme */
-        body.light-mode .sch-badge{background:transparent;color:var(--primary);border:1px solid var(--primary);padding:6px 10px}
-        body.light-mode .sch-button{background:var(--primary);color:#000}
-        .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:18px}
+        :root {
+            --primary: #ff6600;
+            --primary-dark: #ea580c;
+            --bg: #050a15;
+            --surface: rgba(255,255,255,0.03);
+            --border: rgba(255,255,255,0.07);
+            --text: #ffffff;
+            --muted: #94a3b8;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+        .page-container { max-width: 1200px; margin: 0 auto; padding: 36px 18px 80px; }
+
+        /* ── Breadcrumb ── */
+        .breadcrumb { display: flex; gap: 6px; align-items: center; margin-bottom: 28px; font-size: 0.85rem; color: var(--muted); flex-wrap: wrap; }
+        .breadcrumb a { color: var(--muted); text-decoration: none; }
+        .breadcrumb a:hover { color: var(--primary); }
+        .breadcrumb-sep { opacity: 0.4; }
+
+        /* ── Page header ── */
+        .page-header { margin-bottom: 32px; }
+        .page-header h1 { font-family: 'Poppins', sans-serif; font-size: 2rem; font-weight: 800; margin-bottom: 8px; }
+        .page-header p { color: var(--muted); font-size: 1rem; }
+
+        /* ── Controls ── */
+        .controls-container {
+            display: flex;
+            gap: 14px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+        .filter-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+        .filter-tab {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.18s;
+        }
+        .filter-tab:hover { border-color: var(--primary); color: var(--text); }
+        .filter-tab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 16px;
+            flex: 1;
+            min-width: 220px;
+        }
+        .search-box i { color: var(--muted); font-size: 0.9rem; }
+        .search-box input {
+            background: none;
+            border: none;
+            outline: none;
+            color: var(--text);
+            font-size: 0.9rem;
+            width: 100%;
+            font-family: 'Inter', sans-serif;
+        }
+        .search-box input::placeholder { color: var(--muted); }
+
+        /* ── Scholarship Grid ── */
+        .scholarships-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 18px;
+            margin-bottom: 48px;
+        }
+        .sc-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+        .sc-card:hover { border-color: rgba(255,102,0,0.35); transform: translateY(-2px); }
+        .sc-header { display: flex; align-items: center; gap: 12px; }
+        .sc-badge {
+            background: var(--primary);
+            color: #fff;
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+        .sc-title { font-weight: 700; font-size: 1rem; color: var(--text); line-height: 1.3; }
+        .sc-subtitle { font-size: 0.82rem; color: var(--primary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+        .sc-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+        .sc-chip {
+            background: rgba(255,102,0,0.08);
+            border: 1px solid rgba(255,102,0,0.15);
+            color: #fb923c;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .sc-desc { color: var(--muted); font-size: 0.88rem; line-height: 1.6; flex: 1; }
+        .sc-actions { margin-top: auto; }
+        .sc-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,102,0,0.1);
+            border: 1px solid rgba(255,102,0,0.25);
+            color: var(--primary);
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.18s;
+            font-family: 'Inter', sans-serif;
+        }
+        .sc-btn:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .no-results {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--muted);
+            font-size: 1rem;
+            display: none;
+        }
+        .no-results i { font-size: 2.5rem; margin-bottom: 14px; display: block; opacity: 0.4; }
+
+        /* ── FAQ ── */
+        .faq-container { margin-bottom: 48px; }
+        .faq-title { font-family: 'Poppins', sans-serif; font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; }
+        .faq-subtitle { color: var(--muted); font-size: 0.95rem; margin-bottom: 20px; }
+        .faq-item {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        .faq-question {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            user-select: none;
+            transition: background 0.15s;
+        }
+        .faq-question:hover { background: var(--surface); }
+        .faq-question i { color: var(--muted); transition: transform 0.25s; flex-shrink: 0; }
+        .faq-item.active .faq-question i { transform: rotate(180deg); color: var(--primary); }
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        .faq-item.active .faq-answer { max-height: 400px; }
+        .faq-answer p { padding: 0 20px 18px; color: var(--muted); font-size: 0.9rem; line-height: 1.7; }
+
+        /* ── Modal ── */
+        .custom-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(6px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        .custom-modal-backdrop.show { opacity: 1; pointer-events: all; }
+        .custom-modal-content {
+            background: #0f1929;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            max-width: 620px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 32px;
+            position: relative;
+            transform: translateY(20px);
+            transition: transform 0.2s;
+        }
+        .custom-modal-backdrop.show .custom-modal-content { transform: translateY(0); }
+        .modal-close-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .modal-close-btn:hover { background: rgba(255,255,255,0.12); color: var(--text); }
+        .modal-body-title { font-family: 'Poppins', sans-serif; font-size: 1.25rem; font-weight: 700; margin-bottom: 4px; padding-right: 40px; }
+        .modal-body-subtitle { color: var(--primary); font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 20px; }
+        .modal-section { margin-bottom: 18px; }
+        .modal-section h4 { font-size: 0.9rem; font-weight: 700; color: var(--text); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .modal-section h4 i { color: var(--primary); }
+        .modal-section ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+        .modal-section ul li { font-size: 0.88rem; color: var(--muted); padding-left: 14px; position: relative; line-height: 1.5; }
+        .modal-section ul li::before { content: '–'; position: absolute; left: 0; color: var(--primary); }
+        .modal-apply-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--primary);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 700;
+            text-decoration: none;
+            margin-top: 8px;
+            transition: background 0.18s;
+        }
+        .modal-apply-btn:hover { background: var(--primary-dark); color: #fff; }
+
+        /* ── Footer ── */
+        .page-footer { border-top: 1px solid var(--border); padding-top: 28px; text-align: center; color: var(--muted); font-size: 0.85rem; }
+        .page-footer a { color: var(--muted); text-decoration: none; margin: 0 10px; }
+        .page-footer a:hover { color: var(--primary); }
     </style>
 </head>
 <body>
     {% include '_shared_index_navbar.html' %}
 
-    <main class="container">
-        <nav style="margin-bottom:16px" aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Home</a></li>
-                <li class="breadcrumb-item"><a href="{{ url_for('universities') }}">Institutes &amp; Degrees</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Scholarships</li>
-            </ol>
+    <main class="page-container">
+
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb" aria-label="breadcrumb">
+            <a href="{{ url_for('index') }}">Home</a>
+            <span class="breadcrumb-sep"><i class="fa fa-chevron-right" style="font-size:0.7rem"></i></span>
+            <span>Scholarships</span>
         </nav>
 
-        <div class="panel">
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
-                <div>
-                    <h1>Scholarships</h1>
-                    <p style="margin:4px 0;color:var(--muted)">Find institute and degree level scholarships, merit awards, and need-based grants.</p>
-                    <p style="margin:4px 0;color:var(--muted);font-size:0.95rem;">More scholarship opportunities coming soon.</p>
-                </div>
-                <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
-                    <a href="{{ url_for('scholarships_coming_soon') }}" class="sch-button"><i class="fa fa-award"></i> Browse Scholarships</a>
-                </div>
-            </div>
-
-            <div class="grid">
-                {% for s in scholarships %}
-                <div class="sch-card">
-                    <div style="flex:0 0 84px">
-                        <div class="sch-badge">{{ loop.index }}</div>
-                    </div>
-                    <div style="flex:1">
-                        {% set link = s.url or s.link or '' %}
-                        {% set desc = s.description or s.summary or '' %}
-                        {% set subtitle = s.subtitle or s.source or '' %}
-                        <div class="sch-title">{{ s.title }}</div>
-                        {% if subtitle %}<div style="font-size:0.95rem;color:var(--muted);margin-top:6px">{{ subtitle }}</div>{% endif %}
-                        <p class="sch-desc" style="margin-top:10px">{{ desc }}</p>
-                        <div style="margin-top:8px">
-                            {% if link %}
-                                <a class="btn-primary-ghost" href="{{ url_for('scholarship_redirect') }}?url={{ link|urlencode }}&title={{ s.title|urlencode }}" target="_blank" rel="noopener noreferrer">View Details</a>
-                            {% else %}
-                                <span class="btn-primary-ghost" style="opacity:0.6;pointer-events:none">No link</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                {% else %}
-                <div class="sch-card">
-                    <div style="flex:1">
-                        <div class="sch-title">No scholarships found</div>
-                        <p class="sch-desc">We don't have scholarship listings yet. Check back later or contact us to add entries.</p>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1><i class="fa fa-award" style="color:var(--primary);margin-right:10px"></i>Scholarships</h1>
+            <p>Find government schemes, merit awards, and need-based grants for Indian students.</p>
         </div>
 
-        <!-- SEARCH & FILTER CONTROLS -->
+        <!-- Controls -->
         <div class="controls-container">
             <div class="filter-tabs">
-                <button class="filter-tab active" data-filter="all">All Opportunities</button>
-                <button class="filter-tab" data-filter="govt">Government Schemes</button>
+                <button class="filter-tab active" data-filter="all">All</button>
+                <button class="filter-tab" data-filter="govt">Government</button>
                 <button class="filter-tab" data-filter="merit">Merit-Based</button>
-                <button class="filter-tab" data-filter="women">Women & Girls</button>
+                <button class="filter-tab" data-filter="women">Women</button>
                 <button class="filter-tab" data-filter="need">Need-Based</button>
             </div>
             <div class="search-box">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="scholarshipSearch" placeholder="Search scholarships, keywords, portals...">
+                <i class="fa fa-magnifying-glass"></i>
+                <input type="text" id="scholarshipSearch" placeholder="Search scholarships...">
             </div>
         </div>
 
-        <!-- SCHOLARSHIPS GRID -->
+        <!-- Scholarships Grid -->
         <div class="scholarships-grid" id="scholarshipsGrid">
-            
-            <!-- Card 1 -->
+
             <div class="sc-card" data-category="govt merit need" data-title="National Scholarship Portal (NSP)">
                 <div class="sc-header">
                     <div class="sc-badge">1</div>
                     <h3 class="sc-title">National Scholarship Portal (NSP)</h3>
                 </div>
-                <div class="sc-subtitle">Central Government Scholarship Portal</div>
+                <div class="sc-subtitle">Central Government Portal</div>
                 <div class="sc-chips">
-                    <span class="sc-chip"><i class="fa-solid fa-building-flag"></i> Government</span>
-                    <span class="sc-chip"><i class="fa-solid fa-user-graduate"></i> All Degrees</span>
-                    <span class="sc-chip"><i class="fa-solid fa-indian-rupee-sign"></i> Full Tuition + Maintenance</span>
+                    <span class="sc-chip"><i class="fa fa-building-flag"></i> Government</span>
+                    <span class="sc-chip"><i class="fa fa-user-graduate"></i> All Degrees</span>
+                    <span class="sc-chip"><i class="fa fa-indian-rupee-sign"></i> Full Tuition + Maintenance</span>
                 </div>
-                <p class="sc-desc">Apply for central and state scholarships such as Post Matric, Pre Matric, and Merit-cum-Means through the official NSP portal.</p>
+                <p class="sc-desc">Apply for central and state scholarships — Post Matric, Pre Matric, and Merit-cum-Means — through the official NSP portal.</p>
                 <div class="sc-actions">
-                    <button class="sc-btn open-modal-btn" data-modal-id="modal-nsp">
-                        <span>View Complete Details</span>
-                        <i class="fa-solid fa-arrow-right"></i>
-                    </button>
+                    <button class="sc-btn open-modal-btn" data-modal-id="modal-nsp">View Details <i class="fa fa-arrow-right"></i></button>
                 </div>
             </div>
 
-            <!-- Card 2 -->
             <div class="sc-card" data-category="govt women merit" data-title="AICTE Pragati Scholarship">
                 <div class="sc-header">
                     <div class="sc-badge">2</div>
@@ -143,341 +323,229 @@
                 </div>
                 <div class="sc-subtitle">Girls in Technical Education</div>
                 <div class="sc-chips">
-                    <span class="sc-chip"><i class="fa-solid fa-venus"></i> Women & Girls</span>
-                    <span class="sc-chip"><i class="fa-solid fa-laptop-code"></i> Technical Degree/Dip.</span>
-                    <span class="sc-chip"><i class="fa-solid fa-indian-rupee-sign"></i> ₹50,000 / Year</span>
+                    <span class="sc-chip"><i class="fa fa-venus"></i> Women</span>
+                    <span class="sc-chip"><i class="fa fa-laptop-code"></i> Technical Degree/Dip.</span>
+                    <span class="sc-chip"><i class="fa fa-indian-rupee-sign"></i> ₹50,000 / Year</span>
                 </div>
-                <p class="sc-desc">Scholarship for girls pursuing technical education, covering tuition fees and contingency support to empower women in tech.</p>
+                <p class="sc-desc">Scholarship for girls pursuing technical education, covering tuition fees and contingency support.</p>
                 <div class="sc-actions">
-                    <button class="sc-btn open-modal-btn" data-modal-id="modal-pragati">
-                        <span>View Complete Details</span>
-                        <i class="fa-solid fa-arrow-right"></i>
-                    </button>
+                    <button class="sc-btn open-modal-btn" data-modal-id="modal-pragati">View Details <i class="fa fa-arrow-right"></i></button>
                 </div>
             </div>
 
-            <!-- Card 3 -->
             <div class="sc-card" data-category="govt merit" data-title="INSPIRE Scholarship for Higher Education">
                 <div class="sc-header">
                     <div class="sc-badge">3</div>
-                    <h3 class="sc-title">INSPIRE Scholarship for Higher Education</h3>
+                    <h3 class="sc-title">INSPIRE Scholarship (SHE)</h3>
                 </div>
-                <div class="sc-subtitle">Science & Research Talent</div>
+                <div class="sc-subtitle">Science & Research Talent — DST</div>
                 <div class="sc-chips">
-                    <span class="sc-chip"><i class="fa-solid fa-flask"></i> Basic & Natural Sciences</span>
-                    <span class="sc-chip"><i class="fa-solid fa-award"></i> Top 1% Class 12</span>
-                    <span class="sc-chip"><i class="fa-solid fa-indian-rupee-sign"></i> ₹80,000 / Year</span>
+                    <span class="sc-chip"><i class="fa fa-flask"></i> Basic Sciences</span>
+                    <span class="sc-chip"><i class="fa fa-award"></i> Top 1% Class 12</span>
+                    <span class="sc-chip"><i class="fa fa-indian-rupee-sign"></i> ₹80,000 / Year</span>
                 </div>
-                <p class="sc-desc">Scholarship from the Department of Science & Technology (DST) for meritorious science students undertaking bachelor's and master's courses.</p>
+                <p class="sc-desc">DST scholarship for meritorious science students pursuing bachelor's and master's in natural/basic sciences.</p>
                 <div class="sc-actions">
-                    <button class="sc-btn open-modal-btn" data-modal-id="modal-inspire">
-                        <span>View Complete Details</span>
-                        <i class="fa-solid fa-arrow-right"></i>
-                    </button>
+                    <button class="sc-btn open-modal-btn" data-modal-id="modal-inspire">View Details <i class="fa fa-arrow-right"></i></button>
                 </div>
             </div>
 
-            <!-- Card 4 -->
             <div class="sc-card" data-category="govt merit need" data-title="Prime Minister Scholarship Scheme">
                 <div class="sc-header">
                     <div class="sc-badge">4</div>
-                    <h3 class="sc-title">Prime Minister Scholarship Scheme</h3>
+                    <h3 class="sc-title">PM Scholarship Scheme (PMSS)</h3>
                 </div>
                 <div class="sc-subtitle">Defence Personnel Wards</div>
                 <div class="sc-chips">
-                    <span class="sc-chip"><i class="fa-solid fa-shield-halved"></i> Defence/CAPF Wards</span>
-                    <span class="sc-chip"><i class="fa-solid fa-graduation-cap"></i> Professional Courses</span>
-                    <span class="sc-chip"><i class="fa-solid fa-indian-rupee-sign"></i> ₹36,000 - ₹39,000 / Yr</span>
+                    <span class="sc-chip"><i class="fa fa-shield-halved"></i> Defence/CAPF</span>
+                    <span class="sc-chip"><i class="fa fa-graduation-cap"></i> Professional Courses</span>
+                    <span class="sc-chip"><i class="fa fa-indian-rupee-sign"></i> ₹36,000–39,000 / Yr</span>
                 </div>
-                <p class="sc-desc">Scholarship for dependent wards and widows of ex-servicemen, serving defence personnel, and CAPF pursuing professional degree courses.</p>
+                <p class="sc-desc">For dependent wards and widows of ex-servicemen and CAPF personnel pursuing professional degree courses.</p>
                 <div class="sc-actions">
-                    <button class="sc-btn open-modal-btn" data-modal-id="modal-pmss">
-                        <span>View Complete Details</span>
-                        <i class="fa-solid fa-arrow-right"></i>
-                    </button>
+                    <button class="sc-btn open-modal-btn" data-modal-id="modal-pmss">View Details <i class="fa fa-arrow-right"></i></button>
                 </div>
             </div>
 
-            <!-- Card 5 -->
-            <div class="sc-card" data-category="govt merit need" data-title="MaahdBT Scholarship Portal">
+            <div class="sc-card" data-category="govt merit need" data-title="MahaDBT Scholarship Portal">
                 <div class="sc-header">
                     <div class="sc-badge">5</div>
-                    <h3 class="sc-title">MaahdBT Scholarship Portal</h3>
+                    <h3 class="sc-title">MahaDBT Scholarship Portal</h3>
                 </div>
-                <div class="sc-subtitle">Maharashtra Scholarship Portal</div>
+                <div class="sc-subtitle">Maharashtra State Portal</div>
                 <div class="sc-chips">
-                    <span class="sc-chip"><i class="fa-solid fa-location-dot"></i> Maharashtra State</span>
-                    <span class="sc-chip"><i class="fa-solid fa-scale-balanced"></i> Reserved / EWS / Merit</span>
-                    <span class="sc-chip"><i class="fa-solid fa-indian-rupee-sign"></i> 50% to 100% Tuition Fee</span>
+                    <span class="sc-chip"><i class="fa fa-location-dot"></i> Maharashtra</span>
+                    <span class="sc-chip"><i class="fa fa-scale-balanced"></i> Reserved / EWS / Merit</span>
+                    <span class="sc-chip"><i class="fa fa-indian-rupee-sign"></i> 50–100% Tuition Fee</span>
                 </div>
-                <p class="sc-desc">State-sponsored scholarships and grants for Maharashtra students across multiple departments, including EBC, OBC, SC, ST, and minority welfare.</p>
+                <p class="sc-desc">State-sponsored scholarships for Maharashtra students across EBC, OBC, SC, ST, and minority welfare departments.</p>
                 <div class="sc-actions">
-                    <button class="sc-btn open-modal-btn" data-modal-id="modal-mahadbt">
-                        <span>View Complete Details</span>
-                        <i class="fa-solid fa-arrow-right"></i>
-                    </button>
+                    <button class="sc-btn open-modal-btn" data-modal-id="modal-mahadbt">View Details <i class="fa fa-arrow-right"></i></button>
                 </div>
             </div>
 
-            <!-- Card 6 -->
             <div class="sc-card" data-category="merit need" data-title="Saksham Scholarship">
                 <div class="sc-header">
                     <div class="sc-badge">6</div>
-                    <h3 class="sc-title">Saksham Scholarship</h3>
+                    <h3 class="sc-title">AICTE Saksham Scholarship</h3>
                 </div>
                 <div class="sc-subtitle">Financial Aid for Differently-Abled</div>
                 <div class="sc-chips">
-                    <span class="sc-chip"><i class="fa-solid fa-wheelchair"></i> Specially-Abled</span>
-                    <span class="sc-chip"><i class="fa-solid fa-gears"></i> Technical Degree / Dip.</span>
-                    <span class="sc-chip"><i class="fa-solid fa-indian-rupee-sign"></i> ₹50,000 / Year</span>
+                    <span class="sc-chip"><i class="fa fa-wheelchair"></i> Specially-Abled</span>
+                    <span class="sc-chip"><i class="fa fa-gears"></i> Technical Degree/Dip.</span>
+                    <span class="sc-chip"><i class="fa fa-indian-rupee-sign"></i> ₹50,000 / Year</span>
                 </div>
-                <p class="sc-desc">Empowerment scholarship program providing financial assistance to specially-abled students pursuing technical education at AICTE approved institutions.</p>
+                <p class="sc-desc">Financial assistance for specially-abled students (40%+ disability) at AICTE approved institutions.</p>
                 <div class="sc-actions">
-                    <button class="sc-btn open-modal-btn" data-modal-id="modal-saksham">
-                        <span>View Complete Details</span>
-                        <i class="fa-solid fa-arrow-right"></i>
-                    </button>
+                    <button class="sc-btn open-modal-btn" data-modal-id="modal-saksham">View Details <i class="fa fa-arrow-right"></i></button>
                 </div>
             </div>
 
-            <!-- Card 7 -->
             <div class="sc-card" data-category="merit" data-title="Aditya Birla Scholarship">
                 <div class="sc-header">
                     <div class="sc-badge">7</div>
                     <h3 class="sc-title">Aditya Birla Scholarship</h3>
                 </div>
-                <div class="sc-subtitle">Corporate Scholarship Program</div>
+                <div class="sc-subtitle">Corporate Excellence Program</div>
                 <div class="sc-chips">
-                    <span class="sc-chip"><i class="fa-solid fa-building"></i> Corporate Scheme</span>
-                    <span class="sc-chip"><i class="fa-solid fa-trophy"></i> Premier Institutes (IIT/IIM/Law)</span>
-                    <span class="sc-chip"><i class="fa-solid fa-indian-rupee-sign"></i> Up to ₹3,000,000 / Yr</span>
+                    <span class="sc-chip"><i class="fa fa-building"></i> Corporate</span>
+                    <span class="sc-chip"><i class="fa fa-trophy"></i> IIT / IIM / NLU</span>
+                    <span class="sc-chip"><i class="fa fa-indian-rupee-sign"></i> Up to ₹3,00,000 / Yr</span>
                 </div>
-                <p class="sc-desc">Prestigious scholarship program for highly meritorious students across premier engineering, management, and law institutions in India.</p>
+                <p class="sc-desc">Prestigious scholarship for highly meritorious students at premier engineering, management, and law institutions in India.</p>
                 <div class="sc-actions">
-                    <button class="sc-btn open-modal-btn" data-modal-id="modal-birla">
-                        <span>View Complete Details</span>
-                        <i class="fa-solid fa-arrow-right"></i>
-                    </button>
+                    <button class="sc-btn open-modal-btn" data-modal-id="modal-birla">View Details <i class="fa fa-arrow-right"></i></button>
                 </div>
             </div>
 
-            <!-- NO RESULTS -->
             <div class="no-results" id="noResultsState">
-                <i class="fa-solid fa-magnifying-glass-minus"></i>
-                <div>No scholarships found matching your criteria.</div>
-                <p style="font-size:0.95rem; margin-top:8px; color:var(--text-muted)">Try adjusting your search keywords or switching filter tabs.</p>
+                <i class="fa fa-magnifying-glass-minus"></i>
+                No scholarships found matching your criteria.
             </div>
 
         </div>
-    </div>
 
-    <!-- FAQ SECTION -->
-    <div class="faq-container">
-        <h2 class="faq-title">Frequently Asked Questions</h2>
-        <p class="faq-subtitle">Everything you need to know about applying for scholarships and securing financial aid.</p>
+        <!-- FAQ -->
+        <div class="faq-container">
+            <h2 class="faq-title">Frequently Asked Questions</h2>
+            <p class="faq-subtitle">Everything you need to know about applying for scholarships.</p>
 
-        <div class="faq-item">
-            <div class="faq-question">
-                <span>1. Who is eligible to apply for these scholarships?</span>
-                <i class="fa-solid fa-chevron-down"></i>
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>Who is eligible to apply for these scholarships?</span>
+                    <i class="fa fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>Eligibility varies by scheme — merit-based (academic excellence), need-based (economically weaker sections), government (reserved categories, defence wards, regional domicile), and special schemes (women, specially-abled). Check each scholarship's individual details for exact criteria.</p>
+                </div>
             </div>
-            <div class="faq-answer">
-                <p>Eligibility varies depending on the specific scholarship scheme. Generally, scholarships are categorized into merit-based (for academic excellence), need-based (for economically weaker sections), government schemes (for reserved categories, defence wards, or regional domicile), and special schemes (for women and specially-abled students). Check the individual details of each scholarship to confirm exact criteria.</p>
+
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>Can I apply for multiple scholarships simultaneously?</span>
+                    <i class="fa fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>You can submit applications for multiple scholarships, but government guidelines generally allow availing funds from only one central or state government scholarship at a time. You may combine a government scholarship with a private/corporate scholarship depending on the private entity's terms.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>What documents are commonly required?</span>
+                    <i class="fa fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>Aadhaar Card, previous academic marksheets (Class 10, 12, or Degree semesters), Income Certificate, Caste/Category Certificate (if applicable), Domicile Certificate, bank passbook (Aadhaar-seeded), and fee receipt of the current academic year.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>How is the scholarship amount disbursed?</span>
+                    <i class="fa fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    <p>Most central and state scholarships are disbursed via Direct Benefit Transfer (DBT) into the student's Aadhaar-seeded bank account. Some institutional or corporate scholarships may disburse the tuition fee portion directly to the college.</p>
+                </div>
             </div>
         </div>
 
-        <div class="faq-item">
-            <div class="faq-question">
-                <span>2. Can I apply for multiple scholarships simultaneously?</span>
-                <i class="fa-solid fa-chevron-down"></i>
-            </div>
-            <div class="faq-answer">
-                <p>While you can submit applications for multiple scholarships, government guidelines usually stipulate that a student can only avail funds from one central or state government scholarship at a time. However, you may be allowed to combine a government scholarship with a private or corporate scholarship depending on the private entity's terms.</p>
-            </div>
-        </div>
+        <!-- Footer -->
+        <footer class="page-footer">
+            <a href="{{ url_for('about_us') }}">About Us</a>
+            <a href="{{ url_for('contact') }}">Contact Us</a>
+            <a href="{{ url_for('privacy') }}">Privacy Policy</a>
+            <a href="{{ url_for('terms') }}">Terms &amp; Conditions</a>
+            <a href="{{ url_for('refund_policy') }}">Refund Policy</a>
+        </footer>
 
-        <div class="faq-item">
-            <div class="faq-question">
-                <span>3. What common documents are required during application?</span>
-                <i class="fa-solid fa-chevron-down"></i>
-            </div>
-            <div class="faq-answer">
-                <p>Commonly required documents include: Aadhaar Card, Previous Academic Marksheets (Class 10, 12, or Degree semesters), Income Certificate issued by a competent authority, Caste/Category Certificate (if applicable), Domicile Certificate, Bank Passbook copy (seeded with Aadhaar), and Fee Receipt of the current academic year.</p>
-            </div>
-        </div>
+    </main>
 
-        <div class="faq-item">
-            <div class="faq-question">
-                <span>4. How is the scholarship amount disbursed?</span>
-                <i class="fa-solid fa-chevron-down"></i>
-            </div>
-            <div class="faq-answer">
-                <p>Most central and state government scholarships are disbursed through Direct Benefit Transfer (DBT) directly into the student's Aadhaar-seeded bank account. Some institutional or corporate scholarships may disburse the tuition fee portion directly to the college or institute.</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL POPUP CONTAINER -->
+    <!-- Modal -->
     <div class="custom-modal-backdrop" id="scholarshipModal">
-        <div class="custom-modal-content" id="modalContentWrapper">
-            <button class="modal-close-btn" id="modalCloseBtn"><i class="fa-solid fa-xmark"></i></button>
-            <div id="modalDynamicBody">
-                <!-- Content injected dynamically via JS -->
-            </div>
+        <div class="custom-modal-content">
+            <button class="modal-close-btn" id="modalCloseBtn"><i class="fa fa-xmark"></i></button>
+            <div id="modalDynamicBody"></div>
         </div>
     </div>
 
-    <!-- MODAL DATA REPOSITORY (JSON/JS) -->
     <script>
         const modalData = {
             'modal-nsp': {
                 title: 'National Scholarship Portal (NSP)',
                 subtitle: 'Central Government Scholarship Portal',
-                eligibility: [
-                    'Must be a citizen of India.',
-                    'Students studying in recognized schools/colleges/institutes across India.',
-                    'Specific criteria depend on the sub-scheme (Pre-Matric, Post-Matric, Merit-cum-Means).',
-                    'Annual family income ceilings apply as per respective central ministry guidelines.'
-                ],
-                benefits: [
-                    'Direct Benefit Transfer (DBT) directly into Aadhaar-seeded bank account.',
-                    'Covers admission fees, tuition fees, and maintenance allowance.',
-                    'Transparent tracking of application status from verification to disbursal.'
-                ],
-                documents: [
-                    'Aadhaar Card and Student Bank Passbook.',
-                    'Income Certificate issued by competent revenue authority.',
-                    'Caste / Community Certificate (if applicable).',
-                    'Previous year academic marksheets and current institution fee receipt.'
-                ],
+                eligibility: ['Must be a citizen of India.', 'Students in recognized schools/colleges across India.', 'Specific criteria depend on sub-scheme (Pre-Matric, Post-Matric, Merit-cum-Means).', 'Annual family income ceilings apply per respective central ministry guidelines.'],
+                benefits: ['Direct Benefit Transfer (DBT) into Aadhaar-seeded bank account.', 'Covers admission fees, tuition fees, and maintenance allowance.', 'Transparent tracking from verification to disbursal.'],
+                documents: ['Aadhaar Card and Student Bank Passbook.', 'Income Certificate from competent revenue authority.', 'Caste/Community Certificate (if applicable).', 'Previous academic marksheets and current institution fee receipt.'],
                 link: 'https://scholarships.gov.in/'
             },
             'modal-pragati': {
                 title: 'AICTE Pragati Scholarship for Girls',
                 subtitle: 'Empowering Women in Technical Education',
-                eligibility: [
-                    'Up to two girls per family can apply.',
-                    'Must be admitted to first year of Degree/Diploma level course or second year (lateral entry) in AICTE approved institution.',
-                    'Family income must not exceed ₹8 lakh per annum.'
-                ],
-                benefits: [
-                    'Financial support of ₹50,000 per annum for every year of study.',
-                    'Amount can be utilized for college fee, purchase of computer, books, stationeries, and equipment.',
-                    'Reservation available for SC/ST/OBC candidates as per government norms.'
-                ],
-                documents: [
-                    'Aadhaar Card and Bank Account details linked with Aadhaar.',
-                    'Annual Family Income Certificate issued by Tehsildar or higher authority.',
-                    'Admission letter issued by Directorate of Technical Education / AICTE approved institute.',
-                    '10th and 12th / Diploma marksheets.'
-                ],
+                eligibility: ['Up to two girls per family can apply.', 'First year of Degree/Diploma (or second year lateral entry) in AICTE approved institution.', 'Family income must not exceed ₹8 lakh per annum.'],
+                benefits: ['₹50,000 per annum for every year of study.', 'Usable for college fee, computer, books, stationeries, and equipment.', 'Reservation for SC/ST/OBC candidates as per government norms.'],
+                documents: ['Aadhaar Card and Bank Account linked with Aadhaar.', 'Annual Family Income Certificate from Tehsildar or higher authority.', 'Admission letter from AICTE approved institute.', '10th and 12th / Diploma marksheets.'],
                 link: 'https://www.aicte-india.org/schemes/students-development-schemes'
             },
             'modal-inspire': {
                 title: 'INSPIRE Scholarship for Higher Education (SHE)',
                 subtitle: 'Department of Science & Technology (DST)',
-                eligibility: [
-                    'Must be within the top 1% of successful students in Class 12 board examinations.',
-                    'Must be pursuing courses in Natural and Basic Sciences at the B.Sc., B.S., or Int. M.Sc./M.S. level.',
-                    'Or, candidates who have secured top ranks in JEE Main/Advanced or NEET and chose to study natural/basic sciences.'
-                ],
-                benefits: [
-                    'Total scholarship value of ₹80,000 per annum.',
-                    'Includes a cash award of ₹60,000 per annum and a summertime mentorship research grant of ₹20,000.',
-                    'Valid for a maximum period of 5 years or until the completion of the course.'
-                ],
-                documents: [
-                    'Class 12 Board eligibility advisory note / Marksheet.',
-                    'Endorsement Certificate signed by the Principal/Registrar of the current college.',
-                    'Aadhaar Card and Bank passbook front page.',
-                    'Proof of rank in JEE/NEET (if applying through competitive exam route).'
-                ],
+                eligibility: ['Top 1% of successful students in Class 12 board exams.', 'Pursuing B.Sc., B.S., or Int. M.Sc./M.S. in Natural and Basic Sciences.', 'Or top JEE/NEET rankers who chose natural/basic sciences.'],
+                benefits: ['₹80,000 per annum total.', 'Includes ₹60,000 cash award + ₹20,000 summertime mentorship research grant.', 'Valid for maximum 5 years or until course completion.'],
+                documents: ['Class 12 Board marksheet / eligibility advisory note.', 'Endorsement Certificate from Principal/Registrar.', 'Aadhaar Card and Bank passbook.', 'Proof of rank in JEE/NEET (if applicable).'],
                 link: 'https://online-inspire.gov.in/'
             },
             'modal-pmss': {
                 title: 'Prime Minister Scholarship Scheme (PMSS)',
                 subtitle: 'For Wards of Defence Personnel and CAPF',
-                eligibility: [
-                    'Dependent wards and widows of ex-servicemen and ex-coast guard personnel.',
-                    'Dependent wards of CAPF / Assam Rifles personnel killed or disabled in action.',
-                    'Must have secured a minimum of 60% marks in Minimum Entry Qualification (Class 12 / Diploma / Graduation).',
-                    'Pursuing professional degree courses like B.E., B.Tech, BDS, MBBS, B.Ed, BBA, BCA, B.Pharma, etc.'
-                ],
-                benefits: [
-                    '₹36,000 per annum for boys (₹3,000 per month).',
-                    '₹39,000 per annum for girls (₹3,250 per month).',
-                    'Disbursed annually through direct bank transfer upon successful clearing of semesters.'
-                ],
-                documents: [
-                    'Ex-Servicemen / Discharge Certificate / PPO.',
-                    'Class 12 / Diploma / Graduation Marksheets.',
-                    'Bonafide Certificate from the educational institution.',
-                    'Aadhaar Card and active bank account passbook.'
-                ],
+                eligibility: ['Dependent wards and widows of ex-servicemen/ex-coast guard.', 'Wards of CAPF / Assam Rifles personnel killed or disabled in action.', 'Minimum 60% in Class 12/Diploma/Graduation.', 'Pursuing professional courses: B.E., B.Tech, BDS, MBBS, BBA, BCA, B.Pharma, etc.'],
+                benefits: ['₹36,000 per annum for boys (₹3,000/month).', '₹39,000 per annum for girls (₹3,250/month).', 'Disbursed annually via direct bank transfer.'],
+                documents: ['Ex-Servicemen / Discharge Certificate / PPO.', 'Class 12/Diploma/Graduation Marksheets.', 'Bonafide Certificate from educational institution.', 'Aadhaar Card and active bank account passbook.'],
                 link: 'https://www.ksb.gov.in/'
             },
             'modal-mahadbt': {
-                title: 'MaahdBT Scholarship Portal',
+                title: 'MahaDBT Scholarship Portal',
                 subtitle: 'Maharashtra State Direct Benefit Transfer',
-                eligibility: [
-                    'Must be a resident/domicile of Maharashtra state.',
-                    'Enrolled in recognized professional, technical, or general courses in Maharashtra.',
-                    'Rajarshi Chhatrapati Shahu Maharaj Shikshan Shulk Shishyavrutti Yojna (EBC): Family income under ₹8 lakh.',
-                    'Social Justice and Special Assistance schemes available for SC, OBC, VJNT, and SBC categories.'
-                ],
-                benefits: [
-                    'Reimbursement of 50% to 100% of tuition and exam fees directly to student/institute account.',
-                    'Maintenance allowance for hostellers and day scholars depending on the department scheme.',
-                    'Single online application window for all state departmental scholarships.'
-                ],
-                documents: [
-                    'Maharashtra Domicile Certificate.',
-                    'Annual Income Certificate from Tehsildar.',
-                    'Caste Certificate and Caste Validity Certificate (for reserved categories).',
-                    'CAP Allotment letter (for professional courses) and fee receipt.'
-                ],
+                eligibility: ['Must be a resident/domicile of Maharashtra.', 'Enrolled in recognized professional, technical, or general courses in Maharashtra.', 'EBC scheme: family income under ₹8 lakh.', 'Social Justice schemes for SC, OBC, VJNT, SBC categories.'],
+                benefits: ['50–100% tuition and exam fee reimbursement.', 'Maintenance allowance for hostellers and day scholars.', 'Single online application window for all state departmental scholarships.'],
+                documents: ['Maharashtra Domicile Certificate.', 'Annual Income Certificate from Tehsildar.', 'Caste Certificate and Caste Validity Certificate (reserved categories).', 'CAP Allotment letter and fee receipt (professional courses).'],
                 link: 'https://mahadbt.maharashtra.gov.in/'
             },
             'modal-saksham': {
                 title: 'AICTE Saksham Scholarship Scheme',
                 subtitle: 'Empowerment for Specially-Abled Students',
-                eligibility: [
-                    'Differently-abled students having a disability of not less than 40%.',
-                    'Admitted to first year of Degree/Diploma level course or second year (lateral entry) in AICTE approved institution.',
-                    'Family income must not exceed ₹8 lakh per annum.'
-                ],
-                benefits: [
-                    'Financial support of ₹50,000 per annum for every year of study.',
-                    'Covers college tuition fee, purchase of assistive devices, equipment, books, and laptops.',
-                    'All eligible specially-abled students who apply are granted the scholarship (no numerical ceiling).'
-                ],
-                documents: [
-                    'Disability Certificate issued by a competent medical authority (minimum 40%).',
-                    'Aadhaar Card and Bank Account details linked with Aadhaar.',
-                    'Annual Family Income Certificate issued by Tehsildar.',
-                    'Admission letter from AICTE approved institute.'
-                ],
+                eligibility: ['Disability of not less than 40%.', 'First year Degree/Diploma (or lateral entry second year) at AICTE approved institution.', 'Family income must not exceed ₹8 lakh per annum.'],
+                benefits: ['₹50,000 per annum for every year of study.', 'Covers tuition fee, assistive devices, equipment, books, and laptops.', 'No numerical ceiling — all eligible students who apply are granted the scholarship.'],
+                documents: ['Disability Certificate from competent medical authority (minimum 40%).', 'Aadhaar Card and Bank Account linked with Aadhaar.', 'Annual Family Income Certificate from Tehsildar.', 'Admission letter from AICTE approved institute.'],
                 link: 'https://www.aicte-india.org/schemes/students-development-schemes'
             },
             'modal-birla': {
                 title: 'Aditya Birla Scholarship Program',
                 subtitle: 'Corporate Excellence Scholarship',
-                eligibility: [
-                    'Students admitted to premier institutions: selected IITs, BITS Pilani, IIMs, XLRI, and National Law Universities (NLUs).',
-                    'Selection is based on top entrance examination ranks, exceptional academic excellence, and leadership potential.',
-                    'Subject to maintaining top academic standing throughout the course.'
-                ],
-                benefits: [
-                    'Covers up to ₹3,00,000 per annum or actual fee for management students.',
-                    'Covers up to ₹1,75,000 per annum or actual fee for engineering/law tutorial students.',
-                    'Provides unparalleled mentorship opportunities with top Aditya Birla Group conglomerates.'
-                ],
-                documents: [
-                    'Detailed corporate application form submitted through the institute dean/admin.',
-                    'Essays showcasing leadership, achievements, and vision.',
-                    'Entrance examination rank card and previous academic transcripts.',
-                    'Extracurricular portfolio and letters of recommendation.'
-                ],
+                eligibility: ['Students at selected IITs, BITS Pilani, IIMs, XLRI, and National Law Universities.', 'Based on top entrance exam ranks, academic excellence, and leadership potential.', 'Subject to maintaining top academic standing throughout.'],
+                benefits: ['Up to ₹3,00,000 per annum (management students).', 'Up to ₹1,75,000 per annum (engineering/law students).', 'Mentorship opportunities with Aditya Birla Group.'],
+                documents: ['Corporate application form via institute dean/admin.', 'Essays on leadership, achievements, and vision.', 'Entrance exam rank card and academic transcripts.', 'Extracurricular portfolio and letters of recommendation.'],
                 link: 'https://www.adityabirlascholars.net/'
             }
         };
@@ -486,16 +554,13 @@
             const searchInput = document.getElementById('scholarshipSearch');
             const filterTabs = document.querySelectorAll('.filter-tab');
             const cards = document.querySelectorAll('.sc-card');
-            const noResultsState = document.getElementById('noResultsState');
-
+            const noResults = document.getElementById('noResultsState');
             const modalBackdrop = document.getElementById('scholarshipModal');
-            const modalDynamicBody = document.getElementById('modalDynamicBody');
+            const modalBody = document.getElementById('modalDynamicBody');
             const modalCloseBtn = document.getElementById('modalCloseBtn');
 
             let currentFilter = 'all';
-            let currentSearch = '';
 
-            // Filter Tabs logic
             filterTabs.forEach(tab => {
                 tab.addEventListener('click', function () {
                     filterTabs.forEach(t => t.classList.remove('active'));
@@ -505,114 +570,54 @@
                 });
             });
 
-            // Search logic
-            searchInput.addEventListener('input', function () {
-                currentSearch = this.value.toLowerCase().trim();
-                filterCards();
-            });
+            searchInput.addEventListener('input', filterCards);
 
             function filterCards() {
-                let visibleCount = 0;
-
+                const q = searchInput.value.toLowerCase().trim();
+                let visible = 0;
                 cards.forEach(card => {
-                    const category = card.getAttribute('data-category');
+                    const cat = card.getAttribute('data-category');
                     const title = card.getAttribute('data-title').toLowerCase();
                     const desc = card.querySelector('.sc-desc').textContent.toLowerCase();
-
-                    const matchesFilter = (currentFilter === 'all') || category.includes(currentFilter);
-                    const matchesSearch = (currentSearch === '') || title.includes(currentSearch) || desc.includes(currentSearch);
-
-                    if (matchesFilter && matchesSearch) {
-                        card.style.display = 'flex';
-                        visibleCount++;
-                    } else {
-                        card.style.display = 'none';
-                    }
+                    const matchFilter = currentFilter === 'all' || cat.includes(currentFilter);
+                    const matchSearch = !q || title.includes(q) || desc.includes(q);
+                    const show = matchFilter && matchSearch;
+                    card.style.display = show ? 'flex' : 'none';
+                    if (show) visible++;
                 });
-
-                if (visibleCount === 0) {
-                    noResultsState.style.display = 'block';
-                } else {
-                    noResultsState.style.display = 'none';
-                }
+                noResults.style.display = visible === 0 ? 'block' : 'none';
             }
 
-            // Modal Open Logic
-            const openBtns = document.querySelectorAll('.open-modal-btn');
-            openBtns.forEach(btn => {
-                btn.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    const modalId = this.getAttribute('data-modal-id');
-                    const data = modalData[modalId];
-
-                    if (data) {
-                        modalDynamicBody.innerHTML = `
-                            <h3 class="modal-body-title">${data.title}</h3>
-                            <div class="modal-body-subtitle">${data.subtitle}</div>
-
-                            <div class="modal-section">
-                                <h4><i class="fa-solid fa-circle-check"></i> Eligibility Criteria</h4>
-                                <ul>
-                                    ${data.eligibility.map(item => `<li>${item}</li>`).join('')}
-                                </ul>
-                            </div>
-
-                            <div class="modal-section">
-                                <h4><i class="fa-solid fa-gift"></i> Key Benefits & Allowance</h4>
-                                <ul>
-                                    ${data.benefits.map(item => `<li>${item}</li>`).join('')}
-                                </ul>
-                            </div>
-
-                            <div class="modal-section">
-                                <h4><i class="fa-solid fa-file-lines"></i> Required Documents</h4>
-                                <ul>
-                                    ${data.documents.map(item => `<li>${item}</li>`).join('')}
-                                </ul>
-                            </div>
-
-                            <a href="${data.link}" target="_blank" rel="noopener noreferrer" class="modal-apply-btn">
-                                <span>Proceed to Official Website</span>
-                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                            </a>
-                        `;
-
-                        modalBackdrop.classList.add('show');
-                        document.body.style.overflow = 'hidden';
-                    }
+            document.querySelectorAll('.open-modal-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const data = modalData[this.getAttribute('data-modal-id')];
+                    if (!data) return;
+                    modalBody.innerHTML = `
+                        <h3 class="modal-body-title">${data.title}</h3>
+                        <div class="modal-body-subtitle">${data.subtitle}</div>
+                        <div class="modal-section"><h4><i class="fa fa-circle-check"></i> Eligibility</h4><ul>${data.eligibility.map(i => `<li>${i}</li>`).join('')}</ul></div>
+                        <div class="modal-section"><h4><i class="fa fa-gift"></i> Benefits</h4><ul>${data.benefits.map(i => `<li>${i}</li>`).join('')}</ul></div>
+                        <div class="modal-section"><h4><i class="fa fa-file-lines"></i> Documents Required</h4><ul>${data.documents.map(i => `<li>${i}</li>`).join('')}</ul></div>
+                        <a href="${data.link}" target="_blank" rel="noopener noreferrer" class="modal-apply-btn">Official Website <i class="fa fa-arrow-up-right-from-square"></i></a>
+                    `;
+                    modalBackdrop.classList.add('show');
+                    document.body.style.overflow = 'hidden';
                 });
             });
 
-            // Modal Close Logic
             function closeModal() {
                 modalBackdrop.classList.remove('show');
                 document.body.style.overflow = '';
             }
-
             modalCloseBtn.addEventListener('click', closeModal);
+            modalBackdrop.addEventListener('click', e => { if (e.target === modalBackdrop) closeModal(); });
+            document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
-            modalBackdrop.addEventListener('click', function (e) {
-                if (e.target === modalBackdrop) {
-                    closeModal();
-                }
-            });
-
-            document.addEventListener('keydown', function (e) {
-                if (e.key === 'Escape' && modalBackdrop.classList.contains('show')) {
-                    closeModal();
-                }
-            });
-
-            // FAQ Accordion Logic
-            const faqItems = document.querySelectorAll('.faq-item');
-            faqItems.forEach(item => {
-                const question = item.querySelector('.faq-question');
-                question.addEventListener('click', () => {
+            document.querySelectorAll('.faq-item').forEach(item => {
+                item.querySelector('.faq-question').addEventListener('click', () => {
                     const isActive = item.classList.contains('active');
-                    faqItems.forEach(i => i.classList.remove('active'));
-                    if (!isActive) {
-                        item.classList.add('active');
-                    }
+                    document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('active'));
+                    if (!isActive) item.classList.add('active');
                 });
             });
         });
