@@ -618,7 +618,7 @@
     </a>
 
     <!-- Hamburger menu toggle -->
-    <button id="vmNavToggle" class="vm-nav-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+    <button id="vmNavToggle" class="vm-nav-toggle" aria-label="Toggle navigation" aria-expanded="false"><i class="fa fa-bars"></i></button>
 
     <!-- Center Navigation Links (Decluttered with dropdowns) -->
     <nav class="vm-main-links" aria-label="Main navigation">
@@ -670,7 +670,7 @@
       </a>
 
       <!-- Theme Switcher -->
-      <button id="themeToggle" class="vm-theme-toggle" aria-label="Toggle Theme">☀️</button>
+      <button id="themeToggle" class="vm-theme-toggle" aria-label="Toggle Theme"><i class="fa fa-sun-o fa-sun"></i></button>
 
       <!-- Side-by-side Auth Actions -->
       <div class="vm-auth-group">
@@ -907,7 +907,7 @@
       header.classList.toggle('vm-expanded');
       var expanded = header.classList.contains('vm-expanded');
       this.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-      this.textContent = expanded ? '✕' : '☰';
+      this.innerHTML = expanded ? '<i class="fa fa-times"></i>' : '<i class="fa fa-bars"></i>';
     });
 
     // Close menu when clicking outside the header
@@ -915,7 +915,7 @@
       if (header.classList.contains('vm-expanded') && !header.contains(e.target)) {
         header.classList.remove('vm-expanded');
         toggle.setAttribute('aria-expanded', 'false');
-        toggle.textContent = '☰';
+        toggle.innerHTML = '<i class="fa fa-bars"></i>';
         document.querySelectorAll('.vm-dropdown').forEach(function(d) {
           d.classList.remove('vm-mobile-open');
         });
@@ -927,7 +927,7 @@
       a.addEventListener('click', function() {
         header.classList.remove('vm-expanded');
         toggle.setAttribute('aria-expanded', 'false');
-        toggle.textContent = '☰';
+        toggle.innerHTML = '<i class="fa fa-bars"></i>';
       });
     });
 
@@ -946,7 +946,7 @@
     window.addEventListener('resize', function(){
       if (window.innerWidth > 992) {
         header.classList.remove('vm-expanded');
-        if (toggle) { toggle.setAttribute('aria-expanded','false'); toggle.textContent = '☰'; }
+        if (toggle) { toggle.setAttribute('aria-expanded','false'); toggle.innerHTML = '<i class="fa fa-bars"></i>'; }
         document.querySelectorAll('.vm-dropdown').forEach(function(d) {
           d.classList.remove('vm-mobile-open');
         });
@@ -993,9 +993,9 @@
       // Load preference
       if (localStorage.getItem('theme') === 'light') {
         document.body.classList.add('light-mode');
-        themeToggle.textContent = '🌙';
+        themeToggle.innerHTML = '<i class="fa fa-moon-o fa-moon"></i>';
       } else {
-        themeToggle.textContent = '☀️';
+        themeToggle.innerHTML = '<i class="fa fa-sun-o fa-sun"></i>';
       }
       
       themeToggle.addEventListener('click', function() {
@@ -1003,10 +1003,10 @@
         var isLight = document.body.classList.contains('light-mode');
         if (isLight) {
           localStorage.setItem('theme', 'light');
-          themeToggle.textContent = '🌙';
+          themeToggle.innerHTML = '<i class="fa fa-moon-o fa-moon"></i>';
         } else {
           localStorage.setItem('theme', 'dark');
-          themeToggle.textContent = '☀️';
+          themeToggle.innerHTML = '<i class="fa fa-sun-o fa-sun"></i>';
         }
 
         // Notify chatbot iframe

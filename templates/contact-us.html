@@ -6,6 +6,7 @@
     <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
   <title>Contact Us</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -38,7 +39,7 @@
     .topbar a:hover { color: #F47B20; }
 
     /* ===== NAVBAR ===== */
-    nav {
+    .legacy-nav {
       background: #fff;
       border-bottom: 2px solid #F47B20;
       padding: 0 30px;
@@ -401,7 +402,7 @@
       .cards-grid, .form-grid { grid-template-columns: 1fr; }
       .nav-links { display: none; }
       .hero h1 { font-size: 28px; letter-spacing: 3px; }
-      nav { padding: 0 16px; }
+      .legacy-nav { padding: 0 16px; }
       .footer-grid { grid-template-columns: 1fr 1fr; }
     }
   </style>
@@ -424,7 +425,7 @@
   <div class="cards-grid">
     <!-- PUNE -->
     <div class="card">
-      <div class="card-header"><h2>📍 PUNE</h2></div>
+      <div class="card-header"><h2><i class="fa fa-map-marker-alt"></i> PUNE</h2></div>
       <div class="card-body">
         <div class="addresses-row">
           <div class="address-block">
@@ -464,7 +465,7 @@
 
     <!-- MUMBAI -->
     <div class="card">
-      <div class="card-header"><h2>📍 MUMBAI</h2></div>
+      <div class="card-header"><h2><i class="fa fa-map-marker-alt"></i> MUMBAI</h2></div>
       <div class="card-body">
         <div class="address-block">
           <div class="pin">
@@ -666,7 +667,7 @@
   const result = await response.json();
       
       if (result.success) {
-        button.textContent = '✓ Message Sent!';
+        button.innerHTML = '<i class="fa fa-check-circle"></i> Message Sent!';
         button.style.background = 'linear-gradient(135deg,#2e7d32,#43a047)';
         this.reset();
         setTimeout(() => {
@@ -674,7 +675,7 @@
           button.style.background = '';
         }, 3000);
       } else {
-        button.textContent = '✗ Error!';
+        button.innerHTML = '<i class="fa fa-times-circle"></i> Error!';
         button.style.background = 'linear-gradient(135deg,#d32f2f,#f44336)';
         setTimeout(() => {
           button.textContent = 'Send Message →';
@@ -682,7 +683,7 @@
         }, 3000);
       }
     } catch (error) {
-      button.textContent = '✗ Error!';
+      button.innerHTML = '<i class="fa fa-times-circle"></i> Error!';
       button.style.background = 'linear-gradient(135deg,#d32f2f,#f44336)';
       console.error('Form submission error:', error);
       setTimeout(() => {
