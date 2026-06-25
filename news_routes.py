@@ -1,11 +1,14 @@
 """
-News routes for fetching and filtering RSS feeds
+News routes for fetching and filtering RSS feeds plus live Aaj Tak e-paper articles.
 """
+import json
 import re
 from datetime import datetime, timedelta
 from email.utils import parsedate_to_datetime
+from html import unescape
 from threading import Lock
 from urllib.error import HTTPError, URLError
+from urllib.parse import unquote
 from urllib.request import Request, urlopen
 from xml.etree import ElementTree as ET
 
@@ -47,6 +50,10 @@ CATEGORIES = {
     "scholarship": {
         "keywords": ["scholarship", "fellowship", "stipend", "financial aid"],
         "label": "Scholarships"
+    },
+    "latest": {
+        "keywords": ["latest", "india", "exam", "education", "student", "career", "government", "news"],
+        "label": "Latest News"
     }
 }
 
@@ -97,6 +104,13 @@ def _extract_img_from_html(html):
     return m.group(1) if m else ""
 
 
+def _clean_text(value):
+    """Strip HTML tags and decode HTML entities for article text."""
+    text = re.sub(r'<[^>]+>', ' ', value or '')
+    text = unescape(text)
+    return ' '.join(text.split())
+
+
 def _build_article(title, link, description, pub_date, source_name, image_url=""):
     """Normalize and filter a single feed entry to API article shape."""
     title = (title or "").strip()
@@ -106,7 +120,7 @@ def _build_article(title, link, description, pub_date, source_name, image_url=""
     if not image_url:
         image_url = _extract_img_from_html(description)
 
-    description = re.sub(r'<[^>]+>', '', (description or "")).strip()
+    description = _clean_text(description)
 
     if not title or not link:
         return None
@@ -199,18 +213,17 @@ def _fetch_feed_with_stdlib(feed_url, source_name, timeout=10):
 def _get_news_category(title, description):
     """
     Determine news category based on keyword matching.
-    Returns category key or None if no match.
+    Returns the best match, with a safe 'latest' fallback for live e-paper entries.
     """
     text = (title + " " + description).lower()
-    
+
     for category_key, category_data in CATEGORIES.items():
         for keyword in category_data["keywords"]:
-            # Use word boundaries for better matching
             pattern = r'\b' + re.escape(keyword) + r'\b'
             if re.search(pattern, text):
                 return category_key
-    
-    return None
+
+    return "latest"
 
 
 def _fetch_feed(feed_url, source_name, timeout=10):
@@ -259,6 +272,92 @@ def _fetch_feed(feed_url, source_name, timeout=10):
     return articles
 
 
+def _fetch_json(url, timeout=10):
+    """Fetch a JSON payload with a conservative User-Agent."""
+    try:
+        req = Request(url, headers={"User-Agent": "vm-main-website/1.0"})
+        with urlopen(req, timeout=timeout) as response:
+            return json.loads(response.read().decode("utf-8", errors="ignore"))
+    except Exception:
+        return None
+
+
+def _fetch_aajtak_news(limit=30):
+    """Fetch live Aaj Tak e-paper article cards for the news tab."""
+    base_url = "https://epaper.aajtak.in/api/public"
+    site_slug = "epaper-aajtak"
+
+    editions = _fetch_json(f"{base_url}/editions?site={site_slug}", timeout=10)
+    if not editions or not isinstance(editions.get("data"), list):
+        return []
+
+    latest_edition = None
+    for item in editions["data"]:
+        if item.get("status") == "published" and item.get("publication_date"):
+            latest_edition = item
+            break
+
+    if not latest_edition:
+        return []
+
+    edition_payload = _fetch_json(
+        f"{base_url}/edition?site={site_slug}&date={latest_edition['publication_date']}",
+        timeout=10,
+    )
+    if not edition_payload or not isinstance(edition_payload.get("pages"), list):
+        return []
+
+    articles = []
+    seen_links = set()
+
+    for page in edition_payload["pages"]:
+        for zone in page.get("zones", []) or []:
+            content_id = zone.get("content_id")
+            if not content_id:
+                continue
+
+            article_payload = _fetch_json(f"{base_url}/article/{content_id}", timeout=10)
+            if not article_payload:
+                continue
+
+            link = article_payload.get("url") or zone.get("url") or ""
+            if link and not link.startswith("http"):
+                link = "https://epaper.aajtak.in" + link
+
+            title = article_payload.get("title") or zone.get("title") or page.get("title") or "Aaj Tak Article"
+            description = _clean_text(article_payload.get("description") or article_payload.get("strap_headline") or "")
+            image = article_payload.get("image") or page.get("image_path") or ""
+            article = _build_article(
+                title,
+                link,
+                description or title,
+                article_payload.get("edition_date") or latest_edition.get("publication_date"),
+                "Aaj Tak E-Paper",
+                image,
+            )
+            if not article:
+                continue
+
+            key = article.get("link") or article.get("title")
+            if key in seen_links:
+                continue
+            seen_links.add(key)
+            articles.append(article)
+
+            if len(articles) >= limit:
+                return articles
+
+    return articles
+
+
+def _find_news_article_by_link(link):
+    """Return a cached news article by its original source link."""
+    for article in _get_all_news():
+        if article.get("link") == link:
+            return article
+    return None
+
+
 def _get_all_news():
     """Fetch news from all feeds with caching. Feeds fetched in parallel."""
     with _NEWS_CACHE_LOCK:
@@ -269,7 +368,7 @@ def _get_all_news():
 
     # Fetch all feeds in parallel (4x faster than sequential)
     from concurrent.futures import ThreadPoolExecutor, as_completed
-    all_news = []
+    all_news = _fetch_aajtak_news(limit=30)
     with ThreadPoolExecutor(max_workers=len(RSS_FEEDS)) as ex:
         futures = {
             ex.submit(_fetch_feed, fi["url"], fi["source"], 8): fi
@@ -372,6 +471,15 @@ def _prioritize_freshness_by_category(articles, fresh_hours=DEFAULT_FRESHNESS_HO
 @news_bp.route("/news-reel")
 def news_reel():
     return render_template("news_reel.html")
+
+
+@news_bp.route("/news/detail/<path:encoded_link>")
+def news_detail(encoded_link):
+    link = unquote(encoded_link)
+    article = _find_news_article_by_link(link)
+    if not article:
+        return render_template("news_detail.html", article=None, error="This article could not be loaded."), 404
+    return render_template("news_detail.html", article=article)
 
 
 @news_bp.route("/api/news", methods=["GET"])

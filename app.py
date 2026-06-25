@@ -11,10 +11,13 @@ import secrets
 import smtplib
 import time
 from datetime import datetime
+from functools import wraps
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, quote, unquote, urljoin, urlparse, urlencode
 from urllib.request import Request, urlopen
 from email.message import EmailMessage
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 try:
     import pandas as pd
@@ -22,6 +25,7 @@ except ImportError:
     pd = None
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
+from flask_wtf.csrf import CSRFProtect
 from dotenv import load_dotenv
 from werkzeug.security import check_password_hash, generate_password_hash
 try:
@@ -52,6 +56,16 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "vidyarthi-mitra-dev-key-change-in-production")
+# Disable CSRF on JSON/API requests — they are protected by session auth
+# (require_admin / _require_epaper_admin). CSRF tokens are only enforced on
+# HTML form submissions (login, register) via the admin_login.html hidden field.
+app.config['WTF_CSRF_CHECK_DEFAULT'] = False
+csrf = CSRFProtect(app)
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=[]
+)
 app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024  # 200 MB upload limit
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
@@ -98,13 +112,12 @@ COURSES_DB_URL = (
     os.getenv("SUPABASE_POSTGRES_URL", "").strip()
     or os.getenv("DATABASE_URL", "").strip()
 )
-if COURSES_DB_URL:
-    try:
-        from courses_routes import courses_bp
+try:
+    from courses_routes import courses_bp
 
-        app.register_blueprint(courses_bp)
-    except Exception as exc:
-        app.logger.warning("Skipping courses blueprint registration: %s", exc)
+    app.register_blueprint(courses_bp)
+except Exception as exc:
+    app.logger.warning("Skipping courses blueprint registration: %s", exc)
 
 # Register news blueprint
 try:
@@ -1066,6 +1079,17 @@ def get_auth_db_connection():
                         created_at TIMESTAMPTZ DEFAULT NOW()
                     )
                 """)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS bookmarks (
+                        id BIGSERIAL PRIMARY KEY,
+                        user_email TEXT NOT NULL,
+                        item_type TEXT NOT NULL,
+                        item_name TEXT NOT NULL,
+                        item_url TEXT,
+                        created_at TIMESTAMPTZ DEFAULT NOW(),
+                        UNIQUE (user_email, item_type, item_name)
+                    )
+                """)
             conn.commit()
             # Wrap in a sqlite3-compatible shim so the rest of the code works unchanged
             return _PgAuthConn(conn)
@@ -1082,6 +1106,17 @@ def get_auth_db_connection():
             email TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS bookmarks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_email TEXT NOT NULL,
+            item_type TEXT NOT NULL,
+            item_name TEXT NOT NULL,
+            item_url TEXT,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (user_email, item_type, item_name)
         )
     """)
     connection.commit()
@@ -1131,6 +1166,51 @@ def get_logged_in_user():
     if isinstance(user, dict) and user.get("email"):
         return user
     return None
+
+
+def format_member_since(value):
+    """Render a users.created_at value (datetime from Postgres or string from
+    SQLite) as a readable 'DD Mon YYYY'. Returns '' for missing values."""
+    if not value:
+        return ""
+    try:
+        if isinstance(value, datetime):
+            dt = value
+        else:
+            dt = datetime.strptime(str(value)[:19], "%Y-%m-%d %H:%M:%S")
+        return dt.strftime("%d %b %Y")
+    except (ValueError, TypeError):
+        return str(value)[:10]
+
+
+# ── Allowed bookmark item types ──────────────────────────────────────
+BOOKMARK_ITEM_TYPES = {"college", "university"}
+
+
+def fetch_user_bookmarks(email):
+    """Return the logged-in user's saved colleges/universities as plain dicts,
+    newest first. Always scoped to the supplied email (ownership guard)."""
+    if not email:
+        return []
+    try:
+        with get_auth_db_connection() as connection:
+            rows = connection.execute(
+                "SELECT item_type, item_name, item_url, created_at "
+                "FROM bookmarks WHERE user_email = ? ORDER BY created_at DESC, id DESC",
+                (email,),
+            ).fetchall()
+    except Exception as exc:
+        app.logger.warning("Fetching bookmarks failed: %s", exc)
+        return []
+
+    bookmarks = []
+    for row in rows:
+        bookmarks.append({
+            "item_type": row["item_type"],
+            "item_name": row["item_name"],
+            "item_url": row["item_url"],
+        })
+    return bookmarks
 
 
 def generate_login_otp():
@@ -1325,9 +1405,15 @@ def convert_excel_to_records(uploaded_file):
     if not excel_bytes:
         raise ValueError("The uploaded file is empty.")
 
-    workbook = pd.read_excel(io.BytesIO(excel_bytes), sheet_name=None)
+    if uploaded_file.filename.lower().endswith('.csv'):
+        # Parse CSV as a single sheet "Sheet1"
+        dataframe = pd.read_csv(io.BytesIO(excel_bytes))
+        workbook = {"Sheet1": dataframe}
+    else:
+        workbook = pd.read_excel(io.BytesIO(excel_bytes), sheet_name=None)
+        
     if not workbook:
-        raise ValueError("No sheets found in the uploaded Excel file.")
+        raise ValueError("No sheets found in the uploaded file.")
 
     records = []
     for sheet_name, dataframe in workbook.items():
@@ -1438,7 +1524,28 @@ def _load_universities_data():
             {"slug": "university-of-mumbai", "name": "University of Mumbai", "location": "Mumbai", "state": "Maharashtra", "type": "Government", "stream": "General", "nirf": "45", "source_url": "https://mu.ac.in", "logo_url": "https://www.google.com/s2/favicons?sz=128&domain=mu.ac.in"},
         ]
 
-UNIVERSITIES_DATA = _load_universities_data()
+def _fetch_universities():
+    """Fetch universities from Postgres payload, fallback to JSON."""
+    try:
+        from psycopg2 import connect
+        from psycopg2.extras import RealDictCursor
+        db_url = get_postgres_connection_url()
+        if not db_url:
+            raise RuntimeError("Database URL not configured")
+        conn = connect(db_url, cursor_factory=RealDictCursor)
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT payload FROM universities")
+                rows = cur.fetchall()
+            if rows:
+                return [row['payload'] for row in rows if 'payload' in row]
+        finally:
+            conn.close()
+    except Exception as db_exc:
+        app.logger.warning(f"Could not load universities from DB, falling back to JSON: {db_exc}")
+        return _load_universities_data()
+
+UNIVERSITIES_DATA = _load_universities_data()  # Keep for initial cache or backward compat if needed
 
 
 
@@ -1701,7 +1808,104 @@ def dashboard():
     if not user:
         flash("Please login to access your dashboard.", "error")
         return redirect(url_for("login"))
-    return render_template("dashboard.html", user=user)
+
+    # The session only stores name + email; pull the join date from the users table.
+    member_since = ""
+    try:
+        with get_auth_db_connection() as connection:
+            record = connection.execute(
+                "SELECT created_at FROM users WHERE email = ?",
+                (user["email"],),
+            ).fetchone()
+        if record is not None:
+            member_since = format_member_since(record["created_at"])
+    except Exception as exc:
+        app.logger.warning("Loading dashboard profile failed: %s", exc)
+
+    bookmarks = fetch_user_bookmarks(user["email"])
+    return render_template(
+        "dashboard.html",
+        user=user,
+        member_since=member_since,
+        bookmarks=bookmarks,
+    )
+
+
+@app.route("/api/bookmarks", methods=["GET"])
+def api_list_bookmarks():
+    """Return the current user's saved colleges/universities."""
+    user = get_logged_in_user()
+    if not user:
+        return jsonify({"success": False, "error": "auth_required"}), 401
+    return jsonify({"success": True, "bookmarks": fetch_user_bookmarks(user["email"])})
+
+
+@app.route("/api/bookmarks", methods=["POST"])
+def api_add_bookmark():
+    """Save a college/university for the logged-in user. Duplicates are ignored."""
+    user = get_logged_in_user()
+    if not user:
+        return jsonify({"success": False, "error": "auth_required"}), 401
+
+    payload = request.get_json(silent=True) or {}
+    item_type = (payload.get("item_type") or "").strip().lower()
+    item_name = (payload.get("item_name") or "").strip()
+    item_url = (payload.get("item_url") or "").strip() or None
+
+    if item_type not in BOOKMARK_ITEM_TYPES or not item_name:
+        return jsonify({"success": False, "error": "invalid_item"}), 400
+
+    try:
+        with get_auth_db_connection() as connection:
+            existing = connection.execute(
+                "SELECT id FROM bookmarks "
+                "WHERE user_email = ? AND item_type = ? AND item_name = ?",
+                (user["email"], item_type, item_name),
+            ).fetchone()
+
+            if existing is not None:
+                return jsonify({"success": True, "status": "already_saved"})
+
+            connection.execute(
+                "INSERT INTO bookmarks (user_email, item_type, item_name, item_url) "
+                "VALUES (?, ?, ?, ?)",
+                (user["email"], item_type, item_name, item_url),
+            )
+            connection.commit()
+    except Exception as exc:
+        app.logger.warning("Saving bookmark failed: %s", exc)
+        return jsonify({"success": False, "error": "save_failed"}), 500
+
+    return jsonify({"success": True, "status": "saved"})
+
+
+@app.route("/api/bookmarks/remove", methods=["POST"])
+def api_remove_bookmark():
+    """Remove a saved item. Scoped to the logged-in user (ownership guard)."""
+    user = get_logged_in_user()
+    if not user:
+        return jsonify({"success": False, "error": "auth_required"}), 401
+
+    payload = request.get_json(silent=True) or {}
+    item_type = (payload.get("item_type") or "").strip().lower()
+    item_name = (payload.get("item_name") or "").strip()
+
+    if item_type not in BOOKMARK_ITEM_TYPES or not item_name:
+        return jsonify({"success": False, "error": "invalid_item"}), 400
+
+    try:
+        with get_auth_db_connection() as connection:
+            connection.execute(
+                "DELETE FROM bookmarks "
+                "WHERE user_email = ? AND item_type = ? AND item_name = ?",
+                (user["email"], item_type, item_name),
+            )
+            connection.commit()
+    except Exception as exc:
+        app.logger.warning("Removing bookmark failed: %s", exc)
+        return jsonify({"success": False, "error": "remove_failed"}), 500
+
+    return jsonify({"success": True, "status": "removed"})
 
 
 @app.route("/")
@@ -1872,27 +2076,59 @@ def epaper_pdf_proxy():
     except (HTTPError, URLError, TimeoutError, ValueError):
         return jsonify({"error": "Unable to fetch PDF from source URL."}), 502
 
+def _is_admin():
+    return session.get('epaper_admin_auth') is True
+
+def require_admin(f):
+    """Decorator: blocks non-admin requests. API routes get 401 JSON; page routes redirect to /admin/login."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not _is_admin():
+            if request.is_json or request.path.startswith('/api/'):
+                return jsonify({'error': 'Unauthorized'}), 401
+            return redirect(url_for('admin_login', next=request.path))
+        return f(*args, **kwargs)
+    return decorated
+
+
+@app.route("/admin/login", methods=["GET", "POST"])
+def admin_login():
+    if _is_admin():
+        return redirect(url_for('admin'))
+    error = None
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        admin_pass = os.getenv("EPAPER_ADMIN_PASS", "vm2026")
+        if password == admin_pass:
+            session['epaper_admin_auth'] = True
+            next_url = request.form.get("next") or request.args.get("next") or url_for('admin')
+            return redirect(next_url)
+        error = "Incorrect password. Please try again."
+    next_url = request.args.get("next", "")
+    return render_template("admin_login.html", error=error, next=next_url)
+
+
+@app.route("/admin/logout")
+def admin_logout():
+    session.pop('epaper_admin_auth', None)
+    return redirect(url_for('admin_login'))
+
+
 @app.route("/admin")
+@require_admin
 def admin():
-    from epaper_routes import _is_epaper_admin
-    if not _is_epaper_admin():
-        return redirect(url_for("epaper.epaper_admin_login", next="/admin"))
-    return render_template("admin.html")
+    return render_template("admin.html", upload_targets=UPLOAD_TARGET_TABLES)
 
 
 @app.route("/api/admin/alerts", methods=["GET"])
+@require_admin
 def api_admin_get_alerts():
-    from epaper_routes import _is_epaper_admin
-    if not _is_epaper_admin():
-        return jsonify({"error": "Unauthorized"}), 401
     return jsonify({"alerts": _read_json_file(_ALERTS_FILE, _DEFAULT_ALERTS)})
 
 
 @app.route("/api/admin/alerts", methods=["POST"])
+@require_admin
 def api_admin_save_alerts():
-    from epaper_routes import _is_epaper_admin
-    if not _is_epaper_admin():
-        return jsonify({"error": "Unauthorized"}), 401
     data = request.get_json(silent=True) or {}
     alerts = data.get("alerts", [])
     _write_json_file(_ALERTS_FILE, alerts)
@@ -1900,10 +2136,8 @@ def api_admin_save_alerts():
 
 
 @app.route("/api/admin/responses/<source>")
+@require_admin
 def api_admin_responses(source):
-    from epaper_routes import _is_epaper_admin
-    if not _is_epaper_admin():
-        return jsonify({"error": "Unauthorized"}), 401
     source_map = {
         'feedback': _FEEDBACK_FILE,
         'guideme': _GUIDEME_FILE,
@@ -1942,10 +2176,8 @@ def api_admin_responses(source):
 
 
 @app.route("/api/admin/blogs", methods=["GET"])
+@require_admin
 def api_admin_blogs_list():
-    from epaper_routes import _is_epaper_admin
-    if not _is_epaper_admin():
-        return jsonify({"error": "Unauthorized"}), 401
     blogs = []
     try:
         db_url = get_postgres_connection_url()
@@ -1989,10 +2221,8 @@ def api_admin_blogs_list():
 
 
 @app.route("/api/admin/blogs/add", methods=["POST"])
+@require_admin
 def api_admin_blogs_add():
-    from epaper_routes import _is_epaper_admin
-    if not _is_epaper_admin():
-        return jsonify({"error": "Unauthorized"}), 401
     data = request.get_json(silent=True) or {}
     title = (data.get('title') or '').strip()
     if not title:
@@ -2032,10 +2262,8 @@ def api_admin_blogs_add():
 
 
 @app.route("/api/admin/blogs/delete", methods=["POST"])
+@require_admin
 def api_admin_blogs_delete():
-    from epaper_routes import _is_epaper_admin
-    if not _is_epaper_admin():
-        return jsonify({"error": "Unauthorized"}), 401
     data = request.get_json(silent=True) or {}
     blog_id = data.get('id')
     if not blog_id:
@@ -2099,10 +2327,8 @@ def api_admin_blogs_update():
 
 
 @app.route("/api/admin/blogs/import-json", methods=["POST"])
+@require_admin
 def api_admin_blogs_import_json():
-    from epaper_routes import _is_epaper_admin
-    if not _is_epaper_admin():
-        return jsonify({"error": "Unauthorized"}), 401
     try:
         with open(_BLOGS_FILE, 'r', encoding='utf-8') as f:
             raw = json.load(f)
@@ -2174,13 +2400,14 @@ def vmadmin_proxy(subpath):
 
 @app.route("/universities")
 def universities():
-    states = sorted({item["state"] for item in UNIVERSITIES_DATA})
-    cities = sorted({item["location"] for item in UNIVERSITIES_DATA})
-    types = sorted({item["type"] for item in UNIVERSITIES_DATA})
-    streams = sorted({item["stream"] for item in UNIVERSITIES_DATA})
+    universities_data = _fetch_universities()
+    states = sorted({item.get("state", "Unknown") for item in universities_data if "state" in item})
+    cities = sorted({item.get("location", "Unknown") for item in universities_data if "location" in item})
+    types = sorted({item.get("type", "Government") for item in universities_data if "type" in item})
+    streams = sorted({item.get("stream", "General") for item in universities_data if "stream" in item})
     return render_template(
         "universities.html",
-        universities=UNIVERSITIES_DATA,
+        universities=universities_data,
         states=states,
         cities=cities,
         types=types,
@@ -2219,7 +2446,8 @@ def generate_university_description(uni):
 
 @app.route("/universities/<slug>")
 def university_detail(slug):
-    university = next((item for item in UNIVERSITIES_DATA if item["slug"] == slug), None)
+    universities_data = _fetch_universities()
+    university = next((item for item in universities_data if item.get("slug") == slug), None)
     if university is None:
         return redirect(url_for("universities"))
     
@@ -2351,10 +2579,23 @@ def colleges():
         error=error,
     )
 
-
 @app.route("/courses")
 def courses():
-    return render_template("courses.html")
+    try:
+        from courses_routes import _get_courses_bundle, LEVEL_ORDER, LEVEL_META
+        bundle = _get_courses_bundle()
+        return render_template(
+            "courses.html",
+            level_index   = bundle["level_index"],
+            level_order   = LEVEL_ORDER,
+            level_meta    = LEVEL_META,
+            total_courses = bundle["total_courses"],
+            courses_json  = bundle["courses_json"],
+            error         = None,
+        )
+    except Exception as exc:
+        app.logger.error("Error loading courses mock data: %s", exc)
+        return render_template("courses.html", total_courses=0, courses_json="[]", error=str(exc))
 
 
 @app.route("/entrance-exams")
@@ -2873,7 +3114,7 @@ def fyjc_predict():
 @app.route("/scholarships")
 def scholarships():
     scholarships_data = _load_scholarships_data()
-    return render_template("scholarships.html", scholarships=scholarships_data)
+    return render_template("scholarships.html", scholarships=scholarships_data, page_title="Scholarships")
 
 
 @app.route("/scholarship-redirect")
@@ -2915,6 +3156,7 @@ def admissions():
     except Exception as e:
         app.logger.warning("Admissions DB fetch failed: %s", e)
     return render_template("admissions.html", admissions_data=admissions_data)
+
 
 @app.route("/news")
 def news():
@@ -3595,6 +3837,7 @@ def chatbot():
 
 
 @app.route("/api/chatbot/query", methods=["POST"])
+@limiter.limit("5 per minute")
 def api_chatbot_query():
     if not GROQ_API_KEY:
         return jsonify({"error": "Chatbot is not configured. Set GROQ_API_KEY in environment variables."}), 503
@@ -3669,6 +3912,10 @@ def terms():
 @app.route('/privacy-policy')
 def privacy():
     return render_template('privacy.html')
+
+@app.route('/careers')
+def careers():
+    return render_template('careers.html')
 
 @app.route('/about')
 def about_redirect():
@@ -3927,6 +4174,7 @@ def govt_job_detail(job_id):
 
 
 @app.route("/register", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
 def register():
     if request.method == "POST":
         name = request.form.get("name", "").strip()
@@ -3970,6 +4218,7 @@ def register():
 
 
 @app.route("/login", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
 def login():
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
@@ -4033,6 +4282,7 @@ def login():
 
 
 @app.route("/verify-otp", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
 def verify_otp():
     pending_otp = get_pending_login_otp()
     if pending_otp is None:
@@ -4160,114 +4410,58 @@ def logout():
     return redirect(url_for("index"))
 
 
-@app.route("/excel-upload", methods=["GET", "POST"])
-def excel_upload():
+def _perform_excel_upload(uploaded_file, table_name):
+    """Shared logic for Excel upload. Returns (inserted_rows, error_str)."""
     allowed_tables = {item["value"] for item in UPLOAD_TARGET_TABLES}
-    default_table = os.getenv("SUPABASE_EXCEL_TABLE", "universities").strip() or "universities"
-    if default_table not in allowed_tables:
-        default_table = "universities"
-
+    if table_name not in allowed_tables:
+        return 0, "Invalid table name."
+    if not uploaded_file or not uploaded_file.filename:
+        return 0, "No file provided."
+    if not uploaded_file.filename.lower().endswith((".xlsx", ".xls", ".csv")):
+        return 0, "Invalid file type. Please upload .csv, .xlsx or .xls."
     supabase_client = get_supabase_client()
     postgres_connection_url = get_postgres_connection_url()
     configured = supabase_client is not None or bool(postgres_connection_url)
-    connection_mode = "postgres-url" if postgres_connection_url else "supabase-api"
-    selected_table = default_table
-
-    if request.method == "POST":
-        selected_table = request.form.get("target_table", default_table).strip()
-        if selected_table not in allowed_tables:
-            flash("Please choose a valid target table.", "error")
-            return render_template(
-                "excel_upload.html",
-                configured=configured,
-                table_name=default_table,
-                selected_table=default_table,
-                upload_targets=UPLOAD_TARGET_TABLES,
-                connection_mode=connection_mode,
-            )
-
-        if not configured:
-            flash(
-                "Supabase is not configured. Set SUPABASE_POSTGRES_URL (or DATABASE_URL), or set SUPABASE_URL with SUPABASE_SERVICE_ROLE_KEY.",
-                "error",
-            )
-            return render_template(
-                "excel_upload.html",
-                configured=False,
-                table_name=selected_table,
-                selected_table=selected_table,
-                upload_targets=UPLOAD_TARGET_TABLES,
-                connection_mode=connection_mode,
-            )
-
-        uploaded_file = request.files.get("excel_file")
-        if uploaded_file is None or not uploaded_file.filename:
-            flash("Please choose an Excel file to upload.", "error")
-            return render_template(
-                "excel_upload.html",
-                configured=True,
-                table_name=selected_table,
-                selected_table=selected_table,
-                upload_targets=UPLOAD_TARGET_TABLES,
-                connection_mode=connection_mode,
-            )
-
-        if not uploaded_file.filename.lower().endswith((".xlsx", ".xls")):
-            flash("Invalid file type. Please upload an .xlsx or .xls file.", "error")
-            return render_template(
-                "excel_upload.html",
-                configured=True,
-                table_name=selected_table,
-                selected_table=selected_table,
-                upload_targets=UPLOAD_TARGET_TABLES,
-                connection_mode=connection_mode,
-            )
-
-        try:
-            records = convert_excel_to_records(uploaded_file)
-            inserted_rows = 0
+    if not configured:
+        return 0, "Database not configured."
+    try:
+        records = convert_excel_to_records(uploaded_file)
+        inserted_rows = 0
+        last_exc = None
+        if postgres_connection_url:
+            try:
+                ensure_upload_table_exists(postgres_connection_url, table_name)
+                inserted_rows = insert_records_via_postgres(postgres_connection_url, table_name, records)
+            except Exception as pg_exc:
+                last_exc = pg_exc
+                app.logger.warning("Postgres upload failed: %s", pg_exc)
+        if inserted_rows == 0 and supabase_client:
+            inserted_rows = insert_records_in_batches(supabase_client, table_name, records)
             last_exc = None
-            # Try direct Postgres first; if DB is paused fall back to REST API
-            if postgres_connection_url:
-                try:
-                    ensure_upload_table_exists(postgres_connection_url, selected_table)
-                    inserted_rows = insert_records_via_postgres(postgres_connection_url, selected_table, records)
-                except Exception as pg_exc:
-                    last_exc = pg_exc
-                    app.logger.warning("Postgres upload failed, trying Supabase REST: %s", pg_exc)
-            if inserted_rows == 0 and supabase_client:
-                inserted_rows = insert_records_in_batches(supabase_client, selected_table, records)
-                last_exc = None
-            if inserted_rows == 0 and last_exc:
-                raise last_exc
-        except Exception as exc:
-            import traceback
-            app.logger.error("Excel upload error: %s", traceback.format_exc())
-            flash(f"Upload failed: {type(exc).__name__}: {exc}", "error")
-            return render_template(
-                "excel_upload.html",
-                configured=True,
-                table_name=selected_table,
-                selected_table=selected_table,
-                upload_targets=UPLOAD_TARGET_TABLES,
-                connection_mode=connection_mode,
-            )
-
-        # Dual-write: keep local JSON in sync so DB-down fallback stays fresh
-        if selected_table == 'blogs':
+        if inserted_rows == 0 and last_exc:
+            raise last_exc
+        if table_name == 'blogs':
             _sync_blogs_json_from_records(records)
+        return inserted_rows, None
+    except Exception as exc:
+        import traceback
+        app.logger.error("Excel upload error: %s", traceback.format_exc())
+        return 0, f"{type(exc).__name__}: {exc}"
 
-        flash(f"Upload successful. Inserted {inserted_rows} row(s) into {selected_table}.", "success")
-        return redirect(url_for("excel_upload"))
 
-    return render_template(
-        "excel_upload.html",
-        configured=configured,
-        table_name=selected_table,
-        selected_table=selected_table,
-        upload_targets=UPLOAD_TARGET_TABLES,
-        connection_mode=connection_mode,
-    )
+@app.route("/api/admin/data-upload", methods=["POST"])
+@require_admin
+def api_admin_data_upload():
+    table_name = request.form.get("target_table", "").strip()
+    uploaded_file = request.files.get("excel_file")
+    inserted, err = _perform_excel_upload(uploaded_file, table_name)
+    if err:
+        return jsonify({"error": err}), 400
+    return jsonify({"ok": True, "inserted": inserted, "table": table_name})
+
+@app.route("/excel-upload", methods=["GET", "POST"])
+def excel_upload():
+    return redirect(url_for("admin"))
 
 
 @app.route('/robots.txt')

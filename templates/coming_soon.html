@@ -10,35 +10,152 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       min-height: 100vh;
-      background: #050a15;
-      font-family: -apple-system, 'Inter', system-ui, sans-serif;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      color: #fff; text-align: center; padding: 24px;
+      background:
+        radial-gradient(circle at top right, rgba(255,102,0,0.14), transparent 28%),
+        radial-gradient(circle at bottom left, rgba(255,255,255,0.05), transparent 26%),
+        #050a15;
+      font-family: 'Inter', -apple-system, system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      color: #fff;
+      padding: 28px 20px 0;
     }
-    .cs-icon { font-size: 64px; color: #ff6600; margin-bottom: 24px; }
+    .cs-shell {
+      flex: 1;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .cs-card {
+      width: min(760px, 100%);
+      background: rgba(15, 27, 45, 0.78);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 28px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.38);
+      padding: 42px 32px;
+      text-align: center;
+      backdrop-filter: blur(16px);
+    }
+    .cs-icon {
+      width: 82px;
+      height: 82px;
+      margin: 0 auto 24px;
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 34px;
+      color: #ff6600;
+      background: rgba(255,102,0,0.12);
+      border: 1px solid rgba(255,102,0,0.22);
+    }
     .cs-badge {
-      display: inline-block; background: rgba(255,102,0,0.12); color: #ff6600;
-      border: 1px solid rgba(255,102,0,0.3); border-radius: 99px;
-      padding: 6px 18px; font-size: 12px; font-weight: 700; letter-spacing: 1px;
-      text-transform: uppercase; margin-bottom: 20px;
+      display: inline-block;
+      background: rgba(255,102,0,0.12);
+      color: #ff6600;
+      border: 1px solid rgba(255,102,0,0.3);
+      border-radius: 99px;
+      padding: 6px 18px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 20px;
     }
-    h1 { font-size: clamp(32px, 6vw, 60px); font-weight: 900; letter-spacing: -1px; margin-bottom: 16px; }
+    h1 {
+      font-size: clamp(32px, 6vw, 60px);
+      font-weight: 900;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+    }
     h1 span { color: #ff6600; }
-    p { font-size: 16px; color: rgba(255,255,255,0.55); max-width: 480px; line-height: 1.7; margin-bottom: 40px; }
-    .cs-back {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: #ff6600; color: #fff; text-decoration: none;
-      padding: 14px 28px; border-radius: 99px; font-weight: 700; font-size: 14px;
-      transition: background 0.2s;
+    p {
+      font-size: 16px;
+      color: rgba(255,255,255,0.68);
+      max-width: 520px;
+      line-height: 1.7;
+      margin: 0 auto 40px;
     }
-    .cs-back:hover { background: #ff7733; }
+    .cs-actions {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .cs-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #ff6600;
+      color: #fff;
+      text-decoration: none;
+      padding: 14px 28px;
+      border-radius: 99px;
+      font-weight: 700;
+      font-size: 14px;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .cs-back:hover {
+      background: #ff7733;
+      transform: translateY(-2px);
+    }
+    .cs-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #e2e8f0;
+      text-decoration: none;
+      padding: 14px 22px;
+      border-radius: 99px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      font-weight: 600;
+      font-size: 14px;
+      transition: border-color 0.2s, color 0.2s, transform 0.2s;
+    }
+    .cs-link:hover {
+      border-color: rgba(255,102,0,0.32);
+      color: #ffb780;
+      transform: translateY(-2px);
+    }
+    .cs-footer {
+      width: 100%;
+      padding: 18px 20px 24px;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      font-size: 12px;
+    }
+    .cs-footer a {
+      color: rgba(255,255,255,0.72);
+      text-decoration: none;
+    }
+    .cs-footer a:hover { color: #ff6600; }
   </style>
 </head>
 <body>
-  <div class="cs-icon"><i class="fa fa-wrench"></i></div>
-  <div class="cs-badge">Coming Soon</div>
-  <h1>{{ page_title }}<br><span>are being upgraded</span></h1>
-  <p>We're working hard to bring you a better experience. Check back soon!</p>
-  <a href="/" class="cs-back"><i class="fa fa-arrow-left"></i> Back to Home</a>
+  <div class="cs-shell">
+    <div class="cs-card">
+      <div class="cs-icon"><i class="fa-solid fa-compass-drafting" aria-hidden="true"></i></div>
+      <div class="cs-badge">Coming Soon</div>
+      <h1>{{ page_title }}<br><span>is being upgraded</span></h1>
+      <p>We are refining this experience with clearer guidance, better structure, and a more polished interface. It will be available soon.</p>
+      <div class="cs-actions">
+        <a href="/" class="cs-back"><i class="fa fa-arrow-left"></i> Back to Home</a>
+        <a href="{{ url_for('contact') }}" class="cs-link"><i class="fa-regular fa-envelope" aria-hidden="true"></i> Contact Us</a>
+      </div>
+    </div>
+  </div>
+  <div class="cs-footer">
+    <a href="{{ url_for('about_us') }}">About Us</a>
+    <a href="{{ url_for('contact') }}">Contact Us</a>
+    <a href="{{ url_for('privacy') }}">Privacy Policy</a>
+    <a href="{{ url_for('terms') }}">Terms &amp; Conditions</a>
+    <a href="{{ url_for('refund_policy') }}">Refund &amp; Cancellation</a>
+  </div>
 </body>
 </html>

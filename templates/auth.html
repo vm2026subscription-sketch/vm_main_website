@@ -926,6 +926,7 @@
             </div>
 
             <form class="auth-form" method="post" data-auth-form>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 {% if mode == 'otp' %}
                 <div class="otp-panel">
                     <strong>We sent a one-time code to {{ otp_email }}.</strong>

@@ -3,7 +3,7 @@
    PWA Offline Support + Cache Strategy
    ═══════════════════════════════════════════════ */
 
-const CACHE_NAME = 'vm-epaper-v1';
+const CACHE_NAME = 'vm-epaper-v2';
 const PRECACHE_URLS = [
   '/epaper-viewer',
   '/static/epaper-viewer.css',
