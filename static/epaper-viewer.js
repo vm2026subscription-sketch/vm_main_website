@@ -161,7 +161,7 @@ const EP = {
     banner.id = 'epNewEditionBanner';
     banner.className = 'ep-new-edition-banner';
     const icon = document.createElement('span');
-    icon.className = 'ep-neb-icon'; icon.textContent = '📰';
+    icon.className = 'ep-neb-icon'; icon.innerHTML = '<i class="fa fa-newspaper"></i>';
     const text = document.createElement('span');
     text.className = 'ep-neb-text'; text.textContent = 'New edition available: ';
     const strong = document.createElement('strong');
@@ -171,7 +171,7 @@ const EP = {
     loadBtn.className = 'ep-neb-load'; loadBtn.textContent = 'Load Now';
     loadBtn.onclick = () => EP._loadNewEdition(data.date);
     const closeBtn = document.createElement('button');
-    closeBtn.className = 'ep-neb-close'; closeBtn.textContent = '✕';
+    closeBtn.className = 'ep-neb-close'; closeBtn.innerHTML = '<i class="fa fa-times"></i>';
     closeBtn.onclick = () => banner.remove();
     banner.append(icon, text, loadBtn, closeBtn);
     document.body.appendChild(banner);
@@ -1947,7 +1947,7 @@ const EP = {
       return;
     }
 
-    this.showToast('🔄 Translating...');
+    this.showToast('<i class="fa fa-sync fa-spin"></i> Translating...');
 
     const art = this.currentArticle;
     const headline = art.headline || '';
@@ -1987,7 +1987,7 @@ const EP = {
       }
 
       const langNames = { hi: 'हिंदी', mr: 'मराठी', en: 'English' };
-      this.showToast(`✅ Translated to ${langNames[lang] || lang}`);
+      this.showToast(`<i class="fa fa-check-circle" style="color:#22c55e"></i> Translated to ${langNames[lang] || lang}`);
     } catch (e) {
       this.showToast('Translation failed');
     }
@@ -2328,7 +2328,7 @@ const EP = {
       this._voice.abortController = null;
       if (this.el.ttsStartBtn) { this.el.ttsStartBtn.innerHTML = '<i class="fa fa-play"></i> <span>Play</span>'; this.el.ttsStartBtn.classList.remove('loading'); }
       this._voiceUpdatePlayIcon();
-      this.showToast('🔊 Now playing');
+      this.showToast('<i class="fa fa-volume-up"></i> Now playing');
       this.trackEvent('voice_play', { article: this.currentArticle?.headline, voice: this._voice.selectedVoice || 'auto' });
 
     } catch (err) {
@@ -2495,7 +2495,7 @@ const EP = {
       if (this.el.voiceBar) this.el.voiceBar.classList.remove('topbar');
       if (this.el.ttsPrompt) this.el.ttsPrompt.style.display = '';
     }, 1800);
-    this.showToast('✅ Finished reading');
+    this.showToast('<i class="fa fa-check-circle" style="color:#22c55e"></i> Finished reading');
   },
 
   // Toggle play/pause
@@ -2703,7 +2703,7 @@ const EP = {
     a.href = audio.src;
     a.download = `${headline || 'audio'}.mp3`;
     a.click();
-    this.showToast('⬇️ Downloading audio...');
+    this.showToast('<i class="fa fa-download"></i> Downloading audio...');
   },
 
   // ── Save Edition as PDF ──
@@ -2956,7 +2956,7 @@ const EP = {
   showToast(msg) {
     if (!this.el.toast) return;
     if (this._toastTimer) clearTimeout(this._toastTimer);
-    this.el.toast.textContent = msg;
+    this.el.toast.innerHTML = msg;
     this.el.toast.classList.add('show');
     const duration = Math.max(1800, Math.min(5200, 1400 + String(msg || '').trim().length * 35));
     this._toastTimer = setTimeout(() => {
