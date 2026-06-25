@@ -2642,6 +2642,10 @@ def fyjc_predict():
 def admissions():
     return render_template("admissions.html")  # Placeholder
 
+@app.route("/scholarships")
+def scholarships():
+    return render_template("scholarships.html", page_title="Scholarships")
+
 @app.route("/news")
 def news():
     initial_articles = []
