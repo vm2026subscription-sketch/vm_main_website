@@ -1,14 +1,15 @@
 <!doctype html>
 <html lang="en">
-
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Scholarships | Vidyarthi Mitra</title>
     <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
+
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <style>
         :root{--primary:#ff6600;--primary-600:#ea580c;--bg:#050a15;--text:#ffffff;--muted:#94a3b8}
         body{margin:0;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
@@ -38,7 +39,6 @@
         .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:18px}
     </style>
 </head>
-
 <body>
     {% include '_shared_index_navbar.html' %}
 
@@ -95,9 +95,527 @@
                 {% endfor %}
             </div>
         </div>
-    </main>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+        <!-- SEARCH & FILTER CONTROLS -->
+        <div class="controls-container">
+            <div class="filter-tabs">
+                <button class="filter-tab active" data-filter="all">All Opportunities</button>
+                <button class="filter-tab" data-filter="govt">Government Schemes</button>
+                <button class="filter-tab" data-filter="merit">Merit-Based</button>
+                <button class="filter-tab" data-filter="women">Women & Girls</button>
+                <button class="filter-tab" data-filter="need">Need-Based</button>
+            </div>
+            <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="scholarshipSearch" placeholder="Search scholarships, keywords, portals...">
+            </div>
+        </div>
+
+        <!-- SCHOLARSHIPS GRID -->
+        <div class="scholarships-grid" id="scholarshipsGrid">
+            
+            <!-- Card 1 -->
+            <div class="sc-card" data-category="govt merit need" data-title="National Scholarship Portal (NSP)">
+                <div class="sc-header">
+                    <div class="sc-badge">1</div>
+                    <h3 class="sc-title">National Scholarship Portal (NSP)</h3>
+                </div>
+                <div class="sc-subtitle">Central Government Scholarship Portal</div>
+                <div class="sc-chips">
+                    <span class="sc-chip"><i class="fa-solid fa-building-flag"></i> Government</span>
+                    <span class="sc-chip"><i class="fa-solid fa-user-graduate"></i> All Degrees</span>
+                    <span class="sc-chip"><i class="fa-solid fa-indian-rupee-sign"></i> Full Tuition + Maintenance</span>
+                </div>
+                <p class="sc-desc">Apply for central and state scholarships such as Post Matric, Pre Matric, and Merit-cum-Means through the official NSP portal.</p>
+                <div class="sc-actions">
+                    <button class="sc-btn open-modal-btn" data-modal-id="modal-nsp">
+                        <span>View Complete Details</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="sc-card" data-category="govt women merit" data-title="AICTE Pragati Scholarship">
+                <div class="sc-header">
+                    <div class="sc-badge">2</div>
+                    <h3 class="sc-title">AICTE Pragati Scholarship</h3>
+                </div>
+                <div class="sc-subtitle">Girls in Technical Education</div>
+                <div class="sc-chips">
+                    <span class="sc-chip"><i class="fa-solid fa-venus"></i> Women & Girls</span>
+                    <span class="sc-chip"><i class="fa-solid fa-laptop-code"></i> Technical Degree/Dip.</span>
+                    <span class="sc-chip"><i class="fa-solid fa-indian-rupee-sign"></i> ₹50,000 / Year</span>
+                </div>
+                <p class="sc-desc">Scholarship for girls pursuing technical education, covering tuition fees and contingency support to empower women in tech.</p>
+                <div class="sc-actions">
+                    <button class="sc-btn open-modal-btn" data-modal-id="modal-pragati">
+                        <span>View Complete Details</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="sc-card" data-category="govt merit" data-title="INSPIRE Scholarship for Higher Education">
+                <div class="sc-header">
+                    <div class="sc-badge">3</div>
+                    <h3 class="sc-title">INSPIRE Scholarship for Higher Education</h3>
+                </div>
+                <div class="sc-subtitle">Science & Research Talent</div>
+                <div class="sc-chips">
+                    <span class="sc-chip"><i class="fa-solid fa-flask"></i> Basic & Natural Sciences</span>
+                    <span class="sc-chip"><i class="fa-solid fa-award"></i> Top 1% Class 12</span>
+                    <span class="sc-chip"><i class="fa-solid fa-indian-rupee-sign"></i> ₹80,000 / Year</span>
+                </div>
+                <p class="sc-desc">Scholarship from the Department of Science & Technology (DST) for meritorious science students undertaking bachelor's and master's courses.</p>
+                <div class="sc-actions">
+                    <button class="sc-btn open-modal-btn" data-modal-id="modal-inspire">
+                        <span>View Complete Details</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Card 4 -->
+            <div class="sc-card" data-category="govt merit need" data-title="Prime Minister Scholarship Scheme">
+                <div class="sc-header">
+                    <div class="sc-badge">4</div>
+                    <h3 class="sc-title">Prime Minister Scholarship Scheme</h3>
+                </div>
+                <div class="sc-subtitle">Defence Personnel Wards</div>
+                <div class="sc-chips">
+                    <span class="sc-chip"><i class="fa-solid fa-shield-halved"></i> Defence/CAPF Wards</span>
+                    <span class="sc-chip"><i class="fa-solid fa-graduation-cap"></i> Professional Courses</span>
+                    <span class="sc-chip"><i class="fa-solid fa-indian-rupee-sign"></i> ₹36,000 - ₹39,000 / Yr</span>
+                </div>
+                <p class="sc-desc">Scholarship for dependent wards and widows of ex-servicemen, serving defence personnel, and CAPF pursuing professional degree courses.</p>
+                <div class="sc-actions">
+                    <button class="sc-btn open-modal-btn" data-modal-id="modal-pmss">
+                        <span>View Complete Details</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Card 5 -->
+            <div class="sc-card" data-category="govt merit need" data-title="MaahdBT Scholarship Portal">
+                <div class="sc-header">
+                    <div class="sc-badge">5</div>
+                    <h3 class="sc-title">MaahdBT Scholarship Portal</h3>
+                </div>
+                <div class="sc-subtitle">Maharashtra Scholarship Portal</div>
+                <div class="sc-chips">
+                    <span class="sc-chip"><i class="fa-solid fa-location-dot"></i> Maharashtra State</span>
+                    <span class="sc-chip"><i class="fa-solid fa-scale-balanced"></i> Reserved / EWS / Merit</span>
+                    <span class="sc-chip"><i class="fa-solid fa-indian-rupee-sign"></i> 50% to 100% Tuition Fee</span>
+                </div>
+                <p class="sc-desc">State-sponsored scholarships and grants for Maharashtra students across multiple departments, including EBC, OBC, SC, ST, and minority welfare.</p>
+                <div class="sc-actions">
+                    <button class="sc-btn open-modal-btn" data-modal-id="modal-mahadbt">
+                        <span>View Complete Details</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Card 6 -->
+            <div class="sc-card" data-category="merit need" data-title="Saksham Scholarship">
+                <div class="sc-header">
+                    <div class="sc-badge">6</div>
+                    <h3 class="sc-title">Saksham Scholarship</h3>
+                </div>
+                <div class="sc-subtitle">Financial Aid for Differently-Abled</div>
+                <div class="sc-chips">
+                    <span class="sc-chip"><i class="fa-solid fa-wheelchair"></i> Specially-Abled</span>
+                    <span class="sc-chip"><i class="fa-solid fa-gears"></i> Technical Degree / Dip.</span>
+                    <span class="sc-chip"><i class="fa-solid fa-indian-rupee-sign"></i> ₹50,000 / Year</span>
+                </div>
+                <p class="sc-desc">Empowerment scholarship program providing financial assistance to specially-abled students pursuing technical education at AICTE approved institutions.</p>
+                <div class="sc-actions">
+                    <button class="sc-btn open-modal-btn" data-modal-id="modal-saksham">
+                        <span>View Complete Details</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Card 7 -->
+            <div class="sc-card" data-category="merit" data-title="Aditya Birla Scholarship">
+                <div class="sc-header">
+                    <div class="sc-badge">7</div>
+                    <h3 class="sc-title">Aditya Birla Scholarship</h3>
+                </div>
+                <div class="sc-subtitle">Corporate Scholarship Program</div>
+                <div class="sc-chips">
+                    <span class="sc-chip"><i class="fa-solid fa-building"></i> Corporate Scheme</span>
+                    <span class="sc-chip"><i class="fa-solid fa-trophy"></i> Premier Institutes (IIT/IIM/Law)</span>
+                    <span class="sc-chip"><i class="fa-solid fa-indian-rupee-sign"></i> Up to ₹3,000,000 / Yr</span>
+                </div>
+                <p class="sc-desc">Prestigious scholarship program for highly meritorious students across premier engineering, management, and law institutions in India.</p>
+                <div class="sc-actions">
+                    <button class="sc-btn open-modal-btn" data-modal-id="modal-birla">
+                        <span>View Complete Details</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- NO RESULTS -->
+            <div class="no-results" id="noResultsState">
+                <i class="fa-solid fa-magnifying-glass-minus"></i>
+                <div>No scholarships found matching your criteria.</div>
+                <p style="font-size:0.95rem; margin-top:8px; color:var(--text-muted)">Try adjusting your search keywords or switching filter tabs.</p>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- FAQ SECTION -->
+    <div class="faq-container">
+        <h2 class="faq-title">Frequently Asked Questions</h2>
+        <p class="faq-subtitle">Everything you need to know about applying for scholarships and securing financial aid.</p>
+
+        <div class="faq-item">
+            <div class="faq-question">
+                <span>1. Who is eligible to apply for these scholarships?</span>
+                <i class="fa-solid fa-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                <p>Eligibility varies depending on the specific scholarship scheme. Generally, scholarships are categorized into merit-based (for academic excellence), need-based (for economically weaker sections), government schemes (for reserved categories, defence wards, or regional domicile), and special schemes (for women and specially-abled students). Check the individual details of each scholarship to confirm exact criteria.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">
+                <span>2. Can I apply for multiple scholarships simultaneously?</span>
+                <i class="fa-solid fa-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                <p>While you can submit applications for multiple scholarships, government guidelines usually stipulate that a student can only avail funds from one central or state government scholarship at a time. However, you may be allowed to combine a government scholarship with a private or corporate scholarship depending on the private entity's terms.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">
+                <span>3. What common documents are required during application?</span>
+                <i class="fa-solid fa-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                <p>Commonly required documents include: Aadhaar Card, Previous Academic Marksheets (Class 10, 12, or Degree semesters), Income Certificate issued by a competent authority, Caste/Category Certificate (if applicable), Domicile Certificate, Bank Passbook copy (seeded with Aadhaar), and Fee Receipt of the current academic year.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">
+                <span>4. How is the scholarship amount disbursed?</span>
+                <i class="fa-solid fa-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                <p>Most central and state government scholarships are disbursed through Direct Benefit Transfer (DBT) directly into the student's Aadhaar-seeded bank account. Some institutional or corporate scholarships may disburse the tuition fee portion directly to the college or institute.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL POPUP CONTAINER -->
+    <div class="custom-modal-backdrop" id="scholarshipModal">
+        <div class="custom-modal-content" id="modalContentWrapper">
+            <button class="modal-close-btn" id="modalCloseBtn"><i class="fa-solid fa-xmark"></i></button>
+            <div id="modalDynamicBody">
+                <!-- Content injected dynamically via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DATA REPOSITORY (JSON/JS) -->
+    <script>
+        const modalData = {
+            'modal-nsp': {
+                title: 'National Scholarship Portal (NSP)',
+                subtitle: 'Central Government Scholarship Portal',
+                eligibility: [
+                    'Must be a citizen of India.',
+                    'Students studying in recognized schools/colleges/institutes across India.',
+                    'Specific criteria depend on the sub-scheme (Pre-Matric, Post-Matric, Merit-cum-Means).',
+                    'Annual family income ceilings apply as per respective central ministry guidelines.'
+                ],
+                benefits: [
+                    'Direct Benefit Transfer (DBT) directly into Aadhaar-seeded bank account.',
+                    'Covers admission fees, tuition fees, and maintenance allowance.',
+                    'Transparent tracking of application status from verification to disbursal.'
+                ],
+                documents: [
+                    'Aadhaar Card and Student Bank Passbook.',
+                    'Income Certificate issued by competent revenue authority.',
+                    'Caste / Community Certificate (if applicable).',
+                    'Previous year academic marksheets and current institution fee receipt.'
+                ],
+                link: 'https://scholarships.gov.in/'
+            },
+            'modal-pragati': {
+                title: 'AICTE Pragati Scholarship for Girls',
+                subtitle: 'Empowering Women in Technical Education',
+                eligibility: [
+                    'Up to two girls per family can apply.',
+                    'Must be admitted to first year of Degree/Diploma level course or second year (lateral entry) in AICTE approved institution.',
+                    'Family income must not exceed ₹8 lakh per annum.'
+                ],
+                benefits: [
+                    'Financial support of ₹50,000 per annum for every year of study.',
+                    'Amount can be utilized for college fee, purchase of computer, books, stationeries, and equipment.',
+                    'Reservation available for SC/ST/OBC candidates as per government norms.'
+                ],
+                documents: [
+                    'Aadhaar Card and Bank Account details linked with Aadhaar.',
+                    'Annual Family Income Certificate issued by Tehsildar or higher authority.',
+                    'Admission letter issued by Directorate of Technical Education / AICTE approved institute.',
+                    '10th and 12th / Diploma marksheets.'
+                ],
+                link: 'https://www.aicte-india.org/schemes/students-development-schemes'
+            },
+            'modal-inspire': {
+                title: 'INSPIRE Scholarship for Higher Education (SHE)',
+                subtitle: 'Department of Science & Technology (DST)',
+                eligibility: [
+                    'Must be within the top 1% of successful students in Class 12 board examinations.',
+                    'Must be pursuing courses in Natural and Basic Sciences at the B.Sc., B.S., or Int. M.Sc./M.S. level.',
+                    'Or, candidates who have secured top ranks in JEE Main/Advanced or NEET and chose to study natural/basic sciences.'
+                ],
+                benefits: [
+                    'Total scholarship value of ₹80,000 per annum.',
+                    'Includes a cash award of ₹60,000 per annum and a summertime mentorship research grant of ₹20,000.',
+                    'Valid for a maximum period of 5 years or until the completion of the course.'
+                ],
+                documents: [
+                    'Class 12 Board eligibility advisory note / Marksheet.',
+                    'Endorsement Certificate signed by the Principal/Registrar of the current college.',
+                    'Aadhaar Card and Bank passbook front page.',
+                    'Proof of rank in JEE/NEET (if applying through competitive exam route).'
+                ],
+                link: 'https://online-inspire.gov.in/'
+            },
+            'modal-pmss': {
+                title: 'Prime Minister Scholarship Scheme (PMSS)',
+                subtitle: 'For Wards of Defence Personnel and CAPF',
+                eligibility: [
+                    'Dependent wards and widows of ex-servicemen and ex-coast guard personnel.',
+                    'Dependent wards of CAPF / Assam Rifles personnel killed or disabled in action.',
+                    'Must have secured a minimum of 60% marks in Minimum Entry Qualification (Class 12 / Diploma / Graduation).',
+                    'Pursuing professional degree courses like B.E., B.Tech, BDS, MBBS, B.Ed, BBA, BCA, B.Pharma, etc.'
+                ],
+                benefits: [
+                    '₹36,000 per annum for boys (₹3,000 per month).',
+                    '₹39,000 per annum for girls (₹3,250 per month).',
+                    'Disbursed annually through direct bank transfer upon successful clearing of semesters.'
+                ],
+                documents: [
+                    'Ex-Servicemen / Discharge Certificate / PPO.',
+                    'Class 12 / Diploma / Graduation Marksheets.',
+                    'Bonafide Certificate from the educational institution.',
+                    'Aadhaar Card and active bank account passbook.'
+                ],
+                link: 'https://www.ksb.gov.in/'
+            },
+            'modal-mahadbt': {
+                title: 'MaahdBT Scholarship Portal',
+                subtitle: 'Maharashtra State Direct Benefit Transfer',
+                eligibility: [
+                    'Must be a resident/domicile of Maharashtra state.',
+                    'Enrolled in recognized professional, technical, or general courses in Maharashtra.',
+                    'Rajarshi Chhatrapati Shahu Maharaj Shikshan Shulk Shishyavrutti Yojna (EBC): Family income under ₹8 lakh.',
+                    'Social Justice and Special Assistance schemes available for SC, OBC, VJNT, and SBC categories.'
+                ],
+                benefits: [
+                    'Reimbursement of 50% to 100% of tuition and exam fees directly to student/institute account.',
+                    'Maintenance allowance for hostellers and day scholars depending on the department scheme.',
+                    'Single online application window for all state departmental scholarships.'
+                ],
+                documents: [
+                    'Maharashtra Domicile Certificate.',
+                    'Annual Income Certificate from Tehsildar.',
+                    'Caste Certificate and Caste Validity Certificate (for reserved categories).',
+                    'CAP Allotment letter (for professional courses) and fee receipt.'
+                ],
+                link: 'https://mahadbt.maharashtra.gov.in/'
+            },
+            'modal-saksham': {
+                title: 'AICTE Saksham Scholarship Scheme',
+                subtitle: 'Empowerment for Specially-Abled Students',
+                eligibility: [
+                    'Differently-abled students having a disability of not less than 40%.',
+                    'Admitted to first year of Degree/Diploma level course or second year (lateral entry) in AICTE approved institution.',
+                    'Family income must not exceed ₹8 lakh per annum.'
+                ],
+                benefits: [
+                    'Financial support of ₹50,000 per annum for every year of study.',
+                    'Covers college tuition fee, purchase of assistive devices, equipment, books, and laptops.',
+                    'All eligible specially-abled students who apply are granted the scholarship (no numerical ceiling).'
+                ],
+                documents: [
+                    'Disability Certificate issued by a competent medical authority (minimum 40%).',
+                    'Aadhaar Card and Bank Account details linked with Aadhaar.',
+                    'Annual Family Income Certificate issued by Tehsildar.',
+                    'Admission letter from AICTE approved institute.'
+                ],
+                link: 'https://www.aicte-india.org/schemes/students-development-schemes'
+            },
+            'modal-birla': {
+                title: 'Aditya Birla Scholarship Program',
+                subtitle: 'Corporate Excellence Scholarship',
+                eligibility: [
+                    'Students admitted to premier institutions: selected IITs, BITS Pilani, IIMs, XLRI, and National Law Universities (NLUs).',
+                    'Selection is based on top entrance examination ranks, exceptional academic excellence, and leadership potential.',
+                    'Subject to maintaining top academic standing throughout the course.'
+                ],
+                benefits: [
+                    'Covers up to ₹3,00,000 per annum or actual fee for management students.',
+                    'Covers up to ₹1,75,000 per annum or actual fee for engineering/law tutorial students.',
+                    'Provides unparalleled mentorship opportunities with top Aditya Birla Group conglomerates.'
+                ],
+                documents: [
+                    'Detailed corporate application form submitted through the institute dean/admin.',
+                    'Essays showcasing leadership, achievements, and vision.',
+                    'Entrance examination rank card and previous academic transcripts.',
+                    'Extracurricular portfolio and letters of recommendation.'
+                ],
+                link: 'https://www.adityabirlascholars.net/'
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchInput = document.getElementById('scholarshipSearch');
+            const filterTabs = document.querySelectorAll('.filter-tab');
+            const cards = document.querySelectorAll('.sc-card');
+            const noResultsState = document.getElementById('noResultsState');
+
+            const modalBackdrop = document.getElementById('scholarshipModal');
+            const modalDynamicBody = document.getElementById('modalDynamicBody');
+            const modalCloseBtn = document.getElementById('modalCloseBtn');
+
+            let currentFilter = 'all';
+            let currentSearch = '';
+
+            // Filter Tabs logic
+            filterTabs.forEach(tab => {
+                tab.addEventListener('click', function () {
+                    filterTabs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    currentFilter = this.getAttribute('data-filter');
+                    filterCards();
+                });
+            });
+
+            // Search logic
+            searchInput.addEventListener('input', function () {
+                currentSearch = this.value.toLowerCase().trim();
+                filterCards();
+            });
+
+            function filterCards() {
+                let visibleCount = 0;
+
+                cards.forEach(card => {
+                    const category = card.getAttribute('data-category');
+                    const title = card.getAttribute('data-title').toLowerCase();
+                    const desc = card.querySelector('.sc-desc').textContent.toLowerCase();
+
+                    const matchesFilter = (currentFilter === 'all') || category.includes(currentFilter);
+                    const matchesSearch = (currentSearch === '') || title.includes(currentSearch) || desc.includes(currentSearch);
+
+                    if (matchesFilter && matchesSearch) {
+                        card.style.display = 'flex';
+                        visibleCount++;
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+
+                if (visibleCount === 0) {
+                    noResultsState.style.display = 'block';
+                } else {
+                    noResultsState.style.display = 'none';
+                }
+            }
+
+            // Modal Open Logic
+            const openBtns = document.querySelectorAll('.open-modal-btn');
+            openBtns.forEach(btn => {
+                btn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const modalId = this.getAttribute('data-modal-id');
+                    const data = modalData[modalId];
+
+                    if (data) {
+                        modalDynamicBody.innerHTML = `
+                            <h3 class="modal-body-title">${data.title}</h3>
+                            <div class="modal-body-subtitle">${data.subtitle}</div>
+
+                            <div class="modal-section">
+                                <h4><i class="fa-solid fa-circle-check"></i> Eligibility Criteria</h4>
+                                <ul>
+                                    ${data.eligibility.map(item => `<li>${item}</li>`).join('')}
+                                </ul>
+                            </div>
+
+                            <div class="modal-section">
+                                <h4><i class="fa-solid fa-gift"></i> Key Benefits & Allowance</h4>
+                                <ul>
+                                    ${data.benefits.map(item => `<li>${item}</li>`).join('')}
+                                </ul>
+                            </div>
+
+                            <div class="modal-section">
+                                <h4><i class="fa-solid fa-file-lines"></i> Required Documents</h4>
+                                <ul>
+                                    ${data.documents.map(item => `<li>${item}</li>`).join('')}
+                                </ul>
+                            </div>
+
+                            <a href="${data.link}" target="_blank" rel="noopener noreferrer" class="modal-apply-btn">
+                                <span>Proceed to Official Website</span>
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            </a>
+                        `;
+
+                        modalBackdrop.classList.add('show');
+                        document.body.style.overflow = 'hidden';
+                    }
+                });
+            });
+
+            // Modal Close Logic
+            function closeModal() {
+                modalBackdrop.classList.remove('show');
+                document.body.style.overflow = '';
+            }
+
+            modalCloseBtn.addEventListener('click', closeModal);
+
+            modalBackdrop.addEventListener('click', function (e) {
+                if (e.target === modalBackdrop) {
+                    closeModal();
+                }
+            });
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && modalBackdrop.classList.contains('show')) {
+                    closeModal();
+                }
+            });
+
+            // FAQ Accordion Logic
+            const faqItems = document.querySelectorAll('.faq-item');
+            faqItems.forEach(item => {
+                const question = item.querySelector('.faq-question');
+                question.addEventListener('click', () => {
+                    const isActive = item.classList.contains('active');
+                    faqItems.forEach(i => i.classList.remove('active'));
+                    if (!isActive) {
+                        item.classList.add('active');
+                    }
+                });
+            });
+        });
+    </script>
 </body>
-
 </html>

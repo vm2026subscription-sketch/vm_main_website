@@ -19,8 +19,9 @@ const categoryMap = {
   "entrance": { ui: "entrance", label: "Entrance Exams", img: "https://images.unsplash.com/photo-1546410531-bd4cb0153f3e?auto=format&fit=crop&w=400&q=80", bgCls: "bg-exam" },
   "results": { ui: "results", label: "Results", img: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=400&q=80", bgCls: "bg-exam" },
   "admissions": { ui: "admissions", label: "Admissions", img: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=400&q=80", bgCls: "bg-admission" },
-  "govtjobs": { ui: "govt", label: "Govt Jobs", img: "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?auto=format&fit=crop&w=400&q=80", bgCls: "bg-govt" },
-  "scholarship": { ui: "scholar", label: "Scholarships", img: "https://images.unsplash.com/photo-1532619675605-1ede6c2ed2b0?auto=format&fit=crop&w=400&q=80", bgCls: "bg-scholar" }
+  "govtjobs": { ui: "govtjobs", label: "Govt Jobs", img: "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?auto=format&fit=crop&w=400&q=80", bgCls: "bg-govt" },
+  "scholarship": { ui: "scholarship", label: "Scholarships", img: "https://images.unsplash.com/photo-1532619675605-1ede6c2ed2b0?auto=format&fit=crop&w=400&q=80", bgCls: "bg-scholar" },
+  "latest": { ui: "latest", label: "Latest News", img: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=400&q=80", bgCls: "bg-exam" }
 };
 
 /* ══════════════════════════════════════════════════
@@ -126,6 +127,15 @@ function getFiltered() {
   });
 }
 
+function openArticleDetail(id) {
+  const article = allArticles.find(item => item.id === id);
+  if (!article || !article.link) {
+    openModal(id);
+    return;
+  }
+  window.location.href = `/news/detail/${encodeURIComponent(article.link)}`;
+}
+
 function renderGrid() {
   const grid     = document.getElementById('newsGrid');
   const empty    = document.getElementById('emptyState');
@@ -148,6 +158,7 @@ function renderGrid() {
     const card = document.createElement('div');
     card.className = 'news-card';
     card.style.animationDelay = (i * 0.05) + 's';
+    card.onclick = () => openArticleDetail(a.id);
     card.innerHTML = `
       <div class="card-stripe ${a.cat}"></div>
       <div class="card-thumb ${a.bgCls}" style="padding: 0;">
@@ -177,7 +188,7 @@ function renderGrid() {
             <i class="fa fa-share-alt"></i>
           </button>
         </div>
-        <button class="btn-read-more" onclick="openModal(${a.id})">
+        <button class="btn-read-more" onclick="event.stopPropagation(); openArticleDetail(${a.id})">
           Read <i class="fa fa-arrow-right"></i>
         </button>
       </div>
@@ -255,7 +266,10 @@ function openModal(id) {
   if (fullBtn) {
     if (a.link) {
       fullBtn.style.display = 'inline-flex';
-      fullBtn.onclick = () => window.open(a.link, '_blank');
+      fullBtn.textContent = 'Open detailed story';
+      fullBtn.onclick = () => {
+        window.location.href = `/news/detail/${encodeURIComponent(a.link)}`;
+      };
     } else {
       fullBtn.style.display = 'none';
     }

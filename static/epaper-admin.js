@@ -1349,6 +1349,8 @@ const EPAdmin = {
     this.pages = [];
     this.currentPageIdx = 0;
     this.activeBlockIdx = null;
+    this._originalDate = null;
+    this._originalLang = null;
 
     const dateInput = document.getElementById('edDate');
     const nameInput = document.getElementById('edName');

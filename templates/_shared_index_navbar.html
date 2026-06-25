@@ -675,6 +675,7 @@
       <!-- Side-by-side Auth Actions -->
       <div class="vm-auth-group">
         {% if session.get('auth_user') %}
+          <a href="{{ url_for('dashboard') }}" class="vm-btn-link {% if request.endpoint == 'dashboard' %}vm-active{% endif %}">Dashboard</a>
           <a href="{{ url_for('logout') }}" class="vm-btn-outline">Logout</a>
         {% else %}
           <a href="{{ url_for('login') }}" class="vm-btn-link">Login</a>

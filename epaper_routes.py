@@ -169,13 +169,24 @@ def _pg_url():
 
 def _pg_connect():
     import psycopg2
-    url = _pg_url()
-    conn = psycopg2.connect(url, connect_timeout=5)
+    # Prefer pooler URL (pgBouncer port 6543) — much faster on serverless
+    url = os.getenv("SUPABASE_POOLER_URL") or _pg_url()
+    conn = psycopg2.connect(
+        url,
+        connect_timeout=8,
+        options="-c statement_timeout=25000",  # 25s max per query — prevents hanging
+    )
     conn.autocommit = False
     return conn
 
 
+# Skip repeated DDL on warm instances — reset to False on cold start
+_tables_ensured = False
+
 def _pg_ensure_table(conn):
+    global _tables_ensured
+    if _tables_ensured:
+        return
     with conn.cursor() as cur:
         cur.execute("""
             CREATE TABLE IF NOT EXISTS epaper_editions_store (
@@ -210,15 +221,19 @@ def _pg_ensure_table(conn):
             )
         """)
     conn.commit()
+    _tables_ensured = True
 
 
-def _save_edition_backup(edition):
-    """Save a snapshot of one edition to the backup table. Keeps last 30 per edition."""
+def _save_edition_backup(edition, conn=None):
+    """Save a snapshot of one edition to the backup table. Keeps last 30 per edition.
+    Accepts an existing conn to avoid opening a second DB connection."""
     if not _pg_url():
         return
+    owns_conn = conn is None
     try:
-        conn = _pg_connect()
-        _pg_ensure_table(conn)
+        if owns_conn:
+            conn = _pg_connect()
+            _pg_ensure_table(conn)
         with conn.cursor() as cur:
             cur.execute("""
                 INSERT INTO epaper_edition_backups
@@ -242,7 +257,8 @@ def _save_edition_backup(edition):
                 )
             """, (edition.get("date", ""), edition.get("language", "")))
         conn.commit()
-        conn.close()
+        if owns_conn:
+            conn.close()
     except Exception as e:
         print(f"[epaper] Backup save failed (non-fatal): {e}")
 
@@ -423,6 +439,94 @@ def _edition_key(edition):
     )
 
 
+def _public_request_root():
+    proto = (request.headers.get("X-Forwarded-Proto") or request.scheme or "https").split(",")[0].strip()
+    host = (request.headers.get("X-Forwarded-Host") or request.host or "").split(",")[0].strip()
+    if host:
+        return f"{proto}://{host}/"
+    return request.url_root
+
+
+def _absolute_public_url(value):
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    parsed = urllib.parse.urlparse(raw)
+    if parsed.scheme and parsed.netloc:
+        return raw
+    if raw.startswith("//"):
+        scheme = (request.headers.get("X-Forwarded-Proto") or request.scheme or "https").split(",")[0].strip()
+        return f"{scheme}:{raw}"
+    return urllib.parse.urljoin(_public_request_root(), raw)
+
+
+def _epaper_preview_image_meta(edition):
+    pages = (edition or {}).get("pages", []) or []
+    first_page = pages[0] if pages else {}
+    image_url = ""
+    for key in ("page_image_url", "image_path"):
+        image_url = _absolute_public_url(first_page.get(key))
+        if image_url:
+            break
+    if not image_url:
+        fallback = _absolute_public_url(url_for("static", filename="logo.png"))
+        return {
+            "url": fallback,
+            "type": _epaper_preview_image_type(fallback),
+            "width": 512,
+            "height": 512,
+        }
+    parsed = urllib.parse.urlparse(image_url)
+    cloudinary_marker = "/image/upload/"
+    if parsed.netloc.endswith("cloudinary.com") and cloudinary_marker in parsed.path:
+        transformed_path = parsed.path.replace(
+            cloudinary_marker,
+            "/image/upload/f_jpg,q_auto,c_fill,g_north,w_1200,h_1500/",
+            1,
+        )
+        transformed_url = urllib.parse.urlunparse(parsed._replace(path=transformed_path))
+        return {
+            "url": transformed_url,
+            "type": "image/jpeg",
+            "width": 1200,
+            "height": 1500,
+        }
+    return {
+        "url": image_url,
+        "type": _epaper_preview_image_type(image_url),
+        "width": None,
+        "height": None,
+    }
+
+
+def _epaper_preview_image_type(image_url):
+    path = urllib.parse.urlparse(str(image_url or "")).path.lower()
+    if path.endswith(".png"):
+        return "image/png"
+    if path.endswith(".webp"):
+        return "image/webp"
+    return "image/jpeg"
+
+
+def _epaper_preview_title(edition, requested_date=None):
+    return "Vidyarthi Mitra ePaper - Read Marathi, Hindi & English Newspaper Online"
+
+
+def _epaper_preview_description(edition):
+    language = (edition.get("language") or "").strip() if edition else ""
+    edition_date = (edition.get("date") or "").strip() if edition else ""
+    base = (
+        "Vidyarthi Mitra ePaper: Read today's latest education newspaper online with updates on "
+        "entrance exams, results, careers, government jobs, scholarships and student news in "
+        "Marathi, Hindi and English."
+    )
+    if language and edition_date:
+        return f"{base} Current featured edition: {language} ePaper dated {edition_date}."
+    if language:
+        return f"{base} Current featured edition: {language} ePaper."
+    return base
+
+
 def _edition_score(edition):
     pages = edition.get("pages", []) or []
     preview_pages = sum(
@@ -588,20 +692,37 @@ def _find_epaper_article(article_id):
 def epaper_viewer(date=None, page=1):
     import json as _json
     initial_edition_json = None
+    edition = None
     try:
         editions = _load_editions()
         published = [e for e in editions if e.get("published", True)]
         if date:
             edition = next((e for e in published if e["date"] == date), None) or \
                       (sorted(published, key=lambda e: e["date"], reverse=True)[0] if published else None)
+            if edition:
+                initial_edition_json = _json.dumps(edition, ensure_ascii=False).replace('</script>', r'<\/script>')
         else:
             edition = sorted(published, key=lambda e: e["date"], reverse=True)[0] if published else None
-        if edition:
+        if edition and initial_edition_json is None and date:
             initial_edition_json = _json.dumps(edition, ensure_ascii=False).replace('</script>', r'<\/script>')
     except Exception:
         pass
+    og_url = _absolute_public_url(request.path)
+    og_image_meta = _epaper_preview_image_meta(edition)
+    og_image = og_image_meta["url"]
+    og_title = _epaper_preview_title(edition, date)
+    og_description = _epaper_preview_description(edition)
+    og_image_type = og_image_meta["type"]
     return render_template("epaper_viewer.html", initial_date=date, initial_page=page,
-                           initial_edition_json=initial_edition_json)
+                           initial_edition_json=initial_edition_json,
+                           og_url=og_url,
+                           og_image=og_image,
+                           og_title=og_title,
+                           og_description=og_description,
+                           og_image_type=og_image_type,
+                           og_image_width=og_image_meta["width"],
+                           og_image_height=og_image_meta["height"],
+                           og_image_alt=og_title)
 
 
 # ── Epaper Admin Login / Logout ───────────────────
@@ -882,6 +1003,17 @@ def epaper_article(article_id):
 
 
 # ── API: List editions ─────────────────────────────
+def _edition_preview_url(edition):
+    """Return the best preview image for an edition card — first page image or masthead."""
+    pages = edition.get("pages", [])
+    if pages:
+        first = pages[0]
+        url = first.get("page_image_url") or first.get("image_path") or ""
+        if url:
+            return url
+    return edition.get("masthead_image_url", "")
+
+
 @epaper_bp.route("/api/epaper/editions")
 def api_editions():
     editions = _load_editions()
@@ -893,6 +1025,7 @@ def api_editions():
             "total_pages": len(e.get("pages", [])),
             "published": e.get("published", True),
             "masthead_image_url": e.get("masthead_image_url", ""),
+            "preview_image_url": _edition_preview_url(e),
         }
         for e in editions
     ]})
@@ -1036,10 +1169,11 @@ def api_article(article_id):
 def api_create_edition():
     guard = _require_epaper_admin()
     if guard is not None: return guard
-    data = request.get_json(silent=True) or {}
-    date_str = data.get("date", "")
-    if not re.match(r"\d{4}-\d{2}-\d{2}$", date_str):
-        return jsonify({"error": "date required (YYYY-MM-DD)."}), 400
+    # force=True so Flask parses even if Content-Type isn't exactly application/json
+    data = request.get_json(force=True, silent=True) or {}
+    date_str = (data.get("date", "") or "").strip()
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", date_str):
+        return jsonify({"error": f"Invalid date: '{date_str}'. Expected YYYY-MM-DD."}), 400
 
     lang_str = data.get("language", "Hindi")
     original_date = data.get("original_date", "")
@@ -1113,6 +1247,8 @@ def api_create_edition():
                     ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()
                 """, (json.dumps(editions, ensure_ascii=False),))
             conn.commit()
+            # Reuse same connection for backup — avoids second DB connection
+            _save_edition_backup(saved_edition, conn=conn)
             conn.close()
             # Dual-write to local file so fallback stays in sync with Postgres
             try:
@@ -1127,7 +1263,9 @@ def api_create_edition():
             except: pass
         return jsonify({"error": f"Save failed: {exc}"}), 500
 
-    _save_edition_backup(saved_edition)
+    if not conn:
+        # conn was None (file-only path) — backup still needs its own connection
+        _save_edition_backup(saved_edition)
     return jsonify({"success": True}), 201
 
 
@@ -1396,59 +1534,47 @@ def _resolve_voice(text, voice, rate, pitch):
     return voice, rate, pitch
 
 
-def _stream_edge_tts(text, voice, rate, pitch, cache_key):
-    """Generator that streams edge_tts audio chunks and caches the full result."""
-    q = _queue.Queue()
-    collected = []
+def _collect_edge_tts_audio(text, voice, rate, pitch):
+    """Run edge_tts in a thread and return all audio as bytes. Raises on failure."""
+    chunks = []
+    error_holder = []
 
     async def _async():
         import edge_tts
-        try:
-            communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
-            async for chunk in communicate.stream():
-                if chunk["type"] == "audio":
-                    q.put(chunk["data"])
-        except Exception as exc:
-            q.put(exc)
-        finally:
-            q.put(None)
+        communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
+        async for chunk in communicate.stream():
+            if chunk["type"] == "audio":
+                chunks.append(chunk["data"])
 
-    def _run_thread():
+    def _run():
         if sys.platform == "win32":
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             loop.run_until_complete(_async())
+        except Exception as exc:
+            error_holder.append(exc)
         finally:
             loop.close()
             asyncio.set_event_loop(None)
 
-    t = threading.Thread(target=_run_thread, daemon=True)
+    t = threading.Thread(target=_run, daemon=True)
     t.start()
+    t.join(timeout=25)
 
-    while True:
-        try:
-            item = q.get(timeout=30)
-        except _queue.Empty:
-            break
-        if item is None:
-            break
-        if isinstance(item, Exception):
-            raise item
-        collected.append(item)
-        yield item
-
-    # Cache full audio after streaming completes
-    if collected and cache_key:
-        full = b"".join(collected)
-        _evict(_tts_cache, _TTS_CACHE_MAX)
-        _tts_cache[cache_key] = full
+    if t.is_alive():
+        raise TimeoutError("TTS generation timed out")
+    if error_holder:
+        raise error_holder[0]
+    if not chunks:
+        raise RuntimeError("TTS returned no audio data")
+    return b"".join(chunks)
 
 
 @epaper_bp.route("/api/epaper/tts", methods=["POST"])
 def api_tts():
-    """Server-side TTS using Microsoft Edge Neural voices — streams MP3 progressively."""
+    """Server-side TTS using Microsoft Edge Neural voices."""
     data = request.get_json(silent=True) or {}
     text = data.get("text", "").strip()
     voice = data.get("voice", "")
@@ -1464,31 +1590,23 @@ def api_tts():
 
     ck = _tts_cache_key(text, voice, rate, pitch)
 
-    # ── Serve from cache instantly ──────────────────────────────────────────
+    # Serve from cache
     if ck in _tts_cache:
         _tts_cache.move_to_end(ck)
-        return send_file(
-            io.BytesIO(_tts_cache[ck]),
-            mimetype="audio/mpeg",
-            as_attachment=False,
-            download_name="tts_audio.mp3",
-        )
+        return send_file(io.BytesIO(_tts_cache[ck]), mimetype="audio/mpeg",
+                         as_attachment=False, download_name="tts_audio.mp3")
 
-    # ── Stream from edge_tts (client starts playing on first chunk) ─────────
+    # Collect all audio first — ensures exceptions surface as proper JSON errors
     try:
-        return Response(
-            stream_with_context(_stream_edge_tts(text, voice, rate, pitch, ck)),
-            mimetype="audio/mpeg",
-            headers={
-                "Cache-Control": "no-store",
-                "X-Content-Type-Options": "nosniff",
-                "Transfer-Encoding": "chunked",
-            },
-        )
+        audio_bytes = _collect_edge_tts_audio(text, voice, rate, pitch)
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({"error": f"TTS generation failed: {str(e)}"}), 500
+        print(f"[TTS] edge_tts failed: {e}")
+        return jsonify({"error": f"TTS unavailable: {str(e)}"}), 500
+
+    _evict(_tts_cache, _TTS_CACHE_MAX)
+    _tts_cache[ck] = audio_bytes
+    return send_file(io.BytesIO(audio_bytes), mimetype="audio/mpeg",
+                     as_attachment=False, download_name="tts_audio.mp3")
 
 
 # ── API: Available TTS voices ───────────────────────

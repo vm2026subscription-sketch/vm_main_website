@@ -89,6 +89,8 @@ header::after {
   flex-shrink: 0;
 }
 
+.logo-box i { color: var(--navy); }
+
 .header-text h1 {
   font-family: 'Baloo 2', cursive;
   font-size: 22px;
@@ -151,7 +153,7 @@ header::after {
   line-height: 1.6;
 }
 
-.intro-card .icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+.intro-card .icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; color: var(--saffron); }
 
 /* ── Form cards ──────────────────────────────────────────────────────────── */
 .form-card {
@@ -330,7 +332,7 @@ select:focus {
   box-shadow: 0 0 0 3px rgba(255,107,0,.1);
 }
 
-.stream-card .s-icon  { font-size: 22px; display: block; margin-bottom: 5px; }
+.stream-card .s-icon  { font-size: 22px; display: block; margin-bottom: 7px; color: var(--saffron); }
 .stream-card .s-name  { font-size: 12px; font-weight: 700; color: var(--navy); display: block; }
 .stream-card .s-sub   { font-size: 10px; color: var(--gray); display: block; margin-top: 2px; }
 
@@ -443,7 +445,18 @@ select:focus {
   text-align: center;
 }
 
-.stat-icon  { font-size: 22px; margin-bottom: 6px; }
+.stat-icon  {
+  font-size: 22px;
+  margin: 0 auto 8px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,107,0,.08);
+  color: var(--saffron);
+}
 .stat-value {
   font-family: 'Baloo 2', cursive;
   font-size: 22px;
@@ -561,6 +574,21 @@ footer {
 }
 
 footer strong { color: rgba(255,255,255,.8); }
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 14px;
+  margin-top: 10px;
+}
+
+.footer-links a {
+  color: var(--saffron-light);
+  text-decoration: none;
+}
+
+.footer-links a:hover { color: #ffffff; }
 
 /* ── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width: 600px) {

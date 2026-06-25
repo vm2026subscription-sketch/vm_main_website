@@ -1114,6 +1114,14 @@
                         data-name="{{ university.name }}" data-nirf="{{ university.nirf }}"
                         data-state="{{ university.state }}" data-city="{{ university.location }}"
                         data-type="{{ university.type }}" data-stream="{{ university.stream }}">
+                        <span class="vm-bookmark-btn" role="button" tabindex="0" aria-pressed="false"
+                            aria-label="Save university"
+                            data-type="university"
+                            data-name="{{ university.name }}"
+                            data-url="{{ url_for('university_detail', slug=university.slug) }}">
+                            <i class="fa-regular fa-bookmark"></i>
+                            <span class="vm-bookmark-label">Save</span>
+                        </span>
                         <img class="uni-logo" src="{{ university.logo_url }}" loading="lazy"
                             onload="if(this.naturalWidth === 16 && this.src !== '{{ university.fallback_logo }}') { this.src='{{ university.fallback_logo }}'; }"
                             onerror="this.onerror=null; this.src='{{ university.fallback_logo }}';"
@@ -1260,6 +1268,36 @@
             applyFilters();
         });
     </script>
+
+    <style>
+        .uni-card { position: relative; }
+        .vm-bookmark-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #ff6600;
+            background: rgba(255, 102, 0, 0.08);
+            border: 1px solid rgba(255, 102, 0, 0.35);
+            border-radius: 99px;
+            cursor: pointer;
+            z-index: 2;
+            transition: background 0.2s ease, color 0.2s ease, opacity 0.2s ease;
+        }
+        .vm-bookmark-btn:hover { background: rgba(255, 102, 0, 0.16); }
+        .vm-bookmark-btn.vm-bookmarked {
+            color: #16a34a;
+            background: rgba(22, 163, 74, 0.1);
+            border-color: rgba(22, 163, 74, 0.4);
+        }
+        .vm-bookmark-btn.vm-bookmark-loading { opacity: 0.6; pointer-events: none; }
+    </style>
+    <script src="{{ url_for('static', filename='bookmarks.js') }}" defer></script>
 </body>
 
 </html>
