@@ -428,7 +428,7 @@ body.light-mode .pathway-title { color: #475569; }
           <span id="panelStream"></span>
         </div>
       </div>
-      <button class="panel-close-btn" id="panelClose" title="Close">✕</button>
+      <button class="panel-close-btn" id="panelClose" title="Close"><i class="fa fa-times"></i></button>
     </div>
     <div class="panel-search-row">
       <input class="panel-search-input" id="panelSearch" type="text"
@@ -460,7 +460,7 @@ body.light-mode .pathway-title { color: #475569; }
 <div id="detail-modal">
   <div class="dm-box">
     <div class="dm-hero" id="dmHero">
-      <button class="dm-close-btn" id="dmClose" title="Close">✕</button>
+      <button class="dm-close-btn" id="dmClose" title="Close"><i class="fa fa-times"></i></button>
       <h3 id="dm-name"></h3>
       <div class="dm-hero-meta">
         <span id="dm-short"></span>
@@ -834,10 +834,10 @@ function openShortName(el) {
   document.getElementById('panelTitle').textContent =
     shortName + ' — ' + level.charAt(0).toUpperCase() + level.slice(1);
 
-  document.getElementById('panelLevel').textContent  = '🎓 ' + level;
+  document.getElementById('panelLevel').innerHTML  = '<i class="fa fa-graduation-cap"></i> ' + level;
 
   const streams = [...new Set(panelCourses.map(c => c.stream))].join(', ');
-  document.getElementById('panelStream').textContent = '📂 ' + streams;
+  document.getElementById('panelStream').innerHTML = '<i class="fa fa-folder-open"></i> ' + streams;
 
   document.getElementById('panelSearch').value = '';
 
@@ -918,9 +918,9 @@ function openDetail(c) {
   document.getElementById('dmHero').style.background =
     `linear-gradient(135deg,${col},${col}bb)`;
   document.getElementById('dm-name').textContent       = c.course_name;
-  document.getElementById('dm-short').textContent      = '📌 ' + c.short_name;
-  document.getElementById('dm-level').textContent      = '🎓 ' + c.level;
-  document.getElementById('dm-stream').textContent     = '📂 ' + c.stream;
+  document.getElementById('dm-short').innerHTML      = '<i class="fa fa-thumbtack"></i> ' + c.short_name;
+  document.getElementById('dm-level').innerHTML      = '<i class="fa fa-graduation-cap"></i> ' + c.level;
+  document.getElementById('dm-stream').innerHTML     = '<i class="fa fa-folder-open"></i> ' + c.stream;
   document.getElementById('dm-id').textContent         = c.course_id   || '—';
   document.getElementById('dm-sub').textContent        = c.sub_stream  || '—';
   document.getElementById('dm-dur').textContent        =

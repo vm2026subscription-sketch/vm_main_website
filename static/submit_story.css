@@ -225,7 +225,9 @@ body {
   gap: 4px;
 }
 .field-error:not(:empty)::before {
-  content: '⚠';
+  content: '\f071';
+  font-family: 'FontAwesome', 'Font Awesome 5 Free';
+  font-weight: 900;
   font-size: 0.72rem;
 }
 
@@ -327,7 +329,7 @@ button[type="submit"]:disabled {
   margin-top: 1rem;
   animation: fadeUp 0.3s ease;
 }
-.error-banner::before { content: '✖  '; }
+.error-banner::before { content: '\f00d'; font-family: 'FontAwesome', 'Font Awesome 5 Free'; font-weight: 900; margin-right: 8px; }
 
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(8px); }
