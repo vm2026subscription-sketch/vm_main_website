@@ -3157,6 +3157,10 @@ def admissions():
         app.logger.warning("Admissions DB fetch failed: %s", e)
     return render_template("admissions.html", admissions_data=admissions_data)
 
+@app.route("/scholarships")
+def scholarships():
+    return render_template("scholarships.html", page_title="Scholarships")
+
 @app.route("/news")
 def news():
     initial_articles = []
