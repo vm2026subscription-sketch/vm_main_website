@@ -3114,7 +3114,7 @@ def fyjc_predict():
 @app.route("/scholarships")
 def scholarships():
     scholarships_data = _load_scholarships_data()
-    return render_template("scholarships.html", scholarships=scholarships_data)
+    return render_template("scholarships.html", scholarships=scholarships_data, page_title="Scholarships")
 
 
 @app.route("/scholarship-redirect")
@@ -3157,9 +3157,6 @@ def admissions():
         app.logger.warning("Admissions DB fetch failed: %s", e)
     return render_template("admissions.html", admissions_data=admissions_data)
 
-@app.route("/scholarships")
-def scholarships():
-    return render_template("scholarships.html", page_title="Scholarships")
 
 @app.route("/news")
 def news():
