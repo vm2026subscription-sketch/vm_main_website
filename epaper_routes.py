@@ -1709,18 +1709,14 @@ def api_restore_backup(backup_id):
 
 @epaper_bp.route("/api/supabase/keepalive")
 def api_supabase_keepalive():
-    url = os.getenv("SUPABASE_URL", "").strip()
-    if not url:
-        return jsonify({"error": "SUPABASE_URL is not configured."}), 500
-    ping_url = url.rstrip("/") + "/rest/v1"
-    headers = {}
-    api_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip() or os.getenv("SUPABASE_ANON_KEY", "").strip()
-    if api_key:
-        headers["apikey"] = api_key
-        headers["Authorization"] = f"Bearer {api_key}"
+    if not _pg_url():
+        return jsonify({"error": "Database not configured."}), 500
     try:
-        req = urllib.request.Request(ping_url, headers=headers, method="GET")
-        with urllib.request.urlopen(req, timeout=15) as res:
-            return jsonify({"success": True, "status": res.status, "ping_url": ping_url})
+        conn = _pg_connect()
+        with conn.cursor() as cur:
+            cur.execute("SELECT COUNT(*) FROM epaper_editions_store")
+            count = cur.fetchone()[0]
+        conn.close()
+        return jsonify({"success": True, "editions": count})
     except Exception as exc:
-        return jsonify({"error": f"Supabase keepalive ping failed: {exc}"}), 500
+        return jsonify({"error": str(exc)}), 500
