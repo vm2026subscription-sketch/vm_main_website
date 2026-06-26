@@ -1,24 +1,49 @@
-/* ROOT VARIABLES FOR CONSISTENCY */
+/* ROOT VARIABLES FOR CONSISTENCY (DARK MODE DEFAULT) */
 :root {
+  --primary-orange: #ff6600;
+  --deep-orange: #ff7733;
+  --soft-peach: rgba(255, 102, 0, 0.15);
+  --pure-white: #050a15; /* Main Background */
+  --text-dark: #ffffff; /* Main Text */
+  --glass-white: rgba(13, 22, 39, 0.75); /* Filter bar */
+  --border-color: rgba(255, 255, 255, 0.1);
+  --input-bg: rgba(255, 255, 255, 0.05);
+  --input-border: rgba(255, 255, 255, 0.1);
+  --card-bg: rgba(13, 22, 39, 0.65);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --card-title: #ffffff;
+  --tag-text: #ff6600;
+}
+
+/* LIGHT MODE OVERRIDES */
+body.light-mode {
   --primary-orange: #ff7a00;
   --deep-orange: #e65c00;
   --soft-peach: #fff5ed;
-  --pure-white: #ffffff;
-  --text-dark: #1f2933;
-  --glass-white: rgba(255, 255, 255, 0.85);
+  --pure-white: #f8fafc; /* Main Background */
+  --text-dark: #1f2933; /* Main Text */
+  --glass-white: rgba(255, 255, 255, 0.85); /* Filter bar */
+  --border-color: rgba(0, 0, 0, 0.1);
+  --input-bg: #ffffff;
+  --input-border: rgba(0, 0, 0, 0.1);
+  --card-bg: #ffffff;
+  --card-border: rgba(0, 0, 0, 0.08);
+  --card-title: #e65c00;
+  --tag-text: #e65c00;
 }
 
 body {
   font-family: 'Inter', sans-serif;
-  background-color: var(--pure-white); /* Clean white base */
+  background-color: var(--pure-white); /* Clean dynamic base */
   color: var(--text-dark);
   margin: 0;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* UNIQUE SLANTED HEADER */
 .exam-header {
   background: linear-gradient(135deg, var(--primary-orange), var(--deep-orange));
-  color: var(--pure-white);
+  color: #ffffff;
   padding: 80px 20px 120px;
   text-align: center;
   clip-path: ellipse(150% 100% at 50% 0%); /* Attractive curved bottom */
@@ -35,28 +60,31 @@ body {
   display: flex;
   gap: 15px;
   box-shadow: 0 15px 35px rgba(255, 122, 0, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid var(--border-color);
   z-index: 10;
   position: relative;
+  transition: all 0.3s ease;
 }
 
 .filter-bar input, .filter-bar select {
-  border: 2px solid #ffffff;
+  border: 2px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--text-dark);
   padding: 12px;
   border-radius: 12px;
   outline: none;
   transition: 0.3s;
 }
 
-.filter-bar input:focus {
+.filter-bar input:focus, .filter-bar select:focus {
   border-color: var(--primary-orange);
   box-shadow: 0 0 8px rgba(255, 122, 0, 0.2);
 }
 
 /* UNIQUE INTERACTIVE CARDS */
 .exam-card {
-  background: var(--pure-white);
-  border: 1px solid #ffffff;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
   border-radius: 24px;
   padding: 30px;
   transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
@@ -79,7 +107,7 @@ body {
 
 .exam-card:hover {
   transform: translateY(-10px);
-  box-shadow: 0 25px 50px rgba(0,0,0,0.06);
+  box-shadow: 0 25px 50px rgba(0,0,0,0.15);
   border-color: var(--primary-orange);
 }
 
@@ -88,20 +116,28 @@ body {
 }
 
 .exam-card h3 {
-  color: var(--deep-orange);
+  color: var(--card-title);
   font-weight: 700;
+  transition: color 0.3s ease;
+}
+
+.exam-card:hover h3 {
+  color: var(--primary-orange);
 }
 
 /* VIBRANT TAGS */
 .tag {
   background: var(--soft-peach);
-  color: var(--deep-orange);
+  color: var(--tag-text);
   font-weight: 800;
   padding: 6px 15px;
   border-radius: 50px;
   font-size: 11px;
   text-transform: uppercase;
-  border: 1px solid rgba(255, 122, 0, 0.2);
+  border: 1px solid var(--border-color);
+  display: inline-block;
+  margin-bottom: 12px;
+  transition: all 0.3s ease;
 }
 /* NAVBAR STYLES */
 .navbar {
@@ -243,4 +279,14 @@ body {
   .exam-card {
     padding: 22px 18px;
   }
+}
+
+/* FOOTER STYLES */
+.exam-footer {
+  text-align: center;
+  color: var(--text-dark);
+  padding: 40px 20px;
+  border-top: 1px solid var(--border-color);
+  margin-top: 40px;
+  transition: all 0.3s ease;
 }
