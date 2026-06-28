@@ -765,9 +765,13 @@ const EP = {
       subtitle.className = 'ep-edition-card-subtitle';
       subtitle.textContent = this.formatEditionCardDate(edition.date);
 
+      const langLabel = (edition.language || 'Edition').trim();
+      const langKey = langLabel.toLowerCase();
+
       const language = document.createElement('div');
-      language.className = 'ep-edition-card-language';
-      language.textContent = (edition.language || 'Edition').trim();
+      language.className = `ep-edition-card-language ${this.getEditionLanguageClass(langLabel)}`;
+      language.dataset.lang = langKey;
+      language.textContent = langLabel;
 
       body.append(title, subtitle, language);
 
@@ -812,6 +816,14 @@ const EP = {
       return `${rawName} ${edition.language || ''}`.trim();
     }
     return `VidyarthiMitra ${edition.language || 'Edition'}`.trim();
+  },
+
+  getEditionLanguageClass(language) {
+    const key = (language || '').trim().toLowerCase();
+    if (key.includes('english')) return 'ep-lang-english';
+    if (key.includes('hindi')) return 'ep-lang-hindi';
+    if (key.includes('marathi')) return 'ep-lang-marathi';
+    return 'ep-lang-default';
   },
 
   formatEditionCardDate(date) {
