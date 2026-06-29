@@ -1075,7 +1075,7 @@ def get_auth_db_connection():
     pg_url = get_postgres_connection_url()
     if pg_url and connect is not None:
         try:
-            conn = connect(pg_url)
+            conn = connect(pg_url, connect_timeout=5, options="-c statement_timeout=8000")
             conn.autocommit = False
             with conn.cursor() as cur:
                 cur.execute("""
@@ -1319,7 +1319,7 @@ def _deliver_smtp_message(message):
     if not settings["configured"]:
         return False, "SMTP is not configured. Set SMTP_HOST and SMTP_FROM_EMAIL in your environment."
     try:
-        with smtplib.SMTP(settings["host"], settings["port"], timeout=15) as smtp:
+        with smtplib.SMTP(settings["host"], settings["port"], timeout=6) as smtp:
             if settings["use_tls"]:
                 smtp.starttls()
             if settings["username"]:
