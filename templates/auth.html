@@ -346,6 +346,24 @@
         font-size: 20px;
     }
 
+    .reset-preview-link {
+        margin-top: 14px;
+        padding: 14px;
+        border-radius: 12px;
+        background: rgba(255,102,0, 0.06);
+        border: 1.5px dashed rgba(255,102,0, 0.35);
+        word-break: break-all;
+        text-align: left;
+        font-size: 13px;
+        line-height: 1.6;
+    }
+
+    .reset-preview-link a {
+        color: var(--auth-orange) !important;
+        font-weight: 700;
+        text-decoration: underline;
+    }
+
     .otp-actions {
         display: flex;
         gap: 12px;
@@ -549,6 +567,24 @@
     .auth-switch a:focus {
         color: var(--auth-orange-dark) !important;
         text-decoration: underline;
+    }
+
+    .auth-forgot-link {
+        display: inline-block;
+        margin-top: -8px;
+        margin-bottom: 16px;
+        font-size: 13px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.72);
+        text-decoration: none;
+        transition: color 0.2s ease;
+    }
+
+    .auth-forgot-link:hover,
+    .auth-forgot-link:focus {
+        color: var(--auth-orange) !important;
+        text-decoration: underline;
+        outline: none;
     }
 
     /* ── LIGHT MODE OVERRIDES ────────────────────────────────────────── */
@@ -762,6 +798,14 @@
         color: #ea580c !important;
     }
 
+    body.light-mode .auth-forgot-link {
+        color: rgba(15, 23, 42, 0.72) !important;
+    }
+
+    body.light-mode .auth-forgot-link:hover {
+        color: #c2410c !important;
+    }
+
     /* ── RESPONSIVE ────────────────────────────────── */
     @media (max-width: 980px) {
         .auth-page {
@@ -857,10 +901,19 @@
                             <strong>Vidyarthi Mitra</strong>
                         </div>
                     </div>
-                    <h1>{% if mode == 'register' %}Start your guidance journey with one account.{% else %}Welcome back to your guidance space.{% endif %}</h1>
+                    <h1>
+                        {% if mode == 'register' %}Start your guidance journey with one account.
+                        {% elif mode == 'forgot' %}Forgot your password? We can help.
+                        {% elif mode == 'reset' %}Choose a new secure password.
+                        {% else %}Welcome back to your guidance space.{% endif %}
+                    </h1>
                     <p>
                         {% if mode == 'register' %}
                             Create your profile once and stay ready for college search, exams, cut-offs, updates, and future personalized tools.
+                        {% elif mode == 'forgot' %}
+                            Enter your registered email and we will send a secure reset link if an account exists.
+                        {% elif mode == 'reset' %}
+                            Set a new password for your account. You will need to log in again after resetting.
                         {% else %}
                             Sign in to continue faster with your saved profile and keep your education planning in one familiar place.
                         {% endif %}
@@ -887,10 +940,20 @@
         <section class="auth-card" aria-labelledby="auth-title">
             <div class="auth-card-top">
                 <p class="auth-eyebrow">Account access</p>
-                <h2 id="auth-title">{% if mode == 'register' %}Create account{% else %}Login to account{% endif %}</h2>
+                <h2 id="auth-title">
+                    {% if mode == 'register' %}Create account
+                    {% elif mode == 'forgot' %}Forgot password
+                    {% elif mode == 'reset' %}Reset password
+                    {% elif mode == 'otp' %}Verify OTP
+                    {% else %}Login to account{% endif %}
+                </h2>
                 <p class="subtext">
                     {% if mode == 'register' %}
                         Add your basic details and choose a password to get started.
+                    {% elif mode == 'forgot' %}
+                        Enter the email address linked to your account.
+                    {% elif mode == 'reset' %}
+                        Enter and confirm your new password below.
                     {% elif mode == 'otp' %}
                         Enter the 6-digit OTP to finish signing in.
                     {% else %}
@@ -899,7 +962,7 @@
                 </p>
             </div>
 
-            {% if mode != 'otp' %}
+            {% if mode not in ['otp', 'forgot', 'reset'] %}
             <div class="auth-mode-switch" role="tablist" aria-label="Choose login or register">
                 <a href="{{ url_for('login') }}" class="{% if mode == 'login' %}is-active{% endif %}" role="tab" aria-selected="{% if mode == 'login' %}true{% else %}false{% endif %}">
                     <i class="fa fa-sign-in" aria-hidden="true"></i>
@@ -924,6 +987,27 @@
                     {% endif %}
                 {% endwith %}
             </div>
+
+            {% if mode == 'forgot' and reset_preview_url %}
+            <div class="otp-panel" role="status" aria-live="polite">
+                <strong>Local preview: password reset link</strong>
+                <p>
+                    Email delivery is unavailable in this environment (SMTP not configured or send failed).
+                    Use the secure link below to continue testing locally.
+                </p>
+                <div class="reset-preview-link">
+                    <a href="{{ reset_preview_url }}">{{ reset_preview_url }}</a>
+                </div>
+            </div>
+            {% elif mode == 'forgot' and not smtp_configured %}
+            <div class="otp-panel" role="status">
+                <strong>SMTP not configured</strong>
+                <p>
+                    Add <code>SMTP_HOST</code> and <code>SMTP_FROM_EMAIL</code> to your <code>.env</code> file to receive reset emails.
+                    Until then, registered accounts will show a preview reset link here after you submit the form.
+                </p>
+            </div>
+            {% endif %}
 
             <form class="auth-form" method="post" data-auth-form>
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -978,6 +1062,87 @@
                 </div>
 
                 <p class="auth-note">OTP expires in 5 minutes. Request a new code if you do not receive it.</p>
+                {% elif mode == 'forgot' %}
+                <div class="form-group">
+                    <label for="email">Email address</label>
+                    <div class="auth-input-wrap">
+                        <i class="fa fa-envelope auth-input-icon" aria-hidden="true"></i>
+                        <input
+                            type="email"
+                            class="form-control"
+                            id="email"
+                            name="email"
+                            value="{{ request.form.get('email', '') }}"
+                            placeholder="name@example.com"
+                            autocomplete="email"
+                            inputmode="email"
+                            maxlength="254"
+                            required
+                            autofocus
+                        >
+                    </div>
+                </div>
+
+                <button type="submit" class="auth-button" data-submit-button>
+                    <i class="fa fa-paper-plane" aria-hidden="true"></i>
+                    <span>Send reset link</span>
+                </button>
+
+                <p class="auth-note">For your security, we show the same message whether or not the email is registered.</p>
+                {% elif mode == 'reset' %}
+                <div class="form-group">
+                    <label for="password">New password</label>
+                    <div class="auth-input-wrap">
+                        <i class="fa fa-lock auth-input-icon" aria-hidden="true"></i>
+                        <input
+                            type="password"
+                            class="form-control"
+                            id="password"
+                            name="password"
+                            placeholder="Enter new password"
+                            autocomplete="new-password"
+                            minlength="6"
+                            required
+                            autofocus
+                        >
+                        <button class="password-toggle" type="button" data-password-toggle="password" aria-label="Show password">
+                            <i class="fa fa-eye" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <div class="password-meter" data-password-meter>
+                        <div class="password-meter-track" aria-hidden="true">
+                            <div class="password-meter-fill"></div>
+                        </div>
+                        <span class="password-meter-text">Minimum 6 characters</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirm_password">Confirm new password</label>
+                    <div class="auth-input-wrap">
+                        <i class="fa fa-check-circle auth-input-icon" aria-hidden="true"></i>
+                        <input
+                            type="password"
+                            class="form-control"
+                            id="confirm_password"
+                            name="confirm_password"
+                            placeholder="Re-enter new password"
+                            autocomplete="new-password"
+                            minlength="6"
+                            required
+                        >
+                        <button class="password-toggle" type="button" data-password-toggle="confirm_password" aria-label="Show confirm password">
+                            <i class="fa fa-eye" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="auth-button" data-submit-button>
+                    <i class="fa fa-refresh" aria-hidden="true"></i>
+                    <span>Update password</span>
+                </button>
+
+                <p class="auth-note">Password should be at least 6 characters.</p>
                 {% elif mode == 'register' %}
                 <div class="form-group">
                     <label for="name">Full name</label>
@@ -1107,6 +1272,8 @@
                     </div>
                 </div>
 
+                <a class="auth-forgot-link" href="{{ url_for('forgot_password') }}">Forgot password?</a>
+
                 <button type="submit" class="auth-button" data-submit-button>
                     <i class="fa fa-sign-in" aria-hidden="true"></i>
                     <span>Login</span>
@@ -1121,6 +1288,10 @@
             <div class="auth-switch">
                 {% if mode == 'otp' %}
                     Wrong email or need a fresh start? <a href="{{ url_for('login') }}">Go back to login</a>
+                {% elif mode == 'forgot' %}
+                    Remembered your password? <a href="{{ url_for('login') }}">Back to login</a>
+                {% elif mode == 'reset' %}
+                    Need a new link? <a href="{{ url_for('forgot_password') }}">Request another reset</a>
                 {% elif mode == 'register' %}
                     Already have an account? <a href="{{ url_for('login') }}">Login instead</a>
                 {% else %}

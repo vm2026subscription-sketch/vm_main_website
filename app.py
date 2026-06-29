@@ -77,6 +77,14 @@ if _has_compress:
     app.config['COMPRESS_MIN_SIZE'] = 500
     _FlaskCompress(app)
 
+# Trust reverse-proxy headers on Render/Vercel/production so external URLs in emails are correct.
+if os.environ.get("FLASK_ENV") == "production" or os.environ.get("RENDER") or os.environ.get("VERCEL") == "1":
+    try:
+        from werkzeug.middleware.proxy_fix import ProxyFix
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+    except ImportError:
+        pass
+
 
 @app.after_request
 def add_cache_headers(response):
@@ -1090,6 +1098,16 @@ def get_auth_db_connection():
                         UNIQUE (user_email, item_type, item_name)
                     )
                 """)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                        id BIGSERIAL PRIMARY KEY,
+                        email TEXT NOT NULL,
+                        token_hash TEXT NOT NULL UNIQUE,
+                        expires_at BIGINT NOT NULL,
+                        used_at BIGINT,
+                        created_at TIMESTAMPTZ DEFAULT NOW()
+                    )
+                """)
             conn.commit()
             # Wrap in a sqlite3-compatible shim so the rest of the code works unchanged
             return _PgAuthConn(conn)
@@ -1117,6 +1135,16 @@ def get_auth_db_connection():
             item_url TEXT,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             UNIQUE (user_email, item_type, item_name)
+        )
+    """)
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT NOT NULL,
+            token_hash TEXT NOT NULL UNIQUE,
+            expires_at INTEGER NOT NULL,
+            used_at INTEGER,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
     """)
     connection.commit()
@@ -1251,6 +1279,66 @@ def get_env_value(*names, default=""):
     return default
 
 
+def _is_production_deploy():
+    return (
+        os.environ.get("FLASK_ENV") == "production"
+        or bool(os.environ.get("RENDER"))
+        or os.environ.get("VERCEL") == "1"
+    )
+
+
+def _get_smtp_settings():
+    smtp_host = get_env_value("OTP_SMTP_HOST", "SMTP_HOST")
+    smtp_port_raw = get_env_value("OTP_SMTP_PORT", "SMTP_PORT", default="587")
+    smtp_username = get_env_value("OTP_SMTP_USERNAME", "SMTP_USER")
+    smtp_password = get_env_value("OTP_SMTP_PASSWORD", "SMTP_PASS")
+    from_email = get_env_value("OTP_FROM_EMAIL", "SMTP_FROM_EMAIL", default=smtp_username)
+    use_tls_raw = get_env_value("OTP_SMTP_USE_TLS", "SMTP_USE_TLS", default="1").lower()
+    try:
+        smtp_port = int(smtp_port_raw)
+    except ValueError:
+        smtp_port = 587
+    use_tls = use_tls_raw not in {"0", "false", "no"}
+    return {
+        "host": smtp_host,
+        "port": smtp_port,
+        "username": smtp_username,
+        "password": smtp_password,
+        "from_email": from_email,
+        "use_tls": use_tls,
+        "configured": bool(smtp_host and from_email),
+    }
+
+
+def _smtp_is_configured():
+    return _get_smtp_settings()["configured"]
+
+
+def _deliver_smtp_message(message):
+    settings = _get_smtp_settings()
+    if not settings["configured"]:
+        return False, "SMTP is not configured. Set SMTP_HOST and SMTP_FROM_EMAIL in your environment."
+    try:
+        with smtplib.SMTP(settings["host"], settings["port"], timeout=15) as smtp:
+            if settings["use_tls"]:
+                smtp.starttls()
+            if settings["username"]:
+                smtp.login(settings["username"], settings["password"])
+            smtp.send_message(message)
+        return True, ""
+    except Exception as exc:
+        app.logger.warning("SMTP delivery failed: %s", exc, exc_info=True)
+        return False, str(exc)
+
+
+def build_external_url(endpoint, **values):
+    """Build an absolute URL for outbound emails (password reset, etc.)."""
+    base = get_env_value("PUBLIC_BASE_URL", "APP_BASE_URL", "SITE_URL").rstrip("/")
+    if base:
+        return f"{base}{url_for(endpoint, **values)}"
+    return url_for(endpoint, _external=True, **values)
+
+
 def get_otp_provider():
     return get_env_value("OTP_PROVIDER", default="email_smtp").lower()
 
@@ -1321,26 +1409,13 @@ def verify_twilio_code(to_email, code):
 
 
 def send_login_otp_email(to_email, user_name, otp_code):
-    smtp_host = get_env_value("OTP_SMTP_HOST", "SMTP_HOST")
-    smtp_port_raw = get_env_value("OTP_SMTP_PORT", "SMTP_PORT", default="587")
-    smtp_username = get_env_value("OTP_SMTP_USERNAME", "SMTP_USER")
-    smtp_password = get_env_value("OTP_SMTP_PASSWORD", "SMTP_PASS")
-    from_email = get_env_value("OTP_FROM_EMAIL", "SMTP_FROM_EMAIL", default=smtp_username)
-    use_tls_raw = get_env_value("OTP_SMTP_USE_TLS", "SMTP_USE_TLS", default="1").lower()
-
-    try:
-        smtp_port = int(smtp_port_raw)
-    except ValueError:
-        smtp_port = 587
-
-    use_tls = use_tls_raw not in {"0", "false", "no"}
-
-    if not smtp_host or not from_email:
+    settings = _get_smtp_settings()
+    if not settings["configured"]:
         return False
 
     message = EmailMessage()
     message["Subject"] = "Your Vidyarthi Mitra login OTP"
-    message["From"] = from_email
+    message["From"] = settings["from_email"]
     message["To"] = to_email
     message.set_content(
         f"""Hello {user_name or 'Student'},
@@ -1353,14 +1428,102 @@ If you did not request this, ignore this email.
 """
     )
 
-    with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as smtp:
-        if use_tls:
-            smtp.starttls()
-        if smtp_username:
-            smtp.login(smtp_username, smtp_password)
-        smtp.send_message(message)
+    delivered, _ = _deliver_smtp_message(message)
+    return delivered
 
-    return True
+
+PASSWORD_RESET_EXPIRY_SECONDS = int(os.getenv("PASSWORD_RESET_EXPIRY_SECONDS", "1800"))
+PASSWORD_RESET_GENERIC_MESSAGE = (
+    "If an account with this email exists, a password reset link has been sent."
+)
+
+
+def _hash_password_reset_token(raw_token):
+    return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+
+
+def _create_password_reset_token(email):
+    raw_token = secrets.token_urlsafe(32)
+    token_hash = _hash_password_reset_token(raw_token)
+    expires_at = int(time.time()) + PASSWORD_RESET_EXPIRY_SECONDS
+    now = int(time.time())
+    with get_auth_db_connection() as connection:
+        connection.execute(
+            "UPDATE password_reset_tokens SET used_at = ? WHERE email = ? AND used_at IS NULL",
+            (now, email),
+        )
+        connection.execute(
+            "INSERT INTO password_reset_tokens (email, token_hash, expires_at) VALUES (?, ?, ?)",
+            (email, token_hash, expires_at),
+        )
+        connection.commit()
+    return raw_token
+
+
+def _get_valid_password_reset_record(raw_token):
+    if not raw_token or len(raw_token) < 20:
+        return None
+    token_hash = _hash_password_reset_token(raw_token)
+    now = int(time.time())
+    with get_auth_db_connection() as connection:
+        row = connection.execute(
+            "SELECT email, expires_at FROM password_reset_tokens "
+            "WHERE token_hash = ? AND used_at IS NULL",
+            (token_hash,),
+        ).fetchone()
+    if row is None or int(row["expires_at"]) < now:
+        return None
+    return row
+
+
+def _mark_password_reset_token_used(raw_token):
+    token_hash = _hash_password_reset_token(raw_token)
+    now = int(time.time())
+    with get_auth_db_connection() as connection:
+        connection.execute(
+            "UPDATE password_reset_tokens SET used_at = ? WHERE token_hash = ?",
+            (now, token_hash),
+        )
+        connection.commit()
+
+
+def _invalidate_password_reset_tokens(email):
+    now = int(time.time())
+    with get_auth_db_connection() as connection:
+        connection.execute(
+            "UPDATE password_reset_tokens SET used_at = ? WHERE email = ? AND used_at IS NULL",
+            (now, email),
+        )
+        connection.commit()
+
+
+def send_password_reset_email(to_email, user_name, reset_url):
+    """Send password reset link via SMTP. Reuses shared SMTP configuration."""
+    settings = _get_smtp_settings()
+    if not settings["configured"]:
+        return False, "SMTP is not configured. Set SMTP_HOST and SMTP_FROM_EMAIL in your environment."
+
+    expiry_minutes = max(1, PASSWORD_RESET_EXPIRY_SECONDS // 60)
+
+    message = EmailMessage()
+    message["Subject"] = "Reset your Vidyarthi Mitra password"
+    message["From"] = settings["from_email"]
+    message["To"] = to_email
+    message.set_content(
+        f"""Hello {user_name or 'Student'},
+
+We received a request to reset your Vidyarthi Mitra account password.
+
+Reset your password using this secure link:
+{reset_url}
+
+This link expires in {expiry_minutes} minutes and can only be used once.
+
+If you did not request a password reset, you can safely ignore this email.
+"""
+    )
+
+    return _deliver_smtp_message(message)
 
 
 def _coerce_value(value):
@@ -3259,31 +3422,17 @@ def submit_story():
 
 # ── Shared notification email + JSON file helpers ─────────────────────────────
 def _send_notification_email(subject, body, to_email=None):
-    smtp_host     = get_env_value("OTP_SMTP_HOST", "SMTP_HOST")
-    smtp_port_raw = get_env_value("OTP_SMTP_PORT", "SMTP_PORT", default="587")
-    smtp_username = get_env_value("OTP_SMTP_USERNAME", "SMTP_USER")
-    smtp_password = get_env_value("OTP_SMTP_PASSWORD", "SMTP_PASS")
-    from_email    = get_env_value("OTP_FROM_EMAIL", "SMTP_FROM_EMAIL", default=smtp_username)
-    admin_email   = get_env_value("ADMIN_EMAIL", default="vm2026.subscription@gmail.com")
-    use_tls       = get_env_value("OTP_SMTP_USE_TLS", "SMTP_USE_TLS", default="1").lower() not in {"0", "false", "no"}
-    if not smtp_host or not from_email:
+    settings = _get_smtp_settings()
+    if not settings["configured"]:
         return False
-    try:
-        smtp_port = int(smtp_port_raw)
-    except ValueError:
-        smtp_port = 587
+    admin_email = get_env_value("ADMIN_EMAIL", default="vm2026.subscription@gmail.com")
     msg = EmailMessage()
     msg["Subject"] = subject
-    msg["From"]    = from_email
-    msg["To"]      = to_email or admin_email
+    msg["From"] = settings["from_email"]
+    msg["To"] = to_email or admin_email
     msg.set_content(body)
-    with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as s:
-        if use_tls:
-            s.starttls()
-        if smtp_username:
-            s.login(smtp_username, smtp_password)
-        s.send_message(msg)
-    return True
+    delivered, _ = _deliver_smtp_message(msg)
+    return delivered
 
 
 _STORIES_FILE = os.path.join(os.path.dirname(__file__), 'data', 'stories.json')
@@ -4401,12 +4550,118 @@ def resend_otp():
     return redirect(url_for("verify_otp"))
 
 
+@app.route("/forgot-password", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
+def forgot_password():
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+
+        if not email or "@" not in email or len(email) > 254:
+            flash("Please enter a valid email address.", "error")
+            return render_template(
+                "auth.html",
+                mode="forgot",
+                page_title="Forgot Password",
+                reset_preview_url=session.get("pending_reset_preview"),
+                smtp_configured=_smtp_is_configured(),
+            )
+
+        with get_auth_db_connection() as connection:
+            user = connection.execute(
+                "SELECT name, email FROM users WHERE email = ?",
+                (email,),
+            ).fetchone()
+
+        if user is not None:
+            try:
+                raw_token = _create_password_reset_token(email)
+                reset_url = build_external_url("reset_password", token=raw_token)
+                sent, smtp_error = send_password_reset_email(user["email"], user["name"], reset_url)
+                if sent:
+                    session.pop("pending_reset_preview", None)
+                else:
+                    app.logger.warning(
+                        "Password reset email not sent for %s: %s Reset URL: %s",
+                        email,
+                        smtp_error,
+                        reset_url,
+                    )
+                    if not _is_production_deploy():
+                        session["pending_reset_preview"] = reset_url
+            except Exception as exc:
+                app.logger.warning("Password reset flow failed for %s: %s", email, exc, exc_info=True)
+
+        flash(PASSWORD_RESET_GENERIC_MESSAGE, "success")
+        return redirect(url_for("forgot_password"))
+
+    return render_template(
+        "auth.html",
+        mode="forgot",
+        page_title="Forgot Password",
+        reset_preview_url=session.get("pending_reset_preview") if not _is_production_deploy() else None,
+        smtp_configured=_smtp_is_configured(),
+    )
+
+
+@app.route("/reset-password/<token>", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
+def reset_password(token):
+    record = _get_valid_password_reset_record(token)
+    if record is None:
+        flash("This password reset link is invalid or has expired. Please request a new one.", "error")
+        return redirect(url_for("forgot_password"))
+
+    if request.method == "POST":
+        record = _get_valid_password_reset_record(token)
+        if record is None:
+            flash("This password reset link is invalid or has expired. Please request a new one.", "error")
+            return redirect(url_for("forgot_password"))
+
+        password = request.form.get("password", "")
+        confirm_password = request.form.get("confirm_password", "")
+
+        if not password or not confirm_password:
+            flash("Please fill in all fields.", "error")
+            return render_template("auth.html", mode="reset", page_title="Reset Password")
+
+        if password != confirm_password:
+            flash("Passwords do not match.", "error")
+            return render_template("auth.html", mode="reset", page_title="Reset Password")
+
+        if len(password) < 6:
+            flash("Password must be at least 6 characters long.", "error")
+            return render_template("auth.html", mode="reset", page_title="Reset Password")
+
+        email = record["email"]
+        with get_auth_db_connection() as connection:
+            connection.execute(
+                "UPDATE users SET password_hash = ? WHERE email = ?",
+                (generate_password_hash(password), email),
+            )
+            connection.commit()
+
+        _mark_password_reset_token_used(token)
+        _invalidate_password_reset_tokens(email)
+
+        session.pop("auth_user", None)
+        session.pop("pending_otp", None)
+        session.pop("otp_delivery_mode", None)
+        session.pop("pending_otp_preview", None)
+        session.pop("pending_reset_preview", None)
+
+        flash("Your password has been reset successfully. You can now log in with your new password.", "success")
+        return redirect(url_for("login"))
+
+    return render_template("auth.html", mode="reset", page_title="Reset Password")
+
+
 @app.route("/logout")
 def logout():
     session.pop("auth_user", None)
     session.pop("pending_otp", None)
     session.pop("otp_delivery_mode", None)
     session.pop("pending_otp_preview", None)
+    session.pop("pending_reset_preview", None)
     return redirect(url_for("index"))
 
 
