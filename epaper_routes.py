@@ -200,6 +200,17 @@ def _pg_ensure_table(conn):
             VALUES ('editions', '[]'::jsonb)
             ON CONFLICT (id) DO NOTHING
         """)
+        # Per-edition store (v2): one row per (date, language) so a save touches
+        # only that edition instead of rewriting the whole ~32 MB blob.
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS epaper_editions_v2 (
+                edition_date TEXT NOT NULL,
+                edition_language TEXT NOT NULL DEFAULT 'Hindi',
+                data JSONB NOT NULL,
+                updated_at TIMESTAMPTZ DEFAULT NOW(),
+                PRIMARY KEY (edition_date, edition_language)
+            )
+        """)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS epaper_edition_backups (
                 id SERIAL PRIMARY KEY,
@@ -407,28 +418,102 @@ def _increment_edition_view(date, language):
 
 # ── Public load / save ──────────────────────────────
 
+def _row_to_edition(row_data):
+    """A v2 row's data column → edition dict (handles str or already-parsed jsonb)."""
+    return json.loads(row_data) if isinstance(row_data, str) else row_data
+
+
+def _upsert_edition_row(cur, edition):
+    """Upsert a single edition into the per-edition v2 table using an open cursor."""
+    cur.execute("""
+        INSERT INTO epaper_editions_v2 (edition_date, edition_language, data, updated_at)
+        VALUES (%s, %s, %s::jsonb, NOW())
+        ON CONFLICT (edition_date, edition_language)
+        DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()
+    """, (
+        edition.get("date", ""),
+        edition.get("language", "Hindi"),
+        json.dumps(edition, ensure_ascii=False),
+    ))
+
+
+def _load_one_edition_pg(conn, date, lang):
+    """Read a single edition row from v2. Returns dict or None."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT data FROM epaper_editions_v2 WHERE edition_date=%s AND edition_language=%s",
+            (date, lang),
+        )
+        row = cur.fetchone()
+    return _row_to_edition(row[0]) if row else None
+
+
+def _delete_edition_row(date, lang):
+    """Explicitly delete ONE edition row from v2 (deletes are never implicit)."""
+    if not _pg_url():
+        return
+    conn = _pg_connect()
+    try:
+        _pg_ensure_table(conn)
+        with conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM epaper_editions_v2 WHERE edition_date=%s AND edition_language=%s",
+                (date, lang or "Hindi"),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def _load_editions_from_pg():
-    """Load editions from Postgres. Returns list or None on failure."""
+    """Load editions from the per-edition v2 table. The first time v2 is empty it
+    auto-migrates from the legacy single-row blob (which is left intact as a backup).
+    Returns list or None on failure."""
     if not _pg_url():
         return None
     try:
         conn = _pg_connect()
         _pg_ensure_table(conn)
         with conn.cursor() as cur:
+            cur.execute("SELECT data FROM epaper_editions_v2")
+            rows = cur.fetchall()
+        if rows:
+            conn.close()
+            return [_row_to_edition(r[0]) for r in rows]
+
+        # v2 is empty. Migrate from the legacy blob ONLY ONCE — guarded by a marker
+        # so that legitimately deleting every edition is not undone on the next load.
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1 FROM epaper_editions_store WHERE id = '__v2_migrated__'")
+            already_migrated = cur.fetchone() is not None
+        if already_migrated:
+            conn.close()
+            return []  # genuinely empty — respect it
+
+        with conn.cursor() as cur:
             cur.execute("SELECT data FROM epaper_editions_store WHERE id = 'editions'")
-            row = cur.fetchone()
+            legacy_row = cur.fetchone()
+        legacy = legacy_row[0] if legacy_row else []
+        if isinstance(legacy, str):
+            legacy = json.loads(legacy)
+        if not legacy:
+            legacy = _load_editions_from_file()
+        with conn.cursor() as cur:
+            for ed in (legacy or []):
+                _upsert_edition_row(cur, ed)
+            # Stamp the marker so migration runs exactly once
+            cur.execute("""
+                INSERT INTO epaper_editions_store (id, data)
+                VALUES ('__v2_migrated__', 'true'::jsonb)
+                ON CONFLICT (id) DO NOTHING
+            """)
+        conn.commit()
+        if legacy:
+            print(f"[epaper] Migrated {len(legacy)} editions into per-edition v2 table.")
         conn.close()
-        pg_data = row[0] if row else []
-        if isinstance(pg_data, str):
-            pg_data = json.loads(pg_data)
-        if not pg_data:
-            file_data = _load_editions_from_file()
-            if file_data:
-                _save_editions(file_data)
-            return file_data
-        return pg_data
+        return legacy or []
     except Exception as e:
-        print(f"[epaper] Postgres load failed, falling back: {e}")
+        print(f"[epaper] Postgres v2 load failed, falling back: {e}")
         return None
 
 
@@ -592,6 +677,11 @@ def _invalidate_editions_cache():
 
 
 def _save_editions(data):
+    """Persist a full list of editions by upserting each into the per-edition v2
+    table. Upsert-only: rows missing from `data` are NOT deleted here, so a
+    momentarily-partial list can never wipe editions. Deletions go through
+    _delete_edition_row(). Used by the (rare) publish path; the hot create/update
+    path writes a single row directly in api_create_edition()."""
     # Invalidate cache immediately on any save
     _invalidate_editions_cache()
     if _pg_url():
@@ -599,22 +689,18 @@ def _save_editions(data):
             conn = _pg_connect()
             _pg_ensure_table(conn)
             with conn.cursor() as cur:
-                cur.execute("""
-                    INSERT INTO epaper_editions_store (id, data, updated_at)
-                    VALUES ('editions', %s::jsonb, NOW())
-                    ON CONFLICT (id) DO UPDATE
-                        SET data = EXCLUDED.data, updated_at = NOW()
-                """, (json.dumps(data, ensure_ascii=False),))
+                for ed in data:
+                    _upsert_edition_row(cur, ed)
             conn.commit()
             conn.close()
-            # Dual-write to local file so fallback stays in sync with Postgres
+            # Dual-write to local file so the file fallback stays in sync
             try:
                 _save_editions_to_file(data)
             except Exception as fe:
-                print(f"[epaper] Local file sync after Postgres save failed (non-fatal): {fe}")
+                print(f"[epaper] Local file sync after v2 save failed (non-fatal): {fe}")
             return
         except Exception as e:
-            print(f"[epaper] Postgres save failed, falling back to file: {e}")
+            print(f"[epaper] v2 save failed, falling back to file: {e}")
     _save_editions_to_file(data)
 
 
@@ -1178,94 +1264,83 @@ def api_create_edition():
     lang_str = data.get("language", "Hindi")
     original_date = data.get("original_date", "")
     original_lang = data.get("original_lang", "")
+    renamed = bool(original_date) and (original_date != date_str or original_lang != lang_str)
 
-    # ── Single DB connection for load + save (avoids two round-trips) ──
-    conn = None
-    if _pg_url():
-        try:
-            conn = _pg_connect()
-            _pg_ensure_table(conn)
-            with conn.cursor() as cur:
-                cur.execute("SELECT data FROM epaper_editions_store WHERE id = 'editions'")
-                row = cur.fetchone()
-            editions = row[0] if row else []
-            if isinstance(editions, str):
-                editions = json.loads(editions)
-            if not editions:
-                editions = _load_editions_from_file()
-        except Exception as e:
-            print(f"[epaper] DB load in save failed: {e}")
-            try: conn.close()
-            except: pass
-            conn = None
-            editions = _load_editions_from_file()
-    else:
-        editions = _load_editions_from_file()
-
-    # If date/lang changed, remove old entry first
-    if original_date and (original_date != date_str or original_lang != lang_str):
-        editions = [e for e in editions
-                    if not (e["date"] == original_date and e.get("language", "Hindi") == original_lang)]
-
-    existing = next(
-        (e for e in editions if e["date"] == date_str and e.get("language", "Hindi") == lang_str),
-        None,
-    )
-
-    if existing:
+    def _apply_payload(existing):
+        """Merge the request payload onto an existing edition (or build a new one),
+        preserving fields the client did not send."""
+        if existing is None:
+            return {
+                "date": date_str,
+                "name": data.get("name", f"Edition {date_str}"),
+                "language": data.get("language", "Hindi"),
+                "published": data.get("published", True),
+                "masthead_image_url": data.get("masthead_image_url", ""),
+                "footer_links": data.get("footer_links", []),
+                "header_items": data.get("header_items", []),
+                "pages": data.get("pages", []),
+                "created_at": datetime.now().isoformat(),
+            }
+        existing["date"] = date_str
         existing["name"] = data.get("name", existing.get("name", ""))
         existing["language"] = data.get("language", existing.get("language", "Hindi"))
         existing["published"] = data.get("published", existing.get("published", True))
         existing["masthead_image_url"] = data.get("masthead_image_url", existing.get("masthead_image_url", ""))
         if "footer_links" in data:
-            existing["footer_links"] = data.get("footer_links", existing.get("footer_links", []))
+            existing["footer_links"] = data["footer_links"]
         if "header_items" in data:
-            existing["header_items"] = data.get("header_items", existing.get("header_items", []))
+            existing["header_items"] = data["header_items"]
         if "pages" in data:
             existing["pages"] = data["pages"]
-    else:
-        editions.append({
-            "date": date_str,
-            "name": data.get("name", f"Edition {date_str}"),
-            "language": data.get("language", "Hindi"),
-            "published": data.get("published", True),
-            "masthead_image_url": data.get("masthead_image_url", ""),
-            "footer_links": data.get("footer_links", []),
-            "header_items": data.get("header_items", []),
-            "pages": data.get("pages", []),
-            "created_at": datetime.now().isoformat(),
-        })
+        return existing
 
-    saved_edition = existing if existing else editions[-1]
+    _invalidate_editions_cache()
 
-    try:
-        if conn:
+    # ── Fast path: write only THIS edition's row (no 32 MB rewrite) ──
+    if _pg_url():
+        conn = None
+        try:
+            conn = _pg_connect()
+            _pg_ensure_table(conn)
+            existing = _load_one_edition_pg(conn, date_str, lang_str)
+            saved_edition = _apply_payload(existing)
             with conn.cursor() as cur:
-                cur.execute("""
-                    INSERT INTO epaper_editions_store (id, data, updated_at)
-                    VALUES ('editions', %s::jsonb, NOW())
-                    ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()
-                """, (json.dumps(editions, ensure_ascii=False),))
+                _upsert_edition_row(cur, saved_edition)
+                if renamed:
+                    cur.execute(
+                        "DELETE FROM epaper_editions_v2 WHERE edition_date=%s AND edition_language=%s",
+                        (original_date, original_lang or "Hindi"),
+                    )
             conn.commit()
-            # Reuse same connection for backup — avoids second DB connection
+            # Reuse same connection for the per-edition snapshot backup
             _save_edition_backup(saved_edition, conn=conn)
             conn.close()
-            # Dual-write to local file so fallback stays in sync with Postgres
-            try:
-                _save_editions_to_file(editions)
-            except Exception as fe:
-                print(f"[epaper] Local file sync after Postgres save failed (non-fatal): {fe}")
-        else:
-            _save_editions_to_file(editions)
-    except Exception as exc:
-        if conn:
-            try: conn.close()
-            except: pass
-        return jsonify({"error": f"Save failed: {exc}"}), 500
+            return jsonify({"success": True}), 201
+        except Exception as exc:
+            if conn:
+                try: conn.close()
+                except: pass
+            return jsonify({"error": f"Save failed: {exc}"}), 500
 
-    if not conn:
-        # conn was None (file-only path) — backup still needs its own connection
-        _save_edition_backup(saved_edition)
+    # ── File-only fallback (no Postgres configured) ──
+    editions = _load_editions_from_file()
+    if renamed:
+        editions = [e for e in editions
+                    if not (e["date"] == original_date and e.get("language", "Hindi") == original_lang)]
+    existing = next(
+        (e for e in editions if e["date"] == date_str and e.get("language", "Hindi") == lang_str),
+        None,
+    )
+    if existing:
+        saved_edition = _apply_payload(existing)
+    else:
+        saved_edition = _apply_payload(None)
+        editions.append(saved_edition)
+    try:
+        _save_editions_to_file(editions)
+    except Exception as exc:
+        return jsonify({"error": f"Save failed: {exc}"}), 500
+    _save_edition_backup(saved_edition)
     return jsonify({"success": True}), 201
 
 
@@ -1310,12 +1385,17 @@ def api_delete_edition(date):
     if not lang:
         return jsonify({"error": "Language parameter required for deletion."}), 400
     editions = _load_editions()
-    original_count = len(editions)
-    editions = [e for e in editions if not (e["date"] == date and e.get("language", "Hindi") == lang)]
-    if len(editions) == original_count:
+    remaining = [e for e in editions if not (e["date"] == date and e.get("language", "Hindi") == lang)]
+    if len(remaining) == len(editions):
         return jsonify({"error": f"No edition found for date={date} lang={lang}"}), 404
     try:
-        _save_editions(editions)
+        _delete_edition_row(date, lang)          # explicit single-row delete in v2
+        _invalidate_editions_cache()
+        # Keep the file fallback in sync (best-effort)
+        try:
+            _save_editions_to_file(remaining)
+        except Exception as fe:
+            print(f"[epaper] Local file sync after delete failed (non-fatal): {fe}")
     except Exception as exc:
         return jsonify({"error": f"Delete failed: {exc}"}), 500
     return jsonify({"success": True})
@@ -1684,23 +1764,12 @@ def api_restore_backup(backup_id):
         if isinstance(edition, str):
             edition = json.loads(edition)
 
-        editions = _load_editions()
-        editions = [e for e in editions
-                    if not (e.get("date") == edition.get("date")
-                            and e.get("language") == edition.get("language"))]
-        editions.append(edition)
+        # Restore = upsert just this one edition's row in v2
         with conn.cursor() as cur:
-            cur.execute("""
-                INSERT INTO epaper_editions_store (id, data, updated_at)
-                VALUES ('editions', %s::jsonb, NOW())
-                ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()
-            """, (json.dumps(editions, ensure_ascii=False),))
+            _upsert_edition_row(cur, edition)
         conn.commit()
         conn.close()
-        try:
-            _save_editions_to_file(editions)
-        except Exception as fe:
-            print(f"[epaper] Local file sync after restore failed (non-fatal): {fe}")
+        _invalidate_editions_cache()
         return jsonify({"success": True,
                         "message": f"Edition {edition.get('date')} ({edition.get('language')}) restored successfully!"})
     except Exception as e:
