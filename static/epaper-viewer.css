@@ -430,35 +430,108 @@ body.epaper-body:not(.ep-edition-open) .ep-paper {
 
 .ep-edition-card,
 .ep-edition-card-skeleton {
-  border-radius: 0;
+  border-radius: 17px;
   overflow: hidden;
-  background: #ffffff;
-  border: 1px solid #d3d8e1;
+  background: #f9f9f7;
+  border: 1px solid rgba(15, 23, 42, 0.07);
 }
 
 .ep-edition-card {
+  position: relative;
   padding: 0;
   text-align: center;
   cursor: pointer;
-  transition: transform .18s ease, box-shadow .18s ease;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+  isolation: isolate;
+  background: #f9f9f7;
+  transition:
+    transform 300ms ease,
+    box-shadow 300ms ease,
+    border-color 300ms ease;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 6px 18px rgba(15, 23, 42, 0.08);
+}
+
+.ep-edition-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 255, 255, 0.1) 30%,
+    transparent 55%
+  );
+  opacity: 0;
+  transition: opacity 300ms ease;
+  pointer-events: none;
+  z-index: 3;
 }
 
 .ep-edition-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.22);
+  transform: translateY(-8px);
+  border-color: rgba(217, 37, 42, 0.24);
+  box-shadow:
+    0 10px 20px rgba(15, 23, 42, 0.1),
+    0 24px 48px rgba(15, 23, 42, 0.12),
+    0 0 0 1px rgba(217, 37, 42, 0.1),
+    0 0 32px rgba(217, 37, 42, 0.16);
+}
+
+.ep-edition-card:hover::before {
+  opacity: 1;
+}
+
+.ep-edition-card:active {
+  transform: translateY(-4px);
+  transition-duration: 120ms;
+}
+
+.ep-edition-card:focus-visible {
+  outline: 2px solid var(--ep-orange);
+  outline-offset: 3px;
 }
 
 .ep-edition-card-cover {
   position: relative;
   aspect-ratio: 0.78;
-  background: #f5f7fb;
+  background: linear-gradient(180deg, #f5f5f3 0%, #ececea 100%);
   padding: 12px 12px 0;
   display: block;
+  overflow: hidden;
 }
 
 .ep-edition-card-cover::after {
-  display: none;
+  content: "";
+  position: absolute;
+  top: -20%;
+  left: -120%;
+  width: 55%;
+  height: 140%;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 35%,
+    rgba(255, 255, 255, 0.65) 50%,
+    rgba(255, 255, 255, 0.1) 65%,
+    transparent 100%
+  );
+  transform: skewX(-18deg);
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+}
+
+.ep-edition-card:hover .ep-edition-card-cover::after {
+  animation: epCardMirrorShine 300ms ease forwards;
+  opacity: 1;
+}
+
+@keyframes epCardMirrorShine {
+  0%   { left: -120%; opacity: 0; }
+  20%  { opacity: 1; }
+  100% { left: 140%; opacity: 0; }
 }
 
 .ep-edition-card-cover.has-image {
@@ -483,8 +556,12 @@ body.epaper-body:not(.ep-edition-open) .ep-paper {
 }
 
 .ep-edition-card-preview-frame {
+  position: relative;
   background: #23272f;
   padding: 12px;
+  overflow: hidden;
+  border-radius: 4px 4px 0 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .ep-edition-card-preview {
@@ -495,6 +572,12 @@ body.epaper-body:not(.ep-edition-open) .ep-paper {
   object-position: top center;
   background: #ffffff;
   border: 1px solid #dbe2ea;
+  transform: scale(1);
+  transition: transform 300ms ease;
+}
+
+.ep-edition-card:hover .ep-edition-card-preview {
+  transform: scale(1.03);
 }
 
 .ep-edition-card-preview-placeholder {
@@ -509,6 +592,12 @@ body.epaper-body:not(.ep-edition-open) .ep-paper {
       rgba(255,255,255,1) 24px 48px
     );
   position: relative;
+  transform: scale(1);
+  transition: transform 300ms ease;
+}
+
+.ep-edition-card:hover .ep-edition-card-preview-placeholder {
+  transform: scale(1.03);
 }
 
 .ep-edition-card-preview-placeholder::before {
@@ -535,9 +624,16 @@ body.epaper-body:not(.ep-edition-open) .ep-paper {
 }
 
 .ep-edition-card-body {
+  position: relative;
+  z-index: 1;
   padding: 14px 16px 16px;
   color: #111827;
-  background: #ffffff;
+  background: #f9f9f7;
+  transition: background 300ms ease;
+}
+
+.ep-edition-card:hover .ep-edition-card-body {
+  background: #fcfaf8;
 }
 
 .ep-edition-card-title {
@@ -546,24 +642,114 @@ body.epaper-body:not(.ep-edition-open) .ep-paper {
   line-height: 1.35;
   margin-bottom: 8px;
   color: #23324b;
+  transition: color 300ms ease;
+}
+
+.ep-edition-card:hover .ep-edition-card-title {
+  color: var(--ep-orange-dark);
 }
 
 .ep-edition-card-subtitle {
   font-size: 14px;
   color: #7b8798;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  transition: color 300ms ease;
+}
+
+.ep-edition-card:hover .ep-edition-card-subtitle {
+  color: #5b6778;
 }
 
 .ep-edition-card-language {
-  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.9px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid transparent;
   color: #475569;
+  background: rgba(15, 23, 42, 0.06);
+  transition: transform 300ms ease, box-shadow 300ms ease, background 300ms ease, color 300ms ease, border-color 300ms ease;
+}
+
+.ep-edition-card:hover .ep-edition-card-language {
+  transform: translateY(-1px);
+}
+
+/* English — class, data-lang, and parent data-language fallbacks */
+.ep-edition-card-language.ep-lang-english,
+.ep-edition-card-language[data-lang="english"],
+.ep-edition-card[data-language="English"] .ep-edition-card-language {
+  color: #1d4ed8;
+  background: rgba(37, 99, 235, 0.14);
+  border-color: rgba(37, 99, 235, 0.28);
+}
+
+.ep-edition-card:hover .ep-edition-card-language.ep-lang-english,
+.ep-edition-card:hover .ep-edition-card-language[data-lang="english"],
+.ep-edition-card[data-language="English"]:hover .ep-edition-card-language {
+  background: rgba(37, 99, 235, 0.2);
+  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.18);
+}
+
+/* Hindi */
+.ep-edition-card-language.ep-lang-hindi,
+.ep-edition-card-language[data-lang="hindi"],
+.ep-edition-card[data-language="Hindi"] .ep-edition-card-language {
+  color: #c2410c;
+  background: rgba(234, 88, 12, 0.14);
+  border-color: rgba(234, 88, 12, 0.3);
+}
+
+.ep-edition-card:hover .ep-edition-card-language.ep-lang-hindi,
+.ep-edition-card:hover .ep-edition-card-language[data-lang="hindi"],
+.ep-edition-card[data-language="Hindi"]:hover .ep-edition-card-language {
+  background: rgba(234, 88, 12, 0.2);
+  box-shadow: 0 2px 10px rgba(234, 88, 12, 0.18);
+}
+
+/* Marathi */
+.ep-edition-card-language.ep-lang-marathi,
+.ep-edition-card-language[data-lang="marathi"],
+.ep-edition-card[data-language="Marathi"] .ep-edition-card-language {
+  color: #15803d;
+  background: rgba(22, 163, 74, 0.14);
+  border-color: rgba(22, 163, 74, 0.28);
+}
+
+.ep-edition-card:hover .ep-edition-card-language.ep-lang-marathi,
+.ep-edition-card:hover .ep-edition-card-language[data-lang="marathi"],
+.ep-edition-card[data-language="Marathi"]:hover .ep-edition-card-language {
+  background: rgba(22, 163, 74, 0.2);
+  box-shadow: 0 2px 10px rgba(22, 163, 74, 0.18);
+}
+
+.ep-edition-card-language.ep-lang-default,
+.ep-edition-card-language[data-lang="edition"] {
+  color: #475569;
+  background: rgba(15, 23, 42, 0.06);
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+.ep-edition-card:hover .ep-edition-card-language.ep-lang-default {
+  background: rgba(217, 37, 42, 0.08);
+  border-color: rgba(217, 37, 42, 0.18);
+  color: var(--ep-orange-dark);
+}
+
+/* Ensure badge colors win inside <button> cards */
+button.ep-edition-card .ep-edition-card-language {
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .ep-edition-card-skeleton {
   min-height: 430px;
-  background: #ffffff;
+  background: #f9f9f7;
   position: relative;
 }
 
@@ -574,6 +760,32 @@ body.epaper-body:not(.ep-edition-open) .ep-paper {
   background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.18), transparent);
   transform: translateX(-100%);
   animation: epLandingShimmer 1.5s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ep-edition-card,
+  .ep-edition-card-preview,
+  .ep-edition-card-preview-placeholder,
+  .ep-edition-card-body,
+  .ep-edition-card-title,
+  .ep-edition-card-subtitle,
+  .ep-edition-card-language {
+    transition: none;
+  }
+
+  .ep-edition-card:hover {
+    transform: none;
+  }
+
+  .ep-edition-card:hover .ep-edition-card-preview,
+  .ep-edition-card:hover .ep-edition-card-preview-placeholder {
+    transform: none;
+  }
+
+  .ep-edition-card-cover::after {
+    animation: none !important;
+    display: none;
+  }
 }
 
 .ep-edition-empty {
