@@ -771,6 +771,58 @@ def _find_epaper_article(article_id):
     return article, related, edition, page
 
 
+# ── Language-specific viewer — /epaper/english, /epaper/hindi, /epaper/marathi ──
+_LANG_SLUG = {"english": "English", "hindi": "Hindi", "marathi": "Marathi"}
+
+@epaper_bp.route("/epaper/english")
+@epaper_bp.route("/epaper/english/<date>")
+@epaper_bp.route("/epaper/english/<date>/page-<int:page>")
+@epaper_bp.route("/epaper/hindi")
+@epaper_bp.route("/epaper/hindi/<date>")
+@epaper_bp.route("/epaper/hindi/<date>/page-<int:page>")
+@epaper_bp.route("/epaper/marathi")
+@epaper_bp.route("/epaper/marathi/<date>")
+@epaper_bp.route("/epaper/marathi/<date>/page-<int:page>")
+def epaper_language_viewer(date=None, page=1):
+    import json as _json
+    path_parts = request.path.strip("/").split("/")
+    language = _LANG_SLUG.get(path_parts[1].lower() if len(path_parts) > 1 else "", "Hindi")
+
+    initial_edition_json = None
+    edition = None
+    try:
+        editions = _load_editions()
+        published = [e for e in editions
+                     if e.get("published", True)
+                     and e.get("language", "Hindi") == language]
+        if date:
+            edition = next((e for e in published if e["date"] == date), None) or \
+                      (sorted(published, key=lambda e: e["date"], reverse=True)[0] if published else None)
+        else:
+            edition = sorted(published, key=lambda e: e["date"], reverse=True)[0] if published else None
+        if edition:
+            initial_edition_json = _json.dumps(edition, ensure_ascii=False).replace('</script>', r'<\/script>')
+    except Exception:
+        pass
+    og_url = _absolute_public_url(request.path)
+    og_image_meta = _epaper_preview_image_meta(edition)
+    og_title = _epaper_preview_title(edition, date)
+    og_description = _epaper_preview_description(edition)
+    return render_template("epaper_viewer.html",
+                           initial_date=date,
+                           initial_page=page,
+                           initial_language=language.lower(),
+                           initial_edition_json=initial_edition_json if date else None,
+                           og_url=og_url,
+                           og_image=og_image_meta["url"],
+                           og_title=og_title,
+                           og_description=og_description,
+                           og_image_type=og_image_meta["type"],
+                           og_image_width=og_image_meta["width"],
+                           og_image_height=og_image_meta["height"],
+                           og_image_alt=og_title)
+
+
 # ── Viewer Page ────────────────────────────────────
 @epaper_bp.route("/epaper")
 @epaper_bp.route("/epaper/<date>")
@@ -800,6 +852,7 @@ def epaper_viewer(date=None, page=1):
     og_description = _epaper_preview_description(edition)
     og_image_type = og_image_meta["type"]
     return render_template("epaper_viewer.html", initial_date=date, initial_page=page,
+                           initial_language='',
                            initial_edition_json=initial_edition_json,
                            og_url=og_url,
                            og_image=og_image,
