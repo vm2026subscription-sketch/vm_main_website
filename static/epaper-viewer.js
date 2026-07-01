@@ -1067,12 +1067,14 @@ const EP = {
     const ed = this.currentEdition;
     if (!ed || !ed.date) return;
     const lang = ed.language || this.currentLanguage || '';
-    const sessionKey = `epv_${ed.date}_${lang}`;
-    const alreadyCounted = sessionStorage.getItem(sessionKey);
+    const lsKey = `epv_${ed.date}_${lang}`;
+    const THROTTLE_MS = 24 * 60 * 60 * 1000; // 24 hours
+    const lastSeen = parseInt(localStorage.getItem(lsKey) || '0');
+    const alreadyCounted = (Date.now() - lastSeen) < THROTTLE_MS;
     try {
       let views;
       if (alreadyCounted) {
-        // Already counted this session — just fetch current count without incrementing
+        // Viewed within last 24h — fetch count without incrementing
         const res = await fetch(
           `/api/epaper/edition/${encodeURIComponent(ed.date)}/views?lang=${encodeURIComponent(lang)}`
         );
@@ -1087,7 +1089,7 @@ const EP = {
         if (!res.ok) return;
         const data = await res.json();
         views = data?.views;
-        sessionStorage.setItem(sessionKey, '1');
+        localStorage.setItem(lsKey, String(Date.now()));
       }
       if (typeof views === 'number') this.updateViewBadge(views);
     } catch (e) { /* ignore network errors */ }
