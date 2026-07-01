@@ -54,6 +54,9 @@ const EP = {
       this.loadLatestEdition();
     }
 
+    const initLang = (document.body.dataset.initialLanguage || '').trim().toLowerCase();
+    if (initLang) this.landingLanguageFilter = initLang;
+
     this.loadEditions();
     this.startAutoRefreshPoll();
     this.loadNewsSidebar();

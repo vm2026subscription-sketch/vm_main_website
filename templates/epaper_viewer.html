@@ -74,7 +74,7 @@
   }
   </script>
 </head>
-<body class="epaper-body" data-epaper-mode="{{ 'edition' if initial_date else 'landing' }}">
+<body class="epaper-body" data-epaper-mode="{{ 'edition' if initial_date else 'landing' }}" data-initial-language="{{ initial_language or '' }}">
   {% include '_shared_index_navbar.html' %}
 
   <!-- ── CATEGORY NAV ── -->
