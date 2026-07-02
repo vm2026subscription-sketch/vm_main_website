@@ -149,7 +149,7 @@ const EPAdmin = {
     const d = drafts[0];
     const when = d.savedAt ? new Date(d.savedAt).toLocaleString() : 'earlier';
     const ok = confirm(
-      `⚠ Unsaved ePaper work was found on this device.\n\n` +
+      `Unsaved ePaper work was found on this device.\n\n` +
       `Edition: ${d.date} (${d.language})\n` +
       `Pages: ${(d.pages || []).length}\n` +
       `Last change: ${when}\n\n` +
