@@ -2097,13 +2097,15 @@ def admin_login():
         return redirect(url_for('admin'))
     error = None
     if request.method == "POST":
+        email = (request.form.get("email", "") or "").strip().lower()
         password = request.form.get("password", "")
-        admin_pass = os.getenv("EPAPER_ADMIN_PASS", "vm2026")
-        if password == admin_pass:
+        admin_email = os.getenv("ADMIN_LOGIN_EMAIL", "admin123@gmail.com")
+        admin_pass = os.getenv("ADMIN_LOGIN_PASSWORD", "vm@2026")
+        if email == admin_email.lower() and password == admin_pass:
             session['epaper_admin_auth'] = True
             next_url = request.form.get("next") or request.args.get("next") or url_for('admin')
             return redirect(next_url)
-        error = "Incorrect password. Please try again."
+        error = "Incorrect email or password. Please try again."
     next_url = request.args.get("next", "")
     return render_template("admin_login.html", error=error, next=next_url)
 
