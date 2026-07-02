@@ -7,9 +7,6 @@
       "config": { "maxLambdaSize": "250mb" }
     }
   ],
-  "functions": {
-    "app.py": { "maxDuration": 10 }
-  },
   "routes": [
     {
       "src": "/(.*)",
