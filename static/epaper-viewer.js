@@ -1377,11 +1377,11 @@ const EP = {
       const y = ((block.y || 0) / canvasH * 100).toFixed(2);
       const w = ((block.w || 200) / CANVAS_W * 100).toFixed(2);
       const h = ((block.h || 150) / canvasH * 100).toFixed(2);
-      const bw = block.border_width ?? 0;
       const br = block.border_radius ?? 0;
-      const bc = block.border_color || '#e41e26';
-      const bs = block.border_style || 'solid';
-      const borderCSS = type === 'article' && bw > 0 ? `border:${bw}px ${bs} ${bc};` : '';
+      // Article boxes no longer draw a border in the reader view (the red boxes
+      // looked bad over the page). The card stays fully clickable — link/hotspot
+      // behaviour is unchanged; only the visible border is hidden.
+      const borderCSS = '';
       const baseStyle = `position:absolute;left:${x}%;top:${y}%;width:${w}%;height:${h}%;border-radius:${br}px;${borderCSS}overflow:hidden;`;
 
       if (type === 'divider') {
