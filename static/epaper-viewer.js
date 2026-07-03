@@ -41,6 +41,8 @@ const EP = {
   el: {},
 
   init() {
+    // Run FIRST — the history rewrite must not be blocked by any later init error.
+    this._setupEditionBackTarget();
     this.cacheDOM();
     this.ensureArticleFeatureUI();
     this.cacheDOM();
@@ -62,7 +64,6 @@ const EP = {
     this.loadNewsSidebar();
     this._initSwipeHint();
     this._initViewportFit();
-    this._setupEditionBackTarget();
   },
 
   // Make the Back button on a specific edition page (/epaper/YYYY-MM-DD) return
