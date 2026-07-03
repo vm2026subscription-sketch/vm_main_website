@@ -27,7 +27,7 @@
   <meta name="twitter:image:alt" content="{{ og_image_alt }}"/>
   <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='epaper-viewer.css', v='20260626-epaper-lang-badges') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='epaper-viewer.css', v='20260703-ai-panel-close') }}">
   <style>
     .ep-views-badge {
       display: inline-flex;
@@ -372,6 +372,7 @@
     </div>
 
     <div class="ep-ai-content" data-tab="summarize">
+      <button class="ep-ai-close" onclick="EP.closeAiPanel()" title="Close" aria-label="Close summary panel">&times;</button>
       <div class="ep-summary-box" id="epSummaryOutput">
         <p>Click to generate AI summary.</p>
       </div>
@@ -379,6 +380,7 @@
 
 
     <div class="ep-ai-content" data-tab="share">
+      <button class="ep-ai-close" onclick="EP.closeAiPanel()" title="Close" aria-label="Close share panel">&times;</button>
       <div class="ep-share-menu">
         <button class="ep-share-item" onclick="EP.shareArticle('whatsapp')"><i class="fab fa-whatsapp" style="color:#25d366"></i> WhatsApp</button>
         <button class="ep-share-item" onclick="EP.shareArticle('twitter')"><i class="fab fa-x-twitter"></i> Twitter / X</button>
@@ -413,7 +415,7 @@
   <!-- ── Toast ── -->
   <div class="ep-toast" id="epToast"></div>
 
-  <script src="{{ url_for('static', filename='epaper-viewer.js', v='20260703-back-closes-article-2') }}"></script>
+  <script src="{{ url_for('static', filename='epaper-viewer.js', v='20260703-ai-panel-close') }}"></script>
 
   <!-- PWA Service Worker -->
   <script>

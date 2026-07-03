@@ -2072,10 +2072,37 @@ body.epaper-body:not(.has-masthead) .ep-masthead {
   padding: 20px;
   background: #f9fafb;
   border-bottom: 1px solid var(--ep-border);
+  position: relative;
 }
 
 .ep-ai-content.active {
   display: block;
+}
+
+/* Close / minimise button for the Translate & Summarize panels */
+.ep-ai-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 50%;
+  font-size: 20px;
+  line-height: 1;
+  color: #555;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  transition: background 0.15s, color 0.15s;
+}
+
+.ep-ai-close:hover {
+  background: rgba(0, 0, 0, 0.12);
+  color: #111;
 }
 
 .ep-article-body {

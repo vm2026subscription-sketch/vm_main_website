@@ -1955,6 +1955,13 @@ const EP = {
     }
   },
 
+  // Collapse/hide the open Translate/Summarize/Share panel without leaving the
+  // article (the × / minimise button).
+  closeAiPanel() {
+    this.el.aiTabs?.forEach(t => t.classList.remove('active'));
+    this.el.aiContents?.forEach(c => c.classList.remove('active'));
+  },
+
   _autoSetTranslateLang() {
     if (!this.el.translateSelect || !this.currentArticle) return;
     const text = this._getArticleText();
