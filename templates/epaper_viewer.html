@@ -415,22 +415,22 @@
   <!-- ── Toast ── -->
   <div class="ep-toast" id="epToast"></div>
 
-  <script src="{{ url_for('static', filename='epaper-viewer.js', v='20260703-epaper-back-target') }}"></script>
+  <script src="{{ url_for('static', filename='epaper-viewer.js', v='20260703-no-sw') }}"></script>
 
   <!-- PWA Service Worker -->
   <script>
+    // The old caching service worker trapped users on stale JS/CSS. Stop using
+    // it entirely: unregister any existing worker and wipe its caches on every
+    // load so the latest deployed code always runs.
     if ('serviceWorker' in navigator) {
-      const isLocal = ['localhost', '127.0.0.1', ''].includes(location.hostname);
-      if (isLocal) {
-        // Local dev: never use a service worker — unregister any existing one so
-        // code changes always show immediately (no stale-cache surprises).
-        navigator.serviceWorker.getRegistrations()
-          .then(regs => regs.forEach(r => r.unregister()));
-      } else {
-        navigator.serviceWorker.register('/static/epaper-sw.js?v=20260703-epaper-sw-v4')
-          .then(reg => console.log('SW registered:', reg.scope))
-          .catch(err => console.warn('SW registration failed:', err));
-      }
+      navigator.serviceWorker.getRegistrations()
+        .then(function (regs) { regs.forEach(function (r) { r.unregister(); }); })
+        .catch(function () {});
+    }
+    if (window.caches && caches.keys) {
+      caches.keys()
+        .then(function (keys) { keys.forEach(function (k) { caches.delete(k); }); })
+        .catch(function () {});
     }
   </script>
 </body>

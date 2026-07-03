@@ -251,6 +251,7 @@ const EP = {
       translatePane.className = 'ep-ai-content';
       translatePane.dataset.tab = 'translate';
       translatePane.innerHTML = `
+        <button class="ep-ai-close" onclick="EP.closeAiPanel()" title="Close" aria-label="Close translate panel">&times;</button>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
           <label for="epTranslateSelect" style="font-size:12px;font-weight:600;color:#6b7280;">Language</label>
           <select id="epTranslateSelect" class="ep-tts-voice-select" title="Select translation language">
