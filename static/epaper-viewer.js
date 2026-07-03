@@ -149,8 +149,17 @@ const EP = {
     if (updateUrl && data?.date) {
       const editionUrl = `/epaper/${data.date}`;
       if (window.location.pathname !== editionUrl) {
-        history.replaceState(null, '', editionUrl);
+        // Opening an edition FROM the /epaper list -> PUSH so Back returns to
+        // the list. Switching between editions -> REPLACE so Back doesn't have
+        // to step through every edition you viewed.
+        const onLanding = window.location.pathname === '/epaper' || window.location.pathname === '/epaper/';
+        if (onLanding) {
+          history.pushState(null, '', editionUrl);
+        } else {
+          history.replaceState(null, '', editionUrl);
+        }
       }
+      this._editionBackNav = true;
     }
   },
 
