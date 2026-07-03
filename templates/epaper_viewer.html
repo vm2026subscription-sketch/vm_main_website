@@ -413,12 +413,12 @@
   <!-- ── Toast ── -->
   <div class="ep-toast" id="epToast"></div>
 
-  <script src="{{ url_for('static', filename='epaper-viewer.js', v='20260702-back-closes-article') }}"></script>
+  <script src="{{ url_for('static', filename='epaper-viewer.js', v='20260703-back-closes-article-2') }}"></script>
 
   <!-- PWA Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/static/epaper-sw.js?v=20260619-epaper-sw-v2')
+      navigator.serviceWorker.register('/static/epaper-sw.js?v=20260703-epaper-sw-v3')
         .then(reg => console.log('SW registered:', reg.scope))
         .catch(err => console.warn('SW registration failed:', err));
     }

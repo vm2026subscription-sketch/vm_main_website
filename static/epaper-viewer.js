@@ -559,9 +559,11 @@ const EP = {
     // Article panel back
     this.el.articleBack?.addEventListener('click', () => this.closeArticle());
     // Browser / phone Back button: if an article is open, close it instead of
-    // leaving the ePaper page.
+    // leaving the ePaper page. Check both the state flag and the panel's open
+    // class so it still fires if currentArticle ever desyncs.
     window.addEventListener('popstate', () => {
-      if (this.currentArticle) this.closeArticle(true);
+      const panelOpen = this.el.articlePanel?.classList.contains('open');
+      if (this.currentArticle || panelOpen) this.closeArticle(true);
     });
 
     // AI tabs
@@ -1808,11 +1810,15 @@ const EP = {
     if (!art) return;
     this.currentArticle = art;
 
-    // Add a history entry so the browser/phone Back button closes this article
-    // and returns to the newspaper page (instead of leaving the ePaper).
-    if (!this._articleHistoryPushed) {
-      try { history.pushState({ epArticle: true }, ''); } catch (e) {}
-      this._articleHistoryPushed = true;
+    // Add a DISTINCT history entry (URL hash) so the browser/phone Back button
+    // closes this article and returns to the newspaper page — instead of leaving
+    // the ePaper. A changed URL (#article) makes the Back/popstate event fire
+    // reliably across browsers, and reading it back from location.hash is
+    // self-correcting (no stale flag that can desync).
+    if (!location.hash.includes('article')) {
+      try {
+        history.pushState({ epArticle: true }, '', location.pathname + location.search + '#article');
+      } catch (e) {}
     }
 
     // Reset voice select and player state each time a new article opens
@@ -1929,14 +1935,11 @@ const EP = {
     document.body.style.overflow = '';
     this.stopTTS();
     this.currentArticle = null;
-    // Undo the history entry added in openArticle. When the user pressed Back
-    // (fromPopstate=true) it's already gone, so don't navigate again; otherwise
-    // pop it so history stays clean.
-    if (this._articleHistoryPushed) {
-      this._articleHistoryPushed = false;
-      if (!fromPopstate) {
-        try { history.back(); } catch (e) {}
-      }
+    // Remove the #article history entry. On popstate the entry is already gone
+    // (user pressed Back), so don't navigate again; otherwise pop it so the URL
+    // and history return to the clean newspaper page.
+    if (!fromPopstate && location.hash.includes('article')) {
+      try { history.back(); } catch (e) {}
     }
   },
 
