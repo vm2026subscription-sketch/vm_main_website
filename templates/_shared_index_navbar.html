@@ -399,20 +399,26 @@
   @media (max-width: 992px) {
     .vm-nav-toggle {
       display: inline-flex;
+      order: 2;
     }
+    .vm-brand { order: 1; }
     .vm-main-header .vm-nav-inner {
       flex-wrap: wrap;
-      padding: 16px 24px;
+      padding: 12px 20px;
+      justify-content: space-between;
     }
+    /* Full-width vertical menu that drops below the logo / hamburger row */
     .vm-main-links {
       display: none;
+      flex: 1 1 100%;          /* force its own full-width row (was flex:1) */
       flex-direction: column;
       width: 100%;
-      gap: 12px;
-      padding: 20px 0;
+      gap: 2px;
+      padding: 14px 0 6px;
       border-top: 1px solid rgba(255, 255, 255, 0.06);
-      margin-top: 10px;
+      margin-top: 12px;
       align-items: stretch;
+      justify-content: flex-start;
       order: 3;
       position: static;
       transform: none;
@@ -423,6 +429,22 @@
     .vm-main-header.vm-expanded .vm-main-links {
       display: flex;
     }
+    /* Each row = full width, text on the left */
+    .vm-main-links .vm-nav-item,
+    .vm-main-links .vm-dropdown-trigger {
+      width: 100%;
+      justify-content: flex-start;
+      padding: 12px 10px;
+      font-size: 15px;
+      border-radius: 8px;
+    }
+    .vm-main-links .vm-dropdown {
+      display: block;
+      width: 100%;
+    }
+    .vm-main-links .vm-dropdown-trigger {
+      justify-content: space-between;
+    }
     .vm-dropdown-menu {
       position: static;
       transform: none !important;
@@ -431,7 +453,8 @@
       background: rgba(255, 255, 255, 0.02);
       box-shadow: none;
       border: none;
-      padding-left: 20px;
+      min-width: 0;
+      padding: 2px 0 6px 18px;
       display: none;
     }
     body.light-mode .vm-dropdown-menu {
@@ -440,11 +463,14 @@
     .vm-dropdown.vm-mobile-open .vm-dropdown-menu {
       display: block;
     }
+    /* Actions row (search / theme / login / register) — full width */
     .vm-nav-actions {
       display: none;
+      flex: 1 1 100%;
       width: 100%;
       justify-content: space-between;
-      padding: 16px 0;
+      align-items: center;
+      padding: 14px 0 4px;
       border-top: 1px solid rgba(255, 255, 255, 0.06);
       order: 4;
     }

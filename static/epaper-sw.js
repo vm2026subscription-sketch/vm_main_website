@@ -3,7 +3,7 @@
    PWA Offline Support + Cache Strategy
    ═══════════════════════════════════════════════ */
 
-const CACHE_NAME = 'vm-epaper-v3';
+const CACHE_NAME = 'vm-epaper-v4';
 const PRECACHE_URLS = [
   '/epaper-viewer',
   '/static/epaper-viewer.css',
@@ -56,17 +56,17 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets — cache first
+  // Static assets — network first (so new deploys load immediately), fall back
+  // to cache only when offline. Cache-first used to trap users on old JS/CSS.
   if (url.pathname.startsWith('/static/')) {
     event.respondWith(
-      caches.match(event.request).then((cached) => {
-        if (cached) return cached;
-        return fetch(event.request).then((res) => {
+      fetch(event.request)
+        .then((res) => {
           const clone = res.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
           return res;
-        });
-      })
+        })
+        .catch(() => caches.match(event.request))
     );
     return;
   }

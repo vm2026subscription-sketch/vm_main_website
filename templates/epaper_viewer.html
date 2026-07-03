@@ -415,14 +415,22 @@
   <!-- ── Toast ── -->
   <div class="ep-toast" id="epToast"></div>
 
-  <script src="{{ url_for('static', filename='epaper-viewer.js', v='20260703-ai-panel-close') }}"></script>
+  <script src="{{ url_for('static', filename='epaper-viewer.js', v='20260703-epaper-back-target') }}"></script>
 
   <!-- PWA Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/static/epaper-sw.js?v=20260703-epaper-sw-v3')
-        .then(reg => console.log('SW registered:', reg.scope))
-        .catch(err => console.warn('SW registration failed:', err));
+      const isLocal = ['localhost', '127.0.0.1', ''].includes(location.hostname);
+      if (isLocal) {
+        // Local dev: never use a service worker — unregister any existing one so
+        // code changes always show immediately (no stale-cache surprises).
+        navigator.serviceWorker.getRegistrations()
+          .then(regs => regs.forEach(r => r.unregister()));
+      } else {
+        navigator.serviceWorker.register('/static/epaper-sw.js?v=20260703-epaper-sw-v4')
+          .then(reg => console.log('SW registered:', reg.scope))
+          .catch(err => console.warn('SW registration failed:', err));
+      }
     }
   </script>
 </body>

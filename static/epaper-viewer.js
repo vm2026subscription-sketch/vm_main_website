@@ -62,6 +62,20 @@ const EP = {
     this.loadNewsSidebar();
     this._initSwipeHint();
     this._initViewportFit();
+    this._setupEditionBackTarget();
+  },
+
+  // Make the Back button on a specific edition page (/epaper/YYYY-MM-DD) return
+  // to the ePaper landing (/epaper) instead of the site home page. Inserts
+  // /epaper directly behind the current edition entry in history.
+  _setupEditionBackTarget() {
+    if (!/^\/epaper\/\d{4}-\d{2}-\d{2}/.test(location.pathname)) return;
+    const editionPath = location.pathname + location.search;
+    try {
+      history.replaceState(null, '', '/epaper');
+      history.pushState(null, '', editionPath);
+      this._editionBackNav = true;
+    } catch (e) { /* history unavailable — leave default behaviour */ }
   },
 
   setReaderMode(isOpen) {
@@ -558,12 +572,16 @@ const EP = {
 
     // Article panel back
     this.el.articleBack?.addEventListener('click', () => this.closeArticle());
-    // Browser / phone Back button: if an article is open, close it instead of
-    // leaving the ePaper page. Check both the state flag and the panel's open
-    // class so it still fires if currentArticle ever desyncs.
+    // Browser / phone Back button:
+    //   1) if an article is open  -> close it (stay on the edition page)
+    //   2) if Back lands on /epaper -> load the ePaper landing instead of the
+    //      site home (the back target is set up by _setupEditionBackTarget()).
     window.addEventListener('popstate', () => {
       const panelOpen = this.el.articlePanel?.classList.contains('open');
-      if (this.currentArticle || panelOpen) this.closeArticle(true);
+      if (this.currentArticle || panelOpen) { this.closeArticle(true); return; }
+      if (this._editionBackNav && (location.pathname === '/epaper' || location.pathname === '/epaper/')) {
+        window.location.href = '/epaper';
+      }
     });
 
     // AI tabs
