@@ -558,6 +558,11 @@ const EP = {
 
     // Article panel back
     this.el.articleBack?.addEventListener('click', () => this.closeArticle());
+    // Browser / phone Back button: if an article is open, close it instead of
+    // leaving the ePaper page.
+    window.addEventListener('popstate', () => {
+      if (this.currentArticle) this.closeArticle(true);
+    });
 
     // AI tabs
     this.el.aiTabs?.forEach(tab => {
@@ -1803,6 +1808,13 @@ const EP = {
     if (!art) return;
     this.currentArticle = art;
 
+    // Add a history entry so the browser/phone Back button closes this article
+    // and returns to the newspaper page (instead of leaving the ePaper).
+    if (!this._articleHistoryPushed) {
+      try { history.pushState({ epArticle: true }, ''); } catch (e) {}
+      this._articleHistoryPushed = true;
+    }
+
     // Reset voice select and player state each time a new article opens
     if (this.el.voiceSelect) this.el.voiceSelect.value = '';
     this._voice.selectedVoice = '';
@@ -1912,11 +1924,20 @@ const EP = {
     document.body.style.overflow = '';
   },
 
-  closeArticle() {
+  closeArticle(fromPopstate = false) {
     this.el.articlePanel?.classList.remove('open');
     document.body.style.overflow = '';
     this.stopTTS();
     this.currentArticle = null;
+    // Undo the history entry added in openArticle. When the user pressed Back
+    // (fromPopstate=true) it's already gone, so don't navigate again; otherwise
+    // pop it so history stays clean.
+    if (this._articleHistoryPushed) {
+      this._articleHistoryPushed = false;
+      if (!fromPopstate) {
+        try { history.back(); } catch (e) {}
+      }
+    }
   },
 
   // ── AI Tabs ──
