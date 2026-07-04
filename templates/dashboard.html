@@ -87,6 +87,9 @@
         <p class="dash-hero-email"><i class="fa fa-envelope"></i> {{ user.email }}</p>
       </div>
       <div class="dash-hero-actions">
+        {% if is_admin %}
+        <a href="{{ url_for('admin') }}" class="dash-btn" style="background:#ff6600;color:#fff;"><i class="fa fa-shield-halved"></i> Admin Panel</a>
+        {% endif %}
         <a href="{{ url_for('logout') }}" class="dash-btn dash-btn-outline"><i class="fa fa-sign-out-alt"></i> Logout</a>
       </div>
     </div>

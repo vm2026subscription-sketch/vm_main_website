@@ -1986,11 +1986,13 @@ def dashboard():
         app.logger.warning("Loading dashboard profile failed: %s", exc)
 
     bookmarks = fetch_user_bookmarks(user["email"])
+    is_admin = _is_admin()
     return render_template(
         "dashboard.html",
         user=user,
         member_since=member_since,
         bookmarks=bookmarks,
+        is_admin=is_admin,
     )
 
 
@@ -2240,7 +2242,18 @@ def epaper_pdf_proxy():
         return jsonify({"error": "Unable to fetch PDF from source URL."}), 502
 
 def _is_admin():
-    return session.get('epaper_admin_auth') is True
+    # Check session-based admin auth (from admin_login page)
+    if session.get('epaper_admin_auth') is True:
+        return True
+    
+    # Check if logged-in website user is the admin
+    user = get_logged_in_user()
+    if user:
+        admin_email = os.getenv("ADMIN_LOGIN_EMAIL", "vm2026.subscription@gmail.com").lower()
+        if user["email"].lower() == admin_email:
+            return True
+    
+    return False
 
 def require_admin(f):
     """Decorator: blocks non-admin requests. API routes get 401 JSON; page routes redirect to /admin/login."""
@@ -2273,6 +2286,19 @@ def admin_login():
     return render_template("admin_login.html", error=error, next=next_url)
 
 
+@app.route("/api/public/user-count")
+def api_public_user_count():
+    """Get the total count of registered users. Public endpoint."""
+    try:
+        with get_auth_db_connection() as connection:
+            record = connection.execute("SELECT COUNT(*) as total FROM users").fetchone()
+            total_users = record["total"] if record else 0
+        return jsonify({"user_count": total_users})
+    except Exception as exc:
+        app.logger.error("Failed to get user count: %s", exc)
+        return jsonify({"user_count": 0, "error": str(exc)}), 500
+
+
 @app.route("/admin/logout")
 def admin_logout():
     session.pop('epaper_admin_auth', None)
@@ -2282,7 +2308,14 @@ def admin_logout():
 @app.route("/admin")
 @require_admin
 def admin():
-    return render_template("admin.html", upload_targets=UPLOAD_TARGET_TABLES)
+    user_count = 0
+    try:
+        with get_auth_db_connection() as connection:
+            record = connection.execute("SELECT COUNT(*) as total FROM users").fetchone()
+            user_count = record["total"] if record else 0
+    except Exception as exc:
+        app.logger.warning("Failed to get user count in admin panel: %s", exc)
+    return render_template("admin.html", upload_targets=UPLOAD_TARGET_TABLES, user_count=user_count)
 
 
 @app.route("/api/admin/alerts", methods=["GET"])
