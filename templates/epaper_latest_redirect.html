@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ og_title }}</title>
+  <link rel="canonical" href="{{ canonical_url }}">
+
+  <!-- Rich link preview: shows the front page of the latest edition -->
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Vidyarthi Mitra ePaper">
+  <meta property="og:title" content="{{ og_title }}">
+  <meta property="og:description" content="{{ og_description }}">
+  <meta property="og:url" content="{{ og_url }}">
+  <meta property="og:image" content="{{ og_image }}">
+  <meta property="og:image:secure_url" content="{{ og_image }}">
+  <meta property="og:image:type" content="{{ og_image_type }}">
+  {% if og_image_width %}<meta property="og:image:width" content="{{ og_image_width }}">{% endif %}
+  {% if og_image_height %}<meta property="og:image:height" content="{{ og_image_height }}">{% endif %}
+  <meta property="og:image:alt" content="{{ og_title }}">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ og_title }}">
+  <meta name="twitter:description" content="{{ og_description }}">
+  <meta name="twitter:image" content="{{ og_image }}">
+
+  <!-- Forward real visitors to the reader immediately (crawlers read the tags above) -->
+  <meta http-equiv="refresh" content="0; url={{ reader_url }}">
+  <script>try { window.location.replace({{ reader_url | tojson }}); } catch (e) { window.location.href = {{ reader_url | tojson }}; }</script>
+</head>
+<body style="font-family:system-ui,Segoe UI,Arial,sans-serif;background:#0a1120;color:#e2e8f0;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;">
+  <div>
+    <p style="font-size:16px;">Opening the latest {{ language }} ePaper…</p>
+    <p><a href="{{ reader_url }}" style="color:#ff6600;font-weight:700;">Tap here if it doesn't open automatically.</a></p>
+  </div>
+</body>
+</html>

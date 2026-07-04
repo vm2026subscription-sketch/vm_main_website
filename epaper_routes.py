@@ -869,8 +869,28 @@ def epaper_latest_language():
     )[0]
 
     # Reuse the existing language reader route for that edition's date.
-    target = f"/epaper/{slug}/{urllib.parse.quote(str(latest['date']))}"
-    return _no_store_redirect(target)
+    reader_url = f"/epaper/{slug}/{urllib.parse.quote(str(latest['date']))}"
+
+    # Serve a lightweight page that (a) carries the front-page image as its rich
+    # link preview so WhatsApp/Facebook/etc. show the newspaper front page, and
+    # (b) instantly forwards real visitors to the reader.
+    image_meta = _epaper_preview_image_meta(latest)
+    html = render_template(
+        "epaper_latest_redirect.html",
+        language=language,
+        reader_url=reader_url,
+        canonical_url=_absolute_public_url(reader_url),
+        og_url=_absolute_public_url(request.path),
+        og_title=_epaper_preview_title(latest, latest.get("date")),
+        og_description=_epaper_preview_description(latest),
+        og_image=image_meta["url"],
+        og_image_type=image_meta["type"],
+        og_image_width=image_meta["width"],
+        og_image_height=image_meta["height"],
+    )
+    resp = Response(html, mimetype="text/html")
+    resp.headers["Cache-Control"] = "no-store, max-age=0, must-revalidate"
+    return resp
 
 
 # ── Viewer Page ────────────────────────────────────
