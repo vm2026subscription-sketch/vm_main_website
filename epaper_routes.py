@@ -823,6 +823,56 @@ def epaper_language_viewer(date=None, page=1):
                            og_image_alt=og_title)
 
 
+# ── Permanent "latest" redirects — /epaper/latest/<language> ──────────
+# Always opens the newest published edition of the requested language.
+# 302 (never cached) so a newly published edition is picked up automatically.
+# No edition ID or date is ever hardcoded.
+
+def _no_store_redirect(location):
+    resp = redirect(location)  # 302 by default — MUST NOT be cached
+    resp.headers["Cache-Control"] = "no-store, max-age=0, must-revalidate"
+    return resp
+
+
+@epaper_bp.route("/epaper/latest/english")
+@epaper_bp.route("/epaper/latest/hindi")
+@epaper_bp.route("/epaper/latest/marathi")
+def epaper_latest_language():
+    slug = request.path.rstrip("/").rsplit("/", 1)[-1].lower()
+    language = _LANG_SLUG.get(slug)
+    if not language:
+        return _no_store_redirect(url_for("epaper.epaper_viewer"))
+
+    try:
+        editions = _load_editions()
+    except Exception:
+        editions = []
+
+    # Published + active editions of this language only.
+    candidates = [
+        e for e in editions
+        if e.get("published", True)
+        and e.get("active", True)
+        and e.get("language", "Hindi") == language
+    ]
+
+    if not candidates:
+        # No edition for this language yet — fall back to Today's Edition.
+        notice = f"No {language} ePaper edition is available yet."
+        return _no_store_redirect(url_for("epaper.epaper_viewer", notice=notice))
+
+    # Newest by publication date; tie-break on the created/published timestamp.
+    latest = sorted(
+        candidates,
+        key=lambda e: (str(e.get("date", "")), str(e.get("created_at", ""))),
+        reverse=True,
+    )[0]
+
+    # Reuse the existing language reader route for that edition's date.
+    target = f"/epaper/{slug}/{urllib.parse.quote(str(latest['date']))}"
+    return _no_store_redirect(target)
+
+
 # ── Viewer Page ────────────────────────────────────
 @epaper_bp.route("/epaper")
 @epaper_bp.route("/epaper/<date>")
