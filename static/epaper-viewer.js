@@ -1051,19 +1051,22 @@ const EP = {
 
       const d = new Date(Date.UTC(this.calendarYear, this.calendarMonth, day));
       const utcKey = this.getUTCDateKey(d);
-      if (utcKey > todayKey) el.classList.add('disabled');
+      const hasEdition = this.editions.some(e => e.date === utcKey && e.published !== false);
+
       if (utcKey === todayKey) el.classList.add('today');
       if (utcKey === selectedKey) el.classList.add('selected');
 
-      // Check if edition exists
-      const iso = utcKey;
-      if (this.editions.some(e => e.date === iso)) el.classList.add('has-edition');
-
-      if (!el.classList.contains('disabled')) {
+      // Only days that actually have a published edition are selectable.
+      // Every other date (dates we didn't publish on, and future dates) is
+      // disabled/greyed — you publish weekly, not daily.
+      if (hasEdition) {
+        el.classList.add('has-edition');
         el.addEventListener('click', async () => {
           this.setDate(new Date(this.calendarYear, this.calendarMonth, day));
           await this.toggleCalendar(false);
         });
+      } else {
+        el.classList.add('disabled');
       }
       grid.appendChild(el);
     }

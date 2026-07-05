@@ -123,8 +123,20 @@ body.epaper-body .vm-dropdown-trigger:hover {
   display: flex;
   overflow-x: auto;
   scrollbar-width: none;
-  flex: 1;
+  flex: 0 1 auto;            /* size to content so the group stays compact & centred */
   -ms-overflow-style: none;
+  justify-content: center;
+}
+
+/* Centre the date button + language tabs together in the middle of the header
+   so both are easy to find. The views badge is pinned to the far right, out of
+   flow, so it doesn't shift the centring. */
+.ep-nav { justify-content: center; }
+.ep-nav .ep-views-badge {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .ep-nav-list::-webkit-scrollbar {
@@ -1885,6 +1897,7 @@ body.epaper-body:not(.has-masthead) .ep-masthead {
 
 .ep-cal-day.has-edition {
   position: relative;
+  font-weight: 700;
 }
 
 .ep-cal-day.has-edition::after {
