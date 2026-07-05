@@ -4,8 +4,30 @@
   <meta charset="UTF-8"/>
   <title>Admin — Upload E-Paper</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet"/>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+  <script>
+    (function() {
+      const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+      if (token) {
+        const originalFetch = window.fetch;
+        window.fetch = async function() {
+          let [resource, config] = arguments;
+          if(config && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(config.method ? config.method.toUpperCase() : 'GET')) {
+              config.headers = config.headers || {};
+              if(config.headers instanceof Headers) {
+                  config.headers.set('X-CSRFToken', token);
+              } else {
+                  config.headers['X-CSRFToken'] = token;
+              }
+          }
+          return originalFetch(resource, config);
+        };
+      }
+    })();
+  </script>
   <style>
     :root {
       --orange:#ff6600; --navy:#003d6b;

@@ -1010,8 +1010,11 @@
             {% endif %}
 
             <form class="auth-form" method="post" data-auth-form>
+                {% if next %}
+                <input type="hidden" name="next" value="{{ next }}">
+                {% endif %}
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                {% if mode == 'otp' %}
+                {% if mode == 'otp' or mode == 'register_otp' %}
                 <div class="otp-panel">
                     <strong>We sent a one-time code to {{ otp_email }}.</strong>
                     <p>

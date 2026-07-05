@@ -4,8 +4,29 @@
   <meta charset="UTF-8">
   <title>Admin Hub — Vidyarthi Mitra</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <script>
+    (function() {
+      const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+      if (token) {
+        const originalFetch = window.fetch;
+        window.fetch = async function() {
+          let [resource, config] = arguments;
+          if(config && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(config.method ? config.method.toUpperCase() : 'GET')) {
+              config.headers = config.headers || {};
+              if(config.headers instanceof Headers) {
+                  config.headers.set('X-CSRFToken', token);
+              } else {
+                  config.headers['X-CSRFToken'] = token;
+              }
+          }
+          return originalFetch(resource, config);
+        };
+      }
+    })();
+  </script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box;}
     body{font-family:-apple-system,'Inter',system-ui,sans-serif;background:#050a15;color:#e2e8f0;min-height:100vh;}
