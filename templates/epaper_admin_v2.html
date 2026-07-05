@@ -4,10 +4,31 @@
   <meta charset="UTF-8"/>
   <title>E-Paper Admin — Page Builder</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Hind:wght@400;500;600;700&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
   <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+  <script>
+    (function() {
+      const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+      if (token) {
+        const originalFetch = window.fetch;
+        window.fetch = async function() {
+          let [resource, config] = arguments;
+          if(config && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(config.method ? config.method.toUpperCase() : 'GET')) {
+              config.headers = config.headers || {};
+              if(config.headers instanceof Headers) {
+                  config.headers.set('X-CSRFToken', token);
+              } else {
+                  config.headers['X-CSRFToken'] = token;
+              }
+          }
+          return originalFetch(resource, config);
+        };
+      }
+    })();
+  </script>
   <style>
     :root{--r:#d9252a;--r-dark:#b21b20;--bg:#f3efe8;--white:#fff;--border:#e1dad0;--text:#221f1f;--muted:#6b645b;--radius:12px;}
     *{margin:0;padding:0;box-sizing:border-box;}

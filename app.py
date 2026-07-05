@@ -55,15 +55,18 @@ from supabase import create_client
 load_dotenv()
 
 app = Flask(__name__)
+if os.environ.get("FLASK_ENV") == "production" and not os.environ.get("SECRET_KEY"):
+    raise RuntimeError("SECRET_KEY environment variable is required in production.")
 app.secret_key = os.environ.get("SECRET_KEY", "vidyarthi-mitra-dev-key-change-in-production")
 # Disable CSRF on JSON/API requests — they are protected by session auth
 # (require_admin / _require_epaper_admin). CSRF tokens are only enforced on
 # HTML form submissions (login, register) via the admin_login.html hidden field.
-app.config['WTF_CSRF_CHECK_DEFAULT'] = False
 csrf = CSRFProtect(app)
+redis_url = os.environ.get("RATELIMIT_STORAGE_URL", os.environ.get("REDIS_URL"))
 limiter = Limiter(
     get_remote_address,
     app=app,
+    storage_uri=redis_url if redis_url else "memory://",
     default_limits=[]
 )
 app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024  # 200 MB upload limit
@@ -1076,8 +1079,12 @@ def get_auth_db_connection():
                         name TEXT NOT NULL,
                         email TEXT NOT NULL UNIQUE,
                         password_hash TEXT NOT NULL,
+                        verified BOOLEAN NOT NULL DEFAULT TRUE,
                         created_at TIMESTAMPTZ DEFAULT NOW()
                     )
+                """)
+                cur.execute("""
+                    ALTER TABLE users ADD COLUMN IF NOT EXISTS verified BOOLEAN NOT NULL DEFAULT TRUE;
                 """)
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS bookmarks (
@@ -1105,9 +1112,14 @@ def get_auth_db_connection():
             name TEXT NOT NULL,
             email TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
+            verified BOOLEAN NOT NULL DEFAULT 1,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    try:
+        connection.execute("ALTER TABLE users ADD COLUMN verified BOOLEAN NOT NULL DEFAULT 1")
+    except sqlite3.OperationalError:
+        pass
     connection.execute("""
         CREATE TABLE IF NOT EXISTS bookmarks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1225,7 +1237,7 @@ def store_pending_login_otp(user):
         "provider": "local_email",
         "otp_hash": generate_password_hash(otp_code),
         "expires_at": int(time.time()) + 300,
-        "attempts": 0,
+        "attempts": user.get("attempts", 0),
     }
     return otp_code
 
@@ -2092,14 +2104,19 @@ def require_admin(f):
 
 
 @app.route("/admin/login", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
 def admin_login():
     if _is_admin():
         return redirect(url_for('admin'))
     error = None
     if request.method == "POST":
         password = request.form.get("password", "")
-        admin_pass = os.getenv("EPAPER_ADMIN_PASS", "vm2026")
-        if password == admin_pass:
+        admin_hash = os.getenv("ADMIN_LOGIN_HASH")
+        if not admin_hash:
+            app.logger.error("ADMIN_LOGIN_HASH environment variable is missing.")
+            return "Internal Server Error", 500
+            
+        if check_password_hash(admin_hash, password):
             session['epaper_admin_auth'] = True
             next_url = request.form.get("next") or request.args.get("next") or url_for('admin')
             return redirect(next_url)
@@ -2358,7 +2375,11 @@ def api_admin_blogs_import_json():
 
 
 @app.route("/api/vmadmin/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+@require_admin
 def vmadmin_proxy(subpath):
+    if not re.match(r"^[a-zA-Z0-9\-_/]+$", subpath) or ".." in subpath:
+        return jsonify({"error": "Invalid subpath."}), 400
+        
     if not VMADMIN_BASE_URL:
         return jsonify({"error": "VMADMIN_BASE_URL is not configured."}), 500
 
@@ -4205,16 +4226,68 @@ def register():
                 return render_template("auth.html", mode="register", page_title="Register")
 
             connection.execute(
-                "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
-                (name, email, generate_password_hash(password)),
+                "INSERT INTO users (name, email, password_hash, verified) VALUES (?, ?, ?, ?)",
+                (name, email, generate_password_hash(password), 0),
             )
             connection.commit()
 
-        session["auth_user"] = {"name": name, "email": email}
-        session.pop("pending_otp", None)
-        return redirect(url_for("dashboard"))
+        otp_code = generate_login_otp()
+        session["pending_register_otp"] = {
+            "name": name,
+            "email": email,
+            "otp_hash": generate_password_hash(otp_code),
+            "expires_at": int(time.time()) + 600,
+            "attempts": 0,
+        }
+        
+        try:
+            send_login_otp_email(email, name, otp_code)
+        except Exception as exc:
+            app.logger.warning("OTP email delivery failed: %s", exc)
+
+        flash("Please verify your email address. An OTP has been sent.", "success")
+        return redirect(url_for("verify_register_otp"))
 
     return render_template("auth.html", mode="register", page_title="Register")
+
+@app.route("/verify-register-otp", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
+def verify_register_otp():
+    pending_otp = session.get("pending_register_otp")
+    if not pending_otp:
+        flash("Registration session expired. Please login to request a new OTP.", "error")
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        otp_code = request.form.get("otp_code", "").strip()
+
+        if not re.fullmatch(r"\d{6}", otp_code):
+            flash("Enter the 6-digit OTP.", "error")
+            return render_template("auth.html", mode="register_otp", page_title="Verify Email", otp_email=pending_otp["email"], otp_expires_at=pending_otp["expires_at"])
+
+        if pending_otp.get("attempts", 0) >= 5:
+            session.pop("pending_register_otp", None)
+            flash("Too many invalid attempts. Please login to request a new OTP.", "error")
+            return redirect(url_for("login"))
+
+        if check_password_hash(pending_otp["otp_hash"], otp_code):
+            with get_auth_db_connection() as connection:
+                connection.execute("UPDATE users SET verified = 1 WHERE email = ?", (pending_otp["email"],))
+                connection.commit()
+            
+            session["auth_user"] = {
+                "name": pending_otp["name"],
+                "email": pending_otp["email"],
+            }
+            session.pop("pending_register_otp", None)
+            flash("Email verified successfully. You are now logged in.", "success")
+            return redirect(url_for("dashboard"))
+
+        pending_otp["attempts"] = pending_otp.get("attempts", 0) + 1
+        session["pending_register_otp"] = pending_otp
+        flash("Invalid OTP. Please try again.", "error")
+
+    return render_template("auth.html", mode="register_otp", page_title="Verify Email", otp_email=pending_otp["email"], otp_expires_at=pending_otp["expires_at"])
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -4223,20 +4296,37 @@ def login():
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
+        next_url = request.form.get("next", "").strip()
 
         if not email or not password:
             flash("Please enter your email and password.", "error")
-            return render_template("auth.html", mode="login", page_title="Login")
+            return render_template("auth.html", mode="login", page_title="Login", next=next_url)
 
         with get_auth_db_connection() as connection:
             user = connection.execute(
-                "SELECT name, email, password_hash FROM users WHERE email = ?",
+                "SELECT name, email, password_hash, verified FROM users WHERE email = ?",
                 (email,),
             ).fetchone()
 
         if user is None or not check_password_hash(user["password_hash"], password):
             flash("Invalid email or password.", "error")
-            return render_template("auth.html", mode="login", page_title="Login")
+            return render_template("auth.html", mode="login", page_title="Login", next=next_url)
+
+        if not user.get("verified", 1):
+            otp_code = generate_login_otp()
+            session["pending_register_otp"] = {
+                "name": user["name"],
+                "email": user["email"],
+                "otp_hash": generate_password_hash(otp_code),
+                "expires_at": int(time.time()) + 600,
+                "attempts": 0,
+            }
+            try:
+                send_login_otp_email(user["email"], user["name"], otp_code)
+            except Exception as exc:
+                app.logger.warning("OTP email delivery failed: %s", exc)
+            flash("Please verify your email address. A new OTP has been sent.", "error")
+            return redirect(url_for("verify_register_otp"))
 
         provider = get_otp_provider()
         otp_sent = False
@@ -4257,7 +4347,8 @@ def login():
                     "attempts": 0,
                 }
                 session["otp_delivery_mode"] = "email"
-                session.pop("pending_otp_preview", None)
+                if next_url:
+                    session["next_url"] = next_url
                 flash("OTP sent to your email. Enter it on the next screen.", "success")
                 return redirect(url_for("verify_otp"))
 
@@ -4267,18 +4358,18 @@ def login():
         except Exception as exc:
             app.logger.warning("OTP email delivery failed: %s", exc)
 
-        session["otp_delivery_mode"] = "email" if otp_sent else "screen"
         if not otp_sent:
-            session["pending_otp_preview"] = otp_code
-        else:
-            session.pop("pending_otp_preview", None)
-        flash(
-            "OTP sent to your email. Enter it on the next screen." if otp_sent else "OTP is ready. Enter the code shown on the next screen.",
-            "success",
-        )
+            flash("Delivery failed. Please try again later.", "error")
+            return redirect(url_for("login"))
+            
+        session["otp_delivery_mode"] = "email"
+        if next_url:
+            session["next_url"] = next_url
+        flash("OTP sent to your email. Enter it on the next screen.", "success")
         return redirect(url_for("verify_otp"))
-
-    return render_template("auth.html", mode="login", page_title="Login")
+        
+    next_url = request.args.get("next", "")
+    return render_template("auth.html", mode="login", page_title="Login", next=next_url)
 
 
 @app.route("/verify-otp", methods=["GET", "POST"])
@@ -4288,10 +4379,6 @@ def verify_otp():
     if pending_otp is None:
         flash("Please login again to request a fresh OTP.", "error")
         return redirect(url_for("login"))
-
-    otp_preview = None
-    if session.get("otp_delivery_mode") == "screen":
-        otp_preview = session.get("pending_otp_preview")
 
     if request.method == "POST":
         otp_code = request.form.get("otp_code", "").strip()
@@ -4303,7 +4390,6 @@ def verify_otp():
                 mode="otp",
                 page_title="Verify OTP",
                 otp_email=pending_otp["email"],
-                otp_preview=otp_preview,
                 otp_expires_at=pending_otp["expires_at"],
             )
 
@@ -4325,6 +4411,9 @@ def verify_otp():
                     session.pop("otp_delivery_mode", None)
                     session.pop("pending_otp_preview", None)
                     flash("Login successful.", "success")
+                    next_url = session.pop("next_url", None)
+                    if next_url and next_url.startswith("/") and not next_url.startswith("//"):
+                        return redirect(next_url)
                     return redirect(url_for("dashboard"))
             except Exception as exc:
                 app.logger.warning("Twilio Verify validation failed: %s", exc)
@@ -4338,6 +4427,9 @@ def verify_otp():
             session.pop("otp_delivery_mode", None)
             session.pop("pending_otp_preview", None)
             flash("Login successful.", "success")
+            next_url = session.pop("next_url", None)
+            if next_url and next_url.startswith("/") and not next_url.startswith("//"):
+                return redirect(next_url)
             return redirect(url_for("dashboard"))
 
         pending_otp["attempts"] = pending_otp.get("attempts", 0) + 1
@@ -4349,12 +4441,12 @@ def verify_otp():
         mode="otp",
         page_title="Verify OTP",
         otp_email=pending_otp["email"],
-        otp_preview=otp_preview,
         otp_expires_at=pending_otp["expires_at"],
     )
 
 
 @app.route("/resend-otp", methods=["POST"])
+@limiter.limit("3 per 10 minutes")
 def resend_otp():
     pending_otp = get_pending_login_otp()
     if pending_otp is None:
@@ -4375,29 +4467,28 @@ def resend_otp():
                 "email": pending_otp["email"],
                 "provider": "twilio_verify",
                 "expires_at": int(time.time()) + 600,
-                "attempts": 0,
+                "attempts": pending_otp.get("attempts", 0),
             }
             session["otp_delivery_mode"] = "email"
-            session.pop("pending_otp_preview", None)
             flash("A new OTP has been sent to your email.", "success")
             return redirect(url_for("verify_otp"))
 
-    otp_code = store_pending_login_otp({"name": pending_otp["name"], "email": pending_otp["email"]})
+    otp_code = store_pending_login_otp({
+        "name": pending_otp["name"], 
+        "email": pending_otp["email"],
+        "attempts": pending_otp.get("attempts", 0)
+    })
     try:
         otp_sent = send_login_otp_email(pending_otp["email"], pending_otp["name"], otp_code)
     except Exception as exc:
         app.logger.warning("OTP resend failed: %s", exc)
 
-    session["otp_delivery_mode"] = "email" if otp_sent else "screen"
     if not otp_sent:
-        session["pending_otp_preview"] = otp_code
-    else:
-        session.pop("pending_otp_preview", None)
+        flash("Delivery failed. Please try again later.", "error")
+        return redirect(url_for("verify_otp"))
 
-    flash(
-        "A new OTP has been sent to your email." if otp_sent else f"New OTP generated: {otp_code}",
-        "success",
-    )
+    session["otp_delivery_mode"] = "email"
+    flash("A new OTP has been sent to your email.", "success")
     return redirect(url_for("verify_otp"))
 
 
