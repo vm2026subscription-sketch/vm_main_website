@@ -28,3 +28,4 @@ Thumbs.db
 # Runtime lock files
 *.lock.lock
 data/*.lock
+auth_users.db
