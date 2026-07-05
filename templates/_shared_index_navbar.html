@@ -629,7 +629,7 @@
   <div class="vm-nav-inner">
     <div>
       <a href="{{ url_for('blog') }}">Blog</a>
-      <a href="{{ url_for('epaper.epaper_viewer') }}">E-Paper</a>
+      <a href="{{ 'https://' + 'epaper.vidyarthimitra.org' if not epaper_subdomain else '/' }}">E-Paper</a>
     </div>
     <div class="vm-nav-right">विद्यार्थी मित्र<span style="color:#ff6600;">.org</span></div>
   </div>
@@ -639,7 +639,7 @@
 <header class="vm-main-header">
   <div class="vm-nav-inner">
     <!-- Brand Logo -->
-    <a class="vm-brand" href="{{ url_for('index') }}">
+    <a class="vm-brand" href="{{ main_site_url or url_for('index') }}">
       <img src="{{ url_for('static', filename='logo.png') }}" alt="Vidyarthi Mitra">
     </a>
 
@@ -648,7 +648,7 @@
 
     <!-- Center Navigation Links (Decluttered with dropdowns) -->
     <nav class="vm-main-links" aria-label="Main navigation">
-      <a href="{{ url_for('index') }}" class="vm-nav-item {% if request.endpoint == 'index' %}vm-active{% endif %}">Home</a>
+      <a href="{{ main_site_url or url_for('index') }}" class="vm-nav-item {% if request.endpoint == 'index' %}vm-active{% endif %}">Home</a>
 
       <!-- Dropdown 1: Institutes & Admissions -->
       <div class="vm-dropdown">

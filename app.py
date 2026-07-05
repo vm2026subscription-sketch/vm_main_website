@@ -85,6 +85,68 @@ if os.environ.get("FLASK_ENV") == "production" or os.environ.get("RENDER") or os
     except ImportError:
         pass
 
+# ── Epaper subdomain: rewrite /lang, /date, /admin → /epaper/... ─────────────
+_EPAPER_HOST = os.getenv("EPAPER_HOST", "epaper.vidyarthimitra.org")
+_MAIN_HOST   = os.getenv("MAIN_HOST",  "vidyarthimitra.org")
+
+_EPAPER_SUBPATH_RE = re.compile(
+    r'^(?:'
+    r'/$'
+    r'|/(hindi|english|marathi)(?:/[^/?#]+(?:/page-\d+)?)?/?$'
+    r'|/\d{4}-\d{2}-\d{2}(?:/page-\d+)?/?$'
+    r'|/admin(?:/.*)?$'
+    r')',
+    re.IGNORECASE,
+)
+
+class _EpaperSubdomainMiddleware:
+    """On epaper.vidyarthimitra.org prepend /epaper to known epaper URL patterns."""
+    def __init__(self, wsgi_app):
+        self._app = wsgi_app
+
+    def __call__(self, environ, start_response):
+        host = (
+            environ.get('HTTP_X_FORWARDED_HOST') or environ.get('HTTP_HOST', '')
+        ).lower().split(':')[0]
+        if host == _EPAPER_HOST:
+            path = environ.get('PATH_INFO', '/')
+            if not path.startswith('/epaper') and _EPAPER_SUBPATH_RE.match(path):
+                environ = dict(environ)
+                environ['PATH_INFO'] = '/epaper' + (path.rstrip('/') if path != '/' else '')
+        return self._app(environ, start_response)
+
+app.wsgi_app = _EpaperSubdomainMiddleware(app.wsgi_app)
+
+
+@app.context_processor
+def _epaper_host_context():
+    host = (
+        request.headers.get('X-Forwarded-Host') or request.host or ''
+    ).lower().split(':')[0]
+    is_sub = (host == _EPAPER_HOST)
+    return {
+        'epaper_subdomain': is_sub,
+        'main_site_url': 'https://vidyarthimitra.org' if is_sub else '',
+    }
+
+
+@app.before_request
+def _redirect_epaper_subdomain():
+    """On main domain, 301-redirect /epaper/* to epaper.vidyarthimitra.org/*"""
+    if not (os.environ.get("VERCEL") == "1" or os.environ.get("FLASK_ENV") == "production"):
+        return  # skip in local dev
+    host = (
+        request.headers.get('X-Forwarded-Host') or request.host or ''
+    ).lower().split(':')[0]
+    if _MAIN_HOST in host and host != _EPAPER_HOST:
+        path = request.path
+        if path == '/epaper' or path.startswith('/epaper/'):
+            sub_path = path[7:] or '/'
+            target = f'https://{_EPAPER_HOST}{sub_path}'
+            if request.query_string:
+                target += '?' + request.query_string.decode('utf-8', errors='ignore')
+            return redirect(target, 301)
+
 
 @app.after_request
 def add_cache_headers(response):
