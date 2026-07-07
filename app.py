@@ -3542,15 +3542,17 @@ def submit_story():
 
 
 # ── Shared notification email + JSON file helpers ─────────────────────────────
-def _send_notification_email(subject, body, to_email=None):
+def _send_notification_email(subject, body, to_email=None, reply_to=None):
     settings = _get_smtp_settings()
     if not settings["configured"]:
         return False
-    admin_email = get_env_value("ADMIN_EMAIL", default="vm2026.subscription@gmail.com")
+    admin_email = os.getenv("ADMIN_EMAIL", "")
     msg = EmailMessage()
     msg["Subject"] = subject
     msg["From"] = settings["from_email"]
     msg["To"] = to_email or admin_email
+    if reply_to:
+        msg["Reply-To"] = reply_to
     msg.set_content(body)
     delivered, _ = _deliver_smtp_message(msg)
     return delivered
@@ -4207,17 +4209,31 @@ def contact():
 
 _CONTACT_FILE = os.path.join(os.path.dirname(__file__), 'data', 'contact_messages.json')
 
+_EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]{2,}$')
+
 @app.route('/send-message', methods=['POST'])
+@limiter.limit("3 per minute; 10 per hour")
 def send_message():
-    data    = request.get_json(silent=True) or {}
-    name    = str(data.get('name', '')).strip()
-    phone   = str(data.get('phone', '')).strip()
-    email   = str(data.get('email', '')).strip()
-    subject = str(data.get('subject', '')).strip()
-    message = str(data.get('message', '')).strip()
+    data = request.get_json(silent=True) or {}
+
+    # Honeypot — bots fill this hidden field, real users never see it
+    if data.get('website') or data.get('url'):
+        return jsonify({'success': True, 'message': 'Your message has been received. We will get back to you shortly.'}), 200
+
+    name    = str(data.get('name',    '')).strip()[:200]
+    phone   = str(data.get('phone',   '')).strip()[:20]
+    email   = str(data.get('email',   '')).strip()[:200]
+    subject = str(data.get('subject', '')).strip()[:300]
+    message = str(data.get('message', '')).strip()[:5000]
 
     if not name or not email or not message:
         return jsonify({'success': False, 'error': 'Name, email, and message are required.'}), 400
+    if not _EMAIL_RE.match(email):
+        return jsonify({'success': False, 'error': 'Please enter a valid email address.'}), 400
+
+    admin_email = os.getenv("ADMIN_EMAIL", "")
+    if not admin_email:
+        app.logger.error("ADMIN_EMAIL env var not set — contact form email not delivered")
 
     entry = {
         'submitted_at': datetime.utcnow().isoformat() + 'Z',
@@ -4229,14 +4245,16 @@ def send_message():
     except Exception:
         pass
 
-    try:
-        _send_notification_email(
-            subject=f"[Contact] {subject or 'New message'} from {name}",
-            body=f"Name: {name}\nPhone: {phone}\nEmail: {email}\nSubject: {subject}\n\nMessage:\n{message}",
-            to_email=email  # also CC the sender's email as reply-to reference
-        )
-    except Exception:
-        pass
+    if admin_email:
+        try:
+            _send_notification_email(
+                subject=f"[Contact] {subject or 'New message'} from {name}",
+                body=f"Name: {name}\nPhone: {phone}\nEmail: {email}\nSubject: {subject}\n\nMessage:\n{message}",
+                to_email=admin_email,
+                reply_to=email,
+            )
+        except Exception:
+            pass
 
     return jsonify({'success': True, 'message': 'Your message has been received. We will get back to you shortly.'}), 200
 
@@ -4244,15 +4262,15 @@ def send_message():
 _SUBSCRIBERS_FILE = os.path.join(os.path.dirname(__file__), 'data', 'subscribers.json')
 
 @app.route('/subscribe', methods=['POST'])
+@limiter.limit("5 per minute; 20 per hour")
 def subscribe():
-    name  = str(request.form.get('name',  '') or request.get_json(silent=True, force=True) and request.get_json(silent=True, force=True).get('name', '') or '').strip()
-    email = str(request.form.get('email', '') or '').strip()
-    if not email:
-        data = request.get_json(silent=True) or {}
-        name  = str(data.get('name',  name)).strip()
-        email = str(data.get('email', '')).strip()
+    data  = request.get_json(silent=True) or {}
+    name  = str(request.form.get('name',  '') or data.get('name',  '')).strip()[:200]
+    email = str(request.form.get('email', '') or data.get('email', '')).strip()[:200]
     if not email:
         return jsonify({'success': False, 'error': 'Email is required.'}), 400
+    if not _EMAIL_RE.match(email):
+        return jsonify({'success': False, 'error': 'Please enter a valid email address.'}), 400
     entry = {
         'subscribed_at': datetime.utcnow().isoformat() + 'Z',
         'name': name,
