@@ -55,9 +55,12 @@ from supabase import create_client
 load_dotenv()
 
 app = Flask(__name__)
-if os.environ.get("FLASK_ENV") == "production" and not os.environ.get("SECRET_KEY"):
-    raise RuntimeError("SECRET_KEY environment variable is required in production.")
-app.secret_key = os.environ.get("SECRET_KEY", "vidyarthi-mitra-dev-key-change-in-production")
+_secret_key = os.environ.get("SECRET_KEY", "")
+if not _secret_key:
+    if os.environ.get("VERCEL") == "1" or os.environ.get("FLASK_ENV") == "production":
+        raise RuntimeError("SECRET_KEY environment variable must be set in production.")
+    _secret_key = "dev-only-insecure-key-never-use-in-prod"
+app.secret_key = _secret_key
 # Disable CSRF on JSON/API requests — they are protected by session auth
 # (require_admin / _require_epaper_admin). CSRF tokens are only enforced on
 # HTML form submissions (login, register) via the admin_login.html hidden field.
@@ -2350,18 +2353,17 @@ def admin_login():
     if request.method == "POST":
         email = (request.form.get("email", "") or "").strip().lower()
         password = request.form.get("password", "")
-        admin_email = os.getenv("ADMIN_LOGIN_EMAIL", "admin123@gmail.com")
-        admin_hash = os.getenv("ADMIN_LOGIN_HASH")
-        
-        if not admin_hash:
-            app.logger.error("ADMIN_LOGIN_HASH environment variable is missing.")
-            return "Internal Server Error", 500
-            
-        if email == admin_email.lower() and check_password_hash(admin_hash, password):
+        admin_email = os.getenv("ADMIN_LOGIN_EMAIL", "")
+        admin_hash  = os.getenv("ADMIN_LOGIN_HASH", "")
+        if not admin_email or not admin_hash:
+            app.logger.error("ADMIN_LOGIN_EMAIL / ADMIN_LOGIN_HASH env vars not set")
+            error = "Admin login is not configured. Contact the system administrator."
+        elif hmac.compare_digest(email, admin_email.lower()) and check_password_hash(admin_hash, password):
             session['epaper_admin_auth'] = True
             next_url = request.form.get("next") or request.args.get("next") or url_for('admin')
             return redirect(next_url)
-        error = "Incorrect email or password. Please try again."
+        else:
+            error = "Incorrect email or password. Please try again."
     next_url = request.args.get("next", "")
     return render_template("admin_login.html", error=error, next=next_url)
 

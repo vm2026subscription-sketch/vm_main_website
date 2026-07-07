@@ -52,11 +52,11 @@ def _evict(cache, max_size):
         else:
             del cache[next(iter(cache))]
 
-ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "saurabhedict@gmail.com")
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "")
 
 # ── Epaper admin credentials ──────────────────────
-_EPAPER_ADMIN_USER = os.getenv("EPAPER_ADMIN_USER", "admin")
-_EPAPER_ADMIN_PASS = os.getenv("EPAPER_ADMIN_PASS", "vm2026")
+_EPAPER_ADMIN_USER = os.getenv("EPAPER_ADMIN_USER", "")
+_EPAPER_ADMIN_PASS = os.getenv("EPAPER_ADMIN_PASS", "")
 _EPAPER_ADMIN_SESSION_KEY = "epaper_admin_auth"
 
 def _is_epaper_admin():
@@ -943,8 +943,8 @@ def epaper_admin_login():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
-        user_ok = hmac.compare_digest(username, _EPAPER_ADMIN_USER)
-        pass_ok = hmac.compare_digest(password, _EPAPER_ADMIN_PASS)
+        user_ok = bool(_EPAPER_ADMIN_USER) and hmac.compare_digest(username, _EPAPER_ADMIN_USER)
+        pass_ok = bool(_EPAPER_ADMIN_PASS) and hmac.compare_digest(password, _EPAPER_ADMIN_PASS)
         if user_ok and pass_ok:
             session[_EPAPER_ADMIN_SESSION_KEY] = True
             session.permanent = True
