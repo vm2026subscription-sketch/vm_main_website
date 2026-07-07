@@ -173,6 +173,18 @@ def add_cache_headers(response):
     return response
 
 
+@app.errorhandler(404)
+def page_not_found(e):
+    if request.is_json or request.path.startswith('/api/'):
+        return jsonify({'error': 'Not found'}), 404
+    return render_template('404.html'), 404
+
+@app.errorhandler(500)
+def internal_error(e):
+    if request.is_json or request.path.startswith('/api/'):
+        return jsonify({'error': 'Internal server error'}), 500
+    return render_template('500.html'), 500
+
 @app.errorhandler(413)
 def request_too_large(e):
     return jsonify({
