@@ -2577,10 +2577,8 @@ def api_admin_blogs_delete():
 
 
 @app.route("/api/admin/blogs/update", methods=["POST"])
+@require_admin
 def api_admin_blogs_update():
-    from epaper_routes import _is_epaper_admin
-    if not _is_epaper_admin():
-        return jsonify({"error": "Unauthorized"}), 401
     data = request.get_json(silent=True) or {}
     blog_id = data.get('id')
     if not blog_id:
