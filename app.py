@@ -830,7 +830,7 @@ def resolve_colleges_columns(conn):
     }
 
 
-## --- Simple coupon storage and helpers (file-backed) ---
+## --- Simple coupon storage and helpers (Postgres-backed, file fallback) ---
 COUPONS_FILE = os.path.join(app.root_path, "data", "coupons.json")
 SCHOLARSHIPS_FILE = os.path.join(app.root_path, "data", "scholarships.json")
 
@@ -862,6 +862,71 @@ def _save_coupons_raw(items):
     except Exception:
         return False
 
+_COUPON_USES_DDL = """
+    CREATE TABLE IF NOT EXISTS coupon_uses (
+        code TEXT PRIMARY KEY,
+        uses_consumed INTEGER NOT NULL DEFAULT 0,
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
+"""
+
+def _pg_get_coupon_uses(code):
+    """Return total uses consumed for this coupon from Postgres, or None if unavailable."""
+    db_url = get_postgres_connection_url()
+    if not db_url or not psycopg2:
+        return None
+    try:
+        conn = psycopg2.connect(db_url, connect_timeout=5)
+        try:
+            with conn.cursor() as cur:
+                cur.execute(_COUPON_USES_DDL)
+                conn.commit()
+                cur.execute("SELECT uses_consumed FROM coupon_uses WHERE code = %s", (code.upper(),))
+                row = cur.fetchone()
+                return row[0] if row else 0
+        finally:
+            conn.close()
+    except Exception as exc:
+        app.logger.warning("coupon_uses read failed: %s", exc)
+        return None
+
+def _pg_consume_coupon(code, max_uses):
+    """Atomically consume one use. Returns True if consumed, False if exhausted, None if PG unavailable."""
+    db_url = get_postgres_connection_url()
+    if not db_url or not psycopg2:
+        return None
+    try:
+        conn = psycopg2.connect(db_url, connect_timeout=5)
+        try:
+            with conn.cursor() as cur:
+                cur.execute(_COUPON_USES_DDL)
+                conn.commit()
+                if max_uses is None:
+                    cur.execute("""
+                        INSERT INTO coupon_uses (code, uses_consumed)
+                        VALUES (%s, 1)
+                        ON CONFLICT (code) DO UPDATE SET
+                            uses_consumed = coupon_uses.uses_consumed + 1,
+                            updated_at = NOW()
+                    """, (code.upper(),))
+                    conn.commit()
+                    return True
+                cur.execute("""
+                    INSERT INTO coupon_uses (code, uses_consumed)
+                    VALUES (%s, 1)
+                    ON CONFLICT (code) DO UPDATE SET
+                        uses_consumed = coupon_uses.uses_consumed + 1,
+                        updated_at = NOW()
+                    WHERE coupon_uses.uses_consumed < %s
+                """, (code.upper(), max_uses))
+                conn.commit()
+                return cur.rowcount > 0
+        finally:
+            conn.close()
+    except Exception as exc:
+        app.logger.warning("coupon_uses consume failed: %s", exc)
+        return None
+
 def find_coupon(code):
     if not code:
         return None
@@ -871,14 +936,44 @@ def find_coupon(code):
     items = _load_coupons_raw()
     for it in items:
         if str(it.get("code", "")).strip().upper() == code.upper():
+            pg_used = _pg_get_coupon_uses(code)
+            if pg_used is not None:
+                max_uses = it.get("uses_remaining")
+                if max_uses is not None:
+                    try:
+                        remaining = max(0, int(max_uses) - pg_used)
+                        it = dict(it)
+                        it["uses_remaining"] = remaining
+                    except Exception:
+                        pass
             return it
     return None
 
 def consume_coupon(code):
-    """Consume one use of a single-use coupon. Returns True if consumed."""
+    """Consume one use of a coupon. Returns True if consumed."""
     if not code:
         return False
     items = _load_coupons_raw()
+    coupon = None
+    for it in items:
+        if str(it.get("code", "")).strip().upper() == str(code).strip().upper():
+            coupon = it
+            break
+    if coupon is None:
+        return False
+
+    max_uses = coupon.get("uses_remaining")
+    if max_uses is not None:
+        try:
+            max_uses = int(max_uses)
+        except Exception:
+            max_uses = None
+
+    pg_result = _pg_consume_coupon(code, max_uses)
+    if pg_result is not None:
+        return pg_result
+
+    # File fallback (dev mode — Vercel filesystem is read-only)
     changed = False
     for it in items:
         if str(it.get("code", "")).strip().upper() == str(code).strip().upper():
@@ -2164,7 +2259,8 @@ def api_remove_bookmark():
 
 @app.route("/")
 def index():
-    return render_template("index.html", featured_alerts=_read_json_file(_ALERTS_FILE, _DEFAULT_ALERTS))
+    alerts = _pg_get_setting("featured_alerts") or _read_json_file(_ALERTS_FILE, _DEFAULT_ALERTS)
+    return render_template("index.html", featured_alerts=alerts)
 
 
 @app.route("/blog")
@@ -2415,7 +2511,8 @@ def admin():
 @app.route("/api/admin/alerts", methods=["GET"])
 @require_admin
 def api_admin_get_alerts():
-    return jsonify({"alerts": _read_json_file(_ALERTS_FILE, _DEFAULT_ALERTS)})
+    alerts = _pg_get_setting("featured_alerts") or _read_json_file(_ALERTS_FILE, _DEFAULT_ALERTS)
+    return jsonify({"alerts": alerts})
 
 
 @app.route("/api/admin/alerts", methods=["POST"])
@@ -2423,7 +2520,8 @@ def api_admin_get_alerts():
 def api_admin_save_alerts():
     data = request.get_json(silent=True) or {}
     alerts = data.get("alerts", [])
-    _write_json_file(_ALERTS_FILE, alerts)
+    if not _pg_set_setting("featured_alerts", alerts):
+        _write_json_file(_ALERTS_FILE, alerts)
     return jsonify({"success": True})
 
 
@@ -3594,6 +3692,55 @@ _DEFAULT_ALERTS = [
     {"id": 3, "title": "JEE Advanced 2026 Registration Open", "icon": "fa-calendar", "date": "5 days ago", "link": ""},
     {"id": 4, "title": "NEET UG Counselling Schedule Announced", "icon": "fa-book", "date": "1 week ago", "link": ""},
 ]
+
+_SITE_SETTINGS_DDL = """
+    CREATE TABLE IF NOT EXISTS site_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
+"""
+
+def _pg_get_setting(key):
+    db_url = get_postgres_connection_url()
+    if not db_url or not psycopg2:
+        return None
+    try:
+        conn = psycopg2.connect(db_url, connect_timeout=5)
+        try:
+            with conn.cursor() as cur:
+                cur.execute(_SITE_SETTINGS_DDL)
+                conn.commit()
+                cur.execute("SELECT value FROM site_settings WHERE key = %s", (key,))
+                row = cur.fetchone()
+                return json.loads(row[0]) if row else None
+        finally:
+            conn.close()
+    except Exception as exc:
+        app.logger.warning("site_settings get(%s) failed: %s", key, exc)
+        return None
+
+def _pg_set_setting(key, value):
+    db_url = get_postgres_connection_url()
+    if not db_url or not psycopg2:
+        return False
+    try:
+        conn = psycopg2.connect(db_url, connect_timeout=5)
+        try:
+            with conn.cursor() as cur:
+                cur.execute(_SITE_SETTINGS_DDL)
+                cur.execute("""
+                    INSERT INTO site_settings (key, value, updated_at)
+                    VALUES (%s, %s, NOW())
+                    ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()
+                """, (key, json.dumps(value, ensure_ascii=False)))
+            conn.commit()
+            return True
+        finally:
+            conn.close()
+    except Exception as exc:
+        app.logger.warning("site_settings set(%s) failed: %s", key, exc)
+        return False
 
 def _read_json_file(filepath, default=None):
     try:
