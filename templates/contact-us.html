@@ -527,19 +527,19 @@
       <div class="form-grid">
         <div class="form-group">
           <label>Full Name <span class="required">*</span></label>
-          <input type="text" placeholder="Enter your name" required/>
+          <input type="text" name="name" placeholder="Enter your name" required/>
         </div>
         <div class="form-group">
           <label>Phone Number <span class="required">*</span></label>
-          <input type="tel" placeholder="10 digit mobile number" inputmode="numeric" maxlength="10" pattern="[0-9]{10}" title="Enter exactly 10 digits" required/>
+          <input type="tel" name="phone" placeholder="10 digit mobile number" inputmode="numeric" maxlength="10" pattern="[0-9]{10}" title="Enter exactly 10 digits" required/>
         </div>
         <div class="form-group">
           <label>Email Address <span class="required">*</span></label>
-          <input type="email" placeholder="your@email.com" title="Enter a valid email address with @" required/>
+          <input type="email" name="email" placeholder="your@email.com" title="Enter a valid email address with @" required/>
         </div>
         <div class="form-group">
           <label>Subject <span class="required">*</span></label>
-          <select required>
+          <select name="subject" required>
             <option value="">Select a topic</option>
             <option>Admissions Enquiry</option>
             <option>Course Information</option>
@@ -550,7 +550,7 @@
         </div>
         <div class="form-group full">
           <label>Message <span class="required">*</span></label>
-          <textarea placeholder="Write your message here…" required></textarea>
+          <textarea name="message" placeholder="Write your message here…" required></textarea>
         </div>
       </div>
       <button class="btn-submit" type="submit">Send Message →</button>
