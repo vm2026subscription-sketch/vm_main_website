@@ -5116,7 +5116,6 @@ def sitemap_xml():
         ('/exam-updates', '0.8', 'weekly'),
         ('/news', '0.8', 'daily'),
         ('/blogs', '0.8', 'weekly'),
-        ('/news', '0.8', 'daily'),
         ('/courses', '0.8', 'weekly'),
         ('/guide-me', '0.7', 'monthly'),
         ('/contact', '0.6', 'monthly'),

@@ -4,6 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ article.title if article else 'News Detail' }} | Vidyarthi Mitra</title>
+  <meta name="description" content="{{ (article.summary or article.title) | truncate(160) if article else 'Latest education news and updates from VidyarthiMitra.' }}">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="VidyarthiMitra">
+  <meta property="og:title" content="{{ article.title if article else 'News' }} | VidyarthiMitra">
+  <meta property="og:description" content="{{ (article.summary or article.title) | truncate(200) if article else 'Latest education news and updates.' }}">
+  <meta property="og:url" content="{{ request.url }}">
+  {% if article and article.image_url %}<meta property="og:image" content="{{ article.image_url }}">{% endif %}
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ article.title if article else 'News' }} | VidyarthiMitra">
+  <meta name="twitter:description" content="{{ (article.summary or article.title) | truncate(200) if article else 'Latest education news and updates.' }}">
+  {% if article and article.image_url %}<meta name="twitter:image" content="{{ article.image_url }}">{% endif %}
   <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='news.css') }}">
