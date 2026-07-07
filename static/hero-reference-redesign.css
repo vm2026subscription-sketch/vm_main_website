@@ -481,19 +481,16 @@ section {
     flex-shrink: 0 !important;
 }
 
-/* Cycling accent — lime / purple / orange */
-.about-grid .info-box:nth-child(3n+1) > i,
-.top-search-grid .search-item:nth-child(3n+1) > i {
+/* Cycling accent — lime / purple / orange (info-boxes only) */
+.about-grid .info-box:nth-child(3n+1) > i {
     background: rgba(255,102,0, 0.18) !important;
     color: var(--vm-lime) !important;
 }
-.about-grid .info-box:nth-child(3n+2) > i,
-.top-search-grid .search-item:nth-child(3n+2) > i {
+.about-grid .info-box:nth-child(3n+2) > i {
     background: rgba(184, 146, 255, 0.18) !important;
     color: var(--vm-purple) !important;
 }
-.about-grid .info-box:nth-child(3n) > i,
-.top-search-grid .search-item:nth-child(3n) > i {
+.about-grid .info-box:nth-child(3n) > i {
     background: rgba(244, 178, 102, 0.18) !important;
     color: var(--vm-orange-warm) !important;
 }
@@ -554,69 +551,70 @@ section {
 
 /* Specific overrides */
 .top-searches {
-    background: transparent !important;
+    background: #0a1628 !important;
+    padding: 48px 0 !important;
 }
 
 .top-search-grid {
     grid-template-columns: repeat(4, 1fr) !important;
-    align-items: start !important;
+    align-items: stretch !important;
+    gap: 16px !important;
 }
 
-.top-search-grid .search-item,
-body.light-mode .top-search-grid .search-item {
+.top-search-grid .search-item {
+    display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
     justify-content: flex-start !important;
-    padding: 16px 20px !important;
+    padding: 18px 26px !important;
     gap: 16px !important;
     height: auto !important;
     min-height: auto !important;
     aspect-ratio: auto !important;
-    border: 1px solid rgba(0, 0, 0, 0.1) !important;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08) !important;
-    background: #ffffff !important;
+    overflow: visible !important;
+    border-radius: 50px !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+    background: rgba(255, 255, 255, 0.06) !important;
     transition: all 0.3s ease !important;
     cursor: pointer !important;
 }
 
-.top-search-grid .search-item:hover,
-body.light-mode .top-search-grid .search-item:hover {
-    transform: translateY(-4px) !important;
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12) !important;
+.top-search-grid .search-item:hover {
+    background: rgba(255, 102, 0, 0.15) !important;
+    border-color: rgba(255, 102, 0, 0.4) !important;
+    transform: translateY(-3px) !important;
+    box-shadow: 0 8px 28px rgba(255, 102, 0, 0.2) !important;
 }
 
 .top-search-grid .search-item > i {
-    margin-bottom: 0 !important;
-    width: 44px !important;
-    height: 44px !important;
+    /* reset banner-strip negative margins from the card design system */
+    margin: 0 !important;
+    padding: 0 !important;
+    /* fixed circle sizing */
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
     font-size: 20px !important;
-    border-radius: 10px !important;
-}
-
-.top-search-grid .search-item .search-content {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 2px !important;
+    border-radius: 50% !important;
+    background: rgba(255, 102, 0, 0.18) !important;
+    color: #ff6600 !important;
+    /* line-height centering — reliable for FA 4.x glyphs */
+    display: inline-block !important;
+    line-height: 48px !important;
+    text-align: center !important;
+    flex-shrink: 0 !important;
 }
 
 .top-search-grid .search-item a {
     margin: 0 !important;
-    font-size: 15px !important;
+    font-size: 14px !important;
     line-height: 1.3 !important;
     font-weight: 700 !important;
-    color: #1e293b !important;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.top-search-grid .search-item small {
-    font-size: 12.5px !important;
-    color: #64748b !important;
-    font-weight: 400 !important;
-    line-height: 1.4 !important;
+    color: #e2e8f0 !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+    white-space: normal !important;
 }
 
 .epaper-grid .card-link {
