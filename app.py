@@ -3574,28 +3574,13 @@ def news():
         category_labels=category_labels,
     )
 
-EXAM_UPDATES_DATA = [
-    {"category": "engineering", "title": "JEE Main 2026 Session 1 Registration", "desc": "Application window open at jeemain.nta.nic.in. Eligibility: PCM in Class 12 with 75% (65% for SC/ST). Exam date: January 2026."},
-    {"category": "engineering", "title": "MHT-CET 2026 Registration", "desc": "State-level PCM and PCB group registration open at cetcell.mahacet.org. Exam expected April–May 2026."},
-    {"category": "engineering", "title": "JEE Advanced 2026 Eligibility", "desc": "Top 2.5 lakh JEE Main qualifiers eligible. Conducted by IIT Delhi. Registration opens post JEE Main result."},
-    {"category": "engineering", "title": "GATE 2026 Notification", "desc": "Graduate Aptitude Test in Engineering for M.Tech admissions and PSU recruitment. 30 test papers across engineering disciplines."},
-    {"category": "medical", "title": "NEET UG 2026 Information Bulletin", "desc": "Single entrance for MBBS, BDS, BAMS, BHMS. Registration at neet.nta.nic.in. Eligibility: 50% PCB in Class 12."},
-    {"category": "medical", "title": "NEET PG 2026 Schedule", "desc": "Postgraduate medical entrance for MD/MS/PG Diploma. Conducted by NBE. Registration expected January 2026."},
-    {"category": "law", "title": "CLAT 2026 Registration Open", "desc": "Common Law Admission Test for 24 National Law Universities. Online registration at consortiumofnlus.ac.in."},
-    {"category": "law", "title": "LSAT India 2026", "desc": "Law School Admission Test for private law colleges. Multiple test windows available. Score valid for 1 year."},
-    {"category": "management", "title": "CAT 2026 Registration", "desc": "Common Admission Test for IIMs and 1200+ B-schools. Conducted by IIM Calcutta. Application opens August 2026."},
-    {"category": "management", "title": "MAT 2026 (May Session)", "desc": "Management Aptitude Test for MBA/PGDM admissions. CBT and PBT modes available. 600+ colleges accept MAT score."},
-    {"category": "management", "title": "XAT 2026 Notification", "desc": "Xavier Aptitude Test for XLRI and 150+ B-schools. Conducted in January. Decision Making section unique to XAT."},
-    {"category": "design", "title": "NID DAT 2026 Prelims", "desc": "National Institute of Design Design Aptitude Test for B.Des admissions. Paper-based studio test with practical assignments."},
-    {"category": "design", "title": "UCEED 2026", "desc": "Undergraduate Common Entrance Exam for Design (IIT Bombay, IIT Delhi, IIT Guwahati, IIITDM Jabalpur). January exam."},
-    {"category": "defense", "title": "NDA (I) 2026 Notification", "desc": "National Defence Academy exam for Army, Navy, Air Force after Class 12. Age: 16.5–19.5 years. UPSC conducts it twice a year."},
-    {"category": "defense", "title": "CDS (I) 2026 Notification", "desc": "Combined Defence Services exam for IMA, INA, AFA, OTA. Eligibility: graduation. Conducted by UPSC in February."},
-]
+_EXAM_UPDATES_FILE = os.path.join(os.path.dirname(__file__), 'data', 'exam_updates.json')
 
 
 @app.route('/exam-updates')
 def exam_updates():
-    return render_template('exam-updates.html', exams=EXAM_UPDATES_DATA)
+    exams = _read_json_file(_EXAM_UPDATES_FILE, [])
+    return render_template('exam-updates.html', exams=exams)
 
 @app.route("/articles")
 def articles():
