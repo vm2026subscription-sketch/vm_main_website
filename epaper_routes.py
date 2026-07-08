@@ -466,52 +466,42 @@ def _delete_edition_row(date, lang):
 
 
 def _load_editions_from_pg():
-    """Load editions from the per-edition v2 table. The first time v2 is empty it
-    auto-migrates from the legacy single-row blob (which is left intact as a backup).
+    """Load editions by merging epaper_editions_v2 (per-row) with the legacy
+    epaper_editions_store blob. Merging both sources means editions are never
+    lost if code switches between the v2 schema and the old single-blob schema.
     Returns list or None on failure."""
     if not _pg_url():
         return None
     try:
         conn = _pg_connect()
         _pg_ensure_table(conn)
+
+        # Read per-row v2 editions
         with conn.cursor() as cur:
             cur.execute("SELECT data FROM epaper_editions_v2")
             rows = cur.fetchall()
-        if rows:
-            conn.close()
-            return [_row_to_edition(r[0]) for r in rows]
+        v2_editions = [_row_to_edition(r[0]) for r in rows] if rows else []
 
-        # v2 is empty. Migrate from the legacy blob ONLY ONCE — guarded by a marker
-        # so that legitimately deleting every edition is not undone on the next load.
-        with conn.cursor() as cur:
-            cur.execute("SELECT 1 FROM epaper_editions_store WHERE id = '__v2_migrated__'")
-            already_migrated = cur.fetchone() is not None
-        if already_migrated:
-            conn.close()
-            return []  # genuinely empty — respect it
-
+        # Always also read the legacy store blob — picks up any editions that
+        # were written by older code while it was in production.
         with conn.cursor() as cur:
             cur.execute("SELECT data FROM epaper_editions_store WHERE id = 'editions'")
-            legacy_row = cur.fetchone()
-        legacy = legacy_row[0] if legacy_row else []
-        if isinstance(legacy, str):
-            legacy = json.loads(legacy)
-        if not legacy:
-            legacy = _load_editions_from_file()
-        with conn.cursor() as cur:
-            for ed in (legacy or []):
-                _upsert_edition_row(cur, ed)
-            # Stamp the marker so migration runs exactly once
-            cur.execute("""
-                INSERT INTO epaper_editions_store (id, data)
-                VALUES ('__v2_migrated__', 'true'::jsonb)
-                ON CONFLICT (id) DO NOTHING
-            """)
-        conn.commit()
-        if legacy:
-            print(f"[epaper] Migrated {len(legacy)} editions into per-edition v2 table.")
+            store_row = cur.fetchone()
         conn.close()
-        return legacy or []
+
+        if store_row:
+            blob = store_row[0]
+            if isinstance(blob, str):
+                blob = json.loads(blob)
+            if isinstance(blob, list) and blob:
+                return _merge_edition_lists(v2_editions, blob)
+
+        # No store blob (or it was empty): fall back to file if v2 is also empty
+        if not v2_editions:
+            file_data = _load_editions_from_file()
+            return file_data if file_data else []
+
+        return v2_editions
     except Exception as e:
         print(f"[epaper] Postgres v2 load failed, falling back: {e}")
         return None
