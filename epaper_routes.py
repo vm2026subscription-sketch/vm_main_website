@@ -2025,6 +2025,57 @@ def api_epaper_diagnostics():
     return jsonify(out)
 
 
+# ── Recovery: restore every edition that exists in backups but is missing from
+# the live v2 store (safe & idempotent — only ADDS missing editions, never
+# deletes or overwrites what's already live). ──
+@epaper_bp.route("/api/epaper/admin/restore-all-missing", methods=["GET", "POST"])
+def api_restore_all_missing():
+    guard = _require_epaper_admin()
+    if guard is not None:
+        return guard
+    if not _pg_url():
+        return jsonify({"error": "Database not configured."}), 500
+
+    conn = None
+    try:
+        conn = _pg_connect()
+        _pg_ensure_table(conn)
+        with conn.cursor() as cur:
+            # (date, language) pairs already live in v2
+            cur.execute("SELECT edition_date, edition_language FROM epaper_editions_v2")
+            live = {(r[0], r[1]) for r in cur.fetchall()}
+
+            # Latest backup snapshot per (date, language)
+            cur.execute("""
+                SELECT DISTINCT ON (edition_date, edition_language)
+                       edition_date, edition_language, snapshot
+                FROM epaper_edition_backups
+                ORDER BY edition_date, edition_language, saved_at DESC
+            """)
+            rows = cur.fetchall()
+
+            restored = []
+            for date, lang, snap in rows:
+                if (date, lang) in live:
+                    continue  # already present — never overwrite live data
+                edition = snap if not isinstance(snap, str) else json.loads(snap)
+                _upsert_edition_row(cur, edition)
+                restored.append(f"{date} ({lang})")
+        conn.commit()
+        conn.close()
+        _invalidate_editions_cache()
+        return jsonify({
+            "success": True,
+            "restored_count": len(restored),
+            "restored": sorted(restored, reverse=True),
+        })
+    except Exception as exc:
+        if conn:
+            try: conn.close()
+            except: pass
+        return jsonify({"error": str(exc)}), 500
+
+
 @epaper_bp.route("/api/supabase/keepalive")
 def api_supabase_keepalive():
     if not _pg_url():
