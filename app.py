@@ -1076,8 +1076,12 @@ def get_auth_db_connection():
                         name TEXT NOT NULL,
                         email TEXT NOT NULL UNIQUE,
                         password_hash TEXT NOT NULL,
+                        is_admin BOOLEAN NOT NULL DEFAULT FALSE,
                         created_at TIMESTAMPTZ DEFAULT NOW()
                     )
+                """)
+                cur.execute("""
+                    ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE
                 """)
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS bookmarks (
@@ -1091,12 +1095,10 @@ def get_auth_db_connection():
                     )
                 """)
             conn.commit()
-            # Wrap in a sqlite3-compatible shim so the rest of the code works unchanged
             return _PgAuthConn(conn)
         except Exception as e:
             app.logger.warning("Auth Postgres connection failed, falling back to SQLite: %s", e)
 
-    # SQLite fallback (local dev or if Postgres unavailable)
     connection = sqlite3.connect(AUTH_DB_PATH)
     connection.row_factory = sqlite3.Row
     connection.execute("""
@@ -1105,9 +1107,14 @@ def get_auth_db_connection():
             name TEXT NOT NULL,
             email TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
+            is_admin INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    try:
+        connection.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
     connection.execute("""
         CREATE TABLE IF NOT EXISTS bookmarks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -2084,17 +2091,35 @@ def _get_admin_credentials():
     return email, password
 
 
+def _get_dashboard_admin_credentials():
+    email = os.getenv("DASHBOARD_ADMIN_EMAIL", "vm2026.subscription@gmail.com").strip().lower()
+    password = os.getenv("DASHBOARD_ADMIN_PASSWORD", "vm@2026##**")
+    return email, password
+
+
 def _is_admin():
-    # Check session-based admin auth (from admin_login page)
     if session.get('epaper_admin_auth') is True:
         return True
 
-    # Check if logged-in website user is the admin
     user = get_logged_in_user()
     if user:
-        admin_email, _ = _get_admin_credentials()
-        if user.get("email", "").strip().lower() == admin_email:
+        email = user.get("email", "").strip().lower()
+        if email in {_get_admin_credentials()[0], _get_dashboard_admin_credentials()[0]}:
             return True
+        if user.get("is_admin") is True:
+            return True
+        try:
+            with get_auth_db_connection() as connection:
+                record = connection.execute(
+                    "SELECT is_admin FROM users WHERE email = ?",
+                    (email,),
+                ).fetchone()
+            if record is not None:
+                value = record["is_admin"] if isinstance(record, sqlite3.Row) else record[0]
+                if bool(value):
+                    return True
+        except Exception as exc:
+            app.logger.warning("Admin role lookup failed: %s", exc)
 
     return False
 
@@ -2158,6 +2183,50 @@ def admin():
     except Exception as exc:
         app.logger.warning("Failed to get user count in admin panel: %s", exc)
     return render_template("admin.html", upload_targets=UPLOAD_TARGET_TABLES, user_count=user_count)
+
+
+@app.route("/api/admin/users", methods=["GET"])
+@require_admin
+def api_admin_users_list():
+    try:
+        with get_auth_db_connection() as connection:
+            rows = connection.execute(
+                "SELECT id, name, email, is_admin, created_at FROM users ORDER BY created_at DESC"
+            ).fetchall()
+            users = []
+            for row in rows:
+                users.append({
+                    "id": row["id"],
+                    "name": row["name"],
+                    "email": row["email"],
+                    "is_admin": bool(row["is_admin"]),
+                    "created_at": row["created_at"],
+                })
+            return jsonify({"users": users})
+    except Exception as exc:
+        app.logger.warning("Admin users list failed: %s", exc)
+        return jsonify({"error": "Unable to load users"}), 500
+
+
+@app.route("/api/admin/users/promote", methods=["POST"])
+@require_admin
+def api_admin_promote_user():
+    data = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip().lower()
+    if not email:
+        return jsonify({"error": "Email is required"}), 400
+
+    try:
+        with get_auth_db_connection() as connection:
+            existing = connection.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+            if not existing:
+                return jsonify({"error": "User not found"}), 404
+            connection.execute("UPDATE users SET is_admin = 1 WHERE email = ?", (email,))
+            connection.commit()
+            return jsonify({"success": True, "email": email})
+    except Exception as exc:
+        app.logger.warning("Admin user promote failed: %s", exc)
+        return jsonify({"error": "Unable to promote user"}), 500
 
 
 @app.route("/api/admin/alerts", methods=["GET"])
@@ -4245,12 +4314,12 @@ def register():
                 return render_template("auth.html", mode="register", page_title="Register")
 
             connection.execute(
-                "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
-                (name, email, generate_password_hash(password)),
+                "INSERT INTO users (name, email, password_hash, is_admin) VALUES (?, ?, ?, ?)",
+                (name, email, generate_password_hash(password), 1 if email == _get_dashboard_admin_credentials()[0] else 0),
             )
             connection.commit()
 
-        session["auth_user"] = {"name": name, "email": email}
+        session["auth_user"] = {"name": name, "email": email, "is_admin": email == _get_dashboard_admin_credentials()[0]}
         session.pop("pending_otp", None)
         return redirect(url_for("dashboard"))
 
@@ -4268,9 +4337,18 @@ def login():
             flash("Please enter your email and password.", "error")
             return render_template("auth.html", mode="login", page_title="Login")
 
+        dashboard_admin_email, dashboard_admin_password = _get_dashboard_admin_credentials()
+        if email == dashboard_admin_email and password == dashboard_admin_password:
+            session["auth_user"] = {"name": "Admin", "email": email, "is_admin": True}
+            session.pop("pending_otp", None)
+            session.pop("otp_delivery_mode", None)
+            session.pop("pending_otp_preview", None)
+            flash("Login successful.", "success")
+            return redirect(url_for("dashboard"))
+
         with get_auth_db_connection() as connection:
             user = connection.execute(
-                "SELECT name, email, password_hash FROM users WHERE email = ?",
+                "SELECT name, email, password_hash, is_admin FROM users WHERE email = ?",
                 (email,),
             ).fetchone()
 
@@ -4301,7 +4379,11 @@ def login():
                 flash("OTP sent to your email. Enter it on the next screen.", "success")
                 return redirect(url_for("verify_otp"))
 
-        otp_code = store_pending_login_otp({"name": user["name"], "email": user["email"]})
+        otp_code = store_pending_login_otp({
+            "name": user["name"],
+            "email": user["email"],
+            "is_admin": bool(user.get("is_admin", False)),
+        })
         try:
             otp_sent = send_login_otp_email(user["email"], user["name"], otp_code)
         except Exception as exc:
@@ -4360,6 +4442,7 @@ def verify_otp():
                     session["auth_user"] = {
                         "name": pending_otp["name"],
                         "email": pending_otp["email"],
+                        "is_admin": bool(pending_otp.get("is_admin", False)),
                     }
                     session.pop("pending_otp", None)
                     session.pop("otp_delivery_mode", None)
@@ -4373,6 +4456,7 @@ def verify_otp():
             session["auth_user"] = {
                 "name": pending_otp["name"],
                 "email": pending_otp["email"],
+                "is_admin": bool(pending_otp.get("is_admin", False)),
             }
             session.pop("pending_otp", None)
             session.pop("otp_delivery_mode", None)
