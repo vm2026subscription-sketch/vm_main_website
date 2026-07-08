@@ -2463,15 +2463,6 @@ def _is_admin():
                     return True
         except Exception as exc:
             app.logger.warning("Admin role lookup failed: %s", exc)
-
-    
-    # Check if logged-in website user is the admin
-    user = get_logged_in_user()
-    if user:
-        admin_email = os.getenv("ADMIN_LOGIN_EMAIL", "vm2026.subscription@gmail.com").lower()
-        if user["email"].lower() == admin_email:
-            return True
-    
     return False
 
 def require_admin(f):
@@ -2495,12 +2486,55 @@ def admin_login():
     if request.method == "POST":
         email = (request.form.get("email", "") or "").strip().lower()
         password = request.form.get("password", "")
-        admin_email = os.getenv("ADMIN_LOGIN_EMAIL", "")
-        admin_hash  = os.getenv("ADMIN_LOGIN_HASH", "")
-        if not admin_email or not admin_hash:
-            app.logger.error("ADMIN_LOGIN_EMAIL / ADMIN_LOGIN_HASH env vars not set")
-            error = "Admin login is not configured. Contact the system administrator."
-        elif hmac.compare_digest(email, admin_email.lower()) and check_password_hash(admin_hash, password):
+        # Build credential sources: prefer env vars but fall back to the built-in defaults
+        creds = []  # list of dicts: {email, password, hash}
+
+        # Env-provided admin creds (may be absent)
+        env_admin_email = os.getenv("ADMIN_LOGIN_EMAIL")
+        env_admin_hash = os.getenv("ADMIN_LOGIN_HASH")
+        env_admin_password = os.getenv("ADMIN_LOGIN_PASSWORD")
+        if env_admin_email:
+            creds.append({
+                "email": env_admin_email.strip().lower(),
+                "password": env_admin_password or None,
+                "hash": env_admin_hash or None,
+            })
+
+        # Built-in admin credentials fallback
+        try:
+            builtin_email, builtin_password = _get_admin_credentials()
+            creds.append({"email": builtin_email, "password": builtin_password or None, "hash": None})
+        except Exception:
+            pass
+
+        # Dashboard admin credentials (also acceptable)
+        try:
+            dash_email, dash_password = _get_dashboard_admin_credentials()
+            creds.append({"email": dash_email, "password": dash_password or None, "hash": None})
+        except Exception:
+            pass
+
+        # Validate against any available credential source
+        matched = False
+        for c in creds:
+            if not c.get("email"):
+                continue
+            if not hmac.compare_digest(email, c["email"]):
+                continue
+            # If a hash is provided, verify it; otherwise compare plaintext password if available
+            if c.get("hash") and c["hash"].strip():
+                try:
+                    if check_password_hash(c["hash"], password):
+                        matched = True
+                        break
+                except Exception:
+                    pass
+            if c.get("password") is not None:
+                if hmac.compare_digest(password, c["password"]):
+                    matched = True
+                    break
+
+        if matched:
             session['epaper_admin_auth'] = True
             next_url = request.form.get("next") or request.args.get("next") or url_for('admin')
             return redirect(next_url)
@@ -4713,14 +4747,6 @@ def register():
                 return render_template("auth.html", mode="register", page_title="Register")
 
             connection.execute(
-                "INSERT INTO users (name, email, password_hash, is_admin) VALUES (?, ?, ?, ?)",
-                (name, email, generate_password_hash(password), 1 if email == _get_dashboard_admin_credentials()[0] else 0),
-            )
-            connection.commit()
-
-        session["auth_user"] = {"name": name, "email": email, "is_admin": email == _get_dashboard_admin_credentials()[0]}
-        session.pop("pending_otp", None)
-        return redirect(url_for("dashboard"))
                 "INSERT INTO users (name, email, password_hash, verified) VALUES (?, ?, ?, ?)",
                 (name, email, generate_password_hash(password), 0),
             )
