@@ -2078,18 +2078,24 @@ def epaper_pdf_proxy():
     except (HTTPError, URLError, TimeoutError, ValueError):
         return jsonify({"error": "Unable to fetch PDF from source URL."}), 502
 
+def _get_admin_credentials():
+    email = os.getenv("ADMIN_LOGIN_EMAIL", "admin123@gmail.com").strip().lower()
+    password = os.getenv("ADMIN_LOGIN_PASSWORD", "vm@2026")
+    return email, password
+
+
 def _is_admin():
     # Check session-based admin auth (from admin_login page)
     if session.get('epaper_admin_auth') is True:
         return True
-    
+
     # Check if logged-in website user is the admin
     user = get_logged_in_user()
     if user:
-        admin_email = os.getenv("ADMIN_LOGIN_EMAIL", "vm2026.subscription@gmail.com").lower()
-        if user["email"].lower() == admin_email:
+        admin_email, _ = _get_admin_credentials()
+        if user.get("email", "").strip().lower() == admin_email:
             return True
-    
+
     return False
 
 def require_admin(f):
@@ -2112,9 +2118,8 @@ def admin_login():
     if request.method == "POST":
         email = (request.form.get("email", "") or "").strip().lower()
         password = request.form.get("password", "")
-        admin_email = os.getenv("ADMIN_LOGIN_EMAIL", "admin123@gmail.com")
-        admin_pass = os.getenv("ADMIN_LOGIN_PASSWORD", "vm@2026")
-        if email == admin_email.lower() and password == admin_pass:
+        admin_email, admin_pass = _get_admin_credentials()
+        if email == admin_email and password == admin_pass:
             session['epaper_admin_auth'] = True
             next_url = request.form.get("next") or request.args.get("next") or url_for('admin')
             return redirect(next_url)
