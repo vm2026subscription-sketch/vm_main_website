@@ -1222,8 +1222,59 @@ def _edition_preview_url(edition):
     return edition.get("masthead_image_url", "")
 
 
+def _fast_editions_list_from_pg():
+    """Server-side JSON extraction — returns only the metadata fields needed by
+    the editions list and calendar. Does NOT load full page/article content, so
+    it stays well under Vercel's 10-second function timeout even with 200+ editions."""
+    if not _pg_url():
+        return None
+    try:
+        conn = _pg_connect()
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    edition_date,
+                    edition_language,
+                    COALESCE(data->>'name', '')                              AS name,
+                    COALESCE((data->>'published')::boolean, true)            AS published,
+                    COALESCE(data->>'masthead_image_url', '')                AS masthead_image_url,
+                    jsonb_array_length(COALESCE(data->'pages','[]'::jsonb))  AS total_pages,
+                    COALESCE(
+                        data->'pages'->0->>'page_image_url',
+                        data->'pages'->0->>'image_path',
+                        ''
+                    )                                                        AS preview_image_url
+                FROM epaper_editions_v2
+                ORDER BY edition_date DESC
+            """)
+            rows = cur.fetchall()
+        conn.close()
+        if rows is None:
+            return []
+        return [
+            {
+                "date":               r[0],
+                "language":           r[1] or "Hindi",
+                "name":               r[2] or "",
+                "published":          r[3] if r[3] is not None else True,
+                "masthead_image_url": r[4] or "",
+                "total_pages":        r[5] or 0,
+                "preview_image_url":  r[6] or "",
+            }
+            for r in rows
+        ]
+    except Exception as e:
+        print(f"[epaper] Fast editions list failed: {e}")
+        return None
+
+
 @epaper_bp.route("/api/epaper/editions")
 def api_editions():
+    # Fast path: metadata-only query, never loads full page/article JSON
+    fast = _fast_editions_list_from_pg()
+    if fast is not None:
+        return jsonify({"editions": fast})
+    # Fallback: full load (used when DB is unreachable or table missing)
     editions = _load_editions()
     return jsonify({"editions": [
         {
