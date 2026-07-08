@@ -1825,6 +1825,55 @@ def api_tts_voices():
     ]})
 
 
+# ── Re-sync: merge editions_store blob into v2 rows ──────────────────────────
+# One-time fix for editions added while legacy (vansh-dev) code was in production.
+# Safe to call multiple times — only upserts, never deletes.
+@epaper_bp.route("/api/epaper/admin/resync-editions-store", methods=["POST"])
+def api_resync_editions_store():
+    guard = _require_epaper_admin()
+    if guard is not None: return guard
+    if not _pg_url():
+        return jsonify({"error": "Database not configured"}), 500
+    try:
+        conn = _pg_connect()
+        _pg_ensure_table(conn)
+        with conn.cursor() as cur:
+            cur.execute("SELECT data FROM epaper_editions_store WHERE id = 'editions'")
+            row = cur.fetchone()
+        if not row:
+            conn.close()
+            return jsonify({"synced": 0, "message": "epaper_editions_store has no editions blob — nothing to sync"})
+        blob = row[0]
+        if isinstance(blob, str):
+            blob = json.loads(blob)
+        if not isinstance(blob, list):
+            conn.close()
+            return jsonify({"error": "Unexpected data format in editions_store"}), 500
+
+        # Get existing v2 keys so we can count what's new
+        with conn.cursor() as cur:
+            cur.execute("SELECT edition_date, edition_language FROM epaper_editions_v2")
+            existing = {(r[0], r[1]) for r in cur.fetchall()}
+
+        new_count = 0
+        with conn.cursor() as cur:
+            for ed in blob:
+                _upsert_edition_row(cur, ed)
+                key = (ed.get("date", ""), ed.get("language", "Hindi"))
+                if key not in existing:
+                    new_count += 1
+        conn.commit()
+        conn.close()
+        _invalidate_editions_cache()
+        return jsonify({
+            "synced": len(blob),
+            "new": new_count,
+            "message": f"Merged {len(blob)} editions from store blob into v2 ({new_count} were new/updated)",
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # ── Backup: list backups for an edition ───────────────
 @epaper_bp.route("/api/epaper/admin/backups")
 def api_list_backups():
