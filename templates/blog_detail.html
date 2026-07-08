@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ blog.title }} | Blog</title>
+  <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #050a15;
+      --paper: rgba(13, 22, 39, 0.72);
+      --ink: #ffffff;
+      --muted: #94a3b8;
+      --line: rgba(255, 255, 255, 0.06);
+      --accent: #ff6600;
+      --accent-ink: #050a15;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Inter", sans-serif;
+      color: var(--ink);
+      background: radial-gradient(circle at top right, rgba(255,102,0, 0.08) 0%, transparent 42%), var(--bg);
+      min-height: 100vh;
+    }
+
+    .wrap {
+      width: min(900px, 92vw);
+      margin: 48px auto;
+      background: var(--paper);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 40px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    }
+
+    .hero-image {
+      width: 100%;
+      height: clamp(220px, 34vw, 360px);
+      object-fit: cover;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      margin-bottom: 28px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .meta {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+      border: 1px solid rgba(255,102,0, 0.2);
+      padding: 4px 12px;
+      border-radius: 20px;
+      background: rgba(255,102,0, 0.06);
+    }
+
+    h1 {
+      margin: 0 0 18px;
+      font-family: 'Poppins', sans-serif;
+      font-weight: 800;
+      font-size: clamp(1.8rem, 3vw, 2.7rem);
+      line-height: 1.2;
+      background: linear-gradient(90deg, var(--accent), #ffffff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: inline-block;
+    }
+
+    .summary {
+      color: var(--muted);
+      line-height: 1.8;
+      font-size: 1.05rem;
+      margin: 0 0 24px;
+    }
+
+    .body-text p {
+      margin: 0 0 18px;
+      color: var(--muted);
+      line-height: 1.85;
+      font-size: 1.02rem;
+    }
+
+    .cta {
+      margin-top: 32px;
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      border-top: 1px solid var(--line);
+      padding-top: 24px;
+    }
+
+    .btn {
+      text-decoration: none;
+      border-radius: 12px;
+      padding: 12px 22px;
+      font-weight: 700;
+      font-size: 14px;
+      border: 1.5px solid var(--line);
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.03);
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      transform: translateY(-2px);
+    }
+
+    .btn.primary {
+      border-color: var(--accent);
+      color: var(--accent-ink);
+      background: var(--accent);
+      box-shadow: 0 4px 15px rgba(255,102,0, 0.25);
+    }
+
+    .btn.primary:hover {
+      opacity: 0.9;
+      box-shadow: 0 6px 20px rgba(255,102,0, 0.4);
+    }
+
+    @media (max-width: 640px) {
+      .wrap {
+        margin: 24px auto;
+        padding: 22px;
+      }
+    }
+  </style>
+</head>
+<body>
+  {% include '_shared_index_navbar.html' %}
+  <main class="wrap">
+    <img class="hero-image" src="{{ url_for('static', filename=blog.image) }}" alt="{{ blog.title }}" onerror="this.src='{{ url_for('static', filename='logo.png') }}'">
+    <span class="meta">{{ blog.tag or blog.category }}</span>
+    <h1>{{ blog.title }}</h1>
+    <p class="summary">{{ blog.summary }}</p>
+    <div class="body-text">
+      {% for paragraph in blog.paragraphs %}
+      <p>{{ paragraph }}</p>
+      {% endfor %}
+    </div>
+    <div class="cta">
+      <a class="btn primary" href="{{ url_for('blog') }}">Back to Blogs</a>
+      <a class="btn" href="{{ url_for('contact') }}">Contact Support</a>
+    </div>
+  </main>
+</body>
+</html>

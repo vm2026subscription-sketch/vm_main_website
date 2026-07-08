@@ -23,14 +23,14 @@
   function markSavedState(btn) {
     var k = keyOf(btn.getAttribute("data-type"), btn.getAttribute("data-name"));
     if (saved[k]) {
-      setLabel(btn, "Saved <i class=\"fa fa-check\"></i>", true);
+      setLabel(btn, "Saved ✓", true);
     }
   }
 
   function setLabel(btn, text, isSaved) {
     var label = btn.querySelector(".vm-bookmark-label");
     if (label) {
-      label.innerHTML = text;
+      label.textContent = text;
     }
     var icon = btn.querySelector("i");
     if (icon) {
@@ -98,7 +98,7 @@
         if (data.status === "already_saved") {
           setLabel(btn, "Already Saved", true);
         } else {
-          setLabel(btn, "Saved <i class=\"fa fa-check\"></i>", true);
+          setLabel(btn, "Saved ✓", true);
         }
       })
       .catch(function () {
@@ -109,11 +109,11 @@
   function flash(btn, text) {
     var label = btn.querySelector(".vm-bookmark-label");
     if (!label) return;
-    var prev = label.innerHTML;
-    label.innerHTML = text;
+    var prev = label.textContent;
+    label.textContent = text;
     window.setTimeout(function () {
       if (!saved[keyOf(btn.getAttribute("data-type"), btn.getAttribute("data-name"))]) {
-        label.innerHTML = prev;
+        label.textContent = prev;
       }
     }, 1500);
   }

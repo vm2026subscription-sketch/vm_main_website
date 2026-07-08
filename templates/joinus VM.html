@@ -6,7 +6,6 @@
     <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
   <title>Join Us | VidyarthiMitra.org</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet"/>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Open Sans', sans-serif; background: #f5f5f5; color: #333; }
@@ -23,7 +22,7 @@
     .topbar a:hover { color: #F47B20; }
 
     /* ── NAVBAR ── */
-    .legacy-nav {
+    nav {
       background: #fff;
       border-bottom: 2px solid #F47B20;
       padding: 0 30px;
@@ -487,7 +486,7 @@
         <button class="submit-btn" onclick="handleSubmit('career')">Submit</button>
       </div>
       <div class="success-msg" id="success-career">
-        <i class="fa fa-check-circle" style="color:#22c55e;"></i> &nbsp;Thank you! Your career application has been submitted. We'll contact you soon.
+        ✅ &nbsp;Thank you! Your career application has been submitted. We'll contact you soon.
       </div>
     </div>
 
@@ -526,7 +525,7 @@
         <button class="submit-btn" onclick="handleSubmit('partner')">Submit</button>
       </div>
       <div class="success-msg" id="success-partner">
-        <i class="fa fa-check-circle" style="color:#22c55e;"></i> &nbsp;Thank you! Your partner enquiry has been submitted. We'll get back to you shortly.
+        ✅ &nbsp;Thank you! Your partner enquiry has been submitted. We'll get back to you shortly.
       </div>
     </div>
 
@@ -569,7 +568,7 @@
         <button class="submit-btn" onclick="handleSubmit('volunteer')">Submit</button>
       </div>
       <div class="success-msg" id="success-volunteer">
-        <i class="fa fa-check-circle" style="color:#22c55e;"></i> &nbsp;Thank you! Your volunteer application has been submitted. We'll be in touch soon.
+        ✅ &nbsp;Thank you! Your volunteer application has been submitted. We'll be in touch soon.
       </div>
     </div>
 

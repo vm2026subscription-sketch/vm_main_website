@@ -36,3 +36,6 @@ Thumbs.db
 *.lock.lock
 data/*.lock
 auth_users.db
+*.mp3
+tempCodeRunnerFile.py
+tests/
