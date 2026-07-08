@@ -1222,8 +1222,59 @@ def _edition_preview_url(edition):
     return edition.get("masthead_image_url", "")
 
 
+def _fast_editions_list_from_pg():
+    """Server-side JSON extraction — returns only the metadata fields needed by
+    the editions list and calendar. Does NOT load full page/article content, so
+    it stays well under Vercel's 10-second function timeout even with 200+ editions."""
+    if not _pg_url():
+        return None
+    try:
+        conn = _pg_connect()
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    edition_date,
+                    edition_language,
+                    COALESCE(data->>'name', '')                              AS name,
+                    COALESCE((data->>'published')::boolean, true)            AS published,
+                    COALESCE(data->>'masthead_image_url', '')                AS masthead_image_url,
+                    jsonb_array_length(COALESCE(data->'pages','[]'::jsonb))  AS total_pages,
+                    COALESCE(
+                        data->'pages'->0->>'page_image_url',
+                        data->'pages'->0->>'image_path',
+                        ''
+                    )                                                        AS preview_image_url
+                FROM epaper_editions_v2
+                ORDER BY edition_date DESC
+            """)
+            rows = cur.fetchall()
+        conn.close()
+        if rows is None:
+            return []
+        return [
+            {
+                "date":               r[0],
+                "language":           r[1] or "Hindi",
+                "name":               r[2] or "",
+                "published":          r[3] if r[3] is not None else True,
+                "masthead_image_url": r[4] or "",
+                "total_pages":        r[5] or 0,
+                "preview_image_url":  r[6] or "",
+            }
+            for r in rows
+        ]
+    except Exception as e:
+        print(f"[epaper] Fast editions list failed: {e}")
+        return None
+
+
 @epaper_bp.route("/api/epaper/editions")
 def api_editions():
+    # Fast path: metadata-only query, never loads full page/article JSON
+    fast = _fast_editions_list_from_pg()
+    if fast is not None:
+        return jsonify({"editions": fast})
+    # Fallback: full load (used when DB is unreachable or table missing)
     editions = _load_editions()
     return jsonify({"editions": [
         {
@@ -2023,6 +2074,57 @@ def api_epaper_diagnostics():
         out["merge_error"] = str(e)
 
     return jsonify(out)
+
+
+# ── Recovery: restore every edition that exists in backups but is missing from
+# the live v2 store (safe & idempotent — only ADDS missing editions, never
+# deletes or overwrites what's already live). ──
+@epaper_bp.route("/api/epaper/admin/restore-all-missing", methods=["GET", "POST"])
+def api_restore_all_missing():
+    guard = _require_epaper_admin()
+    if guard is not None:
+        return guard
+    if not _pg_url():
+        return jsonify({"error": "Database not configured."}), 500
+
+    conn = None
+    try:
+        conn = _pg_connect()
+        _pg_ensure_table(conn)
+        with conn.cursor() as cur:
+            # (date, language) pairs already live in v2
+            cur.execute("SELECT edition_date, edition_language FROM epaper_editions_v2")
+            live = {(r[0], r[1]) for r in cur.fetchall()}
+
+            # Latest backup snapshot per (date, language)
+            cur.execute("""
+                SELECT DISTINCT ON (edition_date, edition_language)
+                       edition_date, edition_language, snapshot
+                FROM epaper_edition_backups
+                ORDER BY edition_date, edition_language, saved_at DESC
+            """)
+            rows = cur.fetchall()
+
+            restored = []
+            for date, lang, snap in rows:
+                if (date, lang) in live:
+                    continue  # already present — never overwrite live data
+                edition = snap if not isinstance(snap, str) else json.loads(snap)
+                _upsert_edition_row(cur, edition)
+                restored.append(f"{date} ({lang})")
+        conn.commit()
+        conn.close()
+        _invalidate_editions_cache()
+        return jsonify({
+            "success": True,
+            "restored_count": len(restored),
+            "restored": sorted(restored, reverse=True),
+        })
+    except Exception as exc:
+        if conn:
+            try: conn.close()
+            except: pass
+        return jsonify({"error": str(exc)}), 500
 
 
 @epaper_bp.route("/api/supabase/keepalive")

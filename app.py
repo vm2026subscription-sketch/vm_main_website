@@ -4751,6 +4751,14 @@ def register():
                 (name, email, generate_password_hash(password), 0),
             )
             connection.commit()
+                "INSERT INTO users (name, email, password_hash, is_admin) VALUES (?, ?, ?, ?)",
+                (name, email, generate_password_hash(password), 1 if email == _get_dashboard_admin_credentials()[0] else 0),
+            )
+            connection.commit()
+
+        session["auth_user"] = {"name": name, "email": email, "is_admin": email == _get_dashboard_admin_credentials()[0]}
+        session.pop("pending_otp", None)
+        return redirect(url_for("dashboard"))
 
         otp_code = generate_login_otp()
         session["pending_register_otp"] = {
