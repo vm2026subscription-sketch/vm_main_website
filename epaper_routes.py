@@ -466,9 +466,9 @@ def _delete_edition_row(date, lang):
 
 
 def _load_editions_from_pg():
-    """Load editions by merging epaper_editions_v2 (per-row) with the legacy
-    epaper_editions_store blob. Merging both sources means editions are never
-    lost if code switches between the v2 schema and the old single-blob schema.
+    """Load editions from epaper_editions_v2. If the legacy epaper_editions_store
+    blob has editions not yet in v2 (written by older code), auto-upsert them into
+    v2 so the website always shows everything — no manual intervention needed.
     Returns list or None on failure."""
     if not _pg_url():
         return None
@@ -481,29 +481,38 @@ def _load_editions_from_pg():
             cur.execute("SELECT data FROM epaper_editions_v2")
             rows = cur.fetchall()
         v2_editions = [_row_to_edition(r[0]) for r in rows] if rows else []
+        v2_keys = {_edition_key(e) for e in v2_editions}
 
-        # Always also read the legacy store blob — picks up any editions that
-        # were written by older code while it was in production.
+        # Check legacy store blob for editions the older code wrote there
         with conn.cursor() as cur:
             cur.execute("SELECT data FROM epaper_editions_store WHERE id = 'editions'")
             store_row = cur.fetchone()
-        conn.close()
 
+        orphans = []
         if store_row:
             blob = store_row[0]
             if isinstance(blob, str):
                 blob = json.loads(blob)
-            if isinstance(blob, list) and blob:
-                return _merge_edition_lists(v2_editions, blob)
+            if isinstance(blob, list):
+                orphans = [e for e in blob if _edition_key(e) not in v2_keys]
 
-        # No store blob (or it was empty): fall back to file if v2 is also empty
+        if orphans:
+            # Auto-heal: upsert missing editions into v2 so they become permanent
+            with conn.cursor() as cur:
+                for ed in orphans:
+                    _upsert_edition_row(cur, ed)
+            conn.commit()
+            print(f"[epaper] Auto-healed {len(orphans)} editions from store blob into v2")
+            v2_editions = v2_editions + orphans
+
+        conn.close()
+
         if not v2_editions:
-            file_data = _load_editions_from_file()
-            return file_data if file_data else []
+            return _load_editions_from_file() or []
 
         return v2_editions
     except Exception as e:
-        print(f"[epaper] Postgres v2 load failed, falling back: {e}")
+        print(f"[epaper] Postgres load failed, falling back: {e}")
         return None
 
 
