@@ -73,7 +73,8 @@ const EP = {
     if (!/^\/epaper\/\d{4}-\d{2}-\d{2}/.test(location.pathname)) return;
     const editionPath = location.pathname + location.search;
     try {
-      history.replaceState(null, '', '/epaper');
+      const landingPath = location.hostname.startsWith('epaper.') ? '/' : '/epaper';
+      history.replaceState(null, '', landingPath);
       history.pushState(null, '', editionPath);
       this._editionBackNav = true;
     } catch (e) { /* history unavailable — leave default behaviour */ }
@@ -152,7 +153,7 @@ const EP = {
         // Opening an edition FROM the /epaper list -> PUSH so Back returns to
         // the list. Switching between editions -> REPLACE so Back doesn't have
         // to step through every edition you viewed.
-        const onLanding = window.location.pathname === '/epaper' || window.location.pathname === '/epaper/';
+        const onLanding = window.location.pathname === '/' || window.location.pathname === '/epaper' || window.location.pathname === '/epaper/';
         if (onLanding) {
           history.pushState(null, '', editionUrl);
         } else {
@@ -590,8 +591,10 @@ const EP = {
     window.addEventListener('popstate', () => {
       const panelOpen = this.el.articlePanel?.classList.contains('open');
       if (this.currentArticle || panelOpen) { this.closeArticle(true); return; }
-      if (this._editionBackNav && (location.pathname === '/epaper' || location.pathname === '/epaper/')) {
-        window.location.href = '/epaper';
+      const isOnSubdomain = location.hostname.startsWith('epaper.');
+      const landingPath = isOnSubdomain ? '/' : '/epaper';
+      if (this._editionBackNav && (location.pathname === landingPath || location.pathname === '/epaper' || location.pathname === '/epaper/')) {
+        window.location.href = landingPath;
       }
     });
 
