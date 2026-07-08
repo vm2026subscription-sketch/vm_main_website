@@ -42,6 +42,7 @@ const EPAdmin = {
   _markDirty() {
     this._isDirty = true;
     this._updateAutoSaveStatus('● Unsaved changes', '#f59e0b');
+    this._saveDraftLocal();
   },
 
   _updateAutoSaveStatus(text, color) {
@@ -58,6 +59,103 @@ const EPAdmin = {
 
   _stopAutoSave() {
     if (this._autoSaveTimer) { clearInterval(this._autoSaveTimer); this._autoSaveTimer = null; }
+  },
+
+  // ── Loud save-failure banner (Step 2: failures must never be silent) ──
+  _showSaveAlert(msg) {
+    const bar = document.getElementById('epaSaveAlert');
+    const txt = document.getElementById('epaSaveAlertMsg');
+    if (txt) txt.textContent = msg || 'Your changes were NOT saved. Do not close this page.';
+    if (bar) bar.style.display = 'block';
+  },
+
+  _hideSaveAlert() {
+    const bar = document.getElementById('epaSaveAlert');
+    if (bar) bar.style.display = 'none';
+  },
+
+  // ── Local draft persistence (Step 1: never lose work, even on refresh) ──
+  _draftKey(date, lang) {
+    const d = date || document.getElementById('edDate')?.value || '';
+    const l = lang || document.getElementById('edLang')?.value || '';
+    return `epaper_draft::${d}::${l}`;
+  },
+
+  _saveDraftLocal() {
+    try {
+      const date = document.getElementById('edDate')?.value;
+      if (!date) return; // need at least a date to key the draft
+      const language = document.getElementById('edLang')?.value || 'Hindi';
+      const draft = {
+        savedAt: Date.now(),
+        date,
+        name: document.getElementById('edName')?.value || '',
+        language,
+        status: document.getElementById('edStatus')?.value || 'published',
+        originalDate: this._originalDate || null,
+        originalLang: this._originalLang || null,
+        pages: this.pages,
+        editionMeta: this.editionMeta,
+      };
+      localStorage.setItem(this._draftKey(date, language), JSON.stringify(draft));
+    } catch (e) { /* storage full/unavailable — non-fatal */ }
+  },
+
+  _clearDraftLocal(date, lang) {
+    try { localStorage.removeItem(this._draftKey(date, lang)); } catch (e) {}
+  },
+
+  _listDrafts() {
+    const out = [];
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('epaper_draft::')) {
+          try { const v = JSON.parse(localStorage.getItem(k)); if (v) out.push(v); } catch (e) {}
+        }
+      }
+    } catch (e) {}
+    return out.sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+  },
+
+  _loadStateFromDraft(draft) {
+    this.currentEdition = { date: draft.date, language: draft.language, name: draft.name };
+    this.pages = draft.pages || [];
+    this.loadEditionMeta({
+      masthead_image_url: (draft.editionMeta || {}).masthead_image_url || '',
+      footer_links: (draft.editionMeta || {}).footer_links || [],
+    });
+    this.currentPageIdx = 0;
+    this.activeBlockIdx = null;
+    this._originalDate = draft.originalDate || draft.date;
+    this._originalLang = draft.originalLang || draft.language;
+    document.getElementById('edDate').value = draft.date;
+    document.getElementById('edName').value = draft.name || '';
+    document.getElementById('edLang').value = draft.language || 'Hindi';
+    document.getElementById('edStatus').value = draft.status || 'published';
+    if (!this.pages.length) this.addPage();
+    document.getElementById('builderSection').style.display = 'block';
+    document.getElementById('deleteEditionBtn').style.display = 'inline-flex';
+    this.renderPageTabs();
+    this.openPage(0);
+    this._startAutoSave();
+    this._markDirty(); // recovered but not yet confirmed on the server — keep it dirty
+    document.getElementById('builderSection').scrollIntoView({ behavior: 'smooth' });
+  },
+
+  _offerDraftRecovery() {
+    const drafts = this._listDrafts();
+    if (!drafts.length) return;
+    const d = drafts[0];
+    const when = d.savedAt ? new Date(d.savedAt).toLocaleString() : 'earlier';
+    const ok = confirm(
+      `Unsaved ePaper work was found on this device.\n\n` +
+      `Edition: ${d.date} (${d.language})\n` +
+      `Pages: ${(d.pages || []).length}\n` +
+      `Last change: ${when}\n\n` +
+      `This work was NOT confirmed saved to the server. Recover it now?`
+    );
+    if (ok) this._loadStateFromDraft(d);
   },
 
   async _autoSaveTick() {
@@ -94,6 +192,7 @@ const EPAdmin = {
     this.bindEvents();
     this.initQuill();
     this.initEditionMeta();
+    this._offerDraftRecovery();
   },
 
   initQuill() {
@@ -115,6 +214,10 @@ const EPAdmin = {
   },
 
   bindEvents() {
+    // Warn before leaving with unsaved changes (the draft is kept either way)
+    window.addEventListener('beforeunload', (e) => {
+      if (this._isDirty) { e.preventDefault(); e.returnValue = ''; return ''; }
+    });
     document.getElementById('editionForm')?.addEventListener('submit', e => { e.preventDefault(); this.saveEdition(); });
     document.getElementById('blockForm')?.addEventListener('submit', e => { e.preventDefault(); this.saveBlock(); });
     document.getElementById('deleteEditionBtn')?.addEventListener('click', () => this.deleteEdition());
@@ -1032,7 +1135,7 @@ const EPAdmin = {
     list.innerHTML = this.editions.slice().sort((a, b) => b.date.localeCompare(a.date)).map(ed => {
       const isPublished = ed.published !== false;
       const pubBadge = isPublished
-        ? `<span style="background:#fff7ed;color:#c2410c;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">✓ Published</span>`
+        ? `<span style="background:#fff7ed;color:#c2410c;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;"><i class="fa fa-check"></i> Published</span>`
         : `<span style="background:#fef9c3;color:#854d0e;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">Draft</span>`;
       return `
         <div class="epa-edition-card">
@@ -1134,7 +1237,7 @@ const EPAdmin = {
       const res = await fetch(`/api/epaper/admin/backups/${backupId}/restore`, { method: 'POST' });
       const data = await res.json();
       if (res.ok) {
-        this.showToast('✅ ' + (data.message || 'Edition restored successfully!'));
+        this.showToast('<i class="fa fa-check-circle" style="color:#22c55e"></i> ' + (data.message || 'Edition restored successfully!'));
         this.closeBackupPanel();
         this.loadEditions();
       } else {
@@ -1154,7 +1257,7 @@ const EPAdmin = {
         body: JSON.stringify({ published: publish }),
       });
       if (res.ok) {
-        this.showToast(publish ? '✅ Edition published!' : '⚠ Edition unpublished');
+        this.showToast(publish ? '<i class="fa fa-check-circle" style="color:#22c55e"></i> Edition published!' : '<i class="fa fa-exclamation-triangle" style="color:#f59e0b"></i> Edition unpublished');
         this.loadEditions();
       } else {
         const err = await res.json().catch(() => ({}));
@@ -1248,13 +1351,6 @@ const EPAdmin = {
         date_range: p.date_range || '',
         image_path: p.page_image_url || p.image_path || '',
         page_image_url: p.page_image_url || p.image_path || '',
-        layout_json: (p.blocks || []).map(b => ({
-          article_id: b.article_id || b.id,
-          x: b.x || 0,
-          y: b.y || 0,
-          width: b.w || b.width || 200,
-          height: b.h || b.height || 150,
-        })),
         blocks: (p.blocks || []).map(b => {
           const base = { id: b.id, type: b.type || 'article', x: b.x || 0, y: b.y || 0, w: b.w || 200, h: b.h || 150, width: b.w || 200, height: b.h || 150 };
           if (b.type === 'shape') {
@@ -1262,17 +1358,6 @@ const EPAdmin = {
           }
           return { ...base, article_id: b.article_id || b.id, headline: b.headline, title: b.headline, sub_headline: b.sub_headline, body_text: b.body_text, body_html: b.body_html || '', author: b.author || 'Vidyarthi Mitra Desk', category_label: b.category_label, category: b.category_label, image_url: b.image_url, image: b.image_url, gallery: b.gallery || [], border_width: b.border_width ?? 0, border_radius: b.border_radius ?? 0, border_color: b.border_color || '#e41e26', border_style: b.border_style || 'solid', goto_page: b.goto_page || null };
         }),
-        articles: (p.blocks || []).filter(b => b.type !== 'shape').map(b => ({
-          id: b.id, article_id: b.article_id || b.id, headline: b.headline, title: b.headline, sub_headline: b.sub_headline,
-          body_text: b.body_text, body_html: b.body_html || '',
-          author: b.author || 'Vidyarthi Mitra Desk',
-          category_label: b.category_label, category: b.category_label,
-          article_image_url: b.image_url,
-          image_url: b.image_url, image: b.image_url, gallery: b.gallery || [],
-          x: b.x, y: b.y, w: b.w, h: b.h, width: b.w, height: b.h,
-          border_width: b.border_width, border_radius: b.border_radius,
-          border_color: b.border_color, border_style: b.border_style,
-        })),
       })),
     };
 
@@ -1286,28 +1371,38 @@ const EPAdmin = {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+      let confirmed = false;
       if (res.ok) {
+        try { const body = await res.json(); confirmed = body && body.success === true; }
+        catch { confirmed = true; } // 2xx with no/invalid body — treat as success
+      }
+      if (confirmed) {
         this._isDirty = false;
         this._originalDate = date;
         this._originalLang = lang;
+        this._hideSaveAlert();
+        this._clearDraftLocal(date, lang); // server confirmed — safe to drop the local draft
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        this._updateAutoSaveStatus(`✓ Saved ${timeStr}`, '#22c55e');
+        this._updateAutoSaveStatus(`<i class="fa fa-check"></i> Saved ${timeStr}`, '#22c55e');
         if (silent) {
-          this.showToast(`✅ Auto-saved at ${timeStr}`);
+          this.showToast(`<i class="fa fa-check-circle" style="color:#22c55e"></i> Auto-saved at ${timeStr}`);
         } else {
-          this.showToast('✅ Edition saved!');
+          this.showToast('<i class="fa fa-check-circle" style="color:#22c55e"></i> Edition saved!');
         }
         this.loadEditions();
       } else {
         let msg = `Save failed (${res.status})`;
         try { const e = await res.json(); msg = e.error || msg; } catch {}
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        this._updateAutoSaveStatus(`Auto-save failed ${timeStr}`, '#ef4444');
+        this._updateAutoSaveStatus(`Save FAILED ${timeStr}`, '#ef4444');
+        // Loud, persistent warning — draft is kept until a real save succeeds
+        this._showSaveAlert(`NOT SAVED: ${msg}. Your work is kept on this device — do not close this page; click "Retry save".`);
         if (!silent) alert(msg);
       }
     } catch (e) {
       const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      this._updateAutoSaveStatus(`Auto-save failed ${timeStr}`, '#ef4444');
+      this._updateAutoSaveStatus(`Save FAILED ${timeStr}`, '#ef4444');
+      this._showSaveAlert(`NOT SAVED: network error (${e.message}). Your work is kept on this device — do not close this page; click "Retry save".`);
       if (!silent) alert('Network error: ' + e.message);
     } finally {
       if (silent) this._autoSaving = false;
@@ -1323,6 +1418,8 @@ const EPAdmin = {
       await fetch(`/api/epaper/admin/edition/${this.currentEdition.date}${langParam}`, { method: 'DELETE' });
       this._stopAutoSave();
       this._isDirty = false;
+      this._hideSaveAlert();
+      this._clearDraftLocal(this.currentEdition.date, lang);
       this.currentEdition = null; this.pages = [];
       document.getElementById('builderSection').style.display = 'none';
       this.loadEditions(); this.showToast('Deleted');
@@ -1335,6 +1432,7 @@ const EPAdmin = {
     try {
       const res = await fetch(`/api/epaper/admin/edition/${date}${langParam}`, { method: 'DELETE' });
       if (!res.ok) { this.showToast('Delete failed'); return; }
+      this._clearDraftLocal(date, lang || 'Hindi');
       // If this edition is currently open in the builder, close it
       if (this.currentEdition?.date === date && (!lang || this.currentEdition?.language === lang)) {
         this.currentEdition = null; this.pages = [];
@@ -1538,7 +1636,7 @@ const EPAdmin = {
     if (!page) return;
     this._copiedPage = JSON.parse(JSON.stringify(page));
     this.renderPageTabs();
-    this.showToast('📋 Page copied — open any edition and click "Paste Page"');
+    this.showToast('<i class="fa fa-clipboard"></i> Page copied — open any edition and click "Paste Page"');
   },
 
   pastePage() {
@@ -1557,7 +1655,7 @@ const EPAdmin = {
     this.pages.push(clone);
     this.renderPageTabs();
     this.openPage(this.pages.length - 1);
-    this.showToast('✅ Page pasted!');
+    this.showToast('<i class="fa fa-check-circle" style="color:#22c55e"></i> Page pasted!');
   },
 
   // ══════ BLOCK CRUD ══════
@@ -1794,7 +1892,7 @@ const EPAdmin = {
     block.goto_page = gotoVal >= 1 ? gotoVal : null;
 
     this.renderCanvas();
-    this.showToast('✅ Block saved');
+    this.showToast('<i class="fa fa-check-circle" style="color:#22c55e"></i> Block saved');
   },
 
   applyGotoPage() {
@@ -2097,7 +2195,7 @@ const EPAdmin = {
   showToast(msg) {
     const t = document.getElementById('adminToast');
     if (!t) return;
-    t.textContent = msg; t.classList.add('show');
+    t.innerHTML = msg; t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 2500);
   },
 };

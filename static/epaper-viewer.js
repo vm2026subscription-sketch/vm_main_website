@@ -41,6 +41,8 @@ const EP = {
   el: {},
 
   init() {
+    // Run FIRST — the history rewrite must not be blocked by any later init error.
+    this._setupEditionBackTarget();
     this.cacheDOM();
     this.ensureArticleFeatureUI();
     this.cacheDOM();
@@ -54,11 +56,28 @@ const EP = {
       this.loadLatestEdition();
     }
 
+    const initLang = (document.body.dataset.initialLanguage || '').trim().toLowerCase();
+    if (initLang) this.landingLanguageFilter = initLang;
+
     this.loadEditions();
     this.startAutoRefreshPoll();
     this.loadNewsSidebar();
     this._initSwipeHint();
     this._initViewportFit();
+  },
+
+  // Make the Back button on a specific edition page (/epaper/YYYY-MM-DD) return
+  // to the ePaper landing (/epaper) instead of the site home page. Inserts
+  // /epaper directly behind the current edition entry in history.
+  _setupEditionBackTarget() {
+    if (!/^\/epaper\/\d{4}-\d{2}-\d{2}/.test(location.pathname)) return;
+    const editionPath = location.pathname + location.search;
+    try {
+      const landingPath = location.hostname.startsWith('epaper.') ? '/' : '/epaper';
+      history.replaceState(null, '', landingPath);
+      history.pushState(null, '', editionPath);
+      this._editionBackNav = true;
+    } catch (e) { /* history unavailable — leave default behaviour */ }
   },
 
   setReaderMode(isOpen) {
@@ -131,8 +150,17 @@ const EP = {
     if (updateUrl && data?.date) {
       const editionUrl = `/epaper/${data.date}`;
       if (window.location.pathname !== editionUrl) {
-        history.replaceState(null, '', editionUrl);
+        // Opening an edition FROM the /epaper list -> PUSH so Back returns to
+        // the list. Switching between editions -> REPLACE so Back doesn't have
+        // to step through every edition you viewed.
+        const onLanding = window.location.pathname === '/' || window.location.pathname === '/epaper' || window.location.pathname === '/epaper/';
+        if (onLanding) {
+          history.pushState(null, '', editionUrl);
+        } else {
+          history.replaceState(null, '', editionUrl);
+        }
       }
+      this._editionBackNav = true;
     }
   },
 
@@ -161,7 +189,7 @@ const EP = {
     banner.id = 'epNewEditionBanner';
     banner.className = 'ep-new-edition-banner';
     const icon = document.createElement('span');
-    icon.className = 'ep-neb-icon'; icon.textContent = '📰';
+    icon.className = 'ep-neb-icon'; icon.innerHTML = '<i class="fa fa-newspaper"></i>';
     const text = document.createElement('span');
     text.className = 'ep-neb-text'; text.textContent = 'New edition available: ';
     const strong = document.createElement('strong');
@@ -171,7 +199,7 @@ const EP = {
     loadBtn.className = 'ep-neb-load'; loadBtn.textContent = 'Load Now';
     loadBtn.onclick = () => EP._loadNewEdition(data.date);
     const closeBtn = document.createElement('button');
-    closeBtn.className = 'ep-neb-close'; closeBtn.textContent = '✕';
+    closeBtn.className = 'ep-neb-close'; closeBtn.innerHTML = '<i class="fa fa-times"></i>';
     closeBtn.onclick = () => banner.remove();
     banner.append(icon, text, loadBtn, closeBtn);
     document.body.appendChild(banner);
@@ -234,6 +262,7 @@ const EP = {
       translatePane.className = 'ep-ai-content';
       translatePane.dataset.tab = 'translate';
       translatePane.innerHTML = `
+        <button class="ep-ai-close" onclick="EP.closeAiPanel()" title="Close" aria-label="Close translate panel">&times;</button>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
           <label for="epTranslateSelect" style="font-size:12px;font-weight:600;color:#6b7280;">Language</label>
           <select id="epTranslateSelect" class="ep-tts-voice-select" title="Select translation language">
@@ -555,6 +584,19 @@ const EP = {
 
     // Article panel back
     this.el.articleBack?.addEventListener('click', () => this.closeArticle());
+    // Browser / phone Back button:
+    //   1) if an article is open  -> close it (stay on the edition page)
+    //   2) if Back lands on /epaper -> load the ePaper landing instead of the
+    //      site home (the back target is set up by _setupEditionBackTarget()).
+    window.addEventListener('popstate', () => {
+      const panelOpen = this.el.articlePanel?.classList.contains('open');
+      if (this.currentArticle || panelOpen) { this.closeArticle(true); return; }
+      const isOnSubdomain = location.hostname.startsWith('epaper.');
+      const landingPath = isOnSubdomain ? '/' : '/epaper';
+      if (this._editionBackNav && (location.pathname === landingPath || location.pathname === '/epaper' || location.pathname === '/epaper/')) {
+        window.location.href = landingPath;
+      }
+    });
 
     // AI tabs
     this.el.aiTabs?.forEach(tab => {
@@ -765,9 +807,13 @@ const EP = {
       subtitle.className = 'ep-edition-card-subtitle';
       subtitle.textContent = this.formatEditionCardDate(edition.date);
 
+      const langLabel = (edition.language || 'Edition').trim();
+      const langKey = langLabel.toLowerCase();
+
       const language = document.createElement('div');
-      language.className = 'ep-edition-card-language';
-      language.textContent = (edition.language || 'Edition').trim();
+      language.className = `ep-edition-card-language ${this.getEditionLanguageClass(langLabel)}`;
+      language.dataset.lang = langKey;
+      language.textContent = langLabel;
 
       body.append(title, subtitle, language);
 
@@ -812,6 +858,14 @@ const EP = {
       return `${rawName} ${edition.language || ''}`.trim();
     }
     return `VidyarthiMitra ${edition.language || 'Edition'}`.trim();
+  },
+
+  getEditionLanguageClass(language) {
+    const key = (language || '').trim().toLowerCase();
+    if (key.includes('english')) return 'ep-lang-english';
+    if (key.includes('hindi')) return 'ep-lang-hindi';
+    if (key.includes('marathi')) return 'ep-lang-marathi';
+    return 'ep-lang-default';
   },
 
   formatEditionCardDate(date) {
@@ -1000,19 +1054,22 @@ const EP = {
 
       const d = new Date(Date.UTC(this.calendarYear, this.calendarMonth, day));
       const utcKey = this.getUTCDateKey(d);
-      if (utcKey > todayKey) el.classList.add('disabled');
+      const hasEdition = this.editions.some(e => e.date === utcKey && e.published !== false);
+
       if (utcKey === todayKey) el.classList.add('today');
       if (utcKey === selectedKey) el.classList.add('selected');
 
-      // Check if edition exists
-      const iso = utcKey;
-      if (this.editions.some(e => e.date === iso)) el.classList.add('has-edition');
-
-      if (!el.classList.contains('disabled')) {
+      // Only days that actually have a published edition are selectable.
+      // Every other date (dates we didn't publish on, and future dates) is
+      // disabled/greyed — you publish weekly, not daily.
+      if (hasEdition) {
+        el.classList.add('has-edition');
         el.addEventListener('click', async () => {
           this.setDate(new Date(this.calendarYear, this.calendarMonth, day));
           await this.toggleCalendar(false);
         });
+      } else {
+        el.classList.add('disabled');
       }
       grid.appendChild(el);
     }
@@ -1052,12 +1109,14 @@ const EP = {
     const ed = this.currentEdition;
     if (!ed || !ed.date) return;
     const lang = ed.language || this.currentLanguage || '';
-    const sessionKey = `epv_${ed.date}_${lang}`;
-    const alreadyCounted = sessionStorage.getItem(sessionKey);
+    const lsKey = `epv_${ed.date}_${lang}`;
+    const THROTTLE_MS = 24 * 60 * 60 * 1000; // 24 hours
+    const lastSeen = parseInt(localStorage.getItem(lsKey) || '0');
+    const alreadyCounted = (Date.now() - lastSeen) < THROTTLE_MS;
     try {
       let views;
       if (alreadyCounted) {
-        // Already counted this session — just fetch current count without incrementing
+        // Viewed within last 24h — fetch count without incrementing
         const res = await fetch(
           `/api/epaper/edition/${encodeURIComponent(ed.date)}/views?lang=${encodeURIComponent(lang)}`
         );
@@ -1072,7 +1131,7 @@ const EP = {
         if (!res.ok) return;
         const data = await res.json();
         views = data?.views;
-        sessionStorage.setItem(sessionKey, '1');
+        localStorage.setItem(lsKey, String(Date.now()));
       }
       if (typeof views === 'number') this.updateViewBadge(views);
     } catch (e) { /* ignore network errors */ }
@@ -1360,11 +1419,11 @@ const EP = {
       const y = ((block.y || 0) / canvasH * 100).toFixed(2);
       const w = ((block.w || 200) / CANVAS_W * 100).toFixed(2);
       const h = ((block.h || 150) / canvasH * 100).toFixed(2);
-      const bw = block.border_width ?? 0;
       const br = block.border_radius ?? 0;
-      const bc = block.border_color || '#e41e26';
-      const bs = block.border_style || 'solid';
-      const borderCSS = type === 'article' && bw > 0 ? `border:${bw}px ${bs} ${bc};` : '';
+      // Article boxes no longer draw a border in the reader view (the red boxes
+      // looked bad over the page). The card stays fully clickable — link/hotspot
+      // behaviour is unchanged; only the visible border is hidden.
+      const borderCSS = '';
       const baseStyle = `position:absolute;left:${x}%;top:${y}%;width:${w}%;height:${h}%;border-radius:${br}px;${borderCSS}overflow:hidden;`;
 
       if (type === 'divider') {
@@ -1786,6 +1845,17 @@ const EP = {
     if (!art) return;
     this.currentArticle = art;
 
+    // Add a DISTINCT history entry (URL hash) so the browser/phone Back button
+    // closes this article and returns to the newspaper page — instead of leaving
+    // the ePaper. A changed URL (#article) makes the Back/popstate event fire
+    // reliably across browsers, and reading it back from location.hash is
+    // self-correcting (no stale flag that can desync).
+    if (!location.hash.includes('article')) {
+      try {
+        history.pushState({ epArticle: true }, '', location.pathname + location.search + '#article');
+      } catch (e) {}
+    }
+
     // Reset voice select and player state each time a new article opens
     if (this.el.voiceSelect) this.el.voiceSelect.value = '';
     this._voice.selectedVoice = '';
@@ -1895,11 +1965,17 @@ const EP = {
     document.body.style.overflow = '';
   },
 
-  closeArticle() {
+  closeArticle(fromPopstate = false) {
     this.el.articlePanel?.classList.remove('open');
     document.body.style.overflow = '';
     this.stopTTS();
     this.currentArticle = null;
+    // Remove the #article history entry. On popstate the entry is already gone
+    // (user pressed Back), so don't navigate again; otherwise pop it so the URL
+    // and history return to the clean newspaper page.
+    if (!fromPopstate && location.hash.includes('article')) {
+      try { history.back(); } catch (e) {}
+    }
   },
 
   // ── AI Tabs ──
@@ -1912,6 +1988,13 @@ const EP = {
       this._autoSetTranslateLang();
       this.translateArticle();
     }
+  },
+
+  // Collapse/hide the open Translate/Summarize/Share panel without leaving the
+  // article (the × / minimise button).
+  closeAiPanel() {
+    this.el.aiTabs?.forEach(t => t.classList.remove('active'));
+    this.el.aiContents?.forEach(c => c.classList.remove('active'));
   },
 
   _autoSetTranslateLang() {
@@ -1947,7 +2030,7 @@ const EP = {
       return;
     }
 
-    this.showToast('🔄 Translating...');
+    this.showToast('<i class="fa fa-sync fa-spin"></i> Translating...');
 
     const art = this.currentArticle;
     const headline = art.headline || '';
@@ -1987,7 +2070,7 @@ const EP = {
       }
 
       const langNames = { hi: 'हिंदी', mr: 'मराठी', en: 'English' };
-      this.showToast(`✅ Translated to ${langNames[lang] || lang}`);
+      this.showToast(`<i class="fa fa-check-circle" style="color:#22c55e"></i> Translated to ${langNames[lang] || lang}`);
     } catch (e) {
       this.showToast('Translation failed');
     }
@@ -2328,7 +2411,7 @@ const EP = {
       this._voice.abortController = null;
       if (this.el.ttsStartBtn) { this.el.ttsStartBtn.innerHTML = '<i class="fa fa-play"></i> <span>Play</span>'; this.el.ttsStartBtn.classList.remove('loading'); }
       this._voiceUpdatePlayIcon();
-      this.showToast('🔊 Now playing');
+      this.showToast('<i class="fa fa-volume-up"></i> Now playing');
       this.trackEvent('voice_play', { article: this.currentArticle?.headline, voice: this._voice.selectedVoice || 'auto' });
 
     } catch (err) {
@@ -2495,7 +2578,7 @@ const EP = {
       if (this.el.voiceBar) this.el.voiceBar.classList.remove('topbar');
       if (this.el.ttsPrompt) this.el.ttsPrompt.style.display = '';
     }, 1800);
-    this.showToast('✅ Finished reading');
+    this.showToast('<i class="fa fa-check-circle" style="color:#22c55e"></i> Finished reading');
   },
 
   // Toggle play/pause
@@ -2703,7 +2786,7 @@ const EP = {
     a.href = audio.src;
     a.download = `${headline || 'audio'}.mp3`;
     a.click();
-    this.showToast('⬇️ Downloading audio...');
+    this.showToast('<i class="fa fa-download"></i> Downloading audio...');
   },
 
   // ── Save Edition as PDF ──
@@ -2956,7 +3039,7 @@ const EP = {
   showToast(msg) {
     if (!this.el.toast) return;
     if (this._toastTimer) clearTimeout(this._toastTimer);
-    this.el.toast.textContent = msg;
+    this.el.toast.innerHTML = msg;
     this.el.toast.classList.add('show');
     const duration = Math.max(1800, Math.min(5200, 1400 + String(msg || '').trim().length * 35));
     this._toastTimer = setTimeout(() => {

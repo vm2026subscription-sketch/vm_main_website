@@ -1117,19 +1117,59 @@
 
   </section>
 
+  <style>
+    .date-picker-box { position: relative; }
+    .date-picker-btn { display: flex; align-items: center; gap: 8px; background: var(--panel, #131c2e);
+      border: 1px solid var(--border, #2a3550); color: var(--text, #e2e8f0); border-radius: 10px;
+      padding: 10px 14px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .date-picker-btn:hover { border-color: var(--orange, #ff6600); }
+    .date-picker-btn .fa-calendar-alt { color: var(--orange, #ff6600); }
+    .archive-cal { position: absolute; top: calc(100% + 8px); left: 0; z-index: 200; background: var(--panel, #131c2e);
+      border: 1px solid var(--border, #2a3550); border-radius: 14px; padding: 14px; width: 288px; box-shadow: 0 16px 40px rgba(0,0,0,.45); }
+    .archive-cal[hidden] { display: none; }
+    .archive-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .archive-cal-head span { font-weight: 700; font-size: 14px; color: var(--text, #e2e8f0); }
+    .archive-cal-head button { background: transparent; border: none; color: var(--text, #e2e8f0); width: 30px; height: 30px;
+      border-radius: 8px; cursor: pointer; }
+    .archive-cal-head button:hover { background: rgba(255,255,255,.08); }
+    .archive-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+    .acal-dn { text-align: center; font-size: 10px; font-weight: 700; color: var(--muted, #94a3b8); padding: 4px 0; }
+    .acal-day { aspect-ratio: 1; border: none; background: transparent; color: var(--text, #e2e8f0); border-radius: 50%;
+      font-family: inherit; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .acal-day.off { opacity: .28; cursor: not-allowed; }
+    .acal-day.has { font-weight: 700; }
+    .acal-day.has:hover { background: rgba(255,102,0,.18); color: var(--orange, #ff6600); }
+    .acal-day.sel { background: var(--orange, #ff6600); color: #fff; }
+    .archive-cal-clear { width: 100%; margin-top: 12px; padding: 8px; border-radius: 8px; background: transparent;
+      border: 1px solid var(--border, #2a3550); color: var(--muted, #94a3b8); font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .archive-cal-clear:hover { color: var(--orange, #ff6600); border-color: var(--orange, #ff6600); }
+  </style>
+
   <!-- ── CONTROLS BAR ── -->
   <div class="controls-bar">
     <div class="controls-inner">
-      <div class="search-box">
-        <i class="fa fa-search"></i>
-        <input type="text" id="searchInput" placeholder="Search editions…">
+      <div class="date-picker-box">
+        <button class="date-picker-btn" id="archiveDateBtn" type="button">
+          <i class="fa fa-calendar-alt"></i>
+          <span id="archiveDateLabel">Pick a date</span>
+          <i class="fa fa-chevron-down" style="font-size:10px"></i>
+        </button>
+        <div class="archive-cal" id="archiveCal" hidden>
+          <div class="archive-cal-head">
+            <button type="button" id="archiveCalPrev" aria-label="Previous month"><i class="fa fa-chevron-left"></i></button>
+            <span id="archiveCalTitle"></span>
+            <button type="button" id="archiveCalNext" aria-label="Next month"><i class="fa fa-chevron-right"></i></button>
+          </div>
+          <div class="archive-cal-grid" id="archiveCalGrid"></div>
+          <button type="button" class="archive-cal-clear" id="archiveCalClear">Show all editions</button>
+        </div>
       </div>
 
       <div class="filter-group">
         <button class="pill active" data-filter="all">All</button>
-        <button class="pill" data-filter="marathi">🇮🇳 Marathi</button>
-        <button class="pill" data-filter="english">🇬🇧 English</button>
-        <button class="pill" data-filter="new">✨ Latest</button>
+        <button class="pill" data-filter="marathi"><i class="fa fa-language"></i> Marathi</button>
+        <button class="pill" data-filter="hindi"><i class="fa fa-language"></i> Hindi</button>
+        <button class="pill" data-filter="english"><i class="fa fa-globe"></i> English</button>
       </div>
 
       <select class="sort-select" id="sortSelect">
@@ -1186,7 +1226,7 @@
           </div>
           <div class="info-chip">
             <div class="lbl">Status</div>
-            <div class="val" style="color:#f97316;">✓ Available</div>
+            <div class="val" style="color:#f97316;"><i class="fa fa-check"></i> Available</div>
           </div>
         </div>
         <div class="modal-actions">
@@ -1234,7 +1274,7 @@
     ═══════════════════════════════════════════════ */
     let editions     = [];
     let activeFilter = 'all';
-    let searchQuery  = '';
+    let dateFilter   = '';   // 'YYYY-MM-DD' when a calendar date is picked, else ''
     let sortOrder    = 'newest';
     const PAGE_SIZE  = 8;
     let visibleCount = PAGE_SIZE;
@@ -1385,23 +1425,24 @@
     ═══════════════════════════════════════════════ */
     function getFiltered() {
       let arr = editions.filter(e => {
-        const q = searchQuery.toLowerCase();
-        const matchSearch = !q ||
-          e.lang.toLowerCase().includes(q) ||
-          e.week.toLowerCase().includes(q) ||
-          e.start.includes(q) ||
-          e.tags.some(t => t.toLowerCase().includes(q));
+        const matchDate = !dateFilter || e.start === dateFilter;
 
         const matchFilter =
           activeFilter === 'all'     ? true :
           activeFilter === 'marathi' ? e.lang === 'Marathi' :
-          activeFilter === 'english' ? e.lang === 'English' :
-          activeFilter === 'new'     ? e.isNew : true;
+          activeFilter === 'hindi'   ? e.lang === 'Hindi' :
+          activeFilter === 'english' ? e.lang === 'English' : true;
 
-        return matchSearch && matchFilter;
+        return matchDate && matchFilter;
       });
 
-      arr.sort((a,b) => sortOrder === 'newest' ? b.id - a.id : a.id - b.id);
+      // Sort by the edition's actual date (not id — uploads aren't always in
+      // date order). Newest First = most recent date on top; Oldest First = reverse.
+      arr.sort((a, b) => {
+        const da = new Date(a.start).getTime() || 0;
+        const db = new Date(b.start).getTime() || 0;
+        return sortOrder === 'newest' ? db - da : da - db;
+      });
       return arr;
     }
 
@@ -1848,11 +1889,74 @@
       });
     });
 
-    document.getElementById('searchInput').addEventListener('input', function() {
-      searchQuery  = this.value;
+    /* ── Archive calendar: pick a date → see only that edition ──
+       Only dates that actually have an edition are clickable; the rest are
+       greyed out (you publish weekly, not daily). */
+    let calMonth, calYear;
+    const archiveCal    = document.getElementById('archiveCal');
+    const archiveDateBtn = document.getElementById('archiveDateBtn');
+
+    function editionDateSet() {
+      return new Set(editions.map(e => e.start).filter(d => d && d !== '–'));
+    }
+
+    function renderArchiveCal() {
+      const grid  = document.getElementById('archiveCalGrid');
+      const title = document.getElementById('archiveCalTitle');
+      if (!grid) return;
+      const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      title.textContent = `${months[calMonth]} ${calYear}`;
+      const dates = editionDateSet();
+      const firstDay    = new Date(calYear, calMonth, 1).getDay();
+      const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+      let html = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => `<span class="acal-dn">${d}</span>`).join('');
+      for (let i = 0; i < firstDay; i++) html += '<span></span>';
+      for (let day = 1; day <= daysInMonth; day++) {
+        const key = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const has = dates.has(key);
+        const sel = key === dateFilter;
+        html += `<button type="button" class="acal-day ${has ? 'has' : 'off'}${sel ? ' sel' : ''}"${has ? ` data-date="${key}"` : ' disabled'}>${day}</button>`;
+      }
+      grid.innerHTML = html;
+      grid.querySelectorAll('.acal-day.has').forEach(b => b.addEventListener('click', () => {
+        dateFilter = b.dataset.date;
+        document.getElementById('archiveDateLabel').textContent = b.dataset.date;
+        archiveCal.hidden = true;
+        visibleCount = PAGE_SIZE;
+        renderGrid();
+      }));
+    }
+
+    function jumpArchiveCal(dir) {
+      calMonth += dir;
+      if (calMonth < 0)  { calMonth = 11; calYear--; }
+      if (calMonth > 11) { calMonth = 0;  calYear++; }
+      renderArchiveCal();
+    }
+
+    archiveDateBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (archiveCal.hidden) {
+        // Open on the month of the newest edition so users see recent papers first.
+        const latest = editions.map(x => x.start).filter(d => d && d !== '–').sort().pop();
+        const base = latest ? new Date(latest + 'T00:00:00') : new Date();
+        calMonth = base.getMonth();
+        calYear  = base.getFullYear();
+        renderArchiveCal();
+      }
+      archiveCal.hidden = !archiveCal.hidden;
+    });
+    document.getElementById('archiveCalPrev').addEventListener('click', function (e) { e.stopPropagation(); jumpArchiveCal(-1); });
+    document.getElementById('archiveCalNext').addEventListener('click', function (e) { e.stopPropagation(); jumpArchiveCal(1); });
+    document.getElementById('archiveCalClear').addEventListener('click', function () {
+      dateFilter = '';
+      document.getElementById('archiveDateLabel').textContent = 'Pick a date';
+      archiveCal.hidden = true;
       visibleCount = PAGE_SIZE;
       renderGrid();
     });
+    archiveCal.addEventListener('click', function (e) { e.stopPropagation(); });
+    document.addEventListener('click', function () { if (!archiveCal.hidden) archiveCal.hidden = true; });
 
     document.getElementById('sortSelect').addEventListener('change', function() {
       sortOrder    = this.value;

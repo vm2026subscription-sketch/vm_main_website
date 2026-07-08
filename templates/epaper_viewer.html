@@ -27,7 +27,7 @@
   <meta name="twitter:image:alt" content="{{ og_image_alt }}"/>
   <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='epaper-viewer.css', v='20260623-epaper-fullscreen-scroll-fix') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='epaper-viewer.css', v='20260705-calendar-editions-only') }}">
   <style>
     .ep-views-badge {
       display: inline-flex;
@@ -74,7 +74,7 @@
   }
   </script>
 </head>
-<body class="epaper-body" data-epaper-mode="{{ 'edition' if initial_date else 'landing' }}">
+<body class="epaper-body" data-epaper-mode="{{ 'edition' if initial_date else 'landing' }}" data-initial-language="{{ initial_language or '' }}">
   {% include '_shared_index_navbar.html' %}
 
   <!-- ── CATEGORY NAV ── -->
@@ -372,6 +372,7 @@
     </div>
 
     <div class="ep-ai-content" data-tab="summarize">
+      <button class="ep-ai-close" onclick="EP.closeAiPanel()" title="Close" aria-label="Close summary panel">&times;</button>
       <div class="ep-summary-box" id="epSummaryOutput">
         <p>Click to generate AI summary.</p>
       </div>
@@ -379,6 +380,7 @@
 
 
     <div class="ep-ai-content" data-tab="share">
+      <button class="ep-ai-close" onclick="EP.closeAiPanel()" title="Close" aria-label="Close share panel">&times;</button>
       <div class="ep-share-menu">
         <button class="ep-share-item" onclick="EP.shareArticle('whatsapp')"><i class="fab fa-whatsapp" style="color:#25d366"></i> WhatsApp</button>
         <button class="ep-share-item" onclick="EP.shareArticle('twitter')"><i class="fab fa-x-twitter"></i> Twitter / X</button>
@@ -413,14 +415,22 @@
   <!-- ── Toast ── -->
   <div class="ep-toast" id="epToast"></div>
 
-  <script src="{{ url_for('static', filename='epaper-viewer.js', v='20260623-epaper-fullscreen-scroll-fix') }}"></script>
+  <script src="{{ url_for('static', filename='epaper-viewer.js', v='20260705-calendar-editions-only') }}"></script>
 
   <!-- PWA Service Worker -->
   <script>
+    // The old caching service worker trapped users on stale JS/CSS. Stop using
+    // it entirely: unregister any existing worker and wipe its caches on every
+    // load so the latest deployed code always runs.
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/static/epaper-sw.js?v=20260619-epaper-sw-v2')
-        .then(reg => console.log('SW registered:', reg.scope))
-        .catch(err => console.warn('SW registration failed:', err));
+      navigator.serviceWorker.getRegistrations()
+        .then(function (regs) { regs.forEach(function (r) { r.unregister(); }); })
+        .catch(function () {});
+    }
+    if (window.caches && caches.keys) {
+      caches.keys()
+        .then(function (keys) { keys.forEach(function (k) { caches.delete(k); }); })
+        .catch(function () {});
     }
   </script>
 </body>

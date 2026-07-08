@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Page Not Found — Vidyarthi Mitra{% endblock %}
+{% block meta_description %}The page you're looking for doesn't exist. Return to VidyarthiMitra.org.{% endblock %}
+
+{% block content %}
+<style>
+  .vm-error-page {
+    min-height: 70vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+    background: #0a1120;
+  }
+  .vm-error-inner { max-width: 520px; }
+  .vm-error-code {
+    font-size: clamp(80px, 15vw, 140px);
+    font-weight: 900;
+    line-height: 1;
+    color: #ff6600;
+    letter-spacing: -4px;
+    margin-bottom: 8px;
+  }
+  .vm-error-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #e2e8f0;
+    margin-bottom: 12px;
+  }
+  .vm-error-msg {
+    font-size: 15px;
+    color: #94a3b8;
+    line-height: 1.65;
+    margin-bottom: 36px;
+  }
+  .vm-error-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+  }
+  .vm-error-btn-primary {
+    background: #ff6600;
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 12px 28px;
+    border-radius: 99px;
+    text-decoration: none;
+    transition: background .2s, transform .2s;
+  }
+  .vm-error-btn-primary:hover { background: #ff7733; transform: translateY(-2px); color: #fff; }
+  .vm-error-btn-secondary {
+    background: transparent;
+    color: #94a3b8;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 12px 24px;
+    border-radius: 99px;
+    border: 1px solid rgba(255,255,255,.12);
+    text-decoration: none;
+    transition: border-color .2s, color .2s;
+  }
+  .vm-error-btn-secondary:hover { border-color: rgba(255,255,255,.3); color: #e2e8f0; }
+</style>
+
+<div class="vm-error-page">
+  <div class="vm-error-inner">
+    <div class="vm-error-code">404</div>
+    <h1 class="vm-error-title">Page not found</h1>
+    <p class="vm-error-msg">
+      The page you were looking for doesn't exist or has been moved.<br>
+      Check the URL, or head back to a safe place.
+    </p>
+    <div class="vm-error-links">
+      <a href="{{ url_for('index') }}" class="vm-error-btn-primary">Go to Home</a>
+      <a href="{{ url_for('news') }}" class="vm-error-btn-secondary">Latest News</a>
+      <a href="{{ url_for('colleges') }}" class="vm-error-btn-secondary">Colleges</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

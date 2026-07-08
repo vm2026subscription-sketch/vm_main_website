@@ -6,6 +6,13 @@ __pycache__/
 # Flask
 instance/
 *.sqlite3
+*.db
+
+# Binary test artefacts
+*.mp3
+
+# Editor temp files
+tempCodeRunnerFile.py
 
 # Virtual environments
 .venv/
@@ -28,3 +35,7 @@ Thumbs.db
 # Runtime lock files
 *.lock.lock
 data/*.lock
+auth_users.db
+*.mp3
+tempCodeRunnerFile.py
+tests/

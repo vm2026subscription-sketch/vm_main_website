@@ -55,15 +55,21 @@ from supabase import create_client
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "vidyarthi-mitra-dev-key-change-in-production")
+_secret_key = os.environ.get("SECRET_KEY", "")
+if not _secret_key:
+    if os.environ.get("VERCEL") == "1" or os.environ.get("FLASK_ENV") == "production":
+        raise RuntimeError("SECRET_KEY environment variable must be set in production.")
+    _secret_key = "dev-only-insecure-key-never-use-in-prod"
+app.secret_key = _secret_key
 # Disable CSRF on JSON/API requests — they are protected by session auth
 # (require_admin / _require_epaper_admin). CSRF tokens are only enforced on
 # HTML form submissions (login, register) via the admin_login.html hidden field.
-app.config['WTF_CSRF_CHECK_DEFAULT'] = False
 csrf = CSRFProtect(app)
+redis_url = os.environ.get("RATELIMIT_STORAGE_URL", os.environ.get("REDIS_URL"))
 limiter = Limiter(
     get_remote_address,
     app=app,
+    storage_uri=redis_url if redis_url else "memory://",
     default_limits=[]
 )
 app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024  # 200 MB upload limit
@@ -76,6 +82,76 @@ if _has_compress:
     app.config['COMPRESS_LEVEL'] = 6
     app.config['COMPRESS_MIN_SIZE'] = 500
     _FlaskCompress(app)
+
+# Trust reverse-proxy headers on Render/Vercel/production so external URLs in emails are correct.
+if os.environ.get("FLASK_ENV") == "production" or os.environ.get("RENDER") or os.environ.get("VERCEL") == "1":
+    try:
+        from werkzeug.middleware.proxy_fix import ProxyFix
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+    except ImportError:
+        pass
+
+# ── Epaper subdomain: rewrite /lang, /date, /admin → /epaper/... ─────────────
+_EPAPER_HOST = os.getenv("EPAPER_HOST", "epaper.vidyarthimitra.org")
+_MAIN_HOST   = os.getenv("MAIN_HOST",  "vidyarthimitra.org")
+
+_EPAPER_SUBPATH_RE = re.compile(
+    r'^(?:'
+    r'/$'
+    r'|/(hindi|english|marathi)(?:/[^/?#]+(?:/page-\d+)?)?/?$'
+    r'|/\d{4}-\d{2}-\d{2}(?:/page-\d+)?/?$'
+    r'|/admin(?:/.*)?$'
+    r')',
+    re.IGNORECASE,
+)
+
+class _EpaperSubdomainMiddleware:
+    """On epaper.vidyarthimitra.org prepend /epaper to known epaper URL patterns."""
+    def __init__(self, wsgi_app):
+        self._app = wsgi_app
+
+    def __call__(self, environ, start_response):
+        host = (
+            environ.get('HTTP_X_FORWARDED_HOST') or environ.get('HTTP_HOST', '')
+        ).lower().split(':')[0]
+        if host == _EPAPER_HOST:
+            path = environ.get('PATH_INFO', '/')
+            if not path.startswith('/epaper') and _EPAPER_SUBPATH_RE.match(path):
+                environ = dict(environ)
+                environ['PATH_INFO'] = '/epaper' + (path.rstrip('/') if path != '/' else '')
+        return self._app(environ, start_response)
+
+app.wsgi_app = _EpaperSubdomainMiddleware(app.wsgi_app)
+
+
+@app.context_processor
+def _epaper_host_context():
+    host = (
+        request.headers.get('X-Forwarded-Host') or request.host or ''
+    ).lower().split(':')[0]
+    is_sub = (host == _EPAPER_HOST)
+    return {
+        'epaper_subdomain': is_sub,
+        'main_site_url': 'https://vidyarthimitra.org' if is_sub else '',
+    }
+
+
+@app.before_request
+def _redirect_epaper_subdomain():
+    """On main domain, 301-redirect /epaper/* to epaper.vidyarthimitra.org/*"""
+    if not (os.environ.get("VERCEL") == "1" or os.environ.get("FLASK_ENV") == "production"):
+        return  # skip in local dev
+    host = (
+        request.headers.get('X-Forwarded-Host') or request.host or ''
+    ).lower().split(':')[0]
+    if _MAIN_HOST in host and host != _EPAPER_HOST:
+        path = request.path
+        if path == '/epaper' or path.startswith('/epaper/'):
+            sub_path = path[7:] or '/'
+            target = f'https://{_EPAPER_HOST}{sub_path}'
+            if request.query_string:
+                target += '?' + request.query_string.decode('utf-8', errors='ignore')
+            return redirect(target, 301)
 
 
 @app.after_request
@@ -96,6 +172,18 @@ def add_cache_headers(response):
         response.headers['Cache-Control'] = 'no-store'
     return response
 
+
+@app.errorhandler(404)
+def page_not_found(e):
+    if request.is_json or request.path.startswith('/api/'):
+        return jsonify({'error': 'Not found'}), 404
+    return render_template('404.html'), 404
+
+@app.errorhandler(500)
+def internal_error(e):
+    if request.is_json or request.path.startswith('/api/'):
+        return jsonify({'error': 'Internal server error'}), 500
+    return render_template('500.html'), 500
 
 @app.errorhandler(413)
 def request_too_large(e):
@@ -742,7 +830,7 @@ def resolve_colleges_columns(conn):
     }
 
 
-## --- Simple coupon storage and helpers (file-backed) ---
+## --- Simple coupon storage and helpers (Postgres-backed, file fallback) ---
 COUPONS_FILE = os.path.join(app.root_path, "data", "coupons.json")
 SCHOLARSHIPS_FILE = os.path.join(app.root_path, "data", "scholarships.json")
 
@@ -774,6 +862,71 @@ def _save_coupons_raw(items):
     except Exception:
         return False
 
+_COUPON_USES_DDL = """
+    CREATE TABLE IF NOT EXISTS coupon_uses (
+        code TEXT PRIMARY KEY,
+        uses_consumed INTEGER NOT NULL DEFAULT 0,
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
+"""
+
+def _pg_get_coupon_uses(code):
+    """Return total uses consumed for this coupon from Postgres, or None if unavailable."""
+    db_url = get_postgres_connection_url()
+    if not db_url or not psycopg2:
+        return None
+    try:
+        conn = psycopg2.connect(db_url, connect_timeout=5)
+        try:
+            with conn.cursor() as cur:
+                cur.execute(_COUPON_USES_DDL)
+                conn.commit()
+                cur.execute("SELECT uses_consumed FROM coupon_uses WHERE code = %s", (code.upper(),))
+                row = cur.fetchone()
+                return row[0] if row else 0
+        finally:
+            conn.close()
+    except Exception as exc:
+        app.logger.warning("coupon_uses read failed: %s", exc)
+        return None
+
+def _pg_consume_coupon(code, max_uses):
+    """Atomically consume one use. Returns True if consumed, False if exhausted, None if PG unavailable."""
+    db_url = get_postgres_connection_url()
+    if not db_url or not psycopg2:
+        return None
+    try:
+        conn = psycopg2.connect(db_url, connect_timeout=5)
+        try:
+            with conn.cursor() as cur:
+                cur.execute(_COUPON_USES_DDL)
+                conn.commit()
+                if max_uses is None:
+                    cur.execute("""
+                        INSERT INTO coupon_uses (code, uses_consumed)
+                        VALUES (%s, 1)
+                        ON CONFLICT (code) DO UPDATE SET
+                            uses_consumed = coupon_uses.uses_consumed + 1,
+                            updated_at = NOW()
+                    """, (code.upper(),))
+                    conn.commit()
+                    return True
+                cur.execute("""
+                    INSERT INTO coupon_uses (code, uses_consumed)
+                    VALUES (%s, 1)
+                    ON CONFLICT (code) DO UPDATE SET
+                        uses_consumed = coupon_uses.uses_consumed + 1,
+                        updated_at = NOW()
+                    WHERE coupon_uses.uses_consumed < %s
+                """, (code.upper(), max_uses))
+                conn.commit()
+                return cur.rowcount > 0
+        finally:
+            conn.close()
+    except Exception as exc:
+        app.logger.warning("coupon_uses consume failed: %s", exc)
+        return None
+
 def find_coupon(code):
     if not code:
         return None
@@ -783,14 +936,44 @@ def find_coupon(code):
     items = _load_coupons_raw()
     for it in items:
         if str(it.get("code", "")).strip().upper() == code.upper():
+            pg_used = _pg_get_coupon_uses(code)
+            if pg_used is not None:
+                max_uses = it.get("uses_remaining")
+                if max_uses is not None:
+                    try:
+                        remaining = max(0, int(max_uses) - pg_used)
+                        it = dict(it)
+                        it["uses_remaining"] = remaining
+                    except Exception:
+                        pass
             return it
     return None
 
 def consume_coupon(code):
-    """Consume one use of a single-use coupon. Returns True if consumed."""
+    """Consume one use of a coupon. Returns True if consumed."""
     if not code:
         return False
     items = _load_coupons_raw()
+    coupon = None
+    for it in items:
+        if str(it.get("code", "")).strip().upper() == str(code).strip().upper():
+            coupon = it
+            break
+    if coupon is None:
+        return False
+
+    max_uses = coupon.get("uses_remaining")
+    if max_uses is not None:
+        try:
+            max_uses = int(max_uses)
+        except Exception:
+            max_uses = None
+
+    pg_result = _pg_consume_coupon(code, max_uses)
+    if pg_result is not None:
+        return pg_result
+
+    # File fallback (dev mode — Vercel filesystem is read-only)
     changed = False
     for it in items:
         if str(it.get("code", "")).strip().upper() == str(code).strip().upper():
@@ -1067,7 +1250,7 @@ def get_auth_db_connection():
     pg_url = get_postgres_connection_url()
     if pg_url and connect is not None:
         try:
-            conn = connect(pg_url)
+            conn = connect(pg_url, connect_timeout=5, options="-c statement_timeout=8000")
             conn.autocommit = False
             with conn.cursor() as cur:
                 cur.execute("""
@@ -1077,11 +1260,13 @@ def get_auth_db_connection():
                         email TEXT NOT NULL UNIQUE,
                         password_hash TEXT NOT NULL,
                         is_admin BOOLEAN NOT NULL DEFAULT FALSE,
+                        verified BOOLEAN NOT NULL DEFAULT TRUE,
                         created_at TIMESTAMPTZ DEFAULT NOW()
                     )
                 """)
                 cur.execute("""
                     ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE
+                    ALTER TABLE users ADD COLUMN IF NOT EXISTS verified BOOLEAN NOT NULL DEFAULT TRUE;
                 """)
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS bookmarks (
@@ -1092,6 +1277,16 @@ def get_auth_db_connection():
                         item_url TEXT,
                         created_at TIMESTAMPTZ DEFAULT NOW(),
                         UNIQUE (user_email, item_type, item_name)
+                    )
+                """)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                        id BIGSERIAL PRIMARY KEY,
+                        email TEXT NOT NULL,
+                        token_hash TEXT NOT NULL UNIQUE,
+                        expires_at BIGINT NOT NULL,
+                        used_at BIGINT,
+                        created_at TIMESTAMPTZ DEFAULT NOW()
                     )
                 """)
             conn.commit()
@@ -1108,11 +1303,13 @@ def get_auth_db_connection():
             email TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
             is_admin INTEGER NOT NULL DEFAULT 0,
+            verified BOOLEAN NOT NULL DEFAULT 1,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
     """)
     try:
         connection.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0")
+        connection.execute("ALTER TABLE users ADD COLUMN verified BOOLEAN NOT NULL DEFAULT 1")
     except sqlite3.OperationalError:
         pass
     connection.execute("""
@@ -1124,6 +1321,16 @@ def get_auth_db_connection():
             item_url TEXT,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             UNIQUE (user_email, item_type, item_name)
+        )
+    """)
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT NOT NULL,
+            token_hash TEXT NOT NULL UNIQUE,
+            expires_at INTEGER NOT NULL,
+            used_at INTEGER,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
     """)
     connection.commit()
@@ -1232,7 +1439,7 @@ def store_pending_login_otp(user):
         "provider": "local_email",
         "otp_hash": generate_password_hash(otp_code),
         "expires_at": int(time.time()) + 300,
-        "attempts": 0,
+        "attempts": user.get("attempts", 0),
     }
     return otp_code
 
@@ -1256,6 +1463,66 @@ def get_env_value(*names, default=""):
         if value:
             return value
     return default
+
+
+def _is_production_deploy():
+    return (
+        os.environ.get("FLASK_ENV") == "production"
+        or bool(os.environ.get("RENDER"))
+        or os.environ.get("VERCEL") == "1"
+    )
+
+
+def _get_smtp_settings():
+    smtp_host = get_env_value("OTP_SMTP_HOST", "SMTP_HOST")
+    smtp_port_raw = get_env_value("OTP_SMTP_PORT", "SMTP_PORT", default="587")
+    smtp_username = get_env_value("OTP_SMTP_USERNAME", "SMTP_USER")
+    smtp_password = get_env_value("OTP_SMTP_PASSWORD", "SMTP_PASS")
+    from_email = get_env_value("OTP_FROM_EMAIL", "SMTP_FROM_EMAIL", default=smtp_username)
+    use_tls_raw = get_env_value("OTP_SMTP_USE_TLS", "SMTP_USE_TLS", default="1").lower()
+    try:
+        smtp_port = int(smtp_port_raw)
+    except ValueError:
+        smtp_port = 587
+    use_tls = use_tls_raw not in {"0", "false", "no"}
+    return {
+        "host": smtp_host,
+        "port": smtp_port,
+        "username": smtp_username,
+        "password": smtp_password,
+        "from_email": from_email,
+        "use_tls": use_tls,
+        "configured": bool(smtp_host and from_email),
+    }
+
+
+def _smtp_is_configured():
+    return _get_smtp_settings()["configured"]
+
+
+def _deliver_smtp_message(message):
+    settings = _get_smtp_settings()
+    if not settings["configured"]:
+        return False, "SMTP is not configured. Set SMTP_HOST and SMTP_FROM_EMAIL in your environment."
+    try:
+        with smtplib.SMTP(settings["host"], settings["port"], timeout=6) as smtp:
+            if settings["use_tls"]:
+                smtp.starttls()
+            if settings["username"]:
+                smtp.login(settings["username"], settings["password"])
+            smtp.send_message(message)
+        return True, ""
+    except Exception as exc:
+        app.logger.warning("SMTP delivery failed: %s", exc, exc_info=True)
+        return False, str(exc)
+
+
+def build_external_url(endpoint, **values):
+    """Build an absolute URL for outbound emails (password reset, etc.)."""
+    base = get_env_value("PUBLIC_BASE_URL", "APP_BASE_URL", "SITE_URL").rstrip("/")
+    if base:
+        return f"{base}{url_for(endpoint, **values)}"
+    return url_for(endpoint, _external=True, **values)
 
 
 def get_otp_provider():
@@ -1328,26 +1595,13 @@ def verify_twilio_code(to_email, code):
 
 
 def send_login_otp_email(to_email, user_name, otp_code):
-    smtp_host = get_env_value("OTP_SMTP_HOST", "SMTP_HOST")
-    smtp_port_raw = get_env_value("OTP_SMTP_PORT", "SMTP_PORT", default="587")
-    smtp_username = get_env_value("OTP_SMTP_USERNAME", "SMTP_USER")
-    smtp_password = get_env_value("OTP_SMTP_PASSWORD", "SMTP_PASS")
-    from_email = get_env_value("OTP_FROM_EMAIL", "SMTP_FROM_EMAIL", default=smtp_username)
-    use_tls_raw = get_env_value("OTP_SMTP_USE_TLS", "SMTP_USE_TLS", default="1").lower()
-
-    try:
-        smtp_port = int(smtp_port_raw)
-    except ValueError:
-        smtp_port = 587
-
-    use_tls = use_tls_raw not in {"0", "false", "no"}
-
-    if not smtp_host or not from_email:
+    settings = _get_smtp_settings()
+    if not settings["configured"]:
         return False
 
     message = EmailMessage()
     message["Subject"] = "Your Vidyarthi Mitra login OTP"
-    message["From"] = from_email
+    message["From"] = settings["from_email"]
     message["To"] = to_email
     message.set_content(
         f"""Hello {user_name or 'Student'},
@@ -1360,14 +1614,102 @@ If you did not request this, ignore this email.
 """
     )
 
-    with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as smtp:
-        if use_tls:
-            smtp.starttls()
-        if smtp_username:
-            smtp.login(smtp_username, smtp_password)
-        smtp.send_message(message)
+    delivered, _ = _deliver_smtp_message(message)
+    return delivered
 
-    return True
+
+PASSWORD_RESET_EXPIRY_SECONDS = int(os.getenv("PASSWORD_RESET_EXPIRY_SECONDS", "1800"))
+PASSWORD_RESET_GENERIC_MESSAGE = (
+    "If an account with this email exists, a password reset link has been sent."
+)
+
+
+def _hash_password_reset_token(raw_token):
+    return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+
+
+def _create_password_reset_token(email):
+    raw_token = secrets.token_urlsafe(32)
+    token_hash = _hash_password_reset_token(raw_token)
+    expires_at = int(time.time()) + PASSWORD_RESET_EXPIRY_SECONDS
+    now = int(time.time())
+    with get_auth_db_connection() as connection:
+        connection.execute(
+            "UPDATE password_reset_tokens SET used_at = ? WHERE email = ? AND used_at IS NULL",
+            (now, email),
+        )
+        connection.execute(
+            "INSERT INTO password_reset_tokens (email, token_hash, expires_at) VALUES (?, ?, ?)",
+            (email, token_hash, expires_at),
+        )
+        connection.commit()
+    return raw_token
+
+
+def _get_valid_password_reset_record(raw_token):
+    if not raw_token or len(raw_token) < 20:
+        return None
+    token_hash = _hash_password_reset_token(raw_token)
+    now = int(time.time())
+    with get_auth_db_connection() as connection:
+        row = connection.execute(
+            "SELECT email, expires_at FROM password_reset_tokens "
+            "WHERE token_hash = ? AND used_at IS NULL",
+            (token_hash,),
+        ).fetchone()
+    if row is None or int(row["expires_at"]) < now:
+        return None
+    return row
+
+
+def _mark_password_reset_token_used(raw_token):
+    token_hash = _hash_password_reset_token(raw_token)
+    now = int(time.time())
+    with get_auth_db_connection() as connection:
+        connection.execute(
+            "UPDATE password_reset_tokens SET used_at = ? WHERE token_hash = ?",
+            (now, token_hash),
+        )
+        connection.commit()
+
+
+def _invalidate_password_reset_tokens(email):
+    now = int(time.time())
+    with get_auth_db_connection() as connection:
+        connection.execute(
+            "UPDATE password_reset_tokens SET used_at = ? WHERE email = ? AND used_at IS NULL",
+            (now, email),
+        )
+        connection.commit()
+
+
+def send_password_reset_email(to_email, user_name, reset_url):
+    """Send password reset link via SMTP. Reuses shared SMTP configuration."""
+    settings = _get_smtp_settings()
+    if not settings["configured"]:
+        return False, "SMTP is not configured. Set SMTP_HOST and SMTP_FROM_EMAIL in your environment."
+
+    expiry_minutes = max(1, PASSWORD_RESET_EXPIRY_SECONDS // 60)
+
+    message = EmailMessage()
+    message["Subject"] = "Reset your Vidyarthi Mitra password"
+    message["From"] = settings["from_email"]
+    message["To"] = to_email
+    message.set_content(
+        f"""Hello {user_name or 'Student'},
+
+We received a request to reset your Vidyarthi Mitra account password.
+
+Reset your password using this secure link:
+{reset_url}
+
+This link expires in {expiry_minutes} minutes and can only be used once.
+
+If you did not request a password reset, you can safely ignore this email.
+"""
+    )
+
+    return _deliver_smtp_message(message)
 
 
 def _coerce_value(value):
@@ -1919,7 +2261,8 @@ def api_remove_bookmark():
 
 @app.route("/")
 def index():
-    return render_template("index.html", featured_alerts=_read_json_file(_ALERTS_FILE, _DEFAULT_ALERTS))
+    alerts = _pg_get_setting("featured_alerts") or _read_json_file(_ALERTS_FILE, _DEFAULT_ALERTS)
+    return render_template("index.html", featured_alerts=alerts)
 
 
 @app.route("/blog")
@@ -2121,6 +2464,14 @@ def _is_admin():
         except Exception as exc:
             app.logger.warning("Admin role lookup failed: %s", exc)
 
+    
+    # Check if logged-in website user is the admin
+    user = get_logged_in_user()
+    if user:
+        admin_email = os.getenv("ADMIN_LOGIN_EMAIL", "vm2026.subscription@gmail.com").lower()
+        if user["email"].lower() == admin_email:
+            return True
+    
     return False
 
 def require_admin(f):
@@ -2136,6 +2487,7 @@ def require_admin(f):
 
 
 @app.route("/admin/login", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
 def admin_login():
     if _is_admin():
         return redirect(url_for('admin'))
@@ -2143,12 +2495,17 @@ def admin_login():
     if request.method == "POST":
         email = (request.form.get("email", "") or "").strip().lower()
         password = request.form.get("password", "")
-        admin_email, admin_pass = _get_admin_credentials()
-        if email == admin_email and password == admin_pass:
+        admin_email = os.getenv("ADMIN_LOGIN_EMAIL", "")
+        admin_hash  = os.getenv("ADMIN_LOGIN_HASH", "")
+        if not admin_email or not admin_hash:
+            app.logger.error("ADMIN_LOGIN_EMAIL / ADMIN_LOGIN_HASH env vars not set")
+            error = "Admin login is not configured. Contact the system administrator."
+        elif hmac.compare_digest(email, admin_email.lower()) and check_password_hash(admin_hash, password):
             session['epaper_admin_auth'] = True
             next_url = request.form.get("next") or request.args.get("next") or url_for('admin')
             return redirect(next_url)
-        error = "Incorrect email or password. Please try again."
+        else:
+            error = "Incorrect email or password. Please try again."
     next_url = request.args.get("next", "")
     return render_template("admin_login.html", error=error, next=next_url)
 
@@ -2232,7 +2589,8 @@ def api_admin_promote_user():
 @app.route("/api/admin/alerts", methods=["GET"])
 @require_admin
 def api_admin_get_alerts():
-    return jsonify({"alerts": _read_json_file(_ALERTS_FILE, _DEFAULT_ALERTS)})
+    alerts = _pg_get_setting("featured_alerts") or _read_json_file(_ALERTS_FILE, _DEFAULT_ALERTS)
+    return jsonify({"alerts": alerts})
 
 
 @app.route("/api/admin/alerts", methods=["POST"])
@@ -2240,7 +2598,8 @@ def api_admin_get_alerts():
 def api_admin_save_alerts():
     data = request.get_json(silent=True) or {}
     alerts = data.get("alerts", [])
-    _write_json_file(_ALERTS_FILE, alerts)
+    if not _pg_set_setting("featured_alerts", alerts):
+        _write_json_file(_ALERTS_FILE, alerts)
     return jsonify({"success": True})
 
 
@@ -2394,10 +2753,8 @@ def api_admin_blogs_delete():
 
 
 @app.route("/api/admin/blogs/update", methods=["POST"])
+@require_admin
 def api_admin_blogs_update():
-    from epaper_routes import _is_epaper_admin
-    if not _is_epaper_admin():
-        return jsonify({"error": "Unauthorized"}), 401
     data = request.get_json(silent=True) or {}
     blog_id = data.get('id')
     if not blog_id:
@@ -2467,7 +2824,11 @@ def api_admin_blogs_import_json():
 
 
 @app.route("/api/vmadmin/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+@require_admin
 def vmadmin_proxy(subpath):
+    if not re.match(r"^[a-zA-Z0-9\-_/]+$", subpath) or ".." in subpath:
+        return jsonify({"error": "Invalid subpath."}), 400
+        
     if not VMADMIN_BASE_URL:
         return jsonify({"error": "VMADMIN_BASE_URL is not configured."}), 500
 
@@ -3291,28 +3652,13 @@ def news():
         category_labels=category_labels,
     )
 
-EXAM_UPDATES_DATA = [
-    {"category": "engineering", "title": "JEE Main 2026 Session 1 Registration", "desc": "Application window open at jeemain.nta.nic.in. Eligibility: PCM in Class 12 with 75% (65% for SC/ST). Exam date: January 2026."},
-    {"category": "engineering", "title": "MHT-CET 2026 Registration", "desc": "State-level PCM and PCB group registration open at cetcell.mahacet.org. Exam expected April–May 2026."},
-    {"category": "engineering", "title": "JEE Advanced 2026 Eligibility", "desc": "Top 2.5 lakh JEE Main qualifiers eligible. Conducted by IIT Delhi. Registration opens post JEE Main result."},
-    {"category": "engineering", "title": "GATE 2026 Notification", "desc": "Graduate Aptitude Test in Engineering for M.Tech admissions and PSU recruitment. 30 test papers across engineering disciplines."},
-    {"category": "medical", "title": "NEET UG 2026 Information Bulletin", "desc": "Single entrance for MBBS, BDS, BAMS, BHMS. Registration at neet.nta.nic.in. Eligibility: 50% PCB in Class 12."},
-    {"category": "medical", "title": "NEET PG 2026 Schedule", "desc": "Postgraduate medical entrance for MD/MS/PG Diploma. Conducted by NBE. Registration expected January 2026."},
-    {"category": "law", "title": "CLAT 2026 Registration Open", "desc": "Common Law Admission Test for 24 National Law Universities. Online registration at consortiumofnlus.ac.in."},
-    {"category": "law", "title": "LSAT India 2026", "desc": "Law School Admission Test for private law colleges. Multiple test windows available. Score valid for 1 year."},
-    {"category": "management", "title": "CAT 2026 Registration", "desc": "Common Admission Test for IIMs and 1200+ B-schools. Conducted by IIM Calcutta. Application opens August 2026."},
-    {"category": "management", "title": "MAT 2026 (May Session)", "desc": "Management Aptitude Test for MBA/PGDM admissions. CBT and PBT modes available. 600+ colleges accept MAT score."},
-    {"category": "management", "title": "XAT 2026 Notification", "desc": "Xavier Aptitude Test for XLRI and 150+ B-schools. Conducted in January. Decision Making section unique to XAT."},
-    {"category": "design", "title": "NID DAT 2026 Prelims", "desc": "National Institute of Design Design Aptitude Test for B.Des admissions. Paper-based studio test with practical assignments."},
-    {"category": "design", "title": "UCEED 2026", "desc": "Undergraduate Common Entrance Exam for Design (IIT Bombay, IIT Delhi, IIT Guwahati, IIITDM Jabalpur). January exam."},
-    {"category": "defense", "title": "NDA (I) 2026 Notification", "desc": "National Defence Academy exam for Army, Navy, Air Force after Class 12. Age: 16.5–19.5 years. UPSC conducts it twice a year."},
-    {"category": "defense", "title": "CDS (I) 2026 Notification", "desc": "Combined Defence Services exam for IMA, INA, AFA, OTA. Eligibility: graduation. Conducted by UPSC in February."},
-]
+_EXAM_UPDATES_FILE = os.path.join(os.path.dirname(__file__), 'data', 'exam_updates.json')
 
 
 @app.route('/exam-updates')
 def exam_updates():
-    return render_template('exam-updates.html', exams=EXAM_UPDATES_DATA)
+    exams = _read_json_file(_EXAM_UPDATES_FILE, [])
+    return render_template('exam-updates.html', exams=exams)
 
 @app.route("/articles")
 def articles():
@@ -3367,32 +3713,20 @@ def submit_story():
 
 
 # ── Shared notification email + JSON file helpers ─────────────────────────────
-def _send_notification_email(subject, body, to_email=None):
-    smtp_host     = get_env_value("OTP_SMTP_HOST", "SMTP_HOST")
-    smtp_port_raw = get_env_value("OTP_SMTP_PORT", "SMTP_PORT", default="587")
-    smtp_username = get_env_value("OTP_SMTP_USERNAME", "SMTP_USER")
-    smtp_password = get_env_value("OTP_SMTP_PASSWORD", "SMTP_PASS")
-    from_email    = get_env_value("OTP_FROM_EMAIL", "SMTP_FROM_EMAIL", default=smtp_username)
-    admin_email   = get_env_value("ADMIN_EMAIL", default="vm2026.subscription@gmail.com")
-    use_tls       = get_env_value("OTP_SMTP_USE_TLS", "SMTP_USE_TLS", default="1").lower() not in {"0", "false", "no"}
-    if not smtp_host or not from_email:
+def _send_notification_email(subject, body, to_email=None, reply_to=None):
+    settings = _get_smtp_settings()
+    if not settings["configured"]:
         return False
-    try:
-        smtp_port = int(smtp_port_raw)
-    except ValueError:
-        smtp_port = 587
+    admin_email = os.getenv("ADMIN_EMAIL", "")
     msg = EmailMessage()
     msg["Subject"] = subject
-    msg["From"]    = from_email
-    msg["To"]      = to_email or admin_email
+    msg["From"] = settings["from_email"]
+    msg["To"] = to_email or admin_email
+    if reply_to:
+        msg["Reply-To"] = reply_to
     msg.set_content(body)
-    with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as s:
-        if use_tls:
-            s.starttls()
-        if smtp_username:
-            s.login(smtp_username, smtp_password)
-        s.send_message(msg)
-    return True
+    delivered, _ = _deliver_smtp_message(msg)
+    return delivered
 
 
 _STORIES_FILE = os.path.join(os.path.dirname(__file__), 'data', 'stories.json')
@@ -3421,6 +3755,55 @@ _DEFAULT_ALERTS = [
     {"id": 3, "title": "JEE Advanced 2026 Registration Open", "icon": "fa-calendar", "date": "5 days ago", "link": ""},
     {"id": 4, "title": "NEET UG Counselling Schedule Announced", "icon": "fa-book", "date": "1 week ago", "link": ""},
 ]
+
+_SITE_SETTINGS_DDL = """
+    CREATE TABLE IF NOT EXISTS site_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
+"""
+
+def _pg_get_setting(key):
+    db_url = get_postgres_connection_url()
+    if not db_url or not psycopg2:
+        return None
+    try:
+        conn = psycopg2.connect(db_url, connect_timeout=5)
+        try:
+            with conn.cursor() as cur:
+                cur.execute(_SITE_SETTINGS_DDL)
+                conn.commit()
+                cur.execute("SELECT value FROM site_settings WHERE key = %s", (key,))
+                row = cur.fetchone()
+                return json.loads(row[0]) if row else None
+        finally:
+            conn.close()
+    except Exception as exc:
+        app.logger.warning("site_settings get(%s) failed: %s", key, exc)
+        return None
+
+def _pg_set_setting(key, value):
+    db_url = get_postgres_connection_url()
+    if not db_url or not psycopg2:
+        return False
+    try:
+        conn = psycopg2.connect(db_url, connect_timeout=5)
+        try:
+            with conn.cursor() as cur:
+                cur.execute(_SITE_SETTINGS_DDL)
+                cur.execute("""
+                    INSERT INTO site_settings (key, value, updated_at)
+                    VALUES (%s, %s, NOW())
+                    ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()
+                """, (key, json.dumps(value, ensure_ascii=False)))
+            conn.commit()
+            return True
+        finally:
+            conn.close()
+    except Exception as exc:
+        app.logger.warning("site_settings set(%s) failed: %s", key, exc)
+        return False
 
 def _read_json_file(filepath, default=None):
     try:
@@ -4046,17 +4429,31 @@ def contact():
 
 _CONTACT_FILE = os.path.join(os.path.dirname(__file__), 'data', 'contact_messages.json')
 
+_EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]{2,}$')
+
 @app.route('/send-message', methods=['POST'])
+@limiter.limit("3 per minute; 10 per hour")
 def send_message():
-    data    = request.get_json(silent=True) or {}
-    name    = str(data.get('name', '')).strip()
-    phone   = str(data.get('phone', '')).strip()
-    email   = str(data.get('email', '')).strip()
-    subject = str(data.get('subject', '')).strip()
-    message = str(data.get('message', '')).strip()
+    data = request.get_json(silent=True) or {}
+
+    # Honeypot — bots fill this hidden field, real users never see it
+    if data.get('website') or data.get('url'):
+        return jsonify({'success': True, 'message': 'Your message has been received. We will get back to you shortly.'}), 200
+
+    name    = str(data.get('name',    '')).strip()[:200]
+    phone   = str(data.get('phone',   '')).strip()[:20]
+    email   = str(data.get('email',   '')).strip()[:200]
+    subject = str(data.get('subject', '')).strip()[:300]
+    message = str(data.get('message', '')).strip()[:5000]
 
     if not name or not email or not message:
         return jsonify({'success': False, 'error': 'Name, email, and message are required.'}), 400
+    if not _EMAIL_RE.match(email):
+        return jsonify({'success': False, 'error': 'Please enter a valid email address.'}), 400
+
+    admin_email = os.getenv("ADMIN_EMAIL", "")
+    if not admin_email:
+        app.logger.error("ADMIN_EMAIL env var not set — contact form email not delivered")
 
     entry = {
         'submitted_at': datetime.utcnow().isoformat() + 'Z',
@@ -4068,14 +4465,16 @@ def send_message():
     except Exception:
         pass
 
-    try:
-        _send_notification_email(
-            subject=f"[Contact] {subject or 'New message'} from {name}",
-            body=f"Name: {name}\nPhone: {phone}\nEmail: {email}\nSubject: {subject}\n\nMessage:\n{message}",
-            to_email=email  # also CC the sender's email as reply-to reference
-        )
-    except Exception:
-        pass
+    if admin_email:
+        try:
+            _send_notification_email(
+                subject=f"[Contact] {subject or 'New message'} from {name}",
+                body=f"Name: {name}\nPhone: {phone}\nEmail: {email}\nSubject: {subject}\n\nMessage:\n{message}",
+                to_email=admin_email,
+                reply_to=email,
+            )
+        except Exception:
+            pass
 
     return jsonify({'success': True, 'message': 'Your message has been received. We will get back to you shortly.'}), 200
 
@@ -4083,15 +4482,15 @@ def send_message():
 _SUBSCRIBERS_FILE = os.path.join(os.path.dirname(__file__), 'data', 'subscribers.json')
 
 @app.route('/subscribe', methods=['POST'])
+@limiter.limit("5 per minute; 20 per hour")
 def subscribe():
-    name  = str(request.form.get('name',  '') or request.get_json(silent=True, force=True) and request.get_json(silent=True, force=True).get('name', '') or '').strip()
-    email = str(request.form.get('email', '') or '').strip()
-    if not email:
-        data = request.get_json(silent=True) or {}
-        name  = str(data.get('name',  name)).strip()
-        email = str(data.get('email', '')).strip()
+    data  = request.get_json(silent=True) or {}
+    name  = str(request.form.get('name',  '') or data.get('name',  '')).strip()[:200]
+    email = str(request.form.get('email', '') or data.get('email', '')).strip()[:200]
     if not email:
         return jsonify({'success': False, 'error': 'Email is required.'}), 400
+    if not _EMAIL_RE.match(email):
+        return jsonify({'success': False, 'error': 'Please enter a valid email address.'}), 400
     entry = {
         'subscribed_at': datetime.utcnow().isoformat() + 'Z',
         'name': name,
@@ -4322,8 +4721,68 @@ def register():
         session["auth_user"] = {"name": name, "email": email, "is_admin": email == _get_dashboard_admin_credentials()[0]}
         session.pop("pending_otp", None)
         return redirect(url_for("dashboard"))
+                "INSERT INTO users (name, email, password_hash, verified) VALUES (?, ?, ?, ?)",
+                (name, email, generate_password_hash(password), 0),
+            )
+            connection.commit()
+
+        otp_code = generate_login_otp()
+        session["pending_register_otp"] = {
+            "name": name,
+            "email": email,
+            "otp_hash": generate_password_hash(otp_code),
+            "expires_at": int(time.time()) + 600,
+            "attempts": 0,
+        }
+        
+        try:
+            send_login_otp_email(email, name, otp_code)
+        except Exception as exc:
+            app.logger.warning("OTP email delivery failed: %s", exc)
+
+        flash("Please verify your email address. An OTP has been sent.", "success")
+        return redirect(url_for("verify_register_otp"))
 
     return render_template("auth.html", mode="register", page_title="Register")
+
+@app.route("/verify-register-otp", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
+def verify_register_otp():
+    pending_otp = session.get("pending_register_otp")
+    if not pending_otp:
+        flash("Registration session expired. Please login to request a new OTP.", "error")
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        otp_code = request.form.get("otp_code", "").strip()
+
+        if not re.fullmatch(r"\d{6}", otp_code):
+            flash("Enter the 6-digit OTP.", "error")
+            return render_template("auth.html", mode="register_otp", page_title="Verify Email", otp_email=pending_otp["email"], otp_expires_at=pending_otp["expires_at"])
+
+        if pending_otp.get("attempts", 0) >= 5:
+            session.pop("pending_register_otp", None)
+            flash("Too many invalid attempts. Please login to request a new OTP.", "error")
+            return redirect(url_for("login"))
+
+        if check_password_hash(pending_otp["otp_hash"], otp_code):
+            with get_auth_db_connection() as connection:
+                connection.execute("UPDATE users SET verified = 1 WHERE email = ?", (pending_otp["email"],))
+                connection.commit()
+            
+            session["auth_user"] = {
+                "name": pending_otp["name"],
+                "email": pending_otp["email"],
+            }
+            session.pop("pending_register_otp", None)
+            flash("Email verified successfully. You are now logged in.", "success")
+            return redirect(url_for("dashboard"))
+
+        pending_otp["attempts"] = pending_otp.get("attempts", 0) + 1
+        session["pending_register_otp"] = pending_otp
+        flash("Invalid OTP. Please try again.", "error")
+
+    return render_template("auth.html", mode="register_otp", page_title="Verify Email", otp_email=pending_otp["email"], otp_expires_at=pending_otp["expires_at"])
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -4332,10 +4791,11 @@ def login():
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
+        next_url = request.form.get("next", "").strip()
 
         if not email or not password:
             flash("Please enter your email and password.", "error")
-            return render_template("auth.html", mode="login", page_title="Login")
+            return render_template("auth.html", mode="login", page_title="Login", next=next_url)
 
         dashboard_admin_email, dashboard_admin_password = _get_dashboard_admin_credentials()
         if email == dashboard_admin_email and password == dashboard_admin_password:
@@ -4349,12 +4809,29 @@ def login():
         with get_auth_db_connection() as connection:
             user = connection.execute(
                 "SELECT name, email, password_hash, is_admin FROM users WHERE email = ?",
+                "SELECT name, email, password_hash, verified FROM users WHERE email = ?",
                 (email,),
             ).fetchone()
 
         if user is None or not check_password_hash(user["password_hash"], password):
             flash("Invalid email or password.", "error")
-            return render_template("auth.html", mode="login", page_title="Login")
+            return render_template("auth.html", mode="login", page_title="Login", next=next_url)
+
+        if not user.get("verified", 1):
+            otp_code = generate_login_otp()
+            session["pending_register_otp"] = {
+                "name": user["name"],
+                "email": user["email"],
+                "otp_hash": generate_password_hash(otp_code),
+                "expires_at": int(time.time()) + 600,
+                "attempts": 0,
+            }
+            try:
+                send_login_otp_email(user["email"], user["name"], otp_code)
+            except Exception as exc:
+                app.logger.warning("OTP email delivery failed: %s", exc)
+            flash("Please verify your email address. A new OTP has been sent.", "error")
+            return redirect(url_for("verify_register_otp"))
 
         provider = get_otp_provider()
         otp_sent = False
@@ -4375,7 +4852,8 @@ def login():
                     "attempts": 0,
                 }
                 session["otp_delivery_mode"] = "email"
-                session.pop("pending_otp_preview", None)
+                if next_url:
+                    session["next_url"] = next_url
                 flash("OTP sent to your email. Enter it on the next screen.", "success")
                 return redirect(url_for("verify_otp"))
 
@@ -4389,18 +4867,18 @@ def login():
         except Exception as exc:
             app.logger.warning("OTP email delivery failed: %s", exc)
 
-        session["otp_delivery_mode"] = "email" if otp_sent else "screen"
         if not otp_sent:
-            session["pending_otp_preview"] = otp_code
-        else:
-            session.pop("pending_otp_preview", None)
-        flash(
-            "OTP sent to your email. Enter it on the next screen." if otp_sent else "OTP is ready. Enter the code shown on the next screen.",
-            "success",
-        )
+            flash("Delivery failed. Please try again later.", "error")
+            return redirect(url_for("login"))
+            
+        session["otp_delivery_mode"] = "email"
+        if next_url:
+            session["next_url"] = next_url
+        flash("OTP sent to your email. Enter it on the next screen.", "success")
         return redirect(url_for("verify_otp"))
-
-    return render_template("auth.html", mode="login", page_title="Login")
+        
+    next_url = request.args.get("next", "")
+    return render_template("auth.html", mode="login", page_title="Login", next=next_url)
 
 
 @app.route("/verify-otp", methods=["GET", "POST"])
@@ -4410,10 +4888,6 @@ def verify_otp():
     if pending_otp is None:
         flash("Please login again to request a fresh OTP.", "error")
         return redirect(url_for("login"))
-
-    otp_preview = None
-    if session.get("otp_delivery_mode") == "screen":
-        otp_preview = session.get("pending_otp_preview")
 
     if request.method == "POST":
         otp_code = request.form.get("otp_code", "").strip()
@@ -4425,7 +4899,6 @@ def verify_otp():
                 mode="otp",
                 page_title="Verify OTP",
                 otp_email=pending_otp["email"],
-                otp_preview=otp_preview,
                 otp_expires_at=pending_otp["expires_at"],
             )
 
@@ -4448,6 +4921,9 @@ def verify_otp():
                     session.pop("otp_delivery_mode", None)
                     session.pop("pending_otp_preview", None)
                     flash("Login successful.", "success")
+                    next_url = session.pop("next_url", None)
+                    if next_url and next_url.startswith("/") and not next_url.startswith("//"):
+                        return redirect(next_url)
                     return redirect(url_for("dashboard"))
             except Exception as exc:
                 app.logger.warning("Twilio Verify validation failed: %s", exc)
@@ -4462,6 +4938,9 @@ def verify_otp():
             session.pop("otp_delivery_mode", None)
             session.pop("pending_otp_preview", None)
             flash("Login successful.", "success")
+            next_url = session.pop("next_url", None)
+            if next_url and next_url.startswith("/") and not next_url.startswith("//"):
+                return redirect(next_url)
             return redirect(url_for("dashboard"))
 
         pending_otp["attempts"] = pending_otp.get("attempts", 0) + 1
@@ -4473,12 +4952,12 @@ def verify_otp():
         mode="otp",
         page_title="Verify OTP",
         otp_email=pending_otp["email"],
-        otp_preview=otp_preview,
         otp_expires_at=pending_otp["expires_at"],
     )
 
 
 @app.route("/resend-otp", methods=["POST"])
+@limiter.limit("3 per 10 minutes")
 def resend_otp():
     pending_otp = get_pending_login_otp()
     if pending_otp is None:
@@ -4499,30 +4978,134 @@ def resend_otp():
                 "email": pending_otp["email"],
                 "provider": "twilio_verify",
                 "expires_at": int(time.time()) + 600,
-                "attempts": 0,
+                "attempts": pending_otp.get("attempts", 0),
             }
             session["otp_delivery_mode"] = "email"
-            session.pop("pending_otp_preview", None)
             flash("A new OTP has been sent to your email.", "success")
             return redirect(url_for("verify_otp"))
 
-    otp_code = store_pending_login_otp({"name": pending_otp["name"], "email": pending_otp["email"]})
+    otp_code = store_pending_login_otp({
+        "name": pending_otp["name"], 
+        "email": pending_otp["email"],
+        "attempts": pending_otp.get("attempts", 0)
+    })
     try:
         otp_sent = send_login_otp_email(pending_otp["email"], pending_otp["name"], otp_code)
     except Exception as exc:
         app.logger.warning("OTP resend failed: %s", exc)
 
-    session["otp_delivery_mode"] = "email" if otp_sent else "screen"
     if not otp_sent:
-        session["pending_otp_preview"] = otp_code
-    else:
-        session.pop("pending_otp_preview", None)
+        flash("Delivery failed. Please try again later.", "error")
+        return redirect(url_for("verify_otp"))
 
-    flash(
-        "A new OTP has been sent to your email." if otp_sent else f"New OTP generated: {otp_code}",
-        "success",
-    )
+    session["otp_delivery_mode"] = "email"
+    flash("A new OTP has been sent to your email.", "success")
     return redirect(url_for("verify_otp"))
+
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
+def forgot_password():
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+
+        if not email or "@" not in email or len(email) > 254:
+            flash("Please enter a valid email address.", "error")
+            return render_template(
+                "auth.html",
+                mode="forgot",
+                page_title="Forgot Password",
+                reset_preview_url=session.get("pending_reset_preview"),
+                smtp_configured=_smtp_is_configured(),
+            )
+
+        with get_auth_db_connection() as connection:
+            user = connection.execute(
+                "SELECT name, email FROM users WHERE email = ?",
+                (email,),
+            ).fetchone()
+
+        if user is not None:
+            try:
+                raw_token = _create_password_reset_token(email)
+                reset_url = build_external_url("reset_password", token=raw_token)
+                sent, smtp_error = send_password_reset_email(user["email"], user["name"], reset_url)
+                if sent:
+                    session.pop("pending_reset_preview", None)
+                else:
+                    app.logger.warning(
+                        "Password reset email not sent for %s: %s Reset URL: %s",
+                        email,
+                        smtp_error,
+                        reset_url,
+                    )
+                    if not _is_production_deploy():
+                        session["pending_reset_preview"] = reset_url
+            except Exception as exc:
+                app.logger.warning("Password reset flow failed for %s: %s", email, exc, exc_info=True)
+
+        flash(PASSWORD_RESET_GENERIC_MESSAGE, "success")
+        return redirect(url_for("forgot_password"))
+
+    return render_template(
+        "auth.html",
+        mode="forgot",
+        page_title="Forgot Password",
+        reset_preview_url=session.get("pending_reset_preview") if not _is_production_deploy() else None,
+        smtp_configured=_smtp_is_configured(),
+    )
+
+
+@app.route("/reset-password/<token>", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
+def reset_password(token):
+    record = _get_valid_password_reset_record(token)
+    if record is None:
+        flash("This password reset link is invalid or has expired. Please request a new one.", "error")
+        return redirect(url_for("forgot_password"))
+
+    if request.method == "POST":
+        record = _get_valid_password_reset_record(token)
+        if record is None:
+            flash("This password reset link is invalid or has expired. Please request a new one.", "error")
+            return redirect(url_for("forgot_password"))
+
+        password = request.form.get("password", "")
+        confirm_password = request.form.get("confirm_password", "")
+
+        if not password or not confirm_password:
+            flash("Please fill in all fields.", "error")
+            return render_template("auth.html", mode="reset", page_title="Reset Password")
+
+        if password != confirm_password:
+            flash("Passwords do not match.", "error")
+            return render_template("auth.html", mode="reset", page_title="Reset Password")
+
+        if len(password) < 6:
+            flash("Password must be at least 6 characters long.", "error")
+            return render_template("auth.html", mode="reset", page_title="Reset Password")
+
+        email = record["email"]
+        with get_auth_db_connection() as connection:
+            connection.execute(
+                "UPDATE users SET password_hash = ? WHERE email = ?",
+                (generate_password_hash(password), email),
+            )
+            connection.commit()
+
+        _mark_password_reset_token_used(token)
+        _invalidate_password_reset_tokens(email)
+
+        session.pop("auth_user", None)
+        session.pop("pending_otp", None)
+        session.pop("otp_delivery_mode", None)
+        session.pop("pending_otp_preview", None)
+        session.pop("pending_reset_preview", None)
+
+        flash("Your password has been reset successfully. You can now log in with your new password.", "success")
+        return redirect(url_for("login"))
+
+    return render_template("auth.html", mode="reset", page_title="Reset Password")
 
 
 @app.route("/logout")
@@ -4531,6 +5114,7 @@ def logout():
     session.pop("pending_otp", None)
     session.pop("otp_delivery_mode", None)
     session.pop("pending_otp_preview", None)
+    session.pop("pending_reset_preview", None)
     return redirect(url_for("index"))
 
 
@@ -4619,7 +5203,6 @@ def sitemap_xml():
         ('/exam-updates', '0.8', 'weekly'),
         ('/news', '0.8', 'daily'),
         ('/blogs', '0.8', 'weekly'),
-        ('/news', '0.8', 'daily'),
         ('/courses', '0.8', 'weekly'),
         ('/guide-me', '0.7', 'monthly'),
         ('/contact', '0.6', 'monthly'),
@@ -4642,7 +5225,8 @@ def _preload_cutoff_data():
     except Exception:
         pass
 
-_threading.Thread(target=_preload_cutoff_data, daemon=True).start()
+if os.environ.get("VERCEL") != "1" and os.environ.get("FLASK_ENV") != "production":
+    _threading.Thread(target=_preload_cutoff_data, daemon=True).start()
 
 
 if __name__ == "__main__":

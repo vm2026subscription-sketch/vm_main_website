@@ -4,8 +4,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
-  <title>Contact Us</title>
+  <title>Contact Us | VidyarthiMitra.org</title>
+  <meta name="description" content="Get in touch with VidyarthiMitra. We help students with college admissions, entrance exam guidance, and more.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="VidyarthiMitra">
+  <meta property="og:title" content="Contact Us | VidyarthiMitra.org">
+  <meta property="og:description" content="Get in touch with VidyarthiMitra. We help students with college admissions, entrance exam guidance, and more.">
+  <meta property="og:url" content="https://vidyarthimitra.org/contact-us">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Contact Us | VidyarthiMitra.org">
+  <meta name="twitter:description" content="Get in touch with VidyarthiMitra. We help students with college admissions, entrance exam guidance, and more.">
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -38,7 +48,7 @@
     .topbar a:hover { color: #F47B20; }
 
     /* ===== NAVBAR ===== */
-    nav {
+    .legacy-nav {
       background: #fff;
       border-bottom: 2px solid #F47B20;
       padding: 0 30px;
@@ -401,7 +411,7 @@
       .cards-grid, .form-grid { grid-template-columns: 1fr; }
       .nav-links { display: none; }
       .hero h1 { font-size: 28px; letter-spacing: 3px; }
-      nav { padding: 0 16px; }
+      .legacy-nav { padding: 0 16px; }
       .footer-grid { grid-template-columns: 1fr 1fr; }
     }
   </style>
@@ -424,7 +434,7 @@
   <div class="cards-grid">
     <!-- PUNE -->
     <div class="card">
-      <div class="card-header"><h2>📍 PUNE</h2></div>
+      <div class="card-header"><h2><i class="fa fa-map-marker-alt"></i> PUNE</h2></div>
       <div class="card-body">
         <div class="addresses-row">
           <div class="address-block">
@@ -464,7 +474,7 @@
 
     <!-- MUMBAI -->
     <div class="card">
-      <div class="card-header"><h2>📍 MUMBAI</h2></div>
+      <div class="card-header"><h2><i class="fa fa-map-marker-alt"></i> MUMBAI</h2></div>
       <div class="card-body">
         <div class="address-block">
           <div class="pin">
@@ -526,19 +536,19 @@
       <div class="form-grid">
         <div class="form-group">
           <label>Full Name <span class="required">*</span></label>
-          <input type="text" placeholder="Enter your name" required/>
+          <input type="text" name="name" placeholder="Enter your name" required/>
         </div>
         <div class="form-group">
           <label>Phone Number <span class="required">*</span></label>
-          <input type="tel" placeholder="10 digit mobile number" inputmode="numeric" maxlength="10" pattern="[0-9]{10}" title="Enter exactly 10 digits" required/>
+          <input type="tel" name="phone" placeholder="10 digit mobile number" inputmode="numeric" maxlength="10" pattern="[0-9]{10}" title="Enter exactly 10 digits" required/>
         </div>
         <div class="form-group">
           <label>Email Address <span class="required">*</span></label>
-          <input type="email" placeholder="your@email.com" title="Enter a valid email address with @" required/>
+          <input type="email" name="email" placeholder="your@email.com" title="Enter a valid email address with @" required/>
         </div>
         <div class="form-group">
           <label>Subject <span class="required">*</span></label>
-          <select required>
+          <select name="subject" required>
             <option value="">Select a topic</option>
             <option>Admissions Enquiry</option>
             <option>Course Information</option>
@@ -549,7 +559,7 @@
         </div>
         <div class="form-group full">
           <label>Message <span class="required">*</span></label>
-          <textarea placeholder="Write your message here…" required></textarea>
+          <textarea name="message" placeholder="Write your message here…" required></textarea>
         </div>
       </div>
       <button class="btn-submit" type="submit">Send Message →</button>
@@ -666,7 +676,7 @@
   const result = await response.json();
       
       if (result.success) {
-        button.textContent = '✓ Message Sent!';
+        button.innerHTML = '<i class="fa fa-check-circle"></i> Message Sent!';
         button.style.background = 'linear-gradient(135deg,#2e7d32,#43a047)';
         this.reset();
         setTimeout(() => {
@@ -674,7 +684,7 @@
           button.style.background = '';
         }, 3000);
       } else {
-        button.textContent = '✗ Error!';
+        button.innerHTML = '<i class="fa fa-times-circle"></i> Error!';
         button.style.background = 'linear-gradient(135deg,#d32f2f,#f44336)';
         setTimeout(() => {
           button.textContent = 'Send Message →';
@@ -682,7 +692,7 @@
         }, 3000);
       }
     } catch (error) {
-      button.textContent = '✗ Error!';
+      button.innerHTML = '<i class="fa fa-times-circle"></i> Error!';
       button.style.background = 'linear-gradient(135deg,#d32f2f,#f44336)';
       console.error('Form submission error:', error);
       setTimeout(() => {
