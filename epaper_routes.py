@@ -1946,6 +1946,85 @@ def api_restore_backup(backup_id):
         return jsonify({"error": str(e)}), 500
 
 
+# ── Diagnostics: where do editions survive across every store? (read-only) ──
+@epaper_bp.route("/api/epaper/admin/diagnostics")
+def api_epaper_diagnostics():
+    guard = _require_epaper_admin()
+    if guard is not None:
+        return guard
+
+    def _summary(editions):
+        eds = editions or []
+        dates = sorted({str(e.get("date", "")) for e in eds if e.get("date")})
+        return {
+            "count": len(eds),
+            "distinct_dates": len(dates),
+            "min_date": dates[0] if dates else None,
+            "max_date": dates[-1] if dates else None,
+            "last_10_dates": dates[-10:],
+        }
+
+    out = {}
+
+    # Postgres: v2 per-edition rows, backups table, legacy blob
+    if _pg_url():
+        try:
+            conn = _pg_connect()
+            _pg_ensure_table(conn)
+            with conn.cursor() as cur:
+                cur.execute("SELECT data FROM epaper_editions_v2")
+                v2 = [_row_to_edition(r[0]) for r in cur.fetchall()]
+                out["postgres_v2"] = _summary(v2)
+
+                cur.execute("""
+                    SELECT COUNT(*), COUNT(DISTINCT (edition_date, edition_language)),
+                           MIN(edition_date), MAX(edition_date)
+                    FROM epaper_edition_backups
+                """)
+                bc, bd, bmn, bmx = cur.fetchone()
+                cur.execute("""
+                    SELECT DISTINCT edition_date FROM epaper_edition_backups
+                    ORDER BY edition_date DESC LIMIT 10
+                """)
+                b_last = [r[0] for r in cur.fetchall()]
+                out["backups_table"] = {
+                    "snapshots": bc, "distinct_editions": bd,
+                    "min_date": bmn, "max_date": bmx, "last_10_dates": b_last,
+                }
+
+                cur.execute("SELECT data FROM epaper_editions_store WHERE id = 'editions'")
+                row = cur.fetchone()
+                blob = row[0] if row else []
+                if isinstance(blob, str):
+                    blob = json.loads(blob)
+                out["legacy_blob"] = _summary(blob)
+            conn.close()
+        except Exception as e:
+            out["postgres_error"] = str(e)
+    else:
+        out["postgres"] = "not configured"
+
+    # MongoDB read-only mirror
+    try:
+        out["mongodb"] = _summary(_load_editions_from_mongo())
+    except Exception as e:
+        out["mongo_error"] = str(e)
+
+    # Local file fallback (bundled/ephemeral)
+    try:
+        out["local_file"] = _summary(_load_editions_from_file())
+    except Exception as e:
+        out["file_error"] = str(e)
+
+    # What the site actually shows after merging everything
+    try:
+        out["what_site_shows"] = _summary(_load_editions())
+    except Exception as e:
+        out["merge_error"] = str(e)
+
+    return jsonify(out)
+
+
 @epaper_bp.route("/api/supabase/keepalive")
 def api_supabase_keepalive():
     if not _pg_url():
