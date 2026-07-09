@@ -4810,8 +4810,7 @@ def login():
 
         with get_auth_db_connection() as connection:
             user = connection.execute(
-                "SELECT name, email, password_hash, is_admin FROM users WHERE email = ?",
-                "SELECT name, email, password_hash, verified FROM users WHERE email = ?",
+                "SELECT name, email, password_hash, is_admin, verified FROM users WHERE email = ?",
                 (email,),
             ).fetchone()
 
