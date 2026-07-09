@@ -2888,20 +2888,38 @@ const EP = {
     });
   },
 
+  // Load an image URL → { dataURL, width, height } using a canvas (no html2canvas).
+  // Requires the server to send CORS headers — Cloudinary does by default.
+  _loadImageToCanvas(url) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        c.width  = img.naturalWidth;
+        c.height = img.naturalHeight;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0);
+        resolve({ dataURL: c.toDataURL('image/jpeg', 0.97), width: img.naturalWidth, height: img.naturalHeight });
+      };
+      img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
+      // Cache-bust only if needed; normally Cloudinary CDN is fine as-is
+      img.src = url;
+    });
+  },
+
   async compilePDF() {
     if (!this.pages.length) { this.showToast('No edition pages available'); return; }
-    if (typeof window.jspdf === 'undefined' || typeof window.html2canvas !== 'function') {
-      this.showToast('Loading PDF libraries…');
+    if (typeof window.jspdf === 'undefined') {
+      this.showToast('Loading PDF library…');
       try {
-        await Promise.all([
-          this._loadScript('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'),
-          this._loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
-        ]);
-      } catch (e) { this.showToast('Failed to load PDF libraries'); return; }
+        await this._loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+      } catch (e) { this.showToast('Failed to load PDF library'); return; }
     }
 
     this._pdfCancelled = false;
-    const originalPage = this.currentPage;
     try {
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -2910,38 +2928,36 @@ const EP = {
 
       for (let i = 0; i < this.pages.length; i++) {
         if (this._pdfCancelled) { this.showToast('PDF cancelled.'); return; }
-        this.showPdfLoader(true, `Rendering page ${i + 1} of ${this.pages.length}...`);
+        this.showPdfLoader(true, `Downloading page ${i + 1} of ${this.pages.length}…`);
 
-        // Navigate to the page — updatePageHeader sets masthead for pg1, section header for pg2+
-        this.showPage(i + 1);
-        await this.waitPageToLoad();
-        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+        const page = this.pages[i];
+        const imageUrl = page.page_image_url || page.image_path || page.image_url || '';
+        if (!imageUrl || imageUrl.toLowerCase().endsWith('.pdf')) continue;
 
-        if (this._pdfCancelled) { this.showToast('PDF cancelled.'); return; }
-
-        // Capture #epPaper which includes masthead/section-header + page content
-        const el = document.getElementById('epPaper');
-        if (!el) continue;
-        const canvas = await window.html2canvas(el, {
-          backgroundColor: '#ffffff',
-          useCORS: true,
-          allowTaint: false,
-          scale: 1.5,
-          logging: false,
-        });
+        let imgInfo;
+        try {
+          imgInfo = await this._loadImageToCanvas(imageUrl);
+        } catch (imgErr) {
+          console.warn(`[PDF] Page ${i + 1} image load failed, skipping:`, imgErr);
+          continue;
+        }
 
         if (this._pdfCancelled) { this.showToast('PDF cancelled.'); return; }
 
-        const ar = canvas.width / canvas.height;
+        // Fit image into A4 (preserve aspect ratio, centre on page)
+        const ar = imgInfo.width / imgInfo.height;
         const pa = W / H;
         let iw = W, ih = H, ix = 0, iy = 0;
         if (ar > pa) { ih = W / ar; iy = (H - ih) / 2; }
-        else { iw = H * ar; ix = (W - iw) / 2; }
+        else         { iw = H * ar; ix = (W - iw) / 2; }
 
         if (!firstPage) pdf.addPage();
         firstPage = false;
-        pdf.addImage(canvas.toDataURL('image/jpeg', 0.88), 'JPEG', ix, iy, iw, ih, undefined, 'FAST');
+        // 'NONE' = no extra jsPDF compression on top of our already-JPEG data
+        pdf.addImage(imgInfo.dataURL, 'JPEG', ix, iy, iw, ih, undefined, 'NONE');
       }
+
+      if (firstPage) { this.showToast('No downloadable pages found.'); return; }
 
       const title = this.currentEdition?.name || 'Vidyarthi Mitra E-Paper';
       pdf.save(`${title}.pdf`);
@@ -2954,7 +2970,6 @@ const EP = {
     } finally {
       this._pdfCancelled = false;
       this.showPdfLoader(false);
-      this.showPage(originalPage);
     }
   },
 
