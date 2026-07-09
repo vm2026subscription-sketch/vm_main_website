@@ -1469,7 +1469,27 @@ const EPAdmin = {
     this.showToast('Ready to create a new edition.');
   },
 
-  // ══════ PAGES ══════
+  // Auto-fill edition name preview from date+language when name is blank
+  updateEditionNamePreview() {
+    const nameInput = document.getElementById('edName');
+    const dateInput = document.getElementById('edDate');
+    const langSelect = document.getElementById('edLang');
+    if (!nameInput || nameInput.value.trim()) return; // don't overwrite user input
+    const date = dateInput?.value || '';
+    const lang = langSelect?.value || 'Hindi';
+    if (date) {
+      try {
+        const d = new Date(date);
+        const formatted = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+        nameInput.placeholder = `${lang} ePaper — ${formatted}`;
+      } catch(e) {
+        nameInput.placeholder = `${lang} ePaper — ${date}`;
+      }
+    } else {
+      nameInput.placeholder = `${lang} ePaper…`;
+    }
+  },
+
 
   addPage() {
     if (this.pages.length === 0) {

@@ -16,7 +16,16 @@
         const originalFetch = window.fetch;
         window.fetch = async function() {
           let [resource, config] = arguments;
-          if(config && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(config.method ? config.method.toUpperCase() : 'GET')) {
+          // Only inject CSRF token for same-origin requests.
+          // Cross-origin requests (e.g. Cloudinary uploads) must NOT include
+          // X-CSRFToken — Cloudinary's CORS policy rejects it in preflight.
+          const isSameOrigin = (function() {
+            try {
+              const url = typeof resource === 'string' ? new URL(resource, location.href) : new URL(resource.url, location.href);
+              return url.origin === location.origin;
+            } catch(e) { return true; }
+          })();
+          if(isSameOrigin && config && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(config.method ? config.method.toUpperCase() : 'GET')) {
               config.headers = config.headers || {};
               if(config.headers instanceof Headers) {
                   config.headers.set('X-CSRFToken', token);
