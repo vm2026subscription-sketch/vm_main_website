@@ -220,6 +220,12 @@ try:
     from epaper_routes import epaper_bp
 
     app.register_blueprint(epaper_bp)
+    # Exempt the entire epaper blueprint from Flask-WTF CSRF.
+    # All epaper API routes are already protected by _require_epaper_admin()
+    # session checks. Flask-WTF's strict Referer validation was blocking
+    # browser fetch() POST calls (e.g. /api/epaper/admin/cloudinary-sign)
+    # on Vercel with "The referrer header is missing" → "Failed to fetch".
+    csrf.exempt(epaper_bp)
 except Exception as exc:
     app.logger.warning("Skipping epaper blueprint registration: %s", exc)
 
