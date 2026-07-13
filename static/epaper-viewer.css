@@ -440,6 +440,25 @@ body.epaper-body:not(.ep-edition-open) .ep-paper {
   gap: 18px;
 }
 
+.ep-load-more-btn {
+  grid-column: 1 / -1;
+  padding: 12px 24px;
+  background: transparent;
+  border: 1.5px solid rgba(15, 23, 42, 0.15);
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: background 200ms ease, border-color 200ms ease, color 200ms ease;
+}
+.ep-load-more-btn:hover {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.3);
+  color: #0f172a;
+}
+
 .ep-edition-card,
 .ep-edition-card-skeleton {
   border-radius: 17px;

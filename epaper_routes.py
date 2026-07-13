@@ -1428,6 +1428,37 @@ def api_editions_by_date(date):
 
 
 # ── API: Get edition by date ───────────────────────
+def _fast_load_single_edition(date, lang=None):
+    """Fetch one edition from Postgres by date (+ optional language) without loading
+    all editions. Falls back to in-memory cache / full load on failure."""
+    if not _pg_url():
+        return None
+    try:
+        conn = _pg_connect()
+        _pg_ensure_table(conn)
+        edition = None
+        if lang:
+            edition = _load_one_edition_pg(conn, date, lang)
+        if not edition:
+            # Any published edition for this date (try common languages in order)
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT data FROM epaper_editions_v2 WHERE edition_date = %s ORDER BY edition_language",
+                    (date,)
+                )
+                rows = cur.fetchall()
+            for r in rows:
+                e = _row_to_edition(r[0])
+                if e.get("published", True):
+                    edition = e
+                    break
+        conn.close()
+        return edition
+    except Exception as e:
+        print(f"[epaper] Fast single edition load failed: {e}")
+        return None
+
+
 @epaper_bp.route("/api/epaper/edition/<date>")
 def api_edition(date):
     if not re.match(r"\d{4}-\d{2}-\d{2}$", date):
@@ -1435,58 +1466,18 @@ def api_edition(date):
 
     lang = request.args.get("lang", None)
 
-    # ── Fast path: single-row Postgres lookup (avoids loading all editions + MongoDB) ──
-    edition = None
-    if _pg_url():
-        try:
-            conn = _pg_connect()
-            _pg_ensure_table(conn)
-            if lang:
-                # Try loading specific language
-                edition = _load_one_edition_pg(conn, date, lang)
-                if edition and not edition.get("published", True):
-                    edition = None
-                # Fallback to first published edition for that date if exact language not found or not published
-                if not edition:
-                    with conn.cursor() as cur:
-                        cur.execute(
-                            "SELECT data FROM epaper_editions_v2 WHERE edition_date=%s",
-                            (date,),
-                        )
-                        rows = cur.fetchall()
-                    for r in rows:
-                        ed = _row_to_edition(r[0])
-                        if ed.get("published", True):
-                            edition = ed
-                            break
-            else:
-                with conn.cursor() as cur:
-                    cur.execute(
-                        "SELECT data FROM epaper_editions_v2 WHERE edition_date=%s",
-                        (date,),
-                    )
-                    rows = cur.fetchall()
-                for r in rows:
-                    ed = _row_to_edition(r[0])
-                    if ed.get("published", True):
-                        edition = ed
-                        break
-            conn.close()
-        except Exception as exc:
-            print(f"[epaper] public get fast-path failed: {exc}")
-            edition = None
+    # Fast path: query just this one edition row from Postgres
+    edition = _fast_load_single_edition(date, lang)
 
-    # ── Fallback: file fallback ──
-    if edition is None:
-        editions = _load_editions_from_file() or []
+    # Fallback: load all editions (uses in-memory cache)
+    if not edition:
+        editions = _load_editions()
         if lang:
             edition = next(
                 (e for e in editions if e["date"] == date and e.get("published", True) and e.get("language", "Hindi") == lang),
                 None,
             )
-            if not edition:
-                edition = next((e for e in editions if e["date"] == date and e.get("published", True)), None)
-        else:
+        if not edition:
             edition = next((e for e in editions if e["date"] == date and e.get("published", True)), None)
 
     if not edition:
@@ -1619,7 +1610,7 @@ def api_create_edition():
             if conn:
                 try: conn.close()
                 except: pass
-            return jsonify({"error": f"Save failed: {exc}"}), 500
+            print(f"[epaper] Postgres save failed, falling back to file: {exc}")
 
     # ── File-only fallback (no Postgres configured) ──
     editions = _load_editions_from_file()

@@ -27,7 +27,9 @@ const EP = {
   ttsPlaying: false,
   _toastTimer: null,
   isEditionOpen: false,
-  newsSidebarOpen: true,
+  newsSidebarOpen: false,
+  _newsSidebarLoaded: false,
+  _landingShowAll: false,
   landingLanguageFilter: '',
 
   footerLinksDefault: [
@@ -50,7 +52,7 @@ const EP = {
     this.renderFooterLinks(this.footerLinksDefault);
     const shouldAutoOpen = document.body.dataset.epaperMode === 'edition';
     this.setReaderMode(shouldAutoOpen);
-    this.setNewsSidebarState(true);
+    this.setNewsSidebarState(false);
 
     if (shouldAutoOpen) {
       this.loadLatestEdition();
@@ -61,7 +63,6 @@ const EP = {
 
     this.loadEditions();
     this.startAutoRefreshPoll();
-    this.loadNewsSidebar();
     this._initSwipeHint();
     this._initViewportFit();
   },
@@ -99,7 +100,12 @@ const EP = {
   },
 
   toggleNewsSidebar() {
-    this.setNewsSidebarState(!this.newsSidebarOpen);
+    const opening = !this.newsSidebarOpen;
+    this.setNewsSidebarState(opening);
+    if (opening && !this._newsSidebarLoaded) {
+      this._newsSidebarLoaded = true;
+      this.loadNewsSidebar();
+    }
   },
 
   _initSwipeHint() {
@@ -719,6 +725,7 @@ const EP = {
 
   setLandingLanguageFilter(language = '') {
     this.landingLanguageFilter = language;
+    this._landingShowAll = false;
     this.el.editionFilterButtons?.forEach(btn => {
       btn.classList.toggle('active', (btn.dataset.language || '') === this.landingLanguageFilter);
     });
@@ -730,11 +737,33 @@ const EP = {
     if (!grid) return;
 
     const selectedLanguage = (this.landingLanguageFilter || '').trim().toLowerCase();
-    const published = (Array.isArray(this.editions) ? this.editions : [])
+    const all = (Array.isArray(this.editions) ? this.editions : [])
       .filter(edition => edition && edition.published !== false)
       .filter(edition => !selectedLanguage || (edition.language || '').trim().toLowerCase() === selectedLanguage)
-      .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
-      .slice(0, 12);
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+    let published, hasMore;
+    if (this._landingShowAll) {
+      published = all;
+      hasMore = false;
+    } else if (selectedLanguage) {
+      // Language filter active: show latest 3 of that language
+      published = all.slice(0, 3);
+      hasMore = all.length > 3;
+    } else {
+      // No filter: show latest 1 per language (Hindi, English, Marathi)
+      const seenLangs = new Set();
+      published = [];
+      for (const e of all) {
+        const lang = (e.language || 'Hindi').toLowerCase();
+        if (!seenLangs.has(lang)) {
+          seenLangs.add(lang);
+          published.push(e);
+        }
+        if (published.length >= 3) break;
+      }
+      hasMore = all.length > published.length;
+    }
 
     if (!published.length) {
       const emptyLabel = this.landingLanguageFilter || 'published';
@@ -824,6 +853,19 @@ const EP = {
 
       grid.appendChild(card);
     });
+
+    if (hasMore) {
+      const remaining = all.length - published.length;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ep-load-more-btn';
+      btn.textContent = `Load ${remaining} more edition${remaining !== 1 ? 's' : ''}`;
+      btn.addEventListener('click', () => {
+        this._landingShowAll = true;
+        this.renderEditionLanding();
+      });
+      grid.appendChild(btn);
+    }
   },
 
   getEditionRequestUrl(edition) {
