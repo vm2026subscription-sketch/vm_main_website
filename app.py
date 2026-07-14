@@ -875,6 +875,16 @@ _COUPON_USES_DDL = """
         updated_at TIMESTAMPTZ DEFAULT NOW()
     )
 """
+_coupon_uses_table_ready = False
+
+def _ensure_coupon_uses_table(conn):
+    global _coupon_uses_table_ready
+    if _coupon_uses_table_ready:
+        return
+    with conn.cursor() as cur:
+        cur.execute(_COUPON_USES_DDL)
+    conn.commit()
+    _coupon_uses_table_ready = True
 
 def _pg_get_coupon_uses(code):
     """Return total uses consumed for this coupon from Postgres, or None if unavailable."""
@@ -884,9 +894,8 @@ def _pg_get_coupon_uses(code):
     try:
         conn = psycopg2.connect(db_url, connect_timeout=5)
         try:
+            _ensure_coupon_uses_table(conn)
             with conn.cursor() as cur:
-                cur.execute(_COUPON_USES_DDL)
-                conn.commit()
                 cur.execute("SELECT uses_consumed FROM coupon_uses WHERE code = %s", (code.upper(),))
                 row = cur.fetchone()
                 return row[0] if row else 0
@@ -904,9 +913,8 @@ def _pg_consume_coupon(code, max_uses):
     try:
         conn = psycopg2.connect(db_url, connect_timeout=5)
         try:
+            _ensure_coupon_uses_table(conn)
             with conn.cursor() as cur:
-                cur.execute(_COUPON_USES_DDL)
-                conn.commit()
                 if max_uses is None:
                     cur.execute("""
                         INSERT INTO coupon_uses (code, uses_consumed)
