@@ -800,6 +800,109 @@ button.ep-edition-card .ep-edition-card-language {
   appearance: none;
 }
 
+/* ── LANDING PAGE CARD REDESIGN ─────────────────────────────── */
+/* Compact editorial cards — newspaper preview + clean metadata  */
+
+body.epaper-body:not(.ep-edition-open) .ep-edition-card {
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.08);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+}
+
+body.epaper-body:not(.ep-edition-open) .ep-edition-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1), 0 20px 40px rgba(15, 23, 42, 0.12);
+}
+
+/* Language-colored top accent */
+body.epaper-body:not(.ep-edition-open) .ep-edition-card[data-language="English"] {
+  border-top: 3px solid #2563eb;
+}
+body.epaper-body:not(.ep-edition-open) .ep-edition-card[data-language="Hindi"] {
+  border-top: 3px solid #dc2626;
+}
+body.epaper-body:not(.ep-edition-open) .ep-edition-card[data-language="Marathi"] {
+  border-top: 3px solid #d97706;
+}
+
+/* Preview frame — fixed height, dark background */
+body.epaper-body:not(.ep-edition-open) .ep-edition-card-cover {
+  aspect-ratio: unset;
+  height: 240px;
+  padding: 0;
+  background: #161b27;
+  border-radius: 11px 11px 0 0;
+  flex-shrink: 0;
+}
+
+body.epaper-body:not(.ep-edition-open) .ep-edition-card-preview-frame {
+  height: 100%;
+  padding: 12px 12px 0;
+  background: transparent;
+  border-radius: 10px 10px 0 0;
+}
+
+body.epaper-body:not(.ep-edition-open) .ep-edition-card-preview {
+  aspect-ratio: unset;
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  object-position: top center;
+  border-radius: 4px 4px 0 0;
+  border: none;
+}
+
+body.epaper-body:not(.ep-edition-open) .ep-edition-card-preview-placeholder {
+  aspect-ratio: unset;
+  height: 100%;
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+}
+
+/* Card body — horizontal layout: info left, badge right */
+body.epaper-body:not(.ep-edition-open) .ep-edition-card-body {
+  padding: 14px 16px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 1;
+}
+
+body.epaper-body:not(.ep-edition-open) .ep-edition-card-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  margin-bottom: 3px;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+body.epaper-body:not(.ep-edition-open) .ep-edition-card-subtitle {
+  font-size: 11.5px;
+  color: #94a3b8;
+  margin-bottom: 0;
+}
+
+body.epaper-body:not(.ep-edition-open) .ep-edition-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+body.epaper-body:not(.ep-edition-open) .ep-edition-card-language {
+  flex-shrink: 0;
+  font-size: 10px;
+  padding: 5px 10px;
+}
+
+/* ── END LANDING CARD REDESIGN ───────────────────────────────── */
+
 .ep-edition-card-skeleton {
   min-height: 430px;
   background: #f9f9f7;

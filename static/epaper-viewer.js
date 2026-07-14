@@ -828,6 +828,9 @@ const EP = {
       const body = document.createElement('div');
       body.className = 'ep-edition-card-body';
 
+      const info = document.createElement('div');
+      info.className = 'ep-edition-card-info';
+
       const title = document.createElement('div');
       title.className = 'ep-edition-card-title';
       title.textContent = this.getEditionCardTitle(edition);
@@ -835,6 +838,8 @@ const EP = {
       const subtitle = document.createElement('div');
       subtitle.className = 'ep-edition-card-subtitle';
       subtitle.textContent = this.formatEditionCardDate(edition.date);
+
+      info.append(title, subtitle);
 
       const langLabel = (edition.language || 'Edition').trim();
       const langKey = langLabel.toLowerCase();
@@ -844,7 +849,7 @@ const EP = {
       language.dataset.lang = langKey;
       language.textContent = langLabel;
 
-      body.append(title, subtitle, language);
+      body.append(info, language);
 
       card.append(cover, body);
       card.addEventListener('click', async () => {
