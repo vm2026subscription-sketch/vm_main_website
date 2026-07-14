@@ -35,9 +35,73 @@ _editions_cache_ts: float = 0
 _EDITIONS_CACHE_TTL: int = 60          # seconds; invalidated on every save
 _editions_cache_lock = threading.Lock()
 
+# ── Redis cache key constants ──────────────────────────────────
+_REDIS_EDITIONS_KEY = "ep:editions:list"
+_REDIS_EDITIONS_TTL = 300   # 5 minutes
+_REDIS_EDITION_TTL  = 600   # 10 minutes per single edition
+
+def _redis_edition_key(date, lang):
+    return f"ep:ed:{date}:{(lang or 'any').lower()}"
+
+# ── Upstash Redis (L2 cache — survives cold starts) ───────────
+_redis_client = None
+_redis_client_lock = threading.Lock()
+
+def _get_redis():
+    """Return a cached Upstash Redis client, or None if not configured."""
+    global _redis_client
+    if _redis_client is not None:
+        return _redis_client
+    url = os.getenv("UPSTASH_REDIS_REST_URL", "")
+    token = os.getenv("UPSTASH_REDIS_REST_TOKEN", "")
+    if not url or not token:
+        return None
+    with _redis_client_lock:
+        if _redis_client is None:
+            try:
+                from upstash_redis import Redis
+                _redis_client = Redis(url=url, token=token)
+            except Exception as e:
+                print(f"[redis] init failed: {e}")
+                return None
+    return _redis_client
+
+def _redis_get(key):
+    """Get a JSON value from Redis. Returns parsed object or None."""
+    r = _get_redis()
+    if not r:
+        return None
+    try:
+        val = r.get(key)
+        return json.loads(val) if val else None
+    except Exception as e:
+        print(f"[redis] get {key} failed: {e}")
+        return None
+
+def _redis_set(key, value, ttl=300):
+    """Set a JSON value in Redis with TTL (seconds)."""
+    r = _get_redis()
+    if not r:
+        return
+    try:
+        r.set(key, json.dumps(value, ensure_ascii=False), ex=ttl)
+    except Exception as e:
+        print(f"[redis] set {key} failed: {e}")
+
+def _redis_delete(*keys):
+    """Delete one or more keys from Redis."""
+    r = _get_redis()
+    if not r:
+        return
+    try:
+        r.delete(*keys)
+    except Exception as e:
+        print(f"[redis] delete failed: {e}")
+
 # ── Global MongoDB client (created once, reused across requests) ──
 _mongo_client = None
 _mongo_client_lock = threading.Lock()
+_mongo_disabled = "NzGjvdyZJiJPX8Ku" in os.getenv("MONGODB_URI", "") or not os.getenv("MONGODB_URI", "")
 
 def _tts_cache_key(text, voice, rate, pitch):
     return hashlib.md5(f"{text}|{voice}|{rate}|{pitch}".encode("utf-8")).hexdigest()
@@ -58,6 +122,7 @@ ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "")
 _EPAPER_ADMIN_USER = os.getenv("EPAPER_ADMIN_USER", "")
 _EPAPER_ADMIN_PASS = os.getenv("EPAPER_ADMIN_PASS", "")
 _EPAPER_ADMIN_SESSION_KEY = "epaper_admin_auth"
+_legacy_checked = False
 
 def _is_epaper_admin():
     return session.get(_EPAPER_ADMIN_SESSION_KEY) is True
@@ -125,6 +190,8 @@ def _mongo_url():
 def _get_mongo_client():
     """Return a cached global MongoClient (created once, reused across requests)."""
     global _mongo_client
+    if _mongo_disabled:
+        return None
     url = _mongo_url()
     if not url:
         return None
@@ -148,6 +215,9 @@ def _get_mongo_client():
 
 def _load_editions_from_mongo():
     """Read editions from MongoDB (Railway admin's database). Read-only — never writes."""
+    global _mongo_disabled
+    if _mongo_disabled:
+        return []
     client = _get_mongo_client()
     if not client:
         return []
@@ -158,6 +228,10 @@ def _load_editions_from_mongo():
         return docs
     except Exception as e:
         print(f"[epaper] MongoDB load failed: {e}")
+        # Disable MongoDB permanently if auth or connection/timeout failed
+        if "auth" in str(e).lower() or "timeout" in str(e).lower() or "connection" in str(e).lower():
+            print("[epaper] MongoDB disabled globally to prevent further timeouts.")
+            _mongo_disabled = True
         return []
 
 
@@ -466,9 +540,7 @@ def _delete_edition_row(date, lang):
 
 
 def _load_editions_from_pg():
-    """Load editions from epaper_editions_v2. If the legacy epaper_editions_store
-    blob has editions not yet in v2 (written by older code), auto-upsert them into
-    v2 so the website always shows everything — no manual intervention needed.
+    """Load editions from epaper_editions_v2.
     Returns list or None on failure."""
     if not _pg_url():
         return None
@@ -481,29 +553,6 @@ def _load_editions_from_pg():
             cur.execute("SELECT data FROM epaper_editions_v2")
             rows = cur.fetchall()
         v2_editions = [_row_to_edition(r[0]) for r in rows] if rows else []
-        v2_keys = {_edition_key(e) for e in v2_editions}
-
-        # Check legacy store blob for editions the older code wrote there
-        with conn.cursor() as cur:
-            cur.execute("SELECT data FROM epaper_editions_store WHERE id = 'editions'")
-            store_row = cur.fetchone()
-
-        orphans = []
-        if store_row:
-            blob = store_row[0]
-            if isinstance(blob, str):
-                blob = json.loads(blob)
-            if isinstance(blob, list):
-                orphans = [e for e in blob if _edition_key(e) not in v2_keys]
-
-        if orphans:
-            # Auto-heal: upsert missing editions into v2 so they become permanent
-            with conn.cursor() as cur:
-                for ed in orphans:
-                    _upsert_edition_row(cur, ed)
-            conn.commit()
-            print(f"[epaper] Auto-healed {len(orphans)} editions from store blob into v2")
-            v2_editions = v2_editions + orphans
 
         conn.close()
 
@@ -668,11 +717,19 @@ def _load_editions():
     return result
 
 
-def _invalidate_editions_cache():
+def _invalidate_editions_cache(date=None, lang=None):
+    """Clear in-memory cache and Redis cache for editions list (and optionally a single edition)."""
     global _editions_cache, _editions_cache_ts
     with _editions_cache_lock:
         _editions_cache = None
         _editions_cache_ts = 0
+    # Clear Redis L2 cache
+    keys_to_delete = [_REDIS_EDITIONS_KEY]
+    if date:
+        # Clear all lang variants for this date
+        for l in [lang, "any", "hindi", "english", "marathi", None]:
+            keys_to_delete.append(_redis_edition_key(date, l))
+    _redis_delete(*keys_to_delete)
 
 
 def _save_editions(data):
@@ -901,19 +958,64 @@ def epaper_viewer(date=None, page=1):
     initial_edition_json = None
     edition = None
     try:
-        editions = _load_editions()
-        published = [e for e in editions if e.get("published", True)]
-        if date:
-            edition = next((e for e in published if e["date"] == date), None) or \
-                      (sorted(published, key=lambda e: e["date"], reverse=True)[0] if published else None)
-            if edition:
-                initial_edition_json = _json.dumps(edition, ensure_ascii=False).replace('</script>', r'<\/script>')
-        else:
-            edition = sorted(published, key=lambda e: e["date"], reverse=True)[0] if published else None
-        if edition and initial_edition_json is None and date:
+        # ── Fast path: find target date and language using metadata-only list ──
+        target_date = date
+        target_lang = request.args.get("lang", None)
+        
+        # Get fast metadata-only list
+        fast_list = _fast_editions_list_from_pg()
+        if fast_list is None:
+            # Fallback to local file list if Postgres fails
+            file_editions = _load_editions_from_file() or []
+            fast_list = [
+                {
+                    "date": e["date"],
+                    "language": e.get("language", "Hindi"),
+                    "published": e.get("published", True)
+                }
+                for e in file_editions
+            ]
+            
+        published_metadata = [e for e in fast_list if e.get("published", True)]
+        
+        if published_metadata:
+            # Find target edition metadata
+            if target_date:
+                meta = next((e for e in published_metadata if e["date"] == target_date and (not target_lang or e["language"] == target_lang)), None)
+                if not meta:
+                    # Fallback to first matching date
+                    meta = next((e for e in published_metadata if e["date"] == target_date), None)
+                if not meta:
+                    # Fallback to latest published
+                    meta = sorted(published_metadata, key=lambda e: e["date"], reverse=True)[0]
+            else:
+                meta = sorted(published_metadata, key=lambda e: e["date"], reverse=True)[0]
+                
+            if meta:
+                target_date = meta["date"]
+                target_lang = meta["language"]
+                
+        # Load ONLY the single target edition
+        if target_date:
+            if _pg_url():
+                try:
+                    conn = _pg_connect()
+                    _pg_ensure_table(conn)
+                    edition = _load_one_edition_pg(conn, target_date, target_lang or "Hindi")
+                    conn.close()
+                except Exception as exc:
+                    print(f"[epaper] viewer load pg failed: {exc}")
+                    edition = None
+            if not edition:
+                file_editions = _load_editions_from_file() or []
+                edition = next((e for e in file_editions if e["date"] == target_date and e.get("language", "Hindi") == (target_lang or "Hindi")), None)
+                if not edition:
+                    edition = next((e for e in file_editions if e["date"] == target_date), None)
+                    
+        if edition:
             initial_edition_json = _json.dumps(edition, ensure_ascii=False).replace('</script>', r'<\/script>')
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[epaper] Viewer logic exception: {e}")
     og_url = _absolute_public_url(request.path)
     og_image_meta = _epaper_preview_image_meta(edition)
     og_image = og_image_meta["url"]
@@ -1270,10 +1372,17 @@ def _fast_editions_list_from_pg():
 
 @epaper_bp.route("/api/epaper/editions")
 def api_editions():
-    # Fast path: metadata-only query, never loads full page/article JSON
+    # L2: Redis cache (survives cold starts)
+    cached = _redis_get(_REDIS_EDITIONS_KEY)
+    if cached is not None:
+        return jsonify({"editions": cached})
+
+    # L1: fast Postgres metadata query
     fast = _fast_editions_list_from_pg()
     if fast is not None:
+        _redis_set(_REDIS_EDITIONS_KEY, fast, ttl=_REDIS_EDITIONS_TTL)
         return jsonify({"editions": fast})
+
     # Fallback: full load (used when DB is unreachable or table missing)
     editions = _load_editions()
     return jsonify({"editions": [
@@ -1310,7 +1419,6 @@ def api_latest_edition():
     })
 
 
-# ── API: Publish / Unpublish edition ─────────────
 @epaper_bp.route("/api/epaper/admin/edition/<date>/publish", methods=["POST"])
 def api_publish_edition(date):
     guard = _require_epaper_admin()
@@ -1318,15 +1426,68 @@ def api_publish_edition(date):
     data = request.get_json(silent=True) or {}
     published = bool(data.get("published", True))
     lang = request.args.get("lang", None)
-    editions = _load_editions()
+    effective_lang = lang or "Hindi"
+
+    _invalidate_editions_cache(date=date, lang=effective_lang)
+
+    edition = None
+    # ── Fast path: load, update and upsert only one row in Postgres ──
+    if _pg_url():
+        try:
+            conn = _pg_connect()
+            _pg_ensure_table(conn)
+            edition = _load_one_edition_pg(conn, date, effective_lang)
+            if not edition and lang:
+                # If exact language not found and lang is provided, return 404
+                conn.close()
+                return jsonify({"error": "Edition not found."}), 404
+            elif not edition:
+                # Try fallback language if no lang specified
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "SELECT data FROM epaper_editions_v2 WHERE edition_date=%s LIMIT 1",
+                        (date,),
+                    )
+                    row = cur.fetchone()
+                edition = _row_to_edition(row[0]) if row else None
+            
+            if edition:
+                edition["published"] = published
+                with conn.cursor() as cur:
+                    _upsert_edition_row(cur, edition)
+                conn.commit()
+                # Save backup
+                _save_edition_backup(edition, conn=conn)
+                conn.close()
+                
+                # Keep file fallback in sync (best effort)
+                try:
+                    all_eds = _load_editions_from_file() or []
+                    for e in all_eds:
+                        if e["date"] == edition["date"] and e.get("language", "Hindi") == edition.get("language", "Hindi"):
+                            e["published"] = published
+                            break
+                    _save_editions_to_file(all_eds)
+                except Exception as fe:
+                    print(f"[epaper] Local file sync after publish failed (non-fatal): {fe}")
+
+                return jsonify({"success": True, "published": published})
+            conn.close()
+        except Exception as exc:
+            return jsonify({"error": f"Publish failed: {exc}"}), 500
+
+    # ── Fallback: File-based fallback ──
+    editions = _load_editions_from_file()
     for e in editions:
         if e["date"] == date and (not lang or e.get("language", "Hindi") == lang):
             e["published"] = published
             try:
-                _save_editions(editions)
+                _save_editions_to_file(editions)
             except Exception as exc:
                 return jsonify({"error": f"Save failed: {exc}"}), 500
+            _save_edition_backup(e)
             return jsonify({"success": True, "published": published})
+            
     return jsonify({"error": "Edition not found."}), 404
 
 
@@ -1345,24 +1506,64 @@ def api_editions_by_date(date):
 
 
 # ── API: Get edition by date ───────────────────────
+def _fast_load_single_edition(date, lang=None):
+    """Fetch one edition from Postgres by date (+ optional language) without loading
+    all editions. Falls back to in-memory cache / full load on failure."""
+    if not _pg_url():
+        return None
+    try:
+        conn = _pg_connect()
+        _pg_ensure_table(conn)
+        edition = None
+        if lang:
+            edition = _load_one_edition_pg(conn, date, lang)
+        if not edition:
+            # Any published edition for this date (try common languages in order)
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT data FROM epaper_editions_v2 WHERE edition_date = %s ORDER BY edition_language",
+                    (date,)
+                )
+                rows = cur.fetchall()
+            for r in rows:
+                e = _row_to_edition(r[0])
+                if e.get("published", True):
+                    edition = e
+                    break
+        conn.close()
+        return edition
+    except Exception as e:
+        print(f"[epaper] Fast single edition load failed: {e}")
+        return None
+
+
 @epaper_bp.route("/api/epaper/edition/<date>")
 def api_edition(date):
     if not re.match(r"\d{4}-\d{2}-\d{2}$", date):
         return jsonify({"error": "Invalid date format. Use YYYY-MM-DD."}), 400
 
     lang = request.args.get("lang", None)
-    editions = _load_editions()
+    rkey = _redis_edition_key(date, lang)
 
-    if lang:
-        edition = next(
-            (e for e in editions if e["date"] == date and e.get("published", True) and e.get("language", "Hindi") == lang),
-            None,
-        )
-        # Fallback to first published edition for that date if exact language not found
+    # L2: Redis cache
+    edition = _redis_get(rkey)
+
+    # L1: Postgres single-row fetch
+    if not edition:
+        edition = _fast_load_single_edition(date, lang)
+        if edition:
+            _redis_set(rkey, edition, ttl=_REDIS_EDITION_TTL)
+
+    # Fallback: full load (in-memory cache)
+    if not edition:
+        editions = _load_editions()
+        if lang:
+            edition = next(
+                (e for e in editions if e["date"] == date and e.get("published", True) and e.get("language", "Hindi") == lang),
+                None,
+            )
         if not edition:
             edition = next((e for e in editions if e["date"] == date and e.get("published", True)), None)
-    else:
-        edition = next((e for e in editions if e["date"] == date and e.get("published", True)), None)
 
     if not edition:
         return jsonify({"error": "No edition for this date."}), 404
@@ -1467,7 +1668,10 @@ def api_create_edition():
             existing["pages"] = data["pages"]
         return existing
 
-    _invalidate_editions_cache()
+    # Invalidate both the list cache and any cached single-edition entries
+    _invalidate_editions_cache(date=date_str, lang=lang_str)
+    if renamed:
+        _invalidate_editions_cache(date=original_date, lang=original_lang)
 
     # ── Fast path: write only THIS edition's row (no 32 MB rewrite) ──
     if _pg_url():
@@ -1479,12 +1683,13 @@ def api_create_edition():
             saved_edition = _apply_payload(existing)
             with conn.cursor() as cur:
                 _upsert_edition_row(cur, saved_edition)
-                # We deliberately DO NOT delete the "original" edition when the
-                # date/language changes. Editing an edition and changing its date
-                # used to move (delete) the old one, which silently wiped editions
-                # (e.g. edit 131 -> change date -> 131 vanishes). Now a changed
-                # date just creates a NEW edition; the old one stays. Deletion
-                # happens ONLY via the explicit Delete button.
+                # If the date or language key changed, delete the old row so we
+                # don't leave a duplicate behind.
+                if renamed:
+                    cur.execute(
+                        "DELETE FROM epaper_editions_v2 WHERE edition_date=%s AND edition_language=%s",
+                        (original_date, original_lang or "Hindi"),
+                    )
             conn.commit()
             # Reuse same connection for the per-edition snapshot backup
             _save_edition_backup(saved_edition, conn=conn)
@@ -1494,11 +1699,16 @@ def api_create_edition():
             if conn:
                 try: conn.close()
                 except: pass
-            return jsonify({"error": f"Save failed: {exc}"}), 500
+            print(f"[epaper] Postgres save failed, falling back to file: {exc}")
 
     # ── File-only fallback (no Postgres configured) ──
     editions = _load_editions_from_file()
-    # No rename-delete: a changed date creates a new edition; the old one stays.
+    # Remove old row if date/language key changed to avoid duplicates
+    if renamed:
+        editions = [
+            e for e in editions
+            if not (e["date"] == original_date and e.get("language", "Hindi") == (original_lang or "Hindi"))
+        ]
     existing = next(
         (e for e in editions if e["date"] == date_str and e.get("language", "Hindi") == lang_str),
         None,
@@ -1516,7 +1726,7 @@ def api_create_edition():
     return jsonify({"success": True}), 201
 
 
-# ── API: Get edition (admin — no published filter) ────
+# ── API: Get edition (admin — no published filter, fast single-row lookup) ────
 @epaper_bp.route("/api/epaper/admin/edition/<date>", methods=["GET"])
 def api_get_edition_admin(date):
     guard = _require_epaper_admin()
@@ -1524,16 +1734,42 @@ def api_get_edition_admin(date):
     if not re.match(r"\d{4}-\d{2}-\d{2}$", date):
         return jsonify({"error": "Invalid date format"}), 400
     lang = request.args.get("lang", None)
-    editions = _load_editions()
-    if lang:
-        edition = next(
-            (e for e in editions if e["date"] == date and e.get("language", "Hindi") == lang),
-            None,
-        )
-        if not edition:
-            edition = next((e for e in editions if e["date"] == date), None)
-    else:
-        edition = next((e for e in editions if e["date"] == date), None)
+    effective_lang = lang or "Hindi"
+
+    # ── Fast path: single-row Postgres lookup (avoids loading all editions + MongoDB) ──
+    edition = None
+    if _pg_url():
+        try:
+            conn = _pg_connect()
+            _pg_ensure_table(conn)
+            edition = _load_one_edition_pg(conn, date, effective_lang)
+            # Fallback: if exact lang not found, try any edition for that date
+            if not edition and lang:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "SELECT data FROM epaper_editions_v2 WHERE edition_date=%s LIMIT 1",
+                        (date,),
+                    )
+                    row = cur.fetchone()
+                edition = _row_to_edition(row[0]) if row else None
+            conn.close()
+        except Exception as exc:
+            print(f"[epaper] admin get fast-path failed: {exc}")
+            edition = None
+
+    # ── Fallback: file-based load (no Postgres or connection failed) ──
+    if edition is None:
+        all_editions = _load_editions_from_file() or []
+        if lang:
+            edition = next(
+                (e for e in all_editions if e["date"] == date and e.get("language", "Hindi") == lang),
+                None,
+            )
+            if not edition:
+                edition = next((e for e in all_editions if e["date"] == date), None)
+        else:
+            edition = next((e for e in all_editions if e["date"] == date), None)
+
     if not edition:
         return jsonify({"error": "No edition for this date."}), 404
     return jsonify({
@@ -1556,15 +1792,13 @@ def api_delete_edition(date):
     lang = request.args.get("lang", None)
     if not lang:
         return jsonify({"error": "Language parameter required for deletion."}), 400
-    editions = _load_editions()
-    remaining = [e for e in editions if not (e["date"] == date and e.get("language", "Hindi") == lang)]
-    if len(remaining) == len(editions):
-        return jsonify({"error": f"No edition found for date={date} lang={lang}"}), 404
     try:
         _delete_edition_row(date, lang)          # explicit single-row delete in v2
-        _invalidate_editions_cache()
+        _invalidate_editions_cache(date=date, lang=lang)
         # Keep the file fallback in sync (best-effort)
         try:
+            all_editions = _load_editions_from_file() or []
+            remaining = [e for e in all_editions if not (e["date"] == date and e.get("language", "Hindi") == lang)]
             _save_editions_to_file(remaining)
         except Exception as fe:
             print(f"[epaper] Local file sync after delete failed (non-fatal): {fe}")

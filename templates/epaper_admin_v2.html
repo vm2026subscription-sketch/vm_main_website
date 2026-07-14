@@ -16,7 +16,16 @@
         const originalFetch = window.fetch;
         window.fetch = async function() {
           let [resource, config] = arguments;
-          if(config && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(config.method ? config.method.toUpperCase() : 'GET')) {
+          const method = config?.method ? config.method.toUpperCase() : 'GET';
+          const url = resource instanceof Request ? resource.url : resource;
+          const isSameOrigin = (() => {
+            try {
+              return new URL(url, window.location.href).origin === window.location.origin;
+            } catch (e) {
+              return true;
+            }
+          })();
+          if (isSameOrigin && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
               config.headers = config.headers || {};
               if(config.headers instanceof Headers) {
                   config.headers.set('X-CSRFToken', token);
