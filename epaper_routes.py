@@ -103,7 +103,10 @@ def _redis_delete(*keys):
 # ── Global MongoDB client (created once, reused across requests) ──
 _mongo_client = None
 _mongo_client_lock = threading.Lock()
-_mongo_disabled = "NzGjvdyZJiJPX8Ku" in os.getenv("MONGODB_URI", "") or not os.getenv("MONGODB_URI", "")
+_mongo_disabled = (
+    os.getenv("MONGO_DISABLED", "").lower() in ("1", "true", "yes") or
+    not os.getenv("MONGODB_URI", "")
+)
 
 def _tts_cache_key(text, voice, rate, pitch):
     return hashlib.md5(f"{text}|{voice}|{rate}|{pitch}".encode("utf-8")).hexdigest()
