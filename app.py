@@ -3800,8 +3800,19 @@ _SITE_SETTINGS_DDL = """
         updated_at TIMESTAMPTZ DEFAULT NOW()
     )
 """
+_site_settings_table_ready = False
+_settings_cache = {}          # key -> (value, expires_at)
+_SETTINGS_CACHE_TTL = 60      # seconds
 
 def _pg_get_setting(key):
+    global _site_settings_table_ready
+    # Serve from in-memory cache if fresh
+    entry = _settings_cache.get(key)
+    if entry is not None:
+        value, expires_at = entry
+        if time.time() < expires_at:
+            return value
+
     db_url = get_postgres_connection_url()
     if not db_url or not psycopg2:
         return None
@@ -3809,18 +3820,23 @@ def _pg_get_setting(key):
         conn = psycopg2.connect(db_url, connect_timeout=5)
         try:
             with conn.cursor() as cur:
-                cur.execute(_SITE_SETTINGS_DDL)
-                conn.commit()
+                if not _site_settings_table_ready:
+                    cur.execute(_SITE_SETTINGS_DDL)
+                    conn.commit()
+                    _site_settings_table_ready = True
                 cur.execute("SELECT value FROM site_settings WHERE key = %s", (key,))
                 row = cur.fetchone()
-                return json.loads(row[0]) if row else None
+                result = json.loads(row[0]) if row else None
         finally:
             conn.close()
+        _settings_cache[key] = (result, time.time() + _SETTINGS_CACHE_TTL)
+        return result
     except Exception as exc:
         app.logger.warning("site_settings get(%s) failed: %s", key, exc)
         return None
 
 def _pg_set_setting(key, value):
+    global _site_settings_table_ready
     db_url = get_postgres_connection_url()
     if not db_url or not psycopg2:
         return False
@@ -3828,13 +3844,16 @@ def _pg_set_setting(key, value):
         conn = psycopg2.connect(db_url, connect_timeout=5)
         try:
             with conn.cursor() as cur:
-                cur.execute(_SITE_SETTINGS_DDL)
+                if not _site_settings_table_ready:
+                    cur.execute(_SITE_SETTINGS_DDL)
+                    _site_settings_table_ready = True
                 cur.execute("""
                     INSERT INTO site_settings (key, value, updated_at)
                     VALUES (%s, %s, NOW())
                     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()
                 """, (key, json.dumps(value, ensure_ascii=False)))
             conn.commit()
+            _settings_cache.pop(key, None)  # invalidate cache on write
             return True
         finally:
             conn.close()
