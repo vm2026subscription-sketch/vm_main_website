@@ -358,11 +358,17 @@ body.epaper-body:not(.ep-edition-open) .ep-news-sidebar-reopen {
 
 body.epaper-body:not(.ep-edition-open) .ep-edition-landing {
   display: block;
+  width: 100%;
+}
+
+body.epaper-body:not(.ep-edition-open) .ep-main {
+  justify-content: flex-start;
 }
 
 body.epaper-body:not(.ep-edition-open) .ep-reader-container {
   align-items: stretch;
-  max-width: 1120px;
+  max-width: none;
+  width: 100%;
 }
 
 body.epaper-body:not(.ep-edition-open) .ep-paper {
@@ -438,6 +444,22 @@ body.epaper-body:not(.ep-edition-open) .ep-paper {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 18px;
+}
+
+body.epaper-body:not(.ep-edition-open) .ep-edition-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 700px) {
+  body.epaper-body:not(.ep-edition-open) .ep-edition-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 701px) and (max-width: 1000px) {
+  body.epaper-body:not(.ep-edition-open) .ep-edition-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .ep-load-more-btn {

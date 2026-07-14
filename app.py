@@ -2492,9 +2492,21 @@ def require_admin(f):
     return decorated
 
 
-@app.route("/admin/login", methods=["GET", "POST"])
-@limiter.limit("5 per minute")
+def _render_admin_login(error=None, next_url=""):
+    return render_template("admin_login.html", error=error, next=next_url)
+
+
+@app.route("/admin/login", methods=["GET"])
 def admin_login():
+    if _is_admin():
+        return redirect(url_for('admin'))
+    next_url = request.args.get("next", "")
+    return _render_admin_login(next_url=next_url)
+
+
+@app.route("/admin/login", methods=["POST"])
+@limiter.limit("5 per minute")
+def admin_login_post():
     if _is_admin():
         return redirect(url_for('admin'))
     error = None
@@ -2503,17 +2515,21 @@ def admin_login():
         password = request.form.get("password", "")
         admin_email = os.getenv("ADMIN_LOGIN_EMAIL", "")
         admin_hash  = os.getenv("ADMIN_LOGIN_HASH", "")
-        if not admin_email or not admin_hash:
-            app.logger.error("ADMIN_LOGIN_EMAIL / ADMIN_LOGIN_HASH env vars not set")
+        admin_password = os.getenv("ADMIN_LOGIN_PASSWORD", "")
+        if not admin_email or (not admin_hash and not admin_password):
+            app.logger.error("ADMIN_LOGIN_EMAIL and ADMIN_LOGIN_HASH or ADMIN_LOGIN_PASSWORD env vars not set")
             error = "Admin login is not configured. Contact the system administrator."
-        elif hmac.compare_digest(email, admin_email.lower()) and check_password_hash(admin_hash, password):
+        elif hmac.compare_digest(email, admin_email.lower()) and (
+            (admin_hash and check_password_hash(admin_hash, password))
+            or (admin_password and hmac.compare_digest(password, admin_password))
+        ):
             session['epaper_admin_auth'] = True
             next_url = request.form.get("next") or request.args.get("next") or url_for('admin')
             return redirect(next_url)
         else:
             error = "Incorrect email or password. Please try again."
     next_url = request.args.get("next", "")
-    return render_template("admin_login.html", error=error, next=next_url)
+    return _render_admin_login(error=error, next_url=next_url)
 
 
 @app.route("/api/public/user-count")
