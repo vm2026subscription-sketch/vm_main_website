@@ -1526,6 +1526,43 @@ def api_publish_edition(date):
 def api_editions_by_date(date):
     if not re.match(r"\d{4}-\d{2}-\d{2}$", date):
         return jsonify({"error": "Invalid date format"}), 400
+
+    # Fast path: check Redis editions list cache first
+    cached_list = _redis_get(_REDIS_EDITIONS_KEY)
+    if cached_list is not None:
+        matches = [
+            {"language": e.get("language", "Hindi"), "name": e.get("name", "")}
+            for e in cached_list
+            if e["date"] == date and e.get("published", True)
+        ]
+        return jsonify({"editions": matches})
+
+    # Fast path: targeted Postgres query — only this date, no full load
+    if _pg_url():
+        try:
+            conn = _pg_connect()
+            _pg_ensure_table(conn)
+            with conn.cursor() as cur:
+                cur.execute(
+                    """SELECT edition_language,
+                              COALESCE(data->>'name', '') AS name,
+                              COALESCE((data->>'published')::boolean, true) AS published
+                       FROM epaper_editions_v2
+                       WHERE edition_date = %s
+                       ORDER BY edition_language""",
+                    (date,)
+                )
+                rows = cur.fetchall()
+            conn.close()
+            matches = [
+                {"language": r[0] or "Hindi", "name": r[1] or ""}
+                for r in rows if r[2] is not False
+            ]
+            return jsonify({"editions": matches})
+        except Exception as e:
+            print(f"[epaper] editions-by-date fast query failed: {e}")
+
+    # Fallback: full load
     editions = _load_editions()
     matches = [
         {"language": e.get("language", "Hindi"), "name": e.get("name", "")}
