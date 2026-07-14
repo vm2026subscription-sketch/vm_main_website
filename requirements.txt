@@ -18,3 +18,4 @@ deep-translator==1.11.4
 pymupdf==1.24.11
 cloudinary==1.44.2
 pymongo[srv]==4.10.1
+upstash-redis>=1.1.0

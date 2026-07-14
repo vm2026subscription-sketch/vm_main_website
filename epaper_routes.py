@@ -35,6 +35,69 @@ _editions_cache_ts: float = 0
 _EDITIONS_CACHE_TTL: int = 60          # seconds; invalidated on every save
 _editions_cache_lock = threading.Lock()
 
+# ── Redis cache key constants ──────────────────────────────────
+_REDIS_EDITIONS_KEY = "ep:editions:list"
+_REDIS_EDITIONS_TTL = 300   # 5 minutes
+_REDIS_EDITION_TTL  = 600   # 10 minutes per single edition
+
+def _redis_edition_key(date, lang):
+    return f"ep:ed:{date}:{(lang or 'any').lower()}"
+
+# ── Upstash Redis (L2 cache — survives cold starts) ───────────
+_redis_client = None
+_redis_client_lock = threading.Lock()
+
+def _get_redis():
+    """Return a cached Upstash Redis client, or None if not configured."""
+    global _redis_client
+    if _redis_client is not None:
+        return _redis_client
+    url = os.getenv("UPSTASH_REDIS_REST_URL", "")
+    token = os.getenv("UPSTASH_REDIS_REST_TOKEN", "")
+    if not url or not token:
+        return None
+    with _redis_client_lock:
+        if _redis_client is None:
+            try:
+                from upstash_redis import Redis
+                _redis_client = Redis(url=url, token=token)
+            except Exception as e:
+                print(f"[redis] init failed: {e}")
+                return None
+    return _redis_client
+
+def _redis_get(key):
+    """Get a JSON value from Redis. Returns parsed object or None."""
+    r = _get_redis()
+    if not r:
+        return None
+    try:
+        val = r.get(key)
+        return json.loads(val) if val else None
+    except Exception as e:
+        print(f"[redis] get {key} failed: {e}")
+        return None
+
+def _redis_set(key, value, ttl=300):
+    """Set a JSON value in Redis with TTL (seconds)."""
+    r = _get_redis()
+    if not r:
+        return
+    try:
+        r.set(key, json.dumps(value, ensure_ascii=False), ex=ttl)
+    except Exception as e:
+        print(f"[redis] set {key} failed: {e}")
+
+def _redis_delete(*keys):
+    """Delete one or more keys from Redis."""
+    r = _get_redis()
+    if not r:
+        return
+    try:
+        r.delete(*keys)
+    except Exception as e:
+        print(f"[redis] delete failed: {e}")
+
 # ── Global MongoDB client (created once, reused across requests) ──
 _mongo_client = None
 _mongo_client_lock = threading.Lock()
@@ -654,11 +717,19 @@ def _load_editions():
     return result
 
 
-def _invalidate_editions_cache():
+def _invalidate_editions_cache(date=None, lang=None):
+    """Clear in-memory cache and Redis cache for editions list (and optionally a single edition)."""
     global _editions_cache, _editions_cache_ts
     with _editions_cache_lock:
         _editions_cache = None
         _editions_cache_ts = 0
+    # Clear Redis L2 cache
+    keys_to_delete = [_REDIS_EDITIONS_KEY]
+    if date:
+        # Clear all lang variants for this date
+        for l in [lang, "any", "hindi", "english", "marathi", None]:
+            keys_to_delete.append(_redis_edition_key(date, l))
+    _redis_delete(*keys_to_delete)
 
 
 def _save_editions(data):
@@ -1301,10 +1372,17 @@ def _fast_editions_list_from_pg():
 
 @epaper_bp.route("/api/epaper/editions")
 def api_editions():
-    # Fast path: metadata-only query, never loads full page/article JSON
+    # L2: Redis cache (survives cold starts)
+    cached = _redis_get(_REDIS_EDITIONS_KEY)
+    if cached is not None:
+        return jsonify({"editions": cached})
+
+    # L1: fast Postgres metadata query
     fast = _fast_editions_list_from_pg()
     if fast is not None:
+        _redis_set(_REDIS_EDITIONS_KEY, fast, ttl=_REDIS_EDITIONS_TTL)
         return jsonify({"editions": fast})
+
     # Fallback: full load (used when DB is unreachable or table missing)
     editions = _load_editions()
     return jsonify({"editions": [
@@ -1465,11 +1543,18 @@ def api_edition(date):
         return jsonify({"error": "Invalid date format. Use YYYY-MM-DD."}), 400
 
     lang = request.args.get("lang", None)
+    rkey = _redis_edition_key(date, lang)
 
-    # Fast path: query just this one edition row from Postgres
-    edition = _fast_load_single_edition(date, lang)
+    # L2: Redis cache
+    edition = _redis_get(rkey)
 
-    # Fallback: load all editions (uses in-memory cache)
+    # L1: Postgres single-row fetch
+    if not edition:
+        edition = _fast_load_single_edition(date, lang)
+        if edition:
+            _redis_set(rkey, edition, ttl=_REDIS_EDITION_TTL)
+
+    # Fallback: full load (in-memory cache)
     if not edition:
         editions = _load_editions()
         if lang:
