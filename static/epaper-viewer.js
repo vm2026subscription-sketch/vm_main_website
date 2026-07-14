@@ -71,7 +71,8 @@ const EP = {
   // to the ePaper landing (/epaper) instead of the site home page. Inserts
   // /epaper directly behind the current edition entry in history.
   _setupEditionBackTarget() {
-    if (!/^\/epaper\/\d{4}-\d{2}-\d{2}/.test(location.pathname)) return;
+    if (!/^\/epaper\/(hindi|english|marathi)\/\d{4}-\d{2}-\d{2}/.test(location.pathname) &&
+        !/^\/epaper\/\d{4}-\d{2}-\d{2}/.test(location.pathname)) return;
     const editionPath = location.pathname + location.search;
     try {
       const landingPath = location.hostname.startsWith('epaper.') ? '/' : '/epaper';
@@ -154,7 +155,9 @@ const EP = {
     this.showPage(1);
     this.registerEditionView();
     if (updateUrl && data?.date) {
-      const editionUrl = `/epaper/${data.date}`;
+      // Use language-specific URL so WhatsApp/social OG preview shows correct edition image
+      const langSlug = (data.language || 'Hindi').toLowerCase();
+      const editionUrl = `/epaper/${langSlug}/${data.date}`;
       if (window.location.pathname !== editionUrl) {
         // Opening an edition FROM the /epaper list -> PUSH so Back returns to
         // the list. Switching between editions -> REPLACE so Back doesn't have
