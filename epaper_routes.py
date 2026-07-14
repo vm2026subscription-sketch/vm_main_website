@@ -2077,7 +2077,7 @@ def _collect_edge_tts_audio(text, voice, rate, pitch):
 
     t = threading.Thread(target=_run, daemon=True)
     t.start()
-    t.join(timeout=25)
+    t.join(timeout=8)
 
     if t.is_alive():
         raise TimeoutError("TTS generation timed out")
