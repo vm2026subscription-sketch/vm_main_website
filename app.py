@@ -1271,7 +1271,9 @@ def get_auth_db_connection():
                     )
                 """)
                 cur.execute("""
-                    ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE
+                    ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE;
+                """)
+                cur.execute("""
                     ALTER TABLE users ADD COLUMN IF NOT EXISTS verified BOOLEAN NOT NULL DEFAULT TRUE;
                 """)
                 cur.execute("""
