@@ -19,10 +19,17 @@ from email.message import EmailMessage
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-try:
-    import pandas as pd
-except ImportError:
-    pd = None
+pd = None  # lazy-loaded on first use — avoids 1-2s cold-start penalty
+
+def _get_pandas():
+    global pd
+    if pd is None:
+        try:
+            import pandas as _pd
+            pd = _pd
+        except ImportError:
+            pass
+    return pd
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
 from flask_wtf.csrf import CSRFProtect
@@ -424,6 +431,7 @@ def normalize_cutoff_columns(dataframe):
 
 def load_btech_cutoff_data():
     global _btech_cutoff_cache, _btech_cutoff_error
+    pd = _get_pandas()
 
     if _btech_cutoff_cache is not None or _btech_cutoff_error is not None:
         return _btech_cutoff_cache, _btech_cutoff_error
@@ -616,6 +624,7 @@ def find_college_website(college_name, website_lookup):
 
 
 def format_cutoff_recommendations(rows, student_percentile=None, include_websites=True):
+    pd = _get_pandas()
     website_lookup = get_college_website_lookup() if include_websites else {}
     recommendations = []
     for _, row in rows.iterrows():
@@ -1763,6 +1772,7 @@ def _coerce_value(value):
 
 
 def convert_excel_to_records(uploaded_file):
+    pd = _get_pandas()
     if pd is None:
         raise RuntimeError("pandas is not installed. Install requirements to process Excel uploads.")
 
