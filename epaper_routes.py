@@ -1428,7 +1428,7 @@ def api_publish_edition(date):
     lang = request.args.get("lang", None)
     effective_lang = lang or "Hindi"
 
-    _invalidate_editions_cache()
+    _invalidate_editions_cache(date=date, lang=effective_lang)
 
     edition = None
     # ── Fast path: load, update and upsert only one row in Postgres ──
@@ -1668,7 +1668,10 @@ def api_create_edition():
             existing["pages"] = data["pages"]
         return existing
 
-    _invalidate_editions_cache()
+    # Invalidate both the list cache and any cached single-edition entries
+    _invalidate_editions_cache(date=date_str, lang=lang_str)
+    if renamed:
+        _invalidate_editions_cache(date=original_date, lang=original_lang)
 
     # ── Fast path: write only THIS edition's row (no 32 MB rewrite) ──
     if _pg_url():
@@ -1791,7 +1794,7 @@ def api_delete_edition(date):
         return jsonify({"error": "Language parameter required for deletion."}), 400
     try:
         _delete_edition_row(date, lang)          # explicit single-row delete in v2
-        _invalidate_editions_cache()
+        _invalidate_editions_cache(date=date, lang=lang)
         # Keep the file fallback in sync (best-effort)
         try:
             all_editions = _load_editions_from_file() or []
