@@ -76,7 +76,7 @@ app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024  # 200 MB upload limit
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 # Enable SECURE cookies only when not running locally
-if os.environ.get("FLASK_ENV") == "production" or os.environ.get("RENDER"):
+if os.environ.get("FLASK_ENV") == "production" or os.environ.get("RENDER") or os.environ.get("VERCEL"):
     app.config["SESSION_COOKIE_SECURE"] = True
 if _has_compress:
     app.config['COMPRESS_LEVEL'] = 6
