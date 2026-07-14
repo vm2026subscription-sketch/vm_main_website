@@ -2380,7 +2380,7 @@ def api_epaper_diagnostics():
 # ── Recovery: restore every edition that exists in backups but is missing from
 # the live v2 store (safe & idempotent — only ADDS missing editions, never
 # deletes or overwrites what's already live). ──
-@epaper_bp.route("/api/epaper/admin/restore-all-missing", methods=["GET", "POST"])
+@epaper_bp.route("/api/epaper/admin/restore-all-missing", methods=["POST"])
 def api_restore_all_missing():
     guard = _require_epaper_admin()
     if guard is not None:
