@@ -39,6 +39,8 @@ _editions_cache_lock = threading.Lock()
 _REDIS_EDITIONS_KEY = "ep:editions:list"
 _REDIS_EDITIONS_TTL = 300   # 5 minutes
 _REDIS_EDITION_TTL  = 600   # 10 minutes per single edition
+_REDIS_LATEST_KEY   = "ep:latest"
+_REDIS_LATEST_TTL   = 300   # 5 minutes
 
 def _redis_edition_key(date, lang):
     return f"ep:ed:{date}:{(lang or 'any').lower()}"
@@ -724,7 +726,7 @@ def _invalidate_editions_cache(date=None, lang=None):
         _editions_cache = None
         _editions_cache_ts = 0
     # Clear Redis L2 cache
-    keys_to_delete = [_REDIS_EDITIONS_KEY]
+    keys_to_delete = [_REDIS_EDITIONS_KEY, _REDIS_LATEST_KEY]
     if date:
         # Clear all lang variants for this date
         for l in [lang, "any", "hindi", "english", "marathi", None]:
@@ -1402,6 +1404,34 @@ def api_editions():
 # ── API: Latest published edition ─────────────────
 @epaper_bp.route("/api/epaper/latest")
 def api_latest_edition():
+    # L2: Redis cache (survives cold starts)
+    cached = _redis_get(_REDIS_LATEST_KEY)
+    if cached is not None:
+        return jsonify(cached)
+
+    # Fast path: get metadata list, find latest published, then load just that row
+    meta_list = _fast_editions_list_from_pg()
+    if meta_list is not None:
+        published_meta = [e for e in meta_list if e.get("published", True)]
+        if not published_meta:
+            return jsonify({"error": "No published editions."}), 404
+        best = sorted(published_meta, key=lambda e: e["date"], reverse=True)[0]
+        edition = _fast_load_single_edition(best["date"], best["language"])
+        if edition:
+            result = {
+                "date": edition["date"],
+                "name": edition.get("name", ""),
+                "language": edition.get("language", "Hindi"),
+                "masthead_image_url": edition.get("masthead_image_url", ""),
+                "footer_links": edition.get("footer_links", []),
+                "header_items": edition.get("header_items", []),
+                "pages": edition.get("pages", []),
+                "published": edition.get("published", True),
+            }
+            _redis_set(_REDIS_LATEST_KEY, result, ttl=_REDIS_LATEST_TTL)
+            return jsonify(result)
+
+    # Fallback: full load
     editions = _load_editions()
     published = [e for e in editions if e.get("published", True)]
     if not published:
