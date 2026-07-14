@@ -1383,7 +1383,7 @@ const EPAdmin = {
         this._hideSaveAlert();
         this._clearDraftLocal(date, lang); // server confirmed — safe to drop the local draft
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        this._updateAutoSaveStatus(`<i class="fa fa-check"></i> Saved ${timeStr}`, '#22c55e');
+        this._updateAutoSaveStatus(`Saved ${timeStr}`, '#22c55e');
         if (silent) {
           this.showToast(`<i class="fa fa-check-circle" style="color:#22c55e"></i> Auto-saved at ${timeStr}`);
         } else {
