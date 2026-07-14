@@ -1268,97 +1268,101 @@ def fetch_colleges_by_states(states, limit_per_state=None):
     return colleges, None
 
 
+_auth_pg_tables_ready = False
+_auth_sqlite_tables_ready = False
+
 def get_auth_db_connection():
     """Return an auth DB connection. Uses Postgres when DATABASE_URL is set, else SQLite in /tmp."""
+    global _auth_pg_tables_ready, _auth_sqlite_tables_ready
     pg_url = get_postgres_connection_url()
     if pg_url and connect is not None:
         try:
             conn = connect(pg_url, connect_timeout=5, options="-c statement_timeout=8000")
             conn.autocommit = False
-            with conn.cursor() as cur:
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS users (
-                        id BIGSERIAL PRIMARY KEY,
-                        name TEXT NOT NULL,
-                        email TEXT NOT NULL UNIQUE,
-                        password_hash TEXT NOT NULL,
-                        is_admin BOOLEAN NOT NULL DEFAULT FALSE,
-                        verified BOOLEAN NOT NULL DEFAULT TRUE,
-                        created_at TIMESTAMPTZ DEFAULT NOW()
-                    )
-                """)
-                cur.execute("""
-                    ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE;
-                """)
-                cur.execute("""
-                    ALTER TABLE users ADD COLUMN IF NOT EXISTS verified BOOLEAN NOT NULL DEFAULT TRUE;
-                """)
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS bookmarks (
-                        id BIGSERIAL PRIMARY KEY,
-                        user_email TEXT NOT NULL,
-                        item_type TEXT NOT NULL,
-                        item_name TEXT NOT NULL,
-                        item_url TEXT,
-                        created_at TIMESTAMPTZ DEFAULT NOW(),
-                        UNIQUE (user_email, item_type, item_name)
-                    )
-                """)
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS password_reset_tokens (
-                        id BIGSERIAL PRIMARY KEY,
-                        email TEXT NOT NULL,
-                        token_hash TEXT NOT NULL UNIQUE,
-                        expires_at BIGINT NOT NULL,
-                        used_at BIGINT,
-                        created_at TIMESTAMPTZ DEFAULT NOW()
-                    )
-                """)
-            conn.commit()
+            if not _auth_pg_tables_ready:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        CREATE TABLE IF NOT EXISTS users (
+                            id BIGSERIAL PRIMARY KEY,
+                            name TEXT NOT NULL,
+                            email TEXT NOT NULL UNIQUE,
+                            password_hash TEXT NOT NULL,
+                            is_admin BOOLEAN NOT NULL DEFAULT FALSE,
+                            verified BOOLEAN NOT NULL DEFAULT TRUE,
+                            created_at TIMESTAMPTZ DEFAULT NOW()
+                        )
+                    """)
+                    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE;")
+                    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS verified BOOLEAN NOT NULL DEFAULT TRUE;")
+                    cur.execute("""
+                        CREATE TABLE IF NOT EXISTS bookmarks (
+                            id BIGSERIAL PRIMARY KEY,
+                            user_email TEXT NOT NULL,
+                            item_type TEXT NOT NULL,
+                            item_name TEXT NOT NULL,
+                            item_url TEXT,
+                            created_at TIMESTAMPTZ DEFAULT NOW(),
+                            UNIQUE (user_email, item_type, item_name)
+                        )
+                    """)
+                    cur.execute("""
+                        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                            id BIGSERIAL PRIMARY KEY,
+                            email TEXT NOT NULL,
+                            token_hash TEXT NOT NULL UNIQUE,
+                            expires_at BIGINT NOT NULL,
+                            used_at BIGINT,
+                            created_at TIMESTAMPTZ DEFAULT NOW()
+                        )
+                    """)
+                conn.commit()
+                _auth_pg_tables_ready = True
             return _PgAuthConn(conn)
         except Exception as e:
             app.logger.warning("Auth Postgres connection failed, falling back to SQLite: %s", e)
 
     connection = sqlite3.connect(AUTH_DB_PATH)
     connection.row_factory = sqlite3.Row
-    connection.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            email TEXT NOT NULL UNIQUE,
-            password_hash TEXT NOT NULL,
-            is_admin INTEGER NOT NULL DEFAULT 0,
-            verified BOOLEAN NOT NULL DEFAULT 1,
-            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    try:
-        connection.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0")
-        connection.execute("ALTER TABLE users ADD COLUMN verified BOOLEAN NOT NULL DEFAULT 1")
-    except sqlite3.OperationalError:
-        pass
-    connection.execute("""
-        CREATE TABLE IF NOT EXISTS bookmarks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_email TEXT NOT NULL,
-            item_type TEXT NOT NULL,
-            item_name TEXT NOT NULL,
-            item_url TEXT,
-            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE (user_email, item_type, item_name)
-        )
-    """)
-    connection.execute("""
-        CREATE TABLE IF NOT EXISTS password_reset_tokens (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT NOT NULL,
-            token_hash TEXT NOT NULL UNIQUE,
-            expires_at INTEGER NOT NULL,
-            used_at INTEGER,
-            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    connection.commit()
+    if not _auth_sqlite_tables_ready:
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                is_admin INTEGER NOT NULL DEFAULT 0,
+                verified BOOLEAN NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        try:
+            connection.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0")
+            connection.execute("ALTER TABLE users ADD COLUMN verified BOOLEAN NOT NULL DEFAULT 1")
+        except sqlite3.OperationalError:
+            pass
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS bookmarks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_email TEXT NOT NULL,
+                item_type TEXT NOT NULL,
+                item_name TEXT NOT NULL,
+                item_url TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (user_email, item_type, item_name)
+            )
+        """)
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT NOT NULL,
+                token_hash TEXT NOT NULL UNIQUE,
+                expires_at INTEGER NOT NULL,
+                used_at INTEGER,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        connection.commit()
+        _auth_sqlite_tables_ready = True
     return connection
 
 
