@@ -1595,12 +1595,13 @@ def api_create_edition():
             saved_edition = _apply_payload(existing)
             with conn.cursor() as cur:
                 _upsert_edition_row(cur, saved_edition)
-                # We deliberately DO NOT delete the "original" edition when the
-                # date/language changes. Editing an edition and changing its date
-                # used to move (delete) the old one, which silently wiped editions
-                # (e.g. edit 131 -> change date -> 131 vanishes). Now a changed
-                # date just creates a NEW edition; the old one stays. Deletion
-                # happens ONLY via the explicit Delete button.
+                # If the date or language key changed, delete the old row so we
+                # don't leave a duplicate behind.
+                if renamed:
+                    cur.execute(
+                        "DELETE FROM epaper_editions_v2 WHERE edition_date=%s AND edition_language=%s",
+                        (original_date, original_lang or "Hindi"),
+                    )
             conn.commit()
             # Reuse same connection for the per-edition snapshot backup
             _save_edition_backup(saved_edition, conn=conn)
@@ -1614,7 +1615,12 @@ def api_create_edition():
 
     # ── File-only fallback (no Postgres configured) ──
     editions = _load_editions_from_file()
-    # No rename-delete: a changed date creates a new edition; the old one stays.
+    # Remove old row if date/language key changed to avoid duplicates
+    if renamed:
+        editions = [
+            e for e in editions
+            if not (e["date"] == original_date and e.get("language", "Hindi") == (original_lang or "Hindi"))
+        ]
     existing = next(
         (e for e in editions if e["date"] == date_str and e.get("language", "Hindi") == lang_str),
         None,
