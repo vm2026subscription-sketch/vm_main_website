@@ -4747,18 +4747,16 @@ def register():
                 return render_template("auth.html", mode="register", page_title="Register")
 
             connection.execute(
-                "INSERT INTO users (name, email, password_hash, verified) VALUES (?, ?, ?, ?)",
-                (name, email, generate_password_hash(password), 0),
+                "INSERT INTO users (name, email, password_hash, is_admin, verified) VALUES (?, ?, ?, ?, ?)",
+                (
+                    name,
+                    email,
+                    generate_password_hash(password),
+                    1 if email == _get_dashboard_admin_credentials()[0] else 0,
+                    0,
+                ),
             )
             connection.commit()
-                "INSERT INTO users (name, email, password_hash, is_admin) VALUES (?, ?, ?, ?)",
-                (name, email, generate_password_hash(password), 1 if email == _get_dashboard_admin_credentials()[0] else 0),
-            )
-            connection.commit()
-
-        session["auth_user"] = {"name": name, "email": email, "is_admin": email == _get_dashboard_admin_credentials()[0]}
-        session.pop("pending_otp", None)
-        return redirect(url_for("dashboard"))
 
         otp_code = generate_login_otp()
         session["pending_register_otp"] = {
@@ -4768,7 +4766,7 @@ def register():
             "expires_at": int(time.time()) + 600,
             "attempts": 0,
         }
-        
+
         try:
             send_login_otp_email(email, name, otp_code)
         except Exception as exc:
@@ -4842,8 +4840,7 @@ def login():
 
         with get_auth_db_connection() as connection:
             user = connection.execute(
-                "SELECT name, email, password_hash, is_admin FROM users WHERE email = ?",
-                "SELECT name, email, password_hash, verified FROM users WHERE email = ?",
+                "SELECT name, email, password_hash, is_admin, verified FROM users WHERE email = ?",
                 (email,),
             ).fetchone()
 
