@@ -773,6 +773,34 @@ def _allowed_upload(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_UPLOAD_EXTENSIONS
 
 
+def _compress_image_bytes(file_bytes, filename, max_width=1600, quality=85):
+    """Resize to max_width and convert to JPEG. Returns (bytes, new_filename)."""
+    try:
+        from PIL import Image
+        import io as _io
+        img = Image.open(_io.BytesIO(file_bytes))
+        w, h = img.size
+        if w > max_width:
+            img = img.resize((max_width, int(h * max_width / w)), Image.LANCZOS)
+        # Flatten alpha / palette → RGB for JPEG
+        if img.mode not in ('RGB',):
+            bg = Image.new('RGB', img.size, (255, 255, 255))
+            if img.mode == 'P':
+                img = img.convert('RGBA')
+            if img.mode in ('RGBA', 'LA'):
+                bg.paste(img, mask=img.split()[-1])
+            else:
+                bg.paste(img)
+            img = bg
+        buf = _io.BytesIO()
+        img.save(buf, 'JPEG', quality=quality, optimize=True)
+        stem = os.path.splitext(filename)[0]
+        return buf.getvalue(), stem + '.jpg'
+    except Exception as e:
+        print(f"[epaper] Image compression failed: {e}")
+        return file_bytes, filename
+
+
 def _article_from_block(block, edition=None, page=None):
     article_id = block.get("article_id") or block.get("id")
     return {
@@ -1132,7 +1160,7 @@ def api_upload_epaper_image():
             pdf_bytes = image.read()
             doc = fitz.open(stream=pdf_bytes, filetype="pdf")
             pg = doc[0]
-            mat = fitz.Matrix(4.0, 4.0)
+            mat = fitz.Matrix(2.0, 2.0)  # 2x gives ~1200px — enough quality, half the data vs 4x
             pix = pg.get_pixmap(matrix=mat)
             doc.close()
             filename = f"{stem[:48]}-{ts}.png"
@@ -1142,6 +1170,9 @@ def api_upload_epaper_image():
     else:
         filename = f"{stem[:48]}-{ts}{ext.lower()}"
         file_bytes = image.read()
+
+    # Auto-compress: resize to 1600px max + convert to JPEG (~3-5x smaller than raw PNG)
+    file_bytes, filename = _compress_image_bytes(file_bytes, filename)
 
     # Cloudinary — persistent CDN storage (required on Vercel where filesystem is ephemeral)
     if _CLOUDINARY_URL:
