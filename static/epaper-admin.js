@@ -1338,9 +1338,13 @@ const EPAdmin = {
     if (this._autoSaving) return;
     if (silent) this._autoSaving = true;
 
-    const date = document.getElementById('edDate').value;
+    // For auto-save, always use the server-confirmed date/lang to avoid silent renames.
+    // A rename (date or language change) only happens on explicit manual save.
+    const formDate = document.getElementById('edDate').value;
+    const formLang = document.getElementById('edLang').value;
+    const date = (silent && this._originalDate) ? this._originalDate : formDate;
+    const lang = (silent && this._originalLang) ? this._originalLang : formLang;
     const name = document.getElementById('edName').value;
-    const lang = document.getElementById('edLang').value;
     const status = document.getElementById('edStatus').value;
     if (!date) { if (!silent) alert('Date required'); if (silent) this._autoSaving = false; return; }
     this.syncEditionMetaFromInputs();
@@ -1397,7 +1401,7 @@ const EPAdmin = {
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         this._updateAutoSaveStatus(`Saved ${timeStr}`, '#22c55e');
         if (wasRenamed) {
-          this.showToast(`<i class="fa fa-check-circle" style="color:#22c55e"></i> Edition moved to ${date}`);
+          this.showToast(`<i class="fa fa-check-circle" style="color:#22c55e"></i> Edition moved to ${date} (${lang})`);
         } else if (silent) {
           this.showToast(`<i class="fa fa-check-circle" style="color:#22c55e"></i> Auto-saved at ${timeStr}`);
         } else {
