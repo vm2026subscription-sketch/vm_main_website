@@ -754,7 +754,6 @@ def get_supabase_client():
 
 
 def get_razorpay_config():
-    load_dotenv(override=True)
     key_id = os.getenv("RAZORPAY_KEY_ID", "").strip()
     key_secret = os.getenv("RAZORPAY_KEY_SECRET", "").strip()
     if not key_id or not key_secret:
