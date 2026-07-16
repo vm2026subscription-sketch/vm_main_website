@@ -1360,6 +1360,16 @@ const EP = {
 
       const grid = document.getElementById('epBlockGrid');
       if (grid) grid.style.display = 'none';
+    } else {
+      // Page has no blocks and no image — clear the loading skeleton so viewer doesn't hang
+      if (this.el.pageContainer) this.el.pageContainer.style.display = 'none';
+      const grid = document.getElementById('epBlockGrid');
+      if (grid) {
+        grid.style.display = 'block';
+        grid.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;min-height:300px;color:#9ca3af;font-size:15px;">
+          <div style="text-align:center;"><div style="font-size:40px;margin-bottom:12px;">📰</div>Page content not available</div>
+        </div>`;
+      }
     }
 
     // Scroll viewer to top when switching pages
