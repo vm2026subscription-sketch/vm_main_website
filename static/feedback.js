@@ -41,6 +41,19 @@
         avatarInput.value         = '';     // reset file input
     }
 
+    function showAvatarError(msg) {
+        var errEl = document.getElementById('_avatar_err');
+        if (!errEl) {
+            errEl = document.createElement('p');
+            errEl.id = '_avatar_err';
+            errEl.style.cssText = 'color:#dc2626;font-size:13px;margin:4px 0 0;';
+            avatarInput.parentNode.insertBefore(errEl, avatarInput.nextSibling);
+        }
+        errEl.textContent = msg;
+        errEl.style.display = 'block';
+        setTimeout(function() { errEl.style.display = 'none'; }, 4000);
+    }
+
     avatarInput.addEventListener('change', function (event) {
         var file    = event.target.files[0];
         var preview = document.getElementById('previewImg');   // original ref
@@ -48,12 +61,12 @@
         if (file) {
             // Client-side checks before FileReader
             if (!file.type.startsWith('image/')) {
-                alert('Please select a valid image file (PNG, JPG, GIF, WEBP).');
+                showAvatarError('Please select a valid image file (PNG, JPG, GIF, WEBP).');
                 clearPreview();
                 return;
             }
             if (file.size > 5 * 1024 * 1024) {
-                alert('Image size must be less than 5 MB.');
+                showAvatarError('Image size must be less than 5 MB.');
                 clearPreview();
                 return;
             }
