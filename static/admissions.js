@@ -164,8 +164,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   /* ── Read More button handler ── */
   window.handleReadMore = function (btn) {
-    const title = btn.closest('.adm-card').querySelector('.adm-card-title').textContent;
-    alert('Opening details for:\n\n' + title);
+    const card = btn.closest('.adm-card');
+    const link = card && card.querySelector('a[href]');
+    if (link) { window.location.href = link.href; }
   };
 
   /* ── Attach Read More to existing cards ── */
@@ -179,10 +180,8 @@ document.addEventListener('DOMContentLoaded', function () {
   const searchIcon = document.getElementById('searchIcon');
   if (searchIcon) {
     searchIcon.addEventListener('click', function () {
-      const query = prompt('Search VidyarthiMitra 2026-27:');
-      if (query && query.trim()) {
-        alert('Searching for: ' + query.trim());
-      }
+      const searchBar = document.getElementById('searchBar') || document.querySelector('.search-input');
+      if (searchBar) { searchBar.focus(); } else { window.location.href = '/colleges'; }
     });
   }
 }); 

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * submit-story.js
  * Client-side validation + submission.
  * MODE: Tries Flask /api/submit-story first.
@@ -6,9 +6,9 @@
  *       Flip USE_LOCAL_ONLY = true to always skip the network call.
  */
 
-const USE_LOCAL_ONLY = false; // ← set true to always skip Flask entirely
+const USE_LOCAL_ONLY = false; // â† set true to always skip Flask entirely
 
-// ── DOM refs ──────────────────────────────────────────────────────────────
+// â”€â”€ DOM refs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const form       = document.getElementById("storyForm");
 const submitBtn  = document.getElementById("submitBtn");
 const btnText    = document.getElementById("btnText");
@@ -20,14 +20,14 @@ const storyArea  = document.getElementById("story");
 
 const MAX_CHARS = 2000;
 
-// ── Character counter ─────────────────────────────────────────────────────
+// â”€â”€ Character counter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 storyArea.addEventListener("input", () => {
     const len = storyArea.value.length;
     charCount.textContent = `${len} / ${MAX_CHARS} characters`;
     charCount.style.color = len > MAX_CHARS ? "#e53935" : "#888";
 });
 
-// ── Field-level validation helpers ───────────────────────────────────────
+// â”€â”€ Field-level validation helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function showFieldError(id, message) {
     const el = document.getElementById(`${id}Error`);
     const input = document.getElementById(id);
@@ -53,7 +53,7 @@ function clearAllErrors() {
     document.getElementById(id)?.addEventListener("input", () => clearFieldError(id));
 });
 
-// ── Client-side validation ────────────────────────────────────────────────
+// â”€â”€ Client-side validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function validate(data) {
     let valid = true;
 
@@ -90,14 +90,14 @@ function validate(data) {
     return valid;
 }
 
-// ── Loading state helpers ─────────────────────────────────────────────────
+// â”€â”€ Loading state helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function setLoading(on) {
     submitBtn.disabled = on;
-    btnText.textContent = on ? "Submitting…" : "Submit Story";
+    btnText.textContent = on ? "Submittingâ€¦" : "Submit Story";
     btnSpinner.classList.toggle("hidden", !on);
 }
 
-// ── Save to localStorage (fallback when Flask is offline) ────────────────
+// â”€â”€ Save to localStorage (fallback when Flask is offline) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function saveLocally(payload) {
     const key = "vm_pending_stories";
     const existing = JSON.parse(localStorage.getItem(key) || "[]");
@@ -105,7 +105,7 @@ function saveLocally(payload) {
     localStorage.setItem(key, JSON.stringify(existing));
 }
 
-// ── Show success UI ───────────────────────────────────────────────────────
+// â”€â”€ Show success UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function showSuccess(source = "server") {
     form.querySelectorAll(".form-group, button[type='submit']")
         .forEach(el => el.classList.add("hidden"));
@@ -118,7 +118,7 @@ function showSuccess(source = "server") {
     );
 }
 
-// ── Form submit ───────────────────────────────────────────────────────────
+// â”€â”€ Form submit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 form.addEventListener("submit", async (e) => {
     e.preventDefault();
     clearAllErrors();
@@ -134,7 +134,7 @@ form.addEventListener("submit", async (e) => {
 
     setLoading(true);
 
-    // ── LOCAL-ONLY MODE: skip network entirely ──────────────────────────
+    // â”€â”€ LOCAL-ONLY MODE: skip network entirely â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (USE_LOCAL_ONLY) {
         await new Promise(r => setTimeout(r, 800)); // brief fake delay
         saveLocally(payload);
@@ -143,7 +143,7 @@ form.addEventListener("submit", async (e) => {
         return;
     }
 
-    // ── TRY FLASK, FALL BACK GRACEFULLY ────────────────────────────────
+    // â”€â”€ TRY FLASK, FALL BACK GRACEFULLY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 5000); // 5s timeout
@@ -161,16 +161,16 @@ form.addEventListener("submit", async (e) => {
         if (res.ok && json.success) {
             showSuccess("server");
         } else {
-            // Server returned an error (validation etc.) — show it
+            // Server returned an error (validation etc.) â€” show it
             errorBanner.textContent = json.error || "Submission failed. Please try again.";
             errorBanner.classList.remove("hidden");
         }
 
     } catch (err) {
-        // Network unavailable or Flask not running → save locally, still show success
+        // Network unavailable or Flask not running â†’ save locally, still show success
         saveLocally(payload);
         showSuccess("local");
-        console.info("Flask unavailable — story saved locally.", err.message);
+        console.info("Flask unavailable â€” story saved locally.", err.message);
 
     } finally {
         setLoading(false);

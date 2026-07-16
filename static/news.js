@@ -1,12 +1,12 @@
-/* ══════════════════════════════════════════════════
-   VIDYARTHI MITRA — NEWS PAGE LOGIC (Dynamic RSS)
+﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   VIDYARTHI MITRA â€” NEWS PAGE LOGIC (Dynamic RSS)
    news.js
-══════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
-/* ── DATA ──────────────────────────────────────── */
+/* â”€â”€ DATA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 let allArticles  = [];
 
-/* ── STATE ─────────────────────────────────────── */
+/* â”€â”€ STATE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 let activeCat    = 'all';
 let searchQuery  = '';
 let bookmarks    = new Set();
@@ -24,18 +24,15 @@ const categoryMap = {
   "latest": { ui: "latest", label: "Latest News", img: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=400&q=80", bgCls: "bg-exam" }
 };
 
-/* ══════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    FETCH NEWS FROM API
-══════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 async function fetchNews() {
   try {
-    console.log('Fetching news from /api/news...');
     const response = await fetch('/api/news');
-    console.log('Response status:', response.status);
     if (!response.ok) throw new Error(`API error: ${response.status}`);
     
     const data = await response.json();
-    console.log('API response:', data);
     
     if (!data.success || !data.articles) {
       console.error('Invalid API response:', data);
@@ -43,12 +40,9 @@ async function fetchNews() {
       return;
     }
     
-    console.log('Articles count:', data.articles.length);
-    
     // Transform API articles to UI format
     allArticles = data.articles.map((article, idx) => {
       const catInfo = categoryMap[article.category] || categoryMap.admissions;
-      console.log(`Article ${idx}: category=${article.category}, mapped=${catInfo.ui}`);
       
       // Format date
       const dateObj = new Date(article.date);
@@ -100,20 +94,17 @@ async function fetchNews() {
       };
     });
     
-    console.log('Transformed articles:', allArticles.length);
-    
     // Initial render
     renderGrid();
-    console.log(`Loaded ${allArticles.length} articles`);
   } catch (error) {
     console.error('Error fetching news:', error);
     showToast('Unable to load news. Please refresh the page.');
   }
 }
 
-/* ══════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    FILTER & RENDER
-══════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function getFiltered() {
   return allArticles.filter(a => {
     const q        = searchQuery.toLowerCase();
@@ -199,9 +190,9 @@ function renderGrid() {
   lmWrap.style.display = filtered.length > pageCount ? 'block' : 'none';
 }
 
-/* ══════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    BOOKMARK
-══════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function toggleBookmark(e, id) {
   e.stopPropagation();
   if (bookmarks.has(id)) {
@@ -214,9 +205,9 @@ function toggleBookmark(e, id) {
   renderGrid();
 }
 
-/* ══════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    SHARE
-══════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function shareCard(e, title) {
   e.stopPropagation();
   shareArticle(title);
@@ -232,9 +223,9 @@ function shareArticle(title) {
   }
 }
 
-/* ══════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    MODAL
-══════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function openModal(id) {
   const a = allArticles.find(x => x.id === id);
   if (!a) return;
@@ -256,7 +247,7 @@ function openModal(id) {
   if (a.link) {
     bodyHtml += `<p style="margin-top: 8px;">
       <a href="${a.link}" target="_blank" style="color: var(--primary); text-decoration: none;">
-        Read full article on source site →
+        Read full article on source site â†’
       </a>
     </p>`;
   }
@@ -307,9 +298,9 @@ function updateModalBookmark() {
   btn.style.color = saved ? 'var(--orange)' : '';
 }
 
-/* ══════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    TOAST
-══════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function showToast(msg) {
   const t = document.getElementById('toast');
   document.getElementById('toastMsg').innerHTML = msg;
@@ -317,9 +308,9 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 2500);
 }
 
-/* ══════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    EVENT LISTENERS & INITIALIZATION
-══════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 document.addEventListener('DOMContentLoaded', function () {
 
   /* Category tab buttons */

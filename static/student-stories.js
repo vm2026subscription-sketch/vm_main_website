@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Student Stories - Advanced Interaction
  */
 
@@ -29,8 +29,6 @@ document.querySelectorAll('.story-card').forEach(card => {
 // 2. CLICK FEEDBACK
 document.querySelectorAll(".story-card button").forEach(btn => {
   btn.addEventListener("click", (e) => {
-    const storyTitle = e.target.parentElement.querySelector('h3').innerText;
-    console.log(`Loading full story for: ${storyTitle}`);
-    // You can add logic here to redirect to a dynamic Flask route
+    const storyTitle = e.target.parentElement.querySelector('h3').innerText;    // You can add logic here to redirect to a dynamic Flask route
   });
 });
