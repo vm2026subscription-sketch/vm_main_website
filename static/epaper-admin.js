@@ -1131,6 +1131,12 @@ const EPAdmin = {
   renderEditionsList() {
     const list = document.getElementById('editionsList');
     if (!list) return;
+    const publishedCount = this.editions.filter(ed => ed.published !== false).length;
+    const countEl = document.getElementById('publishedCount');
+    if (countEl) {
+      countEl.textContent = `${publishedCount} Published`;
+      countEl.style.display = publishedCount ? '' : 'none';
+    }
     if (!this.editions.length) { list.innerHTML = '<div class="epa-empty">No editions yet.</div>'; return; }
     list.innerHTML = this.editions.slice().sort((a, b) => b.date.localeCompare(a.date)).map(ed => {
       const isPublished = ed.published !== false;
