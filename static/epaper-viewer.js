@@ -918,6 +918,15 @@ const EP = {
     return 'ep-lang-default';
   },
 
+  // Map an edition language to its URL slug used by the language-specific
+  // reader routes (/epaper/hindi/<date>, /epaper/english/<date>, ...).
+  getEditionLanguageSlug(language) {
+    const key = (language || '').trim().toLowerCase();
+    if (key.includes('english')) return 'english';
+    if (key.includes('marathi')) return 'marathi';
+    return 'hindi';
+  },
+
   formatEditionCardDate(date) {
     if (!date) return 'Date';
     try {
@@ -3058,8 +3067,13 @@ const EP = {
   shareEdition(platform) {
     const title = this.currentEdition?.name || document.title || 'Vidyarthi Mitra E-Paper';
     const date = this.currentEdition?.date;
+    // Build a language-specific link so Hindi/English/Marathi editions each
+    // copy/share a distinct URL (e.g. /epaper/hindi/2026-07-17).
+    const langSlug = this.getEditionLanguageSlug(
+      this.currentEdition?.language || this.currentLanguage
+    );
     const url = date
-      ? `${window.location.origin}/epaper/${date}`
+      ? `${window.location.origin}/epaper/${langSlug}/${date}`
       : window.location.href;
     const text = encodeURIComponent(title + ' - ' + url);
 
