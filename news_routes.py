@@ -2,6 +2,7 @@
 News routes for fetching and filtering RSS feeds plus live Aaj Tak e-paper articles.
 """
 import json
+import os
 import re
 from datetime import datetime, timedelta
 from email.utils import parsedate_to_datetime
@@ -18,6 +19,49 @@ except ImportError:
     feedparser = None
 
 from flask import Blueprint, jsonify, render_template, request, send_file
+
+# ── Upstash Redis L2 cache (persists across Vercel cold starts) ──────────────
+_NEWS_REDIS_KEY = "news:all"
+_NEWS_REDIS_TTL = 900  # 15 minutes
+
+_redis_client = None
+_redis_client_lock = Lock()
+
+def _get_redis():
+    global _redis_client
+    if _redis_client is not None:
+        return _redis_client
+    url = os.getenv("UPSTASH_REDIS_REST_URL", "")
+    token = os.getenv("UPSTASH_REDIS_REST_TOKEN", "")
+    if not url or not token:
+        return None
+    with _redis_client_lock:
+        if _redis_client is None:
+            try:
+                from upstash_redis import Redis
+                _redis_client = Redis(url=url, token=token)
+            except Exception:
+                return None
+    return _redis_client
+
+def _l2_get():
+    r = _get_redis()
+    if not r:
+        return None
+    try:
+        val = r.get(_NEWS_REDIS_KEY)
+        return json.loads(val) if val else None
+    except Exception:
+        return None
+
+def _l2_set(data):
+    r = _get_redis()
+    if not r:
+        return
+    try:
+        r.set(_NEWS_REDIS_KEY, json.dumps(data, ensure_ascii=False), ex=_NEWS_REDIS_TTL)
+    except Exception:
+        pass
 
 # Category keywords for filtering
 CATEGORIES = {
@@ -143,7 +187,7 @@ def _build_article(title, link, description, pub_date, source_name, image_url=""
     }
 
 
-def _fetch_feed_with_stdlib(feed_url, source_name, timeout=10):
+def _fetch_feed_with_stdlib(feed_url, source_name, timeout=5):
     """Fallback RSS/Atom parser using Python stdlib when feedparser is unavailable."""
     articles = []
     try:
@@ -226,7 +270,7 @@ def _get_news_category(title, description):
     return "latest"
 
 
-def _fetch_feed(feed_url, source_name, timeout=10):
+def _fetch_feed(feed_url, source_name, timeout=5):
     """Fetch and parse RSS feed, return list of articles"""
     if feedparser is None:
         return _fetch_feed_with_stdlib(feed_url, source_name, timeout=timeout)
@@ -282,12 +326,14 @@ def _fetch_json(url, timeout=10):
         return None
 
 
-def _fetch_aajtak_news(limit=30):
-    """Fetch live Aaj Tak e-paper article cards for the news tab."""
+def _fetch_aajtak_news(limit=10):
+    """Fetch live Aaj Tak e-paper article cards (first page only, zones in parallel)."""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
     base_url = "https://epaper.aajtak.in/api/public"
     site_slug = "epaper-aajtak"
 
-    editions = _fetch_json(f"{base_url}/editions?site={site_slug}", timeout=10)
+    editions = _fetch_json(f"{base_url}/editions?site={site_slug}", timeout=5)
     if not editions or not isinstance(editions.get("data"), list):
         return []
 
@@ -296,56 +342,53 @@ def _fetch_aajtak_news(limit=30):
         if item.get("status") == "published" and item.get("publication_date"):
             latest_edition = item
             break
-
     if not latest_edition:
         return []
 
     edition_payload = _fetch_json(
         f"{base_url}/edition?site={site_slug}&date={latest_edition['publication_date']}",
-        timeout=10,
+        timeout=5,
     )
     if not edition_payload or not isinstance(edition_payload.get("pages"), list):
         return []
 
+    # Only process first page to avoid hundreds of sequential API calls
+    first_page = edition_payload["pages"][0] if edition_payload["pages"] else {}
+    zones = (first_page.get("zones") or [])[:limit]
+    content_ids = [(z.get("content_id"), z, first_page) for z in zones if z.get("content_id")]
+
+    def _fetch_zone(args):
+        content_id, zone, page = args
+        payload = _fetch_json(f"{base_url}/article/{content_id}", timeout=5)
+        if not payload:
+            return None
+        link = payload.get("url") or zone.get("url") or ""
+        if link and not link.startswith("http"):
+            link = "https://epaper.aajtak.in" + link
+        title = payload.get("title") or zone.get("title") or page.get("title") or "Aaj Tak Article"
+        description = _clean_text(payload.get("description") or payload.get("strap_headline") or "")
+        image = payload.get("image") or page.get("image_path") or ""
+        return _build_article(
+            title, link, description or title,
+            payload.get("edition_date") or latest_edition.get("publication_date"),
+            "Aaj Tak E-Paper", image,
+        )
+
     articles = []
     seen_links = set()
-
-    for page in edition_payload["pages"]:
-        for zone in page.get("zones", []) or []:
-            content_id = zone.get("content_id")
-            if not content_id:
+    with ThreadPoolExecutor(max_workers=min(len(content_ids), 8)) as ex:
+        for result in as_completed([ex.submit(_fetch_zone, c) for c in content_ids]):
+            try:
+                article = result.result()
+            except Exception:
                 continue
-
-            article_payload = _fetch_json(f"{base_url}/article/{content_id}", timeout=10)
-            if not article_payload:
-                continue
-
-            link = article_payload.get("url") or zone.get("url") or ""
-            if link and not link.startswith("http"):
-                link = "https://epaper.aajtak.in" + link
-
-            title = article_payload.get("title") or zone.get("title") or page.get("title") or "Aaj Tak Article"
-            description = _clean_text(article_payload.get("description") or article_payload.get("strap_headline") or "")
-            image = article_payload.get("image") or page.get("image_path") or ""
-            article = _build_article(
-                title,
-                link,
-                description or title,
-                article_payload.get("edition_date") or latest_edition.get("publication_date"),
-                "Aaj Tak E-Paper",
-                image,
-            )
             if not article:
                 continue
-
             key = article.get("link") or article.get("title")
             if key in seen_links:
                 continue
             seen_links.add(key)
             articles.append(article)
-
-            if len(articles) >= limit:
-                return articles
 
     return articles
 
@@ -359,19 +402,29 @@ def _find_news_article_by_link(link):
 
 
 def _get_all_news():
-    """Fetch news from all feeds with caching. Feeds fetched in parallel."""
+    """Fetch news from all feeds with L1 (in-memory) + L2 (Redis) caching."""
+    from datetime import datetime as dt
+
+    # L1: in-memory cache (fast, resets on cold start)
     with _NEWS_CACHE_LOCK:
         if _NEWS_CACHE.get("data") and _NEWS_CACHE.get("expires_at"):
-            from datetime import datetime as dt
             if dt.now().timestamp() < _NEWS_CACHE["expires_at"]:
                 return _NEWS_CACHE["data"]
 
-    # Fetch all feeds in parallel (4x faster than sequential)
+    # L2: Redis cache (survives Vercel cold starts)
+    cached = _l2_get()
+    if cached:
+        with _NEWS_CACHE_LOCK:
+            _NEWS_CACHE["data"] = cached
+            _NEWS_CACHE["expires_at"] = dt.now().timestamp() + NEWS_CACHE_TTL_SECONDS
+        return cached
+
+    # Cache miss — fetch from sources in parallel
     from concurrent.futures import ThreadPoolExecutor, as_completed
-    all_news = _fetch_aajtak_news(limit=30)
+    all_news = _fetch_aajtak_news(limit=10)
     with ThreadPoolExecutor(max_workers=len(RSS_FEEDS)) as ex:
         futures = {
-            ex.submit(_fetch_feed, fi["url"], fi["source"], 8): fi
+            ex.submit(_fetch_feed, fi["url"], fi["source"]): fi
             for fi in RSS_FEEDS
         }
         for fut in as_completed(futures):
@@ -382,10 +435,11 @@ def _get_all_news():
 
     all_news.sort(key=lambda x: x["date"], reverse=True)
 
+    # Write to both caches
     with _NEWS_CACHE_LOCK:
-        from datetime import datetime as dt
         _NEWS_CACHE["data"] = all_news
         _NEWS_CACHE["expires_at"] = dt.now().timestamp() + NEWS_CACHE_TTL_SECONDS
+    _l2_set(all_news)
 
     return all_news
 
