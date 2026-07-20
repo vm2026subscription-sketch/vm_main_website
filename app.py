@@ -4811,7 +4811,7 @@ def verify_register_otp():
 
         if not re.fullmatch(r"\d{6}", otp_code):
             flash("Enter the 6-digit OTP.", "error")
-            return render_template("auth.html", mode="register_otp", page_title="Verify Email", otp_email=pending_otp["email"], otp_expires_at=pending_otp["expires_at"])
+            return render_template("auth.html", mode="otp", page_title="Verify Email", otp_email=pending_otp["email"], otp_expires_at=pending_otp["expires_at"])
 
         if pending_otp.get("attempts", 0) >= 5:
             session.pop("pending_register_otp", None)
@@ -4835,7 +4835,7 @@ def verify_register_otp():
         session["pending_register_otp"] = pending_otp
         flash("Invalid OTP. Please try again.", "error")
 
-    return render_template("auth.html", mode="register_otp", page_title="Verify Email", otp_email=pending_otp["email"], otp_expires_at=pending_otp["expires_at"])
+    return render_template("auth.html", mode="otp", page_title="Verify Email", otp_email=pending_otp["email"], otp_expires_at=pending_otp["expires_at"])
 
 
 @app.route("/login", methods=["GET", "POST"])
