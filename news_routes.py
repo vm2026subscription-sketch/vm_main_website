@@ -374,6 +374,9 @@ def _fetch_aajtak_news(limit=10):
             "Aaj Tak E-Paper", image,
         )
 
+    if not content_ids:
+        return []
+
     articles = []
     seen_links = set()
     with ThreadPoolExecutor(max_workers=min(len(content_ids), 8)) as ex:
