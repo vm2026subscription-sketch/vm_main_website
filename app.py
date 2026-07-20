@@ -188,9 +188,14 @@ def page_not_found(e):
 
 @app.errorhandler(500)
 def internal_error(e):
+    import traceback
+    app.logger.error("500 on %s: %s\n%s", request.path, e, traceback.format_exc())
     if request.is_json or request.path.startswith('/api/'):
         return jsonify({'error': 'Internal server error'}), 500
-    return render_template('500.html'), 500
+    try:
+        return render_template('500.html'), 500
+    except Exception:
+        return "<h1>500 Internal Server Error</h1>", 500
 
 @app.errorhandler(413)
 def request_too_large(e):
@@ -4737,7 +4742,7 @@ def govt_job_detail(job_id):
 
 
 @app.route("/register", methods=["GET", "POST"])
-@limiter.limit("5 per minute")
+@limiter.limit("5 per minute", methods=["POST"])
 def register():
     if request.method == "POST":
         name = request.form.get("name", "").strip()
@@ -4796,7 +4801,12 @@ def register():
         flash("Please verify your email address. An OTP has been sent.", "success")
         return redirect(url_for("verify_register_otp"))
 
-    return render_template("auth.html", mode="register", page_title="Register")
+    try:
+        return render_template("auth.html", mode="register", page_title="Register")
+    except Exception as exc:
+        import traceback
+        app.logger.error("register render failed: %s\n%s", exc, traceback.format_exc())
+        raise
 
 @app.route("/verify-register-otp", methods=["GET", "POST"])
 @limiter.limit("5 per minute")
