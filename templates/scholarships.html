@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -415,6 +415,45 @@
             flex-grow: 1;
         }
 
+        .sc-details {
+            margin-top: 14px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 14px;
+        }
+
+        .sc-details-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            color: var(--text-muted);
+        }
+
+        .sc-details-label {
+            font-weight: 700;
+            color: var(--text-main);
+            min-width: 90px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .sc-details-label i {
+            color: var(--primary);
+            font-size: 0.9rem;
+            width: 14px;
+            text-align: center;
+        }
+
+        .sc-details-value {
+            color: var(--text-muted);
+        }
+
         .sc-actions {
             margin-top: auto;
             display: flex;
@@ -427,30 +466,41 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            padding: 10px 22px;
+            padding: 10px 16px;
             background: transparent;
             color: var(--text-main);
             border: 1px solid var(--border-color);
             border-radius: 999px;
-            font-size: 0.95rem;
+            font-size: 0.88rem;
             font-weight: 600;
             text-decoration: none;
             transition: all 0.3s ease;
             cursor: pointer;
             width: 100%;
-            gap: 8px;
+            gap: 6px;
         }
 
         .sc-card:hover .sc-btn {
-            border-color: var(--primary);
-            color: var(--primary);
+            border-color: var(--border-color);
+            color: var(--text-main);
+        }
+
+        .sc-btn-primary {
+            background: var(--primary) !important;
+            color: #ffffff !important;
+            border-color: var(--primary) !important;
+        }
+
+        .sc-btn-primary:hover {
+            background: var(--primary-hover) !important;
+            box-shadow: 0 6px 16px rgba(255, 102, 0, 0.3);
+            transform: translateY(-2px);
         }
 
         .sc-btn:hover {
-            background: var(--primary) !important;
-            color: #ffffff !important;
-            box-shadow: 0 6px 16px rgba(255, 102, 0, 0.3);
-            transform: translateY(-2px);
+            background: var(--primary-light);
+            color: var(--primary) !important;
+            border-color: var(--primary) !important;
         }
 
         /* NO RESULTS STATE */
@@ -790,13 +840,32 @@
                 <div class="sc-chips">
                     <span class="sc-chip"><i class="fa-solid fa-building-flag"></i> Government</span>
                     <span class="sc-chip"><i class="fa-solid fa-user-graduate"></i> All Degrees</span>
-                    <span class="sc-chip"><i class="fa-solid fa-indian-rupee-sign"></i> Full Tuition + Maintenance</span>
                 </div>
                 <p class="sc-desc">Apply for central and state scholarships such as Post Matric, Pre Matric, and Merit-cum-Means through the official NSP portal.</p>
+                
+                <div class="sc-details">
+                    <div class="sc-details-item">
+                        <span class="sc-details-label"><i class="fa-solid fa-user-check"></i> Eligibility:</span>
+                        <span class="sc-details-value">Indian students in recognized institutes; family income criteria apply</span>
+                    </div>
+                    <div class="sc-details-item">
+                        <span class="sc-details-label"><i class="fa-solid fa-wallet"></i> Amount:</span>
+                        <span class="sc-details-value">Full Tuition + Maintenance allowance</span>
+                    </div>
+                    <div class="sc-details-item">
+                        <span class="sc-details-label"><i class="fa-solid fa-calendar-days"></i> Deadline:</span>
+                        <span class="sc-details-value">Check Official Website</span>
+                    </div>
+                </div>
+
                 <div class="sc-actions">
+                    <a href="https://scholarships.gov.in/" target="_blank" rel="noopener" class="sc-btn sc-btn-primary">
+                        <span>Official Website</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    </a>
                     <button class="sc-btn open-modal-btn" data-modal-id="modal-nsp">
-                        <span>View Complete Details</span>
-                        <i class="fa-solid fa-arrow-right"></i>
+                        <span>View Details</span>
+                        <i class="fa-solid fa-circle-info"></i>
                     </button>
                 </div>
             </div>
@@ -811,13 +880,32 @@
                 <div class="sc-chips">
                     <span class="sc-chip"><i class="fa-solid fa-venus"></i> Women & Girls</span>
                     <span class="sc-chip"><i class="fa-solid fa-laptop-code"></i> Technical Degree/Dip.</span>
-                    <span class="sc-chip"><i class="fa-solid fa-indian-rupee-sign"></i> ₹50,000 / Year</span>
                 </div>
                 <p class="sc-desc">Scholarship for girls pursuing technical education, covering tuition fees and contingency support to empower women in tech.</p>
+
+                <div class="sc-details">
+                    <div class="sc-details-item">
+                        <span class="sc-details-label"><i class="fa-solid fa-user-check"></i> Eligibility:</span>
+                        <span class="sc-details-value">Up to 2 girls per family in AICTE approved colleges; income < ₹8 LPA</span>
+                    </div>
+                    <div class="sc-details-item">
+                        <span class="sc-details-label"><i class="fa-solid fa-wallet"></i> Amount:</span>
+                        <span class="sc-details-value">₹50,000 / Year</span>
+                    </div>
+                    <div class="sc-details-item">
+                        <span class="sc-details-label"><i class="fa-solid fa-calendar-days"></i> Deadline:</span>
+                        <span class="sc-details-value">Check Official Website</span>
+                    </div>
+                </div>
+
                 <div class="sc-actions">
+                    <a href="https://www.aicte-india.org/schemes/students-development-schemes" target="_blank" rel="noopener" class="sc-btn sc-btn-primary">
+                        <span>Official Website</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    </a>
                     <button class="sc-btn open-modal-btn" data-modal-id="modal-pragati">
-                        <span>View Complete Details</span>
-                        <i class="fa-solid fa-arrow-right"></i>
+                        <span>View Details</span>
+                        <i class="fa-solid fa-circle-info"></i>
                     </button>
                 </div>
             </div>
@@ -830,15 +918,34 @@
                 </div>
                 <div class="sc-subtitle">Science & Research Talent</div>
                 <div class="sc-chips">
-                    <span class="sc-chip"><i class="fa-solid fa-flask"></i> Basic & Natural Sciences</span>
+                    <span class="sc-chip"><i class="fa-solid fa-flask"></i> Basic Sciences</span>
                     <span class="sc-chip"><i class="fa-solid fa-award"></i> Top 1% Class 12</span>
-                    <span class="sc-chip"><i class="fa-solid fa-indian-rupee-sign"></i> ₹80,000 / Year</span>
                 </div>
                 <p class="sc-desc">Scholarship from the Department of Science & Technology (DST) for meritorious science students undertaking bachelor's and master's courses.</p>
+
+                <div class="sc-details">
+                    <div class="sc-details-item">
+                        <span class="sc-details-label"><i class="fa-solid fa-user-check"></i> Eligibility:</span>
+                        <span class="sc-details-value">Top 1% of board or top JEE/NEET rank, studying natural/basic sciences</span>
+                    </div>
+                    <div class="sc-details-item">
+                        <span class="sc-details-label"><i class="fa-solid fa-wallet"></i> Amount:</span>
+                        <span class="sc-details-value">₹80,000 / Year</span>
+                    </div>
+                    <div class="sc-details-item">
+                        <span class="sc-details-label"><i class="fa-solid fa-calendar-days"></i> Deadline:</span>
+                        <span class="sc-details-value">Check Official Website</span>
+                    </div>
+                </div>
+
                 <div class="sc-actions">
+                    <a href="https://online-inspire.gov.in/" target="_blank" rel="noopener" class="sc-btn sc-btn-primary">
+                        <span>Official Website</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    </a>
                     <button class="sc-btn open-modal-btn" data-modal-id="modal-inspire">
-                        <span>View Complete Details</span>
-                        <i class="fa-solid fa-arrow-right"></i>
+                        <span>View Details</span>
+                        <i class="fa-solid fa-circle-info"></i>
                     </button>
                 </div>
             </div>
@@ -853,13 +960,32 @@
                 <div class="sc-chips">
                     <span class="sc-chip"><i class="fa-solid fa-shield-halved"></i> Defence/CAPF Wards</span>
                     <span class="sc-chip"><i class="fa-solid fa-graduation-cap"></i> Professional Courses</span>
-                    <span class="sc-chip"><i class="fa-solid fa-indian-rupee-sign"></i> ₹36,000 - ₹39,000 / Yr</span>
                 </div>
                 <p class="sc-desc">Scholarship for dependent wards and widows of ex-servicemen, serving defence personnel, and CAPF pursuing professional degree courses.</p>
+
+                <div class="sc-details">
+                    <div class="sc-details-item">
+                        <span class="sc-details-label"><i class="fa-solid fa-user-check"></i> Eligibility:</span>
+                        <span class="sc-details-value">Dependent wards/widows of ex-servicemen & CAPF; min 60% in Class 12</span>
+                    </div>
+                    <div class="sc-details-item">
+                        <span class="sc-details-label"><i class="fa-solid fa-wallet"></i> Amount:</span>
+                        <span class="sc-details-value">₹36,000 (Boys) - ₹39,000 (Girls) / Yr</span>
+                    </div>
+                    <div class="sc-details-item">
+                        <span class="sc-details-label"><i class="fa-solid fa-calendar-days"></i> Deadline:</span>
+                        <span class="sc-details-value">Check Official Website</span>
+                    </div>
+                </div>
+
                 <div class="sc-actions">
+                    <a href="https://www.ksb.gov.in/" target="_blank" rel="noopener" class="sc-btn sc-btn-primary">
+                        <span>Official Website</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    </a>
                     <button class="sc-btn open-modal-btn" data-modal-id="modal-pmss">
-                        <span>View Complete Details</span>
-                        <i class="fa-solid fa-arrow-right"></i>
+                        <span>View Details</span>
+                        <i class="fa-solid fa-circle-info"></i>
                     </button>
                 </div>
             </div>
@@ -873,14 +999,33 @@
                 <div class="sc-subtitle">Maharashtra Scholarship Portal</div>
                 <div class="sc-chips">
                     <span class="sc-chip"><i class="fa-solid fa-location-dot"></i> Maharashtra State</span>
-                    <span class="sc-chip"><i class="fa-solid fa-scale-balanced"></i> Reserved / EWS / Merit</span>
-                    <span class="sc-chip"><i class="fa-solid fa-indian-rupee-sign"></i> 50% to 100% Tuition Fee</span>
+                    <span class="sc-chip"><i class="fa-solid fa-scale-balanced"></i> Reserved/EWS/Merit</span>
                 </div>
                 <p class="sc-desc">State-sponsored scholarships and grants for Maharashtra students across multiple departments, including EBC, OBC, SC, ST, and minority welfare.</p>
+
+                <div class="sc-details">
+                    <div class="sc-details-item">
+                        <span class="sc-details-label"><i class="fa-solid fa-user-check"></i> Eligibility:</span>
+                        <span class="sc-details-value">Maharashtra domicile; enrolled in recognized courses; category/income-based</span>
+                    </div>
+                    <div class="sc-details-item">
+                        <span class="sc-details-label"><i class="fa-solid fa-wallet"></i> Amount:</span>
+                        <span class="sc-details-value">50% to 100% Tuition Fee waiver</span>
+                    </div>
+                    <div class="sc-details-item">
+                        <span class="sc-details-label"><i class="fa-solid fa-calendar-days"></i> Deadline:</span>
+                        <span class="sc-details-value">Check Official Website</span>
+                    </div>
+                </div>
+
                 <div class="sc-actions">
+                    <a href="https://mahadbt.maharashtra.gov.in/" target="_blank" rel="noopener" class="sc-btn sc-btn-primary">
+                        <span>Official Website</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    </a>
                     <button class="sc-btn open-modal-btn" data-modal-id="modal-mahadbt">
-                        <span>View Complete Details</span>
-                        <i class="fa-solid fa-arrow-right"></i>
+                        <span>View Details</span>
+                        <i class="fa-solid fa-circle-info"></i>
                     </button>
                 </div>
             </div>
@@ -894,14 +1039,33 @@
                 <div class="sc-subtitle">Financial Aid for Differently-Abled</div>
                 <div class="sc-chips">
                     <span class="sc-chip"><i class="fa-solid fa-wheelchair"></i> Specially-Abled</span>
-                    <span class="sc-chip"><i class="fa-solid fa-gears"></i> Technical Degree / Dip.</span>
-                    <span class="sc-chip"><i class="fa-solid fa-indian-rupee-sign"></i> ₹50,000 / Year</span>
+                    <span class="sc-chip"><i class="fa-solid fa-gears"></i> Technical Degree/Dip.</span>
                 </div>
                 <p class="sc-desc">Empowerment scholarship program providing financial assistance to specially-abled students pursuing technical education at AICTE approved institutions.</p>
+
+                <div class="sc-details">
+                    <div class="sc-details-item">
+                        <span class="sc-details-label"><i class="fa-solid fa-user-check"></i> Eligibility:</span>
+                        <span class="sc-details-value">Specially-abled students (disability >= 40%) in technical Degree/Dip.</span>
+                    </div>
+                    <div class="sc-details-item">
+                        <span class="sc-details-label"><i class="fa-solid fa-wallet"></i> Amount:</span>
+                        <span class="sc-details-value">₹50,000 / Year</span>
+                    </div>
+                    <div class="sc-details-item">
+                        <span class="sc-details-label"><i class="fa-solid fa-calendar-days"></i> Deadline:</span>
+                        <span class="sc-details-value">Check Official Website</span>
+                    </div>
+                </div>
+
                 <div class="sc-actions">
+                    <a href="https://www.aicte-india.org/schemes/students-development-schemes" target="_blank" rel="noopener" class="sc-btn sc-btn-primary">
+                        <span>Official Website</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    </a>
                     <button class="sc-btn open-modal-btn" data-modal-id="modal-saksham">
-                        <span>View Complete Details</span>
-                        <i class="fa-solid fa-arrow-right"></i>
+                        <span>View Details</span>
+                        <i class="fa-solid fa-circle-info"></i>
                     </button>
                 </div>
             </div>
@@ -915,14 +1079,33 @@
                 <div class="sc-subtitle">Corporate Scholarship Program</div>
                 <div class="sc-chips">
                     <span class="sc-chip"><i class="fa-solid fa-building"></i> Corporate Scheme</span>
-                    <span class="sc-chip"><i class="fa-solid fa-trophy"></i> Premier Institutes (IIT/IIM/Law)</span>
-                    <span class="sc-chip"><i class="fa-solid fa-indian-rupee-sign"></i> Up to ₹3,000,000 / Yr</span>
+                    <span class="sc-chip"><i class="fa-solid fa-trophy"></i> Premier Institutes</span>
                 </div>
                 <p class="sc-desc">Prestigious scholarship program for highly meritorious students across premier engineering, management, and law institutions in India.</p>
+
+                <div class="sc-details">
+                    <div class="sc-details-item">
+                        <span class="sc-details-label"><i class="fa-solid fa-user-check"></i> Eligibility:</span>
+                        <span class="sc-details-value">Selected students admitted to premier IITs, BITS, IIMs, XLRI, and NLUs</span>
+                    </div>
+                    <div class="sc-details-item">
+                        <span class="sc-details-label"><i class="fa-solid fa-wallet"></i> Amount:</span>
+                        <span class="sc-details-value">Up to ₹3,000,000 / Yr</span>
+                    </div>
+                    <div class="sc-details-item">
+                        <span class="sc-details-label"><i class="fa-solid fa-calendar-days"></i> Deadline:</span>
+                        <span class="sc-details-value">Check Official Website</span>
+                    </div>
+                </div>
+
                 <div class="sc-actions">
+                    <a href="https://www.adityabirlascholars.net/" target="_blank" rel="noopener" class="sc-btn sc-btn-primary">
+                        <span>Official Website</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    </a>
                     <button class="sc-btn open-modal-btn" data-modal-id="modal-birla">
-                        <span>View Complete Details</span>
-                        <i class="fa-solid fa-arrow-right"></i>
+                        <span>View Details</span>
+                        <i class="fa-solid fa-circle-info"></i>
                     </button>
                 </div>
             </div>
@@ -1237,7 +1420,7 @@
                                 </ul>
                             </div>
 
-                            <a href="${data.link}" target="_blank" rel="noopener noreferrer" class="modal-apply-btn">
+                            <a href="${data.link}" target="_blank" rel="noopener" class="modal-apply-btn">
                                 <span>Proceed to Official Website</span>
                                 <i class="fa-solid fa-arrow-up-right-from-square"></i>
                             </a>

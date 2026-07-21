@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -793,6 +793,7 @@
           <button type="button" class="lang-btn" data-lang="hi">HI</button>
           <button type="button" class="lang-btn" data-lang="mr">MR</button>
         </div>
+        <button type="button" class="chat-clear" id="chat-clear" aria-label="Clear chat" title="Clear chat" style="background:none;border:none;color:var(--text-muted);font-size:15px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:color .2s,background .2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-muted)'"><i class="fa-solid fa-trash-can"></i></button>
         <button type="button" class="chat-close" id="chat-close" aria-label="Close chat">&times;</button>
       </div>
     </div>
@@ -1229,6 +1230,7 @@
         console.error('Chatbot error:', err);
       }
 
+      saveHistory();
       setBusy(false);
       input.focus();
     }
@@ -1272,6 +1274,7 @@
         addError(strings[currentLang].error);
       }
 
+      saveHistory();
       setBusy(false);
       input.focus();
     }
@@ -1323,6 +1326,7 @@
     sendBtn.addEventListener('click', sendMessage);
     closeBtn.addEventListener('click', closeWidget);
     trigger.addEventListener('click', openWidget);
+    $('#chat-clear').addEventListener('click', clearChat);
 
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
@@ -1357,14 +1361,63 @@
       document.body.classList.add('light-mode');
     }
     setLanguage('en', true);
+    loadHistory();
 
     // Auto-open if not in iframe
     if (window === window.top) {
       openWidget();
     }
 
-    // Placeholder loadHistory — can be extended for persistence
-    function loadHistory() { return; }
+    /* ═══════════════════════════════════════════════
+       CHAT HISTORY PERSISTENCE (localStorage)
+       — Saves up to the latest 20 messages.
+       — Restores messages after page refresh.
+       — Cleared when the user clicks the clear-chat button.
+    ═══════════════════════════════════════════════ */
+    const HISTORY_KEY = 'vm_chatbot_history';
+    const HISTORY_MAX = 20;
+
+    function saveHistory() {
+      try {
+        const toSave = conversationHistory.slice(-HISTORY_MAX);
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(toSave));
+      } catch (e) { /* storage full or unavailable */ }
+    }
+
+    function loadHistory() {
+      try {
+        const raw = localStorage.getItem(HISTORY_KEY);
+        if (!raw) return;
+        const saved = JSON.parse(raw);
+        if (!Array.isArray(saved) || saved.length === 0) return;
+
+        // Hide welcome card since there is prior conversation
+        const wc = $('#welcome-card');
+        if (wc) wc.style.display = 'none';
+
+        saved.forEach(msg => {
+          const type = msg.role === 'user' ? 'user' : 'bot';
+          addMessage(msg.content, type);
+          conversationHistory.push(msg);
+        });
+      } catch (e) { /* corrupt data — ignore */ }
+    }
+
+    function clearChat() {
+      // Clear DOM messages (keep welcome card and day separator)
+      const msgs = body.querySelectorAll('.msg-wrap, .msg-error, .typing-indicator');
+      msgs.forEach(el => el.remove());
+
+      // Reset in-memory history
+      conversationHistory.length = 0;
+
+      // Clear localStorage
+      try { localStorage.removeItem(HISTORY_KEY); } catch (e) {}
+
+      // Re-show welcome card
+      const wc = $('#welcome-card');
+      if (wc) wc.style.display = '';
+    }
   </script>
 </body>
 </html>

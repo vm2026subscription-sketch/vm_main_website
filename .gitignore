@@ -39,3 +39,13 @@ auth_users.db
 *.mp3
 tempCodeRunnerFile.py
 tests/
+
+# User uploaded content (epaper images, PDFs)
+static/uploads/epaper/
+
+# User-submitted data containing PII (names, emails, phone numbers)
+data/feedback.json
+data/guideme_requests.json
+data/contact_messages.json
+data/subscribers.json
+data/stories.json
