@@ -4822,7 +4822,7 @@ def register():
         raise
 
 @app.route("/verify-register-otp", methods=["GET", "POST"])
-@limiter.limit("5 per minute")
+@limiter.limit("5 per minute", methods=["POST"])
 def verify_register_otp():
     pending_otp = session.get("pending_register_otp")
     if not pending_otp:
@@ -4841,24 +4841,34 @@ def verify_register_otp():
             flash("Too many invalid attempts. Please login to request a new OTP.", "error")
             return redirect(url_for("login"))
 
-        if check_password_hash(pending_otp["otp_hash"], otp_code):
-            with get_auth_db_connection() as connection:
-                connection.execute("UPDATE users SET verified = 1 WHERE email = ?", (pending_otp["email"],))
-                connection.commit()
-            
-            session["auth_user"] = {
-                "name": pending_otp["name"],
-                "email": pending_otp["email"],
-            }
-            session.pop("pending_register_otp", None)
-            flash("Email verified successfully. You are now logged in.", "success")
-            return redirect(url_for("dashboard"))
+        try:
+            if check_password_hash(pending_otp["otp_hash"], otp_code):
+                app.logger.info("OTP_STEP1: correct OTP for %s, updating verified flag", pending_otp["email"])
+                with get_auth_db_connection() as connection:
+                    connection.execute("UPDATE users SET verified = TRUE WHERE email = ?", (pending_otp["email"],))
+                app.logger.info("OTP_STEP2: verified flag updated, setting session")
+                session["auth_user"] = {
+                    "name": pending_otp["name"],
+                    "email": pending_otp["email"],
+                }
+                session.pop("pending_register_otp", None)
+                flash("Email verified successfully. You are now logged in.", "success")
+                return redirect(url_for("dashboard"))
+        except Exception as exc:
+            import traceback
+            app.logger.error("OTP_FAIL: %s: %s\n%s", type(exc).__name__, exc, traceback.format_exc())
+            raise
 
         pending_otp["attempts"] = pending_otp.get("attempts", 0) + 1
         session["pending_register_otp"] = pending_otp
         flash("Invalid OTP. Please try again.", "error")
 
-    return render_template("auth.html", mode="otp", page_title="Verify Email", otp_email=pending_otp["email"], otp_expires_at=pending_otp["expires_at"])
+    try:
+        return render_template("auth.html", mode="otp", page_title="Verify Email", otp_email=pending_otp["email"], otp_expires_at=pending_otp["expires_at"])
+    except Exception as exc:
+        import traceback
+        app.logger.error("OTP_RENDER_FAIL: %s: %s\n%s", type(exc).__name__, exc, traceback.format_exc())
+        raise
 
 
 @app.route("/login", methods=["GET", "POST"])
