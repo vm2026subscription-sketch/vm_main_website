@@ -189,7 +189,9 @@ def page_not_found(e):
 @app.errorhandler(500)
 def internal_error(e):
     import traceback
-    app.logger.error("500 on %s: %s\n%s", request.path, e, traceback.format_exc())
+    original = getattr(e, 'original_exception', e)
+    tb = ''.join(traceback.format_exception(type(original), original, getattr(original, '__traceback__', None)))
+    app.logger.error("REAL_500 %s | %s: %s\n%s", request.path, type(original).__name__, original, tb)
     if request.is_json or request.path.startswith('/api/'):
         return jsonify({'error': 'Internal server error'}), 500
     try:
@@ -4762,44 +4764,55 @@ def register():
             flash("Password must be at least 6 characters long.", "error")
             return render_template("auth.html", mode="register", page_title="Register")
 
-        with get_auth_db_connection() as connection:
-            existing_user = connection.execute(
-                "SELECT id FROM users WHERE email = ?",
-                (email,),
-            ).fetchone()
-
-            if existing_user is not None:
-                flash("An account with this email already exists.", "error")
-                return render_template("auth.html", mode="register", page_title="Register")
-
-            connection.execute(
-                "INSERT INTO users (name, email, password_hash, is_admin, verified) VALUES (?, ?, ?, ?, ?)",
-                (
-                    name,
-                    email,
-                    generate_password_hash(password),
-                    1 if email == _get_dashboard_admin_credentials()[0] else 0,
-                    0,
-                ),
-            )
-            connection.commit()
-
-        otp_code = generate_login_otp()
-        session["pending_register_otp"] = {
-            "name": name,
-            "email": email,
-            "otp_hash": generate_password_hash(otp_code),
-            "expires_at": int(time.time()) + 600,
-            "attempts": 0,
-        }
-
         try:
-            send_login_otp_email(email, name, otp_code)
-        except Exception as exc:
-            app.logger.warning("OTP email delivery failed: %s", exc)
+            app.logger.info("REG_STEP1: connecting to auth DB for %s", email)
+            with get_auth_db_connection() as connection:
+                app.logger.info("REG_STEP2: checking existing user")
+                existing_user = connection.execute(
+                    "SELECT id FROM users WHERE email = ?",
+                    (email,),
+                ).fetchone()
 
-        flash("Please verify your email address. An OTP has been sent.", "success")
-        return redirect(url_for("verify_register_otp"))
+                if existing_user is not None:
+                    flash("An account with this email already exists.", "error")
+                    return render_template("auth.html", mode="register", page_title="Register")
+
+                app.logger.info("REG_STEP3: inserting new user")
+                is_admin = email == _get_dashboard_admin_credentials()[0]
+                connection.execute(
+                    "INSERT INTO users (name, email, password_hash, is_admin, verified) VALUES (?, ?, ?, ?, ?)",
+                    (
+                        name,
+                        email,
+                        generate_password_hash(password),
+                        bool(is_admin),
+                        False,
+                    ),
+                )
+                connection.commit()
+                app.logger.info("REG_STEP4: user inserted OK")
+
+            app.logger.info("REG_STEP5: generating OTP")
+            otp_code = generate_login_otp()
+            session["pending_register_otp"] = {
+                "name": name,
+                "email": email,
+                "otp_hash": generate_password_hash(otp_code),
+                "expires_at": int(time.time()) + 600,
+                "attempts": 0,
+            }
+
+            try:
+                send_login_otp_email(email, name, otp_code)
+            except Exception as exc:
+                app.logger.warning("OTP email delivery failed: %s", exc)
+
+            flash("Please verify your email address. An OTP has been sent.", "success")
+            return redirect(url_for("verify_register_otp"))
+        except Exception as exc:
+            import traceback
+            app.logger.error("REG_FAIL: %s: %s\n%s", type(exc).__name__, exc, traceback.format_exc())
+            raise
 
     try:
         return render_template("auth.html", mode="register", page_title="Register")
