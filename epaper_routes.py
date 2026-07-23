@@ -39,6 +39,8 @@ _editions_cache_lock = threading.Lock()
 _REDIS_EDITIONS_KEY = "ep:editions:list"
 _REDIS_EDITIONS_TTL = 300   # 5 minutes
 _REDIS_EDITION_TTL  = 600   # 10 minutes per single edition
+_REDIS_LATEST_KEY   = "ep:latest"
+_REDIS_LATEST_TTL   = 300   # 5 minutes
 
 def _redis_edition_key(date, lang):
     return f"ep:ed:{date}:{(lang or 'any').lower()}"
@@ -101,7 +103,10 @@ def _redis_delete(*keys):
 # ── Global MongoDB client (created once, reused across requests) ──
 _mongo_client = None
 _mongo_client_lock = threading.Lock()
-_mongo_disabled = "NzGjvdyZJiJPX8Ku" in os.getenv("MONGODB_URI", "") or not os.getenv("MONGODB_URI", "")
+_mongo_disabled = (
+    os.getenv("MONGO_DISABLED", "").lower() in ("1", "true", "yes") or
+    not os.getenv("MONGODB_URI", "")
+)
 
 def _tts_cache_key(text, voice, rate, pitch):
     return hashlib.md5(f"{text}|{voice}|{rate}|{pitch}".encode("utf-8")).hexdigest()
@@ -724,7 +729,7 @@ def _invalidate_editions_cache(date=None, lang=None):
         _editions_cache = None
         _editions_cache_ts = 0
     # Clear Redis L2 cache
-    keys_to_delete = [_REDIS_EDITIONS_KEY]
+    keys_to_delete = [_REDIS_EDITIONS_KEY, _REDIS_LATEST_KEY]
     if date:
         # Clear all lang variants for this date
         for l in [lang, "any", "hindi", "english", "marathi", None]:
@@ -766,6 +771,34 @@ def _allowed_image(filename):
 
 def _allowed_upload(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_UPLOAD_EXTENSIONS
+
+
+def _compress_image_bytes(file_bytes, filename, max_width=1600, quality=85):
+    """Resize to max_width and convert to JPEG. Returns (bytes, new_filename)."""
+    try:
+        from PIL import Image
+        import io as _io
+        img = Image.open(_io.BytesIO(file_bytes))
+        w, h = img.size
+        if w > max_width:
+            img = img.resize((max_width, int(h * max_width / w)), Image.LANCZOS)
+        # Flatten alpha / palette → RGB for JPEG
+        if img.mode not in ('RGB',):
+            bg = Image.new('RGB', img.size, (255, 255, 255))
+            if img.mode == 'P':
+                img = img.convert('RGBA')
+            if img.mode in ('RGBA', 'LA'):
+                bg.paste(img, mask=img.split()[-1])
+            else:
+                bg.paste(img)
+            img = bg
+        buf = _io.BytesIO()
+        img.save(buf, 'JPEG', quality=quality, optimize=True)
+        stem = os.path.splitext(filename)[0]
+        return buf.getvalue(), stem + '.jpg'
+    except Exception as e:
+        print(f"[epaper] Image compression failed: {e}")
+        return file_bytes, filename
 
 
 def _article_from_block(block, edition=None, page=None):
@@ -1127,7 +1160,7 @@ def api_upload_epaper_image():
             pdf_bytes = image.read()
             doc = fitz.open(stream=pdf_bytes, filetype="pdf")
             pg = doc[0]
-            mat = fitz.Matrix(4.0, 4.0)
+            mat = fitz.Matrix(2.0, 2.0)  # 2x gives ~1200px — enough quality, half the data vs 4x
             pix = pg.get_pixmap(matrix=mat)
             doc.close()
             filename = f"{stem[:48]}-{ts}.png"
@@ -1137,6 +1170,9 @@ def api_upload_epaper_image():
     else:
         filename = f"{stem[:48]}-{ts}{ext.lower()}"
         file_bytes = image.read()
+
+    # Auto-compress: resize to 1600px max + convert to JPEG (~3-5x smaller than raw PNG)
+    file_bytes, filename = _compress_image_bytes(file_bytes, filename)
 
     # Cloudinary — persistent CDN storage (required on Vercel where filesystem is ephemeral)
     if _CLOUDINARY_URL:
@@ -1402,6 +1438,34 @@ def api_editions():
 # ── API: Latest published edition ─────────────────
 @epaper_bp.route("/api/epaper/latest")
 def api_latest_edition():
+    # L2: Redis cache (survives cold starts)
+    cached = _redis_get(_REDIS_LATEST_KEY)
+    if cached is not None:
+        return jsonify(cached)
+
+    # Fast path: get metadata list, find latest published, then load just that row
+    meta_list = _fast_editions_list_from_pg()
+    if meta_list is not None:
+        published_meta = [e for e in meta_list if e.get("published", True)]
+        if not published_meta:
+            return jsonify({"error": "No published editions."}), 404
+        best = sorted(published_meta, key=lambda e: e["date"], reverse=True)[0]
+        edition = _fast_load_single_edition(best["date"], best["language"])
+        if edition:
+            result = {
+                "date": edition["date"],
+                "name": edition.get("name", ""),
+                "language": edition.get("language", "Hindi"),
+                "masthead_image_url": edition.get("masthead_image_url", ""),
+                "footer_links": edition.get("footer_links", []),
+                "header_items": edition.get("header_items", []),
+                "pages": edition.get("pages", []),
+                "published": edition.get("published", True),
+            }
+            _redis_set(_REDIS_LATEST_KEY, result, ttl=_REDIS_LATEST_TTL)
+            return jsonify(result)
+
+    # Fallback: full load
     editions = _load_editions()
     published = [e for e in editions if e.get("published", True)]
     if not published:
@@ -1496,6 +1560,43 @@ def api_publish_edition(date):
 def api_editions_by_date(date):
     if not re.match(r"\d{4}-\d{2}-\d{2}$", date):
         return jsonify({"error": "Invalid date format"}), 400
+
+    # Fast path: check Redis editions list cache first
+    cached_list = _redis_get(_REDIS_EDITIONS_KEY)
+    if cached_list is not None:
+        matches = [
+            {"language": e.get("language", "Hindi"), "name": e.get("name", "")}
+            for e in cached_list
+            if e["date"] == date and e.get("published", True)
+        ]
+        return jsonify({"editions": matches})
+
+    # Fast path: targeted Postgres query — only this date, no full load
+    if _pg_url():
+        try:
+            conn = _pg_connect()
+            _pg_ensure_table(conn)
+            with conn.cursor() as cur:
+                cur.execute(
+                    """SELECT edition_language,
+                              COALESCE(data->>'name', '') AS name,
+                              COALESCE((data->>'published')::boolean, true) AS published
+                       FROM epaper_editions_v2
+                       WHERE edition_date = %s
+                       ORDER BY edition_language""",
+                    (date,)
+                )
+                rows = cur.fetchall()
+            conn.close()
+            matches = [
+                {"language": r[0] or "Hindi", "name": r[1] or ""}
+                for r in rows if r[2] is not False
+            ]
+            return jsonify({"editions": matches})
+        except Exception as e:
+            print(f"[epaper] editions-by-date fast query failed: {e}")
+
+    # Fallback: full load
     editions = _load_editions()
     matches = [
         {"language": e.get("language", "Hindi"), "name": e.get("name", "")}
@@ -2047,7 +2148,7 @@ def _collect_edge_tts_audio(text, voice, rate, pitch):
 
     t = threading.Thread(target=_run, daemon=True)
     t.start()
-    t.join(timeout=25)
+    t.join(timeout=8)
 
     if t.is_alive():
         raise TimeoutError("TTS generation timed out")
@@ -2313,7 +2414,7 @@ def api_epaper_diagnostics():
 # ── Recovery: restore every edition that exists in backups but is missing from
 # the live v2 store (safe & idempotent — only ADDS missing editions, never
 # deletes or overwrites what's already live). ──
-@epaper_bp.route("/api/epaper/admin/restore-all-missing", methods=["GET", "POST"])
+@epaper_bp.route("/api/epaper/admin/restore-all-missing", methods=["POST"])
 def api_restore_all_missing():
     guard = _require_epaper_admin()
     if guard is not None:

@@ -71,7 +71,8 @@ const EP = {
   // to the ePaper landing (/epaper) instead of the site home page. Inserts
   // /epaper directly behind the current edition entry in history.
   _setupEditionBackTarget() {
-    if (!/^\/epaper\/\d{4}-\d{2}-\d{2}/.test(location.pathname)) return;
+    if (!/^\/epaper\/(hindi|english|marathi)\/\d{4}-\d{2}-\d{2}/.test(location.pathname) &&
+        !/^\/epaper\/\d{4}-\d{2}-\d{2}/.test(location.pathname)) return;
     const editionPath = location.pathname + location.search;
     try {
       const landingPath = location.hostname.startsWith('epaper.') ? '/' : '/epaper';
@@ -154,7 +155,9 @@ const EP = {
     this.showPage(1);
     this.registerEditionView();
     if (updateUrl && data?.date) {
-      const editionUrl = `/epaper/${data.date}`;
+      // Use language-specific URL so WhatsApp/social OG preview shows correct edition image
+      const langSlug = (data.language || 'Hindi').toLowerCase();
+      const editionUrl = `/epaper/${langSlug}/${data.date}`;
       if (window.location.pathname !== editionUrl) {
         // Opening an edition FROM the /epaper list -> PUSH so Back returns to
         // the list. Switching between editions -> REPLACE so Back doesn't have
@@ -1366,6 +1369,16 @@ const EP = {
 
       const grid = document.getElementById('epBlockGrid');
       if (grid) grid.style.display = 'none';
+    } else {
+      // Page has no blocks and no image — clear the loading skeleton so viewer doesn't hang
+      if (this.el.pageContainer) this.el.pageContainer.style.display = 'none';
+      const grid = document.getElementById('epBlockGrid');
+      if (grid) {
+        grid.style.display = 'block';
+        grid.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;min-height:300px;color:#9ca3af;font-size:15px;">
+          <div style="text-align:center;"><div style="font-size:40px;margin-bottom:12px;">📰</div>Page content not available</div>
+        </div>`;
+      }
     }
 
     // Scroll viewer to top when switching pages

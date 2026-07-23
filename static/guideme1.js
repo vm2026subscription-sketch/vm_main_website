@@ -6,6 +6,30 @@ document.addEventListener('DOMContentLoaded', () => {
         other: document.getElementById('otherSection')
     };
 
+    function showFormMsg(msg, type) {
+        let el = document.getElementById('_guideme_msg');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = '_guideme_msg';
+            el.style.cssText = 'margin:12px 0;padding:10px 14px;border-radius:8px;font-size:14px;font-weight:500;';
+            const btn = document.querySelector('.submit-btn');
+            if (btn) btn.parentNode.insertBefore(el, btn);
+            else document.body.appendChild(el);
+        }
+        el.textContent = msg;
+        el.style.display = 'block';
+        if (type === 'error') {
+            el.style.background = '#fef2f2';
+            el.style.color = '#dc2626';
+            el.style.border = '1px solid #fca5a5';
+        } else {
+            el.style.background = '#f0fdf4';
+            el.style.color = '#16a34a';
+            el.style.border = '1px solid #86efac';
+            setTimeout(() => { el.style.display = 'none'; }, 5000);
+        }
+    }
+
     // Toggle Section logic
     reqSelect.addEventListener('change', function() {
         Object.values(sections).forEach(s => s.style.display = 'none');
@@ -16,27 +40,27 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.submit-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
-            
+
             const whatsapp = document.getElementById('form_whatsapp').value.trim();
             const email = document.getElementById('form_email').value.trim();
             const name = document.getElementById('form_name').value.trim();
             const address = document.getElementById('form_address').value.trim();
 
             if (!name || !whatsapp || !email || !address) {
-                alert("Please fill in all required fields.");
+                showFormMsg("Please fill in all required fields.", 'error');
                 return;
             }
 
             // 10-Digit Validation
             if (!/^\d{10}$/.test(whatsapp)) {
-                alert("Error: WhatsApp number must be exactly 10 digits.");
+                showFormMsg("WhatsApp number must be exactly 10 digits.", 'error');
                 return;
             }
 
             // Email Validation
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(email)) {
-                alert("Error: Please enter a valid email address.");
+                showFormMsg("Please enter a valid email address.", 'error');
                 return;
             }
 
@@ -68,8 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const whatsappUrl = `https://wa.me/917720025900?text=${encodeURIComponent(message)}`;
             window.open(whatsappUrl, '_blank');
 
-            // Show success message
-            alert("✅ Your request has been sent! Our team will contact you soon via WhatsApp.");
+            showFormMsg("✅ Your request has been sent! Our team will contact you soon via WhatsApp.", 'success');
             
             // Reset form
             document.querySelectorAll('input, textarea, select').forEach(field => {

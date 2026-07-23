@@ -19,10 +19,17 @@ from email.message import EmailMessage
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-try:
-    import pandas as pd
-except ImportError:
-    pd = None
+pd = None  # lazy-loaded on first use — avoids 1-2s cold-start penalty
+
+def _get_pandas():
+    global pd
+    if pd is None:
+        try:
+            import pandas as _pd
+            pd = _pd
+        except ImportError:
+            pass
+    return pd
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
 from flask_wtf.csrf import CSRFProtect
@@ -52,14 +59,21 @@ import threading as _threading
 
 from supabase import create_client
 
-load_dotenv()
+# Load credentials from .env/default (directory-based env config) or plain .env file
+_env_dir = os.path.join(os.path.dirname(__file__), '.env')
+_env_file = os.path.join(_env_dir, 'default')
+if os.path.isfile(_env_file):
+    load_dotenv(_env_file)
+else:
+    load_dotenv()
 
-app = Flask(__name__)
 _secret_key = os.environ.get("SECRET_KEY", "")
 if not _secret_key:
     if os.environ.get("VERCEL") == "1" or os.environ.get("FLASK_ENV") == "production":
         raise RuntimeError("SECRET_KEY environment variable must be set in production.")
     _secret_key = "dev-only-insecure-key-never-use-in-prod"
+
+app = Flask(__name__)
 app.secret_key = _secret_key
 # Disable CSRF on JSON/API requests — they are protected by session auth
 # (require_admin / _require_epaper_admin). CSRF tokens are only enforced on
@@ -76,7 +90,7 @@ app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024  # 200 MB upload limit
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 # Enable SECURE cookies only when not running locally
-if os.environ.get("FLASK_ENV") == "production" or os.environ.get("RENDER"):
+if os.environ.get("FLASK_ENV") == "production" or os.environ.get("RENDER") or os.environ.get("VERCEL"):
     app.config["SESSION_COOKIE_SECURE"] = True
 if _has_compress:
     app.config['COMPRESS_LEVEL'] = 6
@@ -181,9 +195,16 @@ def page_not_found(e):
 
 @app.errorhandler(500)
 def internal_error(e):
+    import traceback
+    original = getattr(e, 'original_exception', e)
+    tb = ''.join(traceback.format_exception(type(original), original, getattr(original, '__traceback__', None)))
+    app.logger.error("REAL_500 %s | %s: %s\n%s", request.path, type(original).__name__, original, tb)
     if request.is_json or request.path.startswith('/api/'):
         return jsonify({'error': 'Internal server error'}), 500
-    return render_template('500.html'), 500
+    try:
+        return render_template('500.html'), 500
+    except Exception:
+        return "<h1>500 Internal Server Error</h1>", 500
 
 @app.errorhandler(413)
 def request_too_large(e):
@@ -424,6 +445,7 @@ def normalize_cutoff_columns(dataframe):
 
 def load_btech_cutoff_data():
     global _btech_cutoff_cache, _btech_cutoff_error
+    pd = _get_pandas()
 
     if _btech_cutoff_cache is not None or _btech_cutoff_error is not None:
         return _btech_cutoff_cache, _btech_cutoff_error
@@ -616,6 +638,7 @@ def find_college_website(college_name, website_lookup):
 
 
 def format_cutoff_recommendations(rows, student_percentile=None, include_websites=True):
+    pd = _get_pandas()
     website_lookup = get_college_website_lookup() if include_websites else {}
     recommendations = []
     for _, row in rows.iterrows():
@@ -745,7 +768,6 @@ def get_supabase_client():
 
 
 def get_razorpay_config():
-    load_dotenv(override=True)
     key_id = os.getenv("RAZORPAY_KEY_ID", "").strip()
     key_secret = os.getenv("RAZORPAY_KEY_SECRET", "").strip()
     if not key_id or not key_secret:
@@ -875,6 +897,16 @@ _COUPON_USES_DDL = """
         updated_at TIMESTAMPTZ DEFAULT NOW()
     )
 """
+_coupon_uses_table_ready = False
+
+def _ensure_coupon_uses_table(conn):
+    global _coupon_uses_table_ready
+    if _coupon_uses_table_ready:
+        return
+    with conn.cursor() as cur:
+        cur.execute(_COUPON_USES_DDL)
+    conn.commit()
+    _coupon_uses_table_ready = True
 
 def _pg_get_coupon_uses(code):
     """Return total uses consumed for this coupon from Postgres, or None if unavailable."""
@@ -884,9 +916,8 @@ def _pg_get_coupon_uses(code):
     try:
         conn = psycopg2.connect(db_url, connect_timeout=5)
         try:
+            _ensure_coupon_uses_table(conn)
             with conn.cursor() as cur:
-                cur.execute(_COUPON_USES_DDL)
-                conn.commit()
                 cur.execute("SELECT uses_consumed FROM coupon_uses WHERE code = %s", (code.upper(),))
                 row = cur.fetchone()
                 return row[0] if row else 0
@@ -904,9 +935,8 @@ def _pg_consume_coupon(code, max_uses):
     try:
         conn = psycopg2.connect(db_url, connect_timeout=5)
         try:
+            _ensure_coupon_uses_table(conn)
             with conn.cursor() as cur:
-                cur.execute(_COUPON_USES_DDL)
-                conn.commit()
                 if max_uses is None:
                     cur.execute("""
                         INSERT INTO coupon_uses (code, uses_consumed)
@@ -1251,8 +1281,12 @@ def fetch_colleges_by_states(states, limit_per_state=None):
     return colleges, None
 
 
+_auth_pg_tables_ready = False
+_auth_sqlite_tables_ready = False
+
 def get_auth_db_connection():
     """Return an auth DB connection. Uses Postgres when DATABASE_URL is set, else SQLite in /tmp."""
+    global _auth_pg_tables_ready, _auth_sqlite_tables_ready
     pg_url = get_postgres_connection_url()
     if pg_url and connect is not None:
         try:
@@ -1300,6 +1334,44 @@ def get_auth_db_connection():
                     )
                 """)
             conn.commit()
+            if not _auth_pg_tables_ready:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        CREATE TABLE IF NOT EXISTS users (
+                            id BIGSERIAL PRIMARY KEY,
+                            name TEXT NOT NULL,
+                            email TEXT NOT NULL UNIQUE,
+                            password_hash TEXT NOT NULL,
+                            is_admin BOOLEAN NOT NULL DEFAULT FALSE,
+                            verified BOOLEAN NOT NULL DEFAULT TRUE,
+                            created_at TIMESTAMPTZ DEFAULT NOW()
+                        )
+                    """)
+                    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE;")
+                    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS verified BOOLEAN NOT NULL DEFAULT TRUE;")
+                    cur.execute("""
+                        CREATE TABLE IF NOT EXISTS bookmarks (
+                            id BIGSERIAL PRIMARY KEY,
+                            user_email TEXT NOT NULL,
+                            item_type TEXT NOT NULL,
+                            item_name TEXT NOT NULL,
+                            item_url TEXT,
+                            created_at TIMESTAMPTZ DEFAULT NOW(),
+                            UNIQUE (user_email, item_type, item_name)
+                        )
+                    """)
+                    cur.execute("""
+                        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                            id BIGSERIAL PRIMARY KEY,
+                            email TEXT NOT NULL,
+                            token_hash TEXT NOT NULL UNIQUE,
+                            expires_at BIGINT NOT NULL,
+                            used_at BIGINT,
+                            created_at TIMESTAMPTZ DEFAULT NOW()
+                        )
+                    """)
+                conn.commit()
+                _auth_pg_tables_ready = True
             return _PgAuthConn(conn)
         except Exception as e:
             app.logger.warning("Auth Postgres connection failed, falling back to SQLite: %s", e)
@@ -1352,6 +1424,46 @@ def get_auth_db_connection():
         )
     """)
     connection.commit()
+    if not _auth_sqlite_tables_ready:
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                is_admin INTEGER NOT NULL DEFAULT 0,
+                verified BOOLEAN NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        try:
+            connection.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0")
+            connection.execute("ALTER TABLE users ADD COLUMN verified BOOLEAN NOT NULL DEFAULT 1")
+        except sqlite3.OperationalError:
+            pass
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS bookmarks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_email TEXT NOT NULL,
+                item_type TEXT NOT NULL,
+                item_name TEXT NOT NULL,
+                item_url TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (user_email, item_type, item_name)
+            )
+        """)
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT NOT NULL,
+                token_hash TEXT NOT NULL UNIQUE,
+                expires_at INTEGER NOT NULL,
+                used_at INTEGER,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        connection.commit()
+        _auth_sqlite_tables_ready = True
     return connection
 
 
@@ -1797,6 +1909,7 @@ def _coerce_value(value):
 
 
 def convert_excel_to_records(uploaded_file):
+    pd = _get_pandas()
     if pd is None:
         raise RuntimeError("pandas is not installed. Install requirements to process Excel uploads.")
 
@@ -2479,14 +2592,14 @@ def epaper_pdf_proxy():
         return jsonify({"error": "Unable to fetch PDF from source URL."}), 502
 
 def _get_admin_credentials():
-    email = os.getenv("ADMIN_LOGIN_EMAIL", "admin123@gmail.com").strip().lower()
-    password = os.getenv("ADMIN_LOGIN_PASSWORD", "vm@2026")
+    email = os.getenv("ADMIN_LOGIN_EMAIL", "").strip().lower()
+    password = os.getenv("ADMIN_LOGIN_PASSWORD", "")
     return email, password
 
 
 def _get_dashboard_admin_credentials():
-    email = os.getenv("DASHBOARD_ADMIN_EMAIL", "vm2026.subscription@gmail.com").strip().lower()
-    password = os.getenv("DASHBOARD_ADMIN_PASSWORD", "vm@2026##**")
+    email = os.getenv("DASHBOARD_ADMIN_EMAIL", "").strip().lower()
+    password = os.getenv("DASHBOARD_ADMIN_PASSWORD", "")
     return email, password
 
 
@@ -3880,8 +3993,19 @@ _SITE_SETTINGS_DDL = """
         updated_at TIMESTAMPTZ DEFAULT NOW()
     )
 """
+_site_settings_table_ready = False
+_settings_cache = {}          # key -> (value, expires_at)
+_SETTINGS_CACHE_TTL = 60      # seconds
 
 def _pg_get_setting(key):
+    global _site_settings_table_ready
+    # Serve from in-memory cache if fresh
+    entry = _settings_cache.get(key)
+    if entry is not None:
+        value, expires_at = entry
+        if time.time() < expires_at:
+            return value
+
     db_url = get_postgres_connection_url()
     if not db_url or not psycopg2:
         return None
@@ -3889,18 +4013,23 @@ def _pg_get_setting(key):
         conn = psycopg2.connect(db_url, connect_timeout=5)
         try:
             with conn.cursor() as cur:
-                cur.execute(_SITE_SETTINGS_DDL)
-                conn.commit()
+                if not _site_settings_table_ready:
+                    cur.execute(_SITE_SETTINGS_DDL)
+                    conn.commit()
+                    _site_settings_table_ready = True
                 cur.execute("SELECT value FROM site_settings WHERE key = %s", (key,))
                 row = cur.fetchone()
-                return json.loads(row[0]) if row else None
+                result = json.loads(row[0]) if row else None
         finally:
             conn.close()
+        _settings_cache[key] = (result, time.time() + _SETTINGS_CACHE_TTL)
+        return result
     except Exception as exc:
         app.logger.warning("site_settings get(%s) failed: %s", key, exc)
         return None
 
 def _pg_set_setting(key, value):
+    global _site_settings_table_ready
     db_url = get_postgres_connection_url()
     if not db_url or not psycopg2:
         return False
@@ -3908,13 +4037,16 @@ def _pg_set_setting(key, value):
         conn = psycopg2.connect(db_url, connect_timeout=5)
         try:
             with conn.cursor() as cur:
-                cur.execute(_SITE_SETTINGS_DDL)
+                if not _site_settings_table_ready:
+                    cur.execute(_SITE_SETTINGS_DDL)
+                    _site_settings_table_ready = True
                 cur.execute("""
                     INSERT INTO site_settings (key, value, updated_at)
                     VALUES (%s, %s, NOW())
                     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()
                 """, (key, json.dumps(value, ensure_ascii=False)))
             conn.commit()
+            _settings_cache.pop(key, None)  # invalidate cache on write
             return True
         finally:
             conn.close()
@@ -4799,7 +4931,7 @@ def govt_job_detail(job_id):
 
 
 @app.route("/register", methods=["GET", "POST"])
-@limiter.limit("5 per minute")
+@limiter.limit("5 per minute", methods=["POST"])
 def register():
     if request.method == "POST":
         name = request.form.get("name", "").strip()
@@ -4819,49 +4951,65 @@ def register():
             flash("Password must be at least 6 characters long.", "error")
             return render_template("auth.html", mode="register", page_title="Register")
 
-        with get_auth_db_connection() as connection:
-            existing_user = connection.execute(
-                "SELECT id FROM users WHERE email = ?",
-                (email,),
-            ).fetchone()
-
-            if existing_user is not None:
-                flash("An account with this email already exists.", "error")
-                return render_template("auth.html", mode="register", page_title="Register")
-
-            connection.execute(
-                "INSERT INTO users (name, email, password_hash, is_admin, verified) VALUES (?, ?, ?, ?, ?)",
-                (
-                    name,
-                    email,
-                    generate_password_hash(password),
-                    1 if email == _get_dashboard_admin_credentials()[0] else 0,
-                    0,
-                ),
-            )
-            connection.commit()
-
-        otp_code = generate_login_otp()
-        session["pending_register_otp"] = {
-            "name": name,
-            "email": email,
-            "otp_hash": generate_password_hash(otp_code),
-            "expires_at": int(time.time()) + 600,
-            "attempts": 0,
-        }
-
         try:
-            send_login_otp_email(email, name, otp_code)
+            app.logger.info("REG_STEP1: connecting to auth DB for %s", email)
+            with get_auth_db_connection() as connection:
+                app.logger.info("REG_STEP2: checking existing user")
+                existing_user = connection.execute(
+                    "SELECT id FROM users WHERE email = ?",
+                    (email,),
+                ).fetchone()
+
+                if existing_user is not None:
+                    flash("An account with this email already exists.", "error")
+                    return render_template("auth.html", mode="register", page_title="Register")
+
+                app.logger.info("REG_STEP3: inserting new user")
+                is_admin = email == _get_dashboard_admin_credentials()[0]
+                connection.execute(
+                    "INSERT INTO users (name, email, password_hash, is_admin, verified) VALUES (?, ?, ?, ?, ?)",
+                    (
+                        name,
+                        email,
+                        generate_password_hash(password),
+                        bool(is_admin),
+                        False,
+                    ),
+                )
+                connection.commit()
+                app.logger.info("REG_STEP4: user inserted OK")
+
+            app.logger.info("REG_STEP5: generating OTP")
+            otp_code = generate_login_otp()
+            session["pending_register_otp"] = {
+                "name": name,
+                "email": email,
+                "otp_hash": generate_password_hash(otp_code),
+                "expires_at": int(time.time()) + 600,
+                "attempts": 0,
+            }
+
+            try:
+                send_login_otp_email(email, name, otp_code)
+            except Exception as exc:
+                app.logger.warning("OTP email delivery failed: %s", exc)
+
+            flash("Please verify your email address. An OTP has been sent.", "success")
+            return redirect(url_for("verify_register_otp"))
         except Exception as exc:
-            app.logger.warning("OTP email delivery failed: %s", exc)
+            import traceback
+            app.logger.error("REG_FAIL: %s: %s\n%s", type(exc).__name__, exc, traceback.format_exc())
+            raise
 
-        flash("Please verify your email address. An OTP has been sent.", "success")
-        return redirect(url_for("verify_register_otp"))
-
-    return render_template("auth.html", mode="register", page_title="Register")
+    try:
+        return render_template("auth.html", mode="register", page_title="Register")
+    except Exception as exc:
+        import traceback
+        app.logger.error("register render failed: %s\n%s", exc, traceback.format_exc())
+        raise
 
 @app.route("/verify-register-otp", methods=["GET", "POST"])
-@limiter.limit("5 per minute")
+@limiter.limit("5 per minute", methods=["POST"])
 def verify_register_otp():
     pending_otp = session.get("pending_register_otp")
     if not pending_otp:
@@ -4873,7 +5021,7 @@ def verify_register_otp():
 
         if not re.fullmatch(r"\d{6}", otp_code):
             flash("Enter the 6-digit OTP.", "error")
-            return render_template("auth.html", mode="register_otp", page_title="Verify Email", otp_email=pending_otp["email"], otp_expires_at=pending_otp["expires_at"])
+            return render_template("auth.html", mode="otp", page_title="Verify Email", otp_email=pending_otp["email"], otp_expires_at=pending_otp["expires_at"])
 
         if pending_otp.get("attempts", 0) >= 5:
             session.pop("pending_register_otp", None)
@@ -4893,12 +5041,34 @@ def verify_register_otp():
             session.pop("pending_register_otp", None)
             flash("Email verified successfully. You are now logged in.", "success")
             return redirect(url_for("dashboard"))
+        try:
+            if check_password_hash(pending_otp["otp_hash"], otp_code):
+                app.logger.info("OTP_STEP1: correct OTP for %s, updating verified flag", pending_otp["email"])
+                with get_auth_db_connection() as connection:
+                    connection.execute("UPDATE users SET verified = TRUE WHERE email = ?", (pending_otp["email"],))
+                app.logger.info("OTP_STEP2: verified flag updated, setting session")
+                session["auth_user"] = {
+                    "name": pending_otp["name"],
+                    "email": pending_otp["email"],
+                }
+                session.pop("pending_register_otp", None)
+                flash("Email verified successfully. You are now logged in.", "success")
+                return redirect(url_for("dashboard"))
+        except Exception as exc:
+            import traceback
+            app.logger.error("OTP_FAIL: %s: %s\n%s", type(exc).__name__, exc, traceback.format_exc())
+            raise
 
         pending_otp["attempts"] = pending_otp.get("attempts", 0) + 1
         session["pending_register_otp"] = pending_otp
         flash("Invalid OTP. Please try again.", "error")
 
-    return render_template("auth.html", mode="register_otp", page_title="Verify Email", otp_email=pending_otp["email"], otp_expires_at=pending_otp["expires_at"])
+    try:
+        return render_template("auth.html", mode="otp", page_title="Verify Email", otp_email=pending_otp["email"], otp_expires_at=pending_otp["expires_at"])
+    except Exception as exc:
+        import traceback
+        app.logger.error("OTP_RENDER_FAIL: %s: %s\n%s", type(exc).__name__, exc, traceback.format_exc())
+        raise
 
 
 @app.route("/login", methods=["GET", "POST"])

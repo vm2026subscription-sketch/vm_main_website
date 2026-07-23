@@ -50,12 +50,9 @@ async function predict() {
   const btn     = document.getElementById('predict-btn');
 
   if (payload.error) {
-    if (!payload.marksValid) {
-        errEl.style.display = 'block';
-    } else {
-        errEl.style.display = 'none';
-    }
-    alert('Please complete the following required fields:\n• ' + payload.messages.join('\n• '));
+    errEl.textContent = 'Please complete: ' + payload.messages.join(', ');
+    errEl.style.display = 'block';
+    errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
 
@@ -75,15 +72,16 @@ async function predict() {
     const data = await res.json();
 
     if (!res.ok) {
-      alert('Error: ' + (data.error || 'Something went wrong.'));
+      errEl.textContent = 'Error: ' + (data.error || 'Something went wrong.');
+      errEl.style.display = 'block';
       return;
     }
 
     renderResults(data);
 
   } catch (err) {
-    console.error(err);
-    alert('Network error. Please try again.');
+    errEl.textContent = 'Network error. Please try again.';
+    errEl.style.display = 'block';
   } finally {
     btn.disabled    = false;
     btn.innerHTML   = '<i class="fa fa-search"></i> Predict My FYJC Rank';

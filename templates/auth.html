@@ -887,19 +887,23 @@
         <section class="auth-card" aria-labelledby="auth-title">
             <div class="auth-card-top">
                 <p class="auth-eyebrow">Account access</p>
-                <h2 id="auth-title">{% if mode == 'register' %}Create account{% else %}Login to account{% endif %}</h2>
+                <h2 id="auth-title">{% if mode == 'register' %}Create account{% elif mode == 'forgot' %}Reset your password{% elif mode == 'reset' %}Set new password{% else %}Login to account{% endif %}</h2>
                 <p class="subtext">
                     {% if mode == 'register' %}
                         Add your basic details and choose a password to get started.
                     {% elif mode == 'otp' %}
                         Enter the 6-digit OTP to finish signing in.
+                    {% elif mode == 'forgot' %}
+                        Enter your email address and we'll send you a reset link.
+                    {% elif mode == 'reset' %}
+                        Enter your new password to complete the reset.
                     {% else %}
                         Enter your registered email and password to continue.
                     {% endif %}
                 </p>
             </div>
 
-            {% if mode != 'otp' %}
+            {% if mode != 'otp' and mode != 'forgot' and mode != 'reset' %}
             <div class="auth-mode-switch" role="tablist" aria-label="Choose login or register">
                 <a href="{{ url_for('login') }}" class="{% if mode == 'login' %}is-active{% endif %}" role="tab" aria-selected="{% if mode == 'login' %}true{% else %}false{% endif %}">
                     <i class="fa fa-sign-in" aria-hidden="true"></i>
@@ -1067,6 +1071,83 @@
                 </button>
 
                 <p class="auth-note">Password should be at least 6 characters.</p>
+                {% elif mode == 'forgot' %}
+                <div class="form-group">
+                    <label for="forgot_email">Email address</label>
+                    <div class="auth-input-wrap">
+                        <i class="fa fa-envelope auth-input-icon" aria-hidden="true"></i>
+                        <input
+                            type="email"
+                            class="form-control"
+                            id="forgot_email"
+                            name="email"
+                            value="{{ request.form.get('email', '') }}"
+                            placeholder="name@example.com"
+                            autocomplete="email"
+                            inputmode="email"
+                            required
+                            autofocus
+                        >
+                    </div>
+                </div>
+
+                <button type="submit" class="auth-button" data-submit-button>
+                    <i class="fa fa-paper-plane" aria-hidden="true"></i>
+                    <span>Send Reset Link</span>
+                </button>
+
+                <p class="auth-note">Check your inbox for the reset link. It expires in 30 minutes.</p>
+                {% if reset_preview_url %}
+                <div class="alert alert-success" style="margin-top:12px;word-break:break-all;">
+                    <i class="fa fa-link" aria-hidden="true"></i>
+                    <strong>Dev preview:</strong> <a href="{{ reset_preview_url }}">{{ reset_preview_url }}</a>
+                </div>
+                {% endif %}
+                {% elif mode == 'reset' %}
+                <div class="form-group">
+                    <label for="new_password">New password</label>
+                    <div class="auth-input-wrap">
+                        <i class="fa fa-lock auth-input-icon" aria-hidden="true"></i>
+                        <input
+                            type="password"
+                            class="form-control"
+                            id="new_password"
+                            name="password"
+                            placeholder="Enter new password"
+                            autocomplete="new-password"
+                            minlength="6"
+                            required
+                            autofocus
+                        >
+                        <button class="password-toggle" type="button" data-password-toggle="new_password" aria-label="Show password">
+                            <i class="fa fa-eye" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirm_password">Confirm password</label>
+                    <div class="auth-input-wrap">
+                        <i class="fa fa-lock auth-input-icon" aria-hidden="true"></i>
+                        <input
+                            type="password"
+                            class="form-control"
+                            id="confirm_password"
+                            name="confirm_password"
+                            placeholder="Confirm new password"
+                            autocomplete="new-password"
+                            minlength="6"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <button type="submit" class="auth-button" data-submit-button>
+                    <i class="fa fa-check" aria-hidden="true"></i>
+                    <span>Set New Password</span>
+                </button>
+
+                <p class="auth-note">Password should be at least 6 characters.</p>
                 {% else %}
                 <div class="form-group">
                     <label for="email">Email address</label>
@@ -1112,7 +1193,7 @@
                     <span>Login</span>
                 </button>
 
-                <p class="auth-note">Use the email and password you registered with.</p>
+                <p class="auth-note">Use the email and password you registered with. <a href="{{ url_for('forgot_password') }}" style="color:#ff6600;text-decoration:none;">Forgot password?</a></p>
                 {% endif %}
             </form>
 
@@ -1123,6 +1204,8 @@
                     Wrong email or need a fresh start? <a href="{{ url_for('login') }}">Go back to login</a>
                 {% elif mode == 'register' %}
                     Already have an account? <a href="{{ url_for('login') }}">Login instead</a>
+                {% elif mode == 'forgot' or mode == 'reset' %}
+                    Remember your password? <a href="{{ url_for('login') }}">Back to login</a>
                 {% else %}
                     New to Vidyarthi Mitra? <a href="{{ url_for('register') }}">Create an account</a>
                 {% endif %}

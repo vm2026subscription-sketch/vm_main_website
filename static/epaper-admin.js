@@ -1144,7 +1144,7 @@ const EPAdmin = {
         ? `<span style="background:#fff7ed;color:#c2410c;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;"><i class="fa fa-check"></i> Published</span>`
         : `<span style="background:#fef9c3;color:#854d0e;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">Draft</span>`;
       return `
-        <div class="epa-edition-card">
+        <div class="epa-edition-card" data-edition-date="${ed.date}" data-edition-lang="${ed.language || 'Hindi'}">
           <div class="epa-edition-info">
             <strong>${ed.date}</strong>
             <span>${ed.name || 'Untitled'}</span>
@@ -1167,6 +1167,17 @@ const EPAdmin = {
         </div>
       `;
     }).join('');
+  },
+
+  _scrollToEdition(date, lang) {
+    const list = document.getElementById('editionsList');
+    if (!list) return;
+    const card = list.querySelector(`[data-edition-date="${date}"][data-edition-lang="${lang || 'Hindi'}"]`);
+    if (card) {
+      card.style.outline = '2px solid var(--orange)';
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      setTimeout(() => { card.style.outline = ''; }, 3000);
+    }
   },
 
   async openAllBackups() {
@@ -1333,9 +1344,13 @@ const EPAdmin = {
     if (this._autoSaving) return;
     if (silent) this._autoSaving = true;
 
-    const date = document.getElementById('edDate').value;
+    // For auto-save, always use the server-confirmed date/lang to avoid silent renames.
+    // A rename (date or language change) only happens on explicit manual save.
+    const formDate = document.getElementById('edDate').value;
+    const formLang = document.getElementById('edLang').value;
+    const date = (silent && this._originalDate) ? this._originalDate : formDate;
+    const lang = (silent && this._originalLang) ? this._originalLang : formLang;
     const name = document.getElementById('edName').value;
-    const lang = document.getElementById('edLang').value;
     const status = document.getElementById('edStatus').value;
     if (!date) { if (!silent) alert('Date required'); if (silent) this._autoSaving = false; return; }
     this.syncEditionMetaFromInputs();
@@ -1347,10 +1362,11 @@ const EPAdmin = {
       return;
     }
 
+    const wasRenamed = !!(this._originalDate && (this._originalDate !== date || this._originalLang !== lang));
     const payload = {
       date, name: name || `Edition ${date}`, language: lang,
       published: status === 'published',
-      masthead_image_url: '',
+      masthead_image_url: this.editionMeta.masthead_image_url || '',
       footer_links: this.editionMeta.footer_links || [],
       pages: this.pages.map(p => ({
         page_number: p.page_number, category: p.category || 'मुख पृष्ठ',
@@ -1390,12 +1406,15 @@ const EPAdmin = {
         this._clearDraftLocal(date, lang); // server confirmed — safe to drop the local draft
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         this._updateAutoSaveStatus(`Saved ${timeStr}`, '#22c55e');
-        if (silent) {
+        if (wasRenamed) {
+          this.showToast(`<i class="fa fa-check-circle" style="color:#22c55e"></i> Edition moved to ${date} (${lang})`);
+        } else if (silent) {
           this.showToast(`<i class="fa fa-check-circle" style="color:#22c55e"></i> Auto-saved at ${timeStr}`);
         } else {
           this.showToast('<i class="fa fa-check-circle" style="color:#22c55e"></i> Edition saved!');
         }
-        this.loadEditions();
+        await this.loadEditions();
+        if (wasRenamed) this._scrollToEdition(date, lang);
       } else {
         let msg = `Save failed (${res.status})`;
         try { const e = await res.json(); msg = e.error || msg; } catch {}

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <title>{{ og_title }}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
   <meta name="description" content="{{ og_description }}"/>
   <link rel="canonical" href="{{ og_url }}"/>
   <meta property="og:site_name" content="Vidyarthi Mitra"/>
@@ -26,7 +26,8 @@
   <meta name="twitter:image" content="{{ og_image }}"/>
   <meta name="twitter:image:alt" content="{{ og_image_alt }}"/>
   <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"></noscript>
   <link rel="stylesheet" href="{{ url_for('static', filename='epaper-viewer.css', v='20260705-calendar-editions-only') }}">
   <style>
     .ep-views-badge {
@@ -177,8 +178,9 @@
           <!-- Empty state -->
           <div id="epEmptyState" style="display:none; text-align:center; padding:80px 24px;">
             <i class="fa fa-newspaper" style="font-size:56px;color:#4b5563;display:block;margin-bottom:16px"></i>
-            <h2 style="font-size:20px;color:#6b7280;margin-bottom:8px;font-weight:700">कोई संस्करण उपलब्ध नहीं</h2>
+            <h2 style="font-size:20px;color:#6b7280;margin-bottom:8px;font-weight:700">कोई संस्करण उपलब्ध नहीं<br><span style="font-size:16px;color:#9ca3af;font-weight:500;display:block;margin-top:4px;">No edition available</span></h2>
             <p style="color:#4b5563;font-size:13px;line-height:1.7">इस तारीख के लिए E-Paper उपलब्ध नहीं है।<br>कैलेंडर से कोई अन्य तारीख चुनें।</p>
+            <p style="color:#9ca3af;font-size:13px;line-height:1.7;margin-top:6px;">No E-Paper is available for this date.<br>Please select another date from the calendar.</p>
           </div>
         </div>
 
