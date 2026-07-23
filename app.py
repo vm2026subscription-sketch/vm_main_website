@@ -238,9 +238,13 @@ except Exception as exc:
 
 # Register e-paper viewer blueprint
 try:
-    from epaper_routes import epaper_bp
+    from epaper_routes import epaper_bp, set_site_admin_check
 
     app.register_blueprint(epaper_bp)
+    # Site admins (users flagged is_admin, reached via their dashboard) count as
+    # epaper admins too. Lambda so _is_admin resolves lazily — it is defined
+    # further down this module.
+    set_site_admin_check(lambda: _is_admin())
     # Exempt the entire epaper blueprint from Flask-WTF CSRF.
     # All epaper API routes are already protected by _require_epaper_admin()
     # session checks. Flask-WTF's strict Referer validation was blocking
