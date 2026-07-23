@@ -1805,6 +1805,7 @@ const EP = {
   toggleFullscreen() {
     const reader = document.getElementById('epReaderContainer');
     if (!document.fullscreenElement) {
+      window.scrollTo(0, 0);
       document.body.classList.add('ep-fullscreen');
       reader?.requestFullscreen?.();
     } else {
