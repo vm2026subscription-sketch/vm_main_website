@@ -129,8 +129,26 @@ _EPAPER_ADMIN_PASS = os.getenv("EPAPER_ADMIN_PASS", "")
 _EPAPER_ADMIN_SESSION_KEY = "epaper_admin_auth"
 _legacy_checked = False
 
+# Set by app.py to app._is_admin so a user who signed in on the normal login
+# page with an admin account gets the epaper builder straight from their
+# dashboard — no second login at /epaper-admin/login.
+_site_admin_check = None
+
+
+def set_site_admin_check(fn):
+    global _site_admin_check
+    _site_admin_check = fn
+
+
 def _is_epaper_admin():
-    return session.get(_EPAPER_ADMIN_SESSION_KEY) is True
+    if session.get(_EPAPER_ADMIN_SESSION_KEY) is True:
+        return True
+    if _site_admin_check is not None:
+        try:
+            return bool(_site_admin_check())
+        except Exception:
+            return False
+    return False
 
 def _require_epaper_admin():
     if _is_epaper_admin():
