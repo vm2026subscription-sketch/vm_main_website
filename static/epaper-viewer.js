@@ -2432,7 +2432,7 @@ const EP = {
     this._voiceUpdatePlayIcon();
     this._prepareHighlight();
 
-    let textToRead = this._preprocessTTSText(rawText);
+    let textToRead = this._preprocessTTSText(rawText).slice(0, 1500);
     let rateStr = '+0%';
     let pitchStr = '+0Hz';
     if (rateStr === '+0%' && this._voice.rate !== 1) {

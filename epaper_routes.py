@@ -2166,7 +2166,7 @@ def _collect_edge_tts_audio(text, voice, rate, pitch):
 
     t = threading.Thread(target=_run, daemon=True)
     t.start()
-    t.join(timeout=8)
+    t.join(timeout=6)
 
     if t.is_alive():
         raise TimeoutError("TTS generation timed out")
@@ -2189,7 +2189,7 @@ def api_tts():
     if not text:
         return jsonify({"error": "No text provided."}), 400
 
-    text = text[:5000]
+    text = text[:1500]
     text = _preprocess_tts_text(text)
     voice, rate, pitch = _resolve_voice(text, voice, rate, pitch)
 
