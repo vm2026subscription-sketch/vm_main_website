@@ -3,6 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <title>Admin Hub — Vidyarthi Mitra</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <!-- This page does not extend base.html, so it needs its own CSRF header
+       patch — every admin fetch() below POSTs JSON and would 400 without it. -->
+  <script>
+    (function() {
+      const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+      if (!token) return;
+      const originalFetch = window.fetch;
+      window.fetch = function(resource, config) {
+        const method = (config && config.method ? config.method : 'GET').toUpperCase();
+        if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+          config.headers = config.headers || {};
+          if (config.headers instanceof Headers) config.headers.set('X-CSRFToken', token);
+          else config.headers['X-CSRFToken'] = token;
+        }
+        return originalFetch(resource, config);
+      };
+    })();
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" onload="this.onload=null;this.rel='stylesheet'">
@@ -309,6 +329,16 @@
           <h3>Total Users</h3>
           <p style="font-size:28px;font-weight:700;color:#ff6600;margin-top:8px;">{{ user_count }}</p>
         </div>
+        <div class="link-card stats-card" style="background:linear-gradient(135deg,rgba(34,197,94,.15),rgba(34,197,94,.05));border-color:rgba(34,197,94,.3);cursor:default;">
+          <i class="fa fa-right-to-bracket" style="color:#22c55e"></i>
+          <h3>Users Logged In</h3>
+          <p style="font-size:28px;font-weight:700;color:#22c55e;margin-top:8px;">{{ logged_in_count }}</p>
+        </div>
+        <div class="link-card stats-card" style="background:linear-gradient(135deg,rgba(59,130,246,.15),rgba(59,130,246,.05));border-color:rgba(59,130,246,.3);cursor:default;">
+          <i class="fa fa-user-shield" style="color:#3b82f6"></i>
+          <h3>Admins</h3>
+          <p style="font-size:28px;font-weight:700;color:#3b82f6;margin-top:8px;">{{ admin_count }}</p>
+        </div>
         <a href="/epaper-admin" class="link-card">
           <i class="fa fa-newspaper"></i>
           <h3>E-Paper Builder</h3>
@@ -324,6 +354,53 @@
           <h3>News Reel</h3>
           <p>Live education news reel</p>
         </a>
+      </div>
+
+      <!-- Add a new admin account -->
+      <div class="adm-card" style="margin-top:20px">
+        <div class="adm-card-title"><i class="fa fa-user-plus"></i> Add New Admin</div>
+        <p style="color:#64748b;font-size:13px;margin-bottom:16px">
+          Creates a new pre-verified account. Tick "Admin access" to give it full admin panel rights.
+          To make an existing user an admin instead, use the <b>Make Admin</b> button in the table below.
+        </p>
+        <div class="modal-form" style="max-width:760px">
+          <input id="nu-name" type="text" placeholder="Full name">
+          <input id="nu-email" type="email" placeholder="Email address" autocomplete="off">
+          <input id="nu-password" type="password" placeholder="Password (min 6 characters)" autocomplete="new-password">
+          <label style="display:flex;align-items:center;gap:8px;color:#cbd5e1;font-size:13px;">
+            <input id="nu-is-admin" type="checkbox" checked style="width:auto;accent-color:#ff6600">
+            Admin access
+          </label>
+        </div>
+        <div style="margin-top:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <button class="btn btn-orange" id="nu-create"><i class="fa fa-plus"></i> Create User</button>
+          <span id="nu-msg" style="font-size:13px;color:#94a3b8"></span>
+        </div>
+      </div>
+
+      <!-- Registered users + login activity -->
+      <div class="adm-card">
+        <div class="adm-card-title" style="justify-content:space-between">
+          <span style="display:flex;align-items:center;gap:8px"><i class="fa fa-users-gear"></i> Registered Users &amp; Login Activity</span>
+          <span style="display:flex;gap:8px;align-items:center">
+            <input id="usr-search" type="text" placeholder="Search name or email"
+                   style="background:#131f35;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:7px 12px;font-size:12px;font-family:inherit;outline:none">
+            <button class="btn btn-ghost btn-sm" id="usr-refresh"><i class="fa fa-rotate"></i> Refresh</button>
+          </span>
+        </div>
+        <div class="adm-table-wrap">
+          <table class="adm-table">
+            <thead>
+              <tr>
+                <th>Name</th><th>Email ID</th><th>Role</th>
+                <th>Logged In</th><th>Logins</th><th>Last Login</th><th>Joined</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="usr-tbody">
+              <tr><td colspan="8" class="muted">Loading users…</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -343,6 +420,7 @@
       document.getElementById('panel-' + tab.dataset.panel).classList.add('active');
       if (tab.dataset.panel === 'responses') loadResponses('feedback');
       if (tab.dataset.panel === 'blogs') loadBlogs();
+      if (tab.dataset.panel === 'tools') loadUsers();
     });
   });
 
@@ -663,6 +741,115 @@
       }
     } catch(e) { toast('✗ Network error'); }
   }
+
+  // ── USERS: list, login activity, admin management ──
+  let ALL_USERS = [];
+
+  async function loadUsers() {
+    const tbody = document.getElementById('usr-tbody');
+    tbody.innerHTML = '<tr><td colspan="8" class="muted">Loading users…</td></tr>';
+    try {
+      const res = await fetch('/api/admin/users');
+      const data = await res.json();
+      if (!res.ok) { throw new Error(data.error || 'Failed'); }
+      ALL_USERS = data.users || [];
+      renderUsers();
+    } catch (e) {
+      tbody.innerHTML = '<tr><td colspan="8" class="muted">Unable to load users.</td></tr>';
+    }
+  }
+
+  function renderUsers() {
+    const q = (document.getElementById('usr-search').value || '').trim().toLowerCase();
+    const rows = ALL_USERS.filter(u =>
+      !q || (u.email || '').toLowerCase().includes(q) || (u.name || '').toLowerCase().includes(q));
+    const tbody = document.getElementById('usr-tbody');
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="8" class="muted">No users found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(u => `
+      <tr>
+        <td>${escHtml(u.name || '—')}</td>
+        <td>${escHtml(u.email || '')}</td>
+        <td>${u.is_admin
+              ? '<span class="badge">Admin</span>'
+              : '<span style="color:#64748b;font-size:12px">User</span>'}</td>
+        <td>${u.has_logged_in
+              ? '<span style="color:#22c55e;font-weight:600"><i class="fa fa-check"></i> Yes</span>'
+              : '<span style="color:#64748b">Never</span>'}</td>
+        <td style="font-weight:700;color:#ff6600">${u.login_count || 0}</td>
+        <td class="muted">${escHtml(u.last_login_at || '—')}</td>
+        <td class="muted">${escHtml(String(u.created_at || '').slice(0, 10))}</td>
+        <td>${u.is_admin
+              ? `<button class="btn btn-ghost btn-sm usr-role-btn" data-email="${escHtml(u.email)}" data-admin="0">Revoke Admin</button>`
+              : `<button class="btn btn-orange btn-sm usr-role-btn" data-email="${escHtml(u.email)}" data-admin="1">Make Admin</button>`}</td>
+      </tr>`).join('');
+    tbody.querySelectorAll('.usr-role-btn').forEach(btn => {
+      btn.addEventListener('click', () => setUserAdmin(btn.dataset.email, btn.dataset.admin === '1'));
+    });
+  }
+
+  async function setUserAdmin(email, makeAdmin) {
+    const verb = makeAdmin ? 'grant admin access to' : 'revoke admin access from';
+    if (!confirm(`Are you sure you want to ${verb} ${email}?`)) return;
+    try {
+      const res = await fetch('/api/admin/users/promote', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({email: email, is_admin: makeAdmin})
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast(makeAdmin ? '✓ User is now an admin' : '✓ Admin access revoked');
+        loadUsers();
+      } else {
+        toast('✗ ' + (data.error || 'Update failed'));
+      }
+    } catch (e) { toast('✗ Network error'); }
+  }
+
+  async function createUser() {
+    const msg = document.getElementById('nu-msg');
+    const payload = {
+      name: document.getElementById('nu-name').value.trim(),
+      email: document.getElementById('nu-email').value.trim(),
+      password: document.getElementById('nu-password').value,
+      is_admin: document.getElementById('nu-is-admin').checked,
+    };
+    if (!payload.name || !payload.email || !payload.password) {
+      msg.style.color = '#f87171';
+      msg.textContent = 'Name, email and password are required.';
+      return;
+    }
+    msg.style.color = '#94a3b8';
+    msg.textContent = 'Creating…';
+    try {
+      const res = await fetch('/api/admin/users/create', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        msg.style.color = '#22c55e';
+        msg.textContent = `${data.email} created${data.is_admin ? ' as an admin' : ''}.`;
+        toast('✓ User created');
+        ['nu-name', 'nu-email', 'nu-password'].forEach(id => document.getElementById(id).value = '');
+        loadUsers();
+      } else {
+        msg.style.color = '#f87171';
+        msg.textContent = data.error || 'Unable to create user.';
+      }
+    } catch (e) {
+      msg.style.color = '#f87171';
+      msg.textContent = 'Network error.';
+    }
+  }
+
+  document.getElementById('nu-create').addEventListener('click', createUser);
+  document.getElementById('usr-refresh').addEventListener('click', loadUsers);
+  document.getElementById('usr-search').addEventListener('input', renderUsers);
 
   // ── UTILS ──
   function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }

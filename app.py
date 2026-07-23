@@ -1292,6 +1292,48 @@ def get_auth_db_connection():
         try:
             conn = connect(pg_url, connect_timeout=5, options="-c statement_timeout=8000")
             conn.autocommit = False
+            with conn.cursor() as cur:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        id BIGSERIAL PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        email TEXT NOT NULL UNIQUE,
+                        password_hash TEXT NOT NULL,
+                        is_admin BOOLEAN NOT NULL DEFAULT FALSE,
+                        verified BOOLEAN NOT NULL DEFAULT TRUE,
+                        login_count BIGINT NOT NULL DEFAULT 0,
+                        last_login_at TIMESTAMPTZ,
+                        created_at TIMESTAMPTZ DEFAULT NOW()
+                    )
+                """)
+                cur.execute("""
+                    ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE;
+                    ALTER TABLE users ADD COLUMN IF NOT EXISTS verified BOOLEAN NOT NULL DEFAULT TRUE;
+                    ALTER TABLE users ADD COLUMN IF NOT EXISTS login_count BIGINT NOT NULL DEFAULT 0;
+                    ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
+                """)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS bookmarks (
+                        id BIGSERIAL PRIMARY KEY,
+                        user_email TEXT NOT NULL,
+                        item_type TEXT NOT NULL,
+                        item_name TEXT NOT NULL,
+                        item_url TEXT,
+                        created_at TIMESTAMPTZ DEFAULT NOW(),
+                        UNIQUE (user_email, item_type, item_name)
+                    )
+                """)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                        id BIGSERIAL PRIMARY KEY,
+                        email TEXT NOT NULL,
+                        token_hash TEXT NOT NULL UNIQUE,
+                        expires_at BIGINT NOT NULL,
+                        used_at BIGINT,
+                        created_at TIMESTAMPTZ DEFAULT NOW()
+                    )
+                """)
+            conn.commit()
             if not _auth_pg_tables_ready:
                 with conn.cursor() as cur:
                     cur.execute("""
@@ -1336,6 +1378,52 @@ def get_auth_db_connection():
 
     connection = sqlite3.connect(AUTH_DB_PATH)
     connection.row_factory = sqlite3.Row
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            is_admin INTEGER NOT NULL DEFAULT 0,
+            verified BOOLEAN NOT NULL DEFAULT 1,
+            login_count INTEGER NOT NULL DEFAULT 0,
+            last_login_at TEXT,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    # Each ALTER runs on its own so one already-applied column does not skip the rest.
+    for column_sql in (
+        "is_admin INTEGER NOT NULL DEFAULT 0",
+        "verified BOOLEAN NOT NULL DEFAULT 1",
+        "login_count INTEGER NOT NULL DEFAULT 0",
+        "last_login_at TEXT",
+    ):
+        try:
+            connection.execute(f"ALTER TABLE users ADD COLUMN {column_sql}")
+        except sqlite3.OperationalError:
+            pass
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS bookmarks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_email TEXT NOT NULL,
+            item_type TEXT NOT NULL,
+            item_name TEXT NOT NULL,
+            item_url TEXT,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (user_email, item_type, item_name)
+        )
+    """)
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT NOT NULL,
+            token_hash TEXT NOT NULL UNIQUE,
+            expires_at INTEGER NOT NULL,
+            used_at INTEGER,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    connection.commit()
     if not _auth_sqlite_tables_ready:
         connection.execute("""
             CREATE TABLE IF NOT EXISTS users (
@@ -1417,6 +1505,26 @@ class _PgAuthConn:
         self.close()
 
 
+def record_user_login(email):
+    """Bump the user's login counter and stamp the last login time.
+
+    Called at every point a session is granted so the admin panel can show who
+    is actually signing in. Failures are logged, never raised — a stats write
+    must not block a successful login."""
+    if not email:
+        return
+    try:
+        with get_auth_db_connection() as connection:
+            connection.execute(
+                "UPDATE users SET login_count = COALESCE(login_count, 0) + 1, "
+                "last_login_at = CURRENT_TIMESTAMP WHERE email = ?",
+                (email.strip().lower(),),
+            )
+            connection.commit()
+    except Exception as exc:
+        app.logger.warning("Login stats update failed for %s: %s", email, exc)
+
+
 def get_logged_in_user():
     user = session.get("auth_user")
     if isinstance(user, dict) and user.get("email"):
@@ -1437,6 +1545,18 @@ def format_member_since(value):
         return dt.strftime("%d %b %Y")
     except (ValueError, TypeError):
         return str(value)[:10]
+
+
+def format_login_timestamp(value):
+    """Render a users.last_login_at value (datetime from Postgres, string from
+    SQLite) as 'DD Mon YYYY, HH:MM'. Returns '' when the user never logged in."""
+    if not value:
+        return ""
+    try:
+        dt = value if isinstance(value, datetime) else datetime.strptime(str(value)[:19], "%Y-%m-%d %H:%M:%S")
+        return dt.strftime("%d %b %Y, %H:%M")
+    except (ValueError, TypeError):
+        return str(value)[:16]
 
 
 # ── Allowed bookmark item types ──────────────────────────────────────
@@ -2583,13 +2703,29 @@ def admin_logout():
 @require_admin
 def admin():
     user_count = 0
+    logged_in_count = 0
+    admin_count = 0
     try:
         with get_auth_db_connection() as connection:
-            record = connection.execute("SELECT COUNT(*) as total FROM users").fetchone()
-            user_count = record["total"] if record else 0
+            record = connection.execute(
+                "SELECT COUNT(*) AS total, "
+                "COUNT(CASE WHEN COALESCE(login_count, 0) > 0 THEN 1 END) AS logged_in, "
+                "COUNT(CASE WHEN is_admin THEN 1 END) AS admins "
+                "FROM users"
+            ).fetchone()
+            if record:
+                user_count = record["total"] or 0
+                logged_in_count = record["logged_in"] or 0
+                admin_count = record["admins"] or 0
     except Exception as exc:
         app.logger.warning("Failed to get user count in admin panel: %s", exc)
-    return render_template("admin.html", upload_targets=UPLOAD_TARGET_TABLES, user_count=user_count)
+    return render_template(
+        "admin.html",
+        upload_targets=UPLOAD_TARGET_TABLES,
+        user_count=user_count,
+        logged_in_count=logged_in_count,
+        admin_count=admin_count,
+    )
 
 
 @app.route("/api/admin/users", methods=["GET"])
@@ -2598,15 +2734,20 @@ def api_admin_users_list():
     try:
         with get_auth_db_connection() as connection:
             rows = connection.execute(
-                "SELECT id, name, email, is_admin, created_at FROM users ORDER BY created_at DESC"
+                "SELECT id, name, email, is_admin, login_count, last_login_at, created_at "
+                "FROM users ORDER BY created_at DESC"
             ).fetchall()
             users = []
             for row in rows:
+                login_count = row["login_count"] or 0
                 users.append({
                     "id": row["id"],
                     "name": row["name"],
                     "email": row["email"],
                     "is_admin": bool(row["is_admin"]),
+                    "login_count": login_count,
+                    "has_logged_in": login_count > 0,
+                    "last_login_at": format_login_timestamp(row["last_login_at"]),
                     "created_at": row["created_at"],
                 })
             return jsonify({"users": users})
@@ -2620,6 +2761,7 @@ def api_admin_users_list():
 def api_admin_promote_user():
     data = request.get_json(silent=True) or {}
     email = (data.get("email") or "").strip().lower()
+    make_admin = data.get("is_admin", True) is not False
     if not email:
         return jsonify({"error": "Email is required"}), 400
 
@@ -2628,12 +2770,50 @@ def api_admin_promote_user():
             existing = connection.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
             if not existing:
                 return jsonify({"error": "User not found"}), 404
-            connection.execute("UPDATE users SET is_admin = 1 WHERE email = ?", (email,))
+            # Pass a Python bool so this works on both Postgres (BOOLEAN) and SQLite (INTEGER).
+            connection.execute("UPDATE users SET is_admin = ? WHERE email = ?", (make_admin, email))
             connection.commit()
-            return jsonify({"success": True, "email": email})
+            return jsonify({"success": True, "email": email, "is_admin": make_admin})
     except Exception as exc:
         app.logger.warning("Admin user promote failed: %s", exc)
         return jsonify({"error": "Unable to promote user"}), 500
+
+
+@app.route("/api/admin/users/create", methods=["POST"])
+@require_admin
+def api_admin_create_user():
+    """Create a brand-new account from the admin panel, optionally as an admin.
+
+    The account is created pre-verified so the new user can log in straight
+    away with the password set here (login still goes through the OTP step)."""
+    data = request.get_json(silent=True) or {}
+    name = (data.get("name") or "").strip()
+    email = (data.get("email") or "").strip().lower()
+    password = data.get("password") or ""
+    is_admin = bool(data.get("is_admin", True))
+
+    if not name or not email or not password:
+        return jsonify({"error": "Name, email and password are required"}), 400
+    if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+        return jsonify({"error": "Enter a valid email address"}), 400
+    if len(password) < 6:
+        return jsonify({"error": "Password must be at least 6 characters long"}), 400
+
+    try:
+        with get_auth_db_connection() as connection:
+            existing = connection.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+            if existing:
+                return jsonify({"error": "An account with this email already exists"}), 409
+            connection.execute(
+                "INSERT INTO users (name, email, password_hash, is_admin, verified) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (name, email, generate_password_hash(password), is_admin, True),
+            )
+            connection.commit()
+        return jsonify({"success": True, "email": email, "is_admin": is_admin})
+    except Exception as exc:
+        app.logger.warning("Admin user create failed: %s", exc)
+        return jsonify({"error": "Unable to create user"}), 500
 
 
 @app.route("/api/admin/alerts", methods=["GET"])
@@ -4848,6 +5028,19 @@ def verify_register_otp():
             flash("Too many invalid attempts. Please login to request a new OTP.", "error")
             return redirect(url_for("login"))
 
+        if check_password_hash(pending_otp["otp_hash"], otp_code):
+            with get_auth_db_connection() as connection:
+                connection.execute("UPDATE users SET verified = 1 WHERE email = ?", (pending_otp["email"],))
+                connection.commit()
+            
+            session["auth_user"] = {
+                "name": pending_otp["name"],
+                "email": pending_otp["email"],
+            }
+            record_user_login(pending_otp["email"])
+            session.pop("pending_register_otp", None)
+            flash("Email verified successfully. You are now logged in.", "success")
+            return redirect(url_for("dashboard"))
         try:
             if check_password_hash(pending_otp["otp_hash"], otp_code):
                 app.logger.info("OTP_STEP1: correct OTP for %s, updating verified flag", pending_otp["email"])
@@ -4893,6 +5086,7 @@ def login():
         dashboard_admin_email, dashboard_admin_password = _get_dashboard_admin_credentials()
         if email == dashboard_admin_email and password == dashboard_admin_password:
             session["auth_user"] = {"name": "Admin", "email": email, "is_admin": True}
+            record_user_login(email)
             session.pop("pending_otp", None)
             session.pop("otp_delivery_mode", None)
             session.pop("pending_otp_preview", None)
@@ -5009,6 +5203,7 @@ def verify_otp():
                         "email": pending_otp["email"],
                         "is_admin": bool(pending_otp.get("is_admin", False)),
                     }
+                    record_user_login(pending_otp["email"])
                     session.pop("pending_otp", None)
                     session.pop("otp_delivery_mode", None)
                     session.pop("pending_otp_preview", None)
@@ -5026,6 +5221,7 @@ def verify_otp():
                 "email": pending_otp["email"],
                 "is_admin": bool(pending_otp.get("is_admin", False)),
             }
+            record_user_login(pending_otp["email"])
             session.pop("pending_otp", None)
             session.pop("otp_delivery_mode", None)
             session.pop("pending_otp_preview", None)
