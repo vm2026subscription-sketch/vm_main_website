@@ -3781,9 +3781,9 @@ body.epaper-body:not(.has-masthead) .ep-masthead {
   padding: 0 !important;
   display: flex !important;
   flex-direction: column !important;
-  justify-content: center !important;
+  justify-content: flex-start !important;
   align-items: center !important;
-  overflow: hidden !important;
+  overflow: visible !important;
 }
 
 .ep-reader-container:fullscreen .ep-paper {
@@ -3793,14 +3793,19 @@ body.epaper-body:not(.has-masthead) .ep-masthead {
   max-height: 100% !important;
   border-radius: 0 !important;
   box-shadow: none !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 .ep-reader-container:fullscreen .ep-viewer {
-  max-height: calc(100vh - 72px - 53px) !important;
-  height: 100% !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  height: auto !important;
   align-items: stretch;
   justify-content: flex-start;
   overflow-anchor: none;
+  overflow-y: auto !important;
 }
 
 .ep-reader-container:fullscreen .ep-page-container,
