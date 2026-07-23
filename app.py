@@ -59,14 +59,21 @@ import threading as _threading
 
 from supabase import create_client
 
-load_dotenv()
+# Load credentials from .env/default (directory-based env config) or plain .env file
+_env_dir = os.path.join(os.path.dirname(__file__), '.env')
+_env_file = os.path.join(_env_dir, 'default')
+if os.path.isfile(_env_file):
+    load_dotenv(_env_file)
+else:
+    load_dotenv()
 
-app = Flask(__name__)
 _secret_key = os.environ.get("SECRET_KEY", "")
 if not _secret_key:
     if os.environ.get("VERCEL") == "1" or os.environ.get("FLASK_ENV") == "production":
         raise RuntimeError("SECRET_KEY environment variable must be set in production.")
     _secret_key = "dev-only-insecure-key-never-use-in-prod"
+
+app = Flask(__name__)
 app.secret_key = _secret_key
 # Disable CSRF on JSON/API requests — they are protected by session auth
 # (require_admin / _require_epaper_admin). CSRF tokens are only enforced on
@@ -2465,14 +2472,14 @@ def epaper_pdf_proxy():
         return jsonify({"error": "Unable to fetch PDF from source URL."}), 502
 
 def _get_admin_credentials():
-    email = os.getenv("ADMIN_LOGIN_EMAIL", "admin123@gmail.com").strip().lower()
-    password = os.getenv("ADMIN_LOGIN_PASSWORD", "vm@2026")
+    email = os.getenv("ADMIN_LOGIN_EMAIL", "").strip().lower()
+    password = os.getenv("ADMIN_LOGIN_PASSWORD", "")
     return email, password
 
 
 def _get_dashboard_admin_credentials():
-    email = os.getenv("DASHBOARD_ADMIN_EMAIL", "vm2026.subscription@gmail.com").strip().lower()
-    password = os.getenv("DASHBOARD_ADMIN_PASSWORD", "vm@2026##**")
+    email = os.getenv("DASHBOARD_ADMIN_EMAIL", "").strip().lower()
+    password = os.getenv("DASHBOARD_ADMIN_PASSWORD", "")
     return email, password
 
 
