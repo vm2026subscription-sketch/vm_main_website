@@ -2155,10 +2155,15 @@ const EP = {
     playing: false,
     paused: false,
     text: '',
-    audio: null,        // HTML5 Audio element
-    selectedVoice: '',  // Edge TTS voice ID (auto-detect if empty)
+    audio: null,
+    selectedVoice: '',
     loading: false,
     abortController: null,
+    _session: 0,
+    _chunks: [],
+    _chunkIdx: -1,
+    _nextAudio: null,
+    _prefetchController: null,
   },
 
   detectLang(text) {
@@ -2416,15 +2421,15 @@ const EP = {
     const rawText = (displayedTitle + '। ' + displayedBody).trim() || this._getArticleText();
     if (!rawText) { this.showToast('No text to read'); return; }
 
-    // Cancel any in-flight request before starting a new one
-    if (this._voice.abortController) {
-      this._voice.abortController.abort();
-      this._voice.abortController = null;
-    }
-
     this.voiceStop();
+    this._voice._session = (this._voice._session || 0) + 1;
+    const session = this._voice._session;
+
     this._voice.loading = true;
-    this._voice.abortController = new AbortController();
+    this._voice._chunks = this._chunkText(this._preprocessTTSText(rawText));
+    this._voice._chunkIdx = -1;
+    this._voice._nextAudio = null;
+    this._voice.text = rawText;
 
     if (this.el.voiceBar) this.el.voiceBar.classList.add('loading', 'topbar');
     if (this.el.voiceTitle) this.el.voiceTitle.textContent = displayedTitle || this.currentArticle.headline || 'Article';
@@ -2432,61 +2437,131 @@ const EP = {
     this._voiceUpdatePlayIcon();
     this._prepareHighlight();
 
-    let textToRead = this._preprocessTTSText(rawText).slice(0, 1500);
-    let rateStr = '+0%';
-    let pitchStr = '+0Hz';
-    if (rateStr === '+0%' && this._voice.rate !== 1) {
-      const pct = Math.round((this._voice.rate - 1) * 100);
-      rateStr = pct >= 0 ? `+${pct}%` : `${pct}%`;
+    await this._playChunk(0, session);
+  },
+
+  // Split text into ~600-char chunks at sentence boundaries
+  _chunkText(text, maxChars) {
+    maxChars = maxChars || 600;
+    const sentences = text.match(/[^।!?\n]+[।!?\n]*/g) || [text];
+    const chunks = [];
+    let cur = '';
+    for (const s of sentences) {
+      if (cur.length + s.length > maxChars && cur) {
+        chunks.push(cur.trim());
+        cur = s;
+      } else {
+        cur += s;
+      }
     }
-    this._voice.text = textToRead;
+    if (cur.trim()) chunks.push(cur.trim());
+    return chunks.length ? chunks : [text.slice(0, maxChars)];
+  },
+
+  // Fetch one chunk from the TTS API and return an Audio element
+  async _fetchChunkAudio(text, signal) {
+    const pct = Math.round((this._voice.rate - 1) * 100);
+    const rateStr = pct >= 0 ? `+${pct}%` : `${pct}%`;
+    const res = await fetch('/api/epaper/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, voice: this._voice.selectedVoice || '', rate: rateStr, pitch: '+0Hz' }),
+      signal,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'TTS failed');
+    }
+    const blob = await res.blob();
+    const audio = new Audio(URL.createObjectURL(blob));
+    audio.playbackRate = this._voice.rate;
+    return audio;
+  },
+
+  // Play chunk at idx; prefetch idx+1 while playing; chain to idx+1 on ended
+  async _playChunk(idx, session) {
+    if (session !== this._voice._session) return;
+
+    const chunks = this._voice._chunks;
+    if (idx >= chunks.length) {
+      this._voiceFinished();
+      return;
+    }
+
+    this._voice._chunkIdx = idx;
 
     try {
-      const res = await fetch('/api/epaper/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: textToRead, voice: this._voice.selectedVoice || '', rate: rateStr, pitch: pitchStr }),
-        signal: this._voice.abortController.signal,
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'TTS request failed');
-      }
-
-      // Try progressive streaming via MediaSource (plays on first chunk, ~300ms)
-      // Fallback to full blob if MediaSource unavailable (Safari)
       let audio;
-      const canStream = typeof MediaSource !== 'undefined'
-        && MediaSource.isTypeSupported('audio/mpeg')
-        && res.body;
-
-      if (canStream) {
-        audio = await this._createStreamingAudio(res, this._voice.abortController.signal);
+      if (idx > 0 && this._voice._nextAudio) {
+        audio = await this._voice._nextAudio;
+        this._voice._nextAudio = null;
+        this._voice._prefetchController = null;
+        if (!audio) throw new Error('Prefetch failed');
       } else {
-        const blob = await res.blob();
-        audio = new Audio(URL.createObjectURL(blob));
+        this._voice.abortController = new AbortController();
+        audio = await this._fetchChunkAudio(chunks[idx], this._voice.abortController.signal);
+        this._voice.abortController = null;
       }
 
-      // Guard: stop was called while we were loading
-      if (!this._voice.loading) { audio.pause(); return; }
+      if (session !== this._voice._session) {
+        audio.pause();
+        if (audio.src.startsWith('blob:')) URL.revokeObjectURL(audio.src);
+        return;
+      }
 
+      // Release previous chunk's audio
+      const prev = this._voice.audio;
+      if (prev && prev !== audio) {
+        prev.pause();
+        if (prev.src.startsWith('blob:')) URL.revokeObjectURL(prev.src);
+      }
       this._voice.audio = audio;
-      this._attachAudioListeners(audio);
+      audio.playbackRate = this._voice.rate;
+
+      // Wire up progress/highlight listeners (but NOT ended — we handle that ourselves)
+      audio.addEventListener('timeupdate', () => {
+        this._voiceUpdateUI();
+        this._highlightAt(audio.currentTime, audio.duration);
+      });
+      audio.addEventListener('loadedmetadata', () => {
+        if (this.el.voiceDuration) this.el.voiceDuration.textContent = this._formatTime(audio.duration || 0);
+      });
+      audio.addEventListener('error', () => {
+        if (session !== this._voice._session) return;
+        this.showToast('Audio error — skipping to next part');
+        this._playChunk(idx + 1, session);
+      }, { once: true });
+
+      // Prefetch next chunk in background while this one plays
+      if (idx + 1 < chunks.length) {
+        this._voice._prefetchController = new AbortController();
+        this._voice._nextAudio = this._fetchChunkAudio(chunks[idx + 1], this._voice._prefetchController.signal)
+          .catch(() => null);
+      }
+
       await audio.play();
 
-      if (this.el.voiceBar) this.el.voiceBar.classList.remove('loading');
+      if (session !== this._voice._session) return;
       this._voice.playing = true;
       this._voice.paused = false;
       this._voice.loading = false;
-      this._voice.abortController = null;
+      if (this.el.voiceBar) this.el.voiceBar.classList.remove('loading');
       if (this.el.ttsStartBtn) { this.el.ttsStartBtn.innerHTML = '<i class="fa fa-play"></i> <span>Play</span>'; this.el.ttsStartBtn.classList.remove('loading'); }
       this._voiceUpdatePlayIcon();
-      this.showToast('<i class="fa fa-volume-up"></i> Now playing');
-      this.trackEvent('voice_play', { article: this.currentArticle?.headline, voice: this._voice.selectedVoice || 'auto' });
+
+      if (idx === 0) {
+        this.showToast('<i class="fa fa-volume-up"></i> Now playing');
+        this.trackEvent('voice_play', { article: this.currentArticle?.headline, voice: this._voice.selectedVoice || 'auto' });
+      }
+
+      audio.addEventListener('ended', () => {
+        if (session !== this._voice._session) return;
+        this._playChunk(idx + 1, session);
+      }, { once: true });
 
     } catch (err) {
-      if (err.name === 'AbortError') return; // intentionally cancelled
-      console.error('TTS Error:', err);
+      if (err && err.name === 'AbortError') return;
+      if (session !== this._voice._session) return;
       this._voice.loading = false;
       this._voice.abortController = null;
       if (this.el.ttsStartBtn) { this.el.ttsStartBtn.innerHTML = '<i class="fa fa-play"></i> <span>Play</span>'; this.el.ttsStartBtn.classList.remove('loading'); }
@@ -2494,11 +2569,10 @@ const EP = {
       if (this.el.ttsPrompt) this.el.ttsPrompt.style.display = '';
       this._clearHighlight();
       this._voiceUpdatePlayIcon();
-      // Fallback: use browser's built-in Web Speech API
-      if (window.speechSynthesis) {
-        this._voicePlayBrowser(rawText);
+      if (idx === 0 && window.speechSynthesis) {
+        this._voicePlayBrowser(chunks.join(' '));
       } else {
-        this.showToast('Voice generation failed. Try again.');
+        this.showToast('Voice playback error. Try again.');
       }
     }
   },
@@ -2679,11 +2753,19 @@ const EP = {
 
   // Stop and hide voice bar
   voiceStop() {
-    // Cancel any pending TTS fetch
+    // Cancel current fetch and prefetch
     if (this._voice.abortController) {
       this._voice.abortController.abort();
       this._voice.abortController = null;
     }
+    if (this._voice._prefetchController) {
+      this._voice._prefetchController.abort();
+      this._voice._prefetchController = null;
+    }
+    this._voice._nextAudio = null;
+    this._voice._chunks = [];
+    this._voice._chunkIdx = -1;
+
     const audio = this._voice.audio;
     if (audio) {
       audio.pause();

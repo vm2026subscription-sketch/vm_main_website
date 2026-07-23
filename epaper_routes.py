@@ -2189,7 +2189,7 @@ def api_tts():
     if not text:
         return jsonify({"error": "No text provided."}), 400
 
-    text = text[:1500]
+    text = text[:800]
     text = _preprocess_tts_text(text)
     voice, rate, pitch = _resolve_voice(text, voice, rate, pitch)
 
