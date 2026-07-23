@@ -1108,48 +1108,59 @@ body.ep-fullscreen {
   height: 100vh !important;
 }
 
-body.ep-fullscreen .ep-paper {
-  max-width: 100% !important;
-  border-radius: 0;
-  box-shadow: none;
-  display: flex !important;
-  flex-direction: column !important;
-  height: calc(100vh - var(--ep-nav-h)) !important;
-  overflow: hidden !important;
-  /* leave room at bottom for fixed thumbnail strip */
-  padding-bottom: 116px !important;
-}
-
+/* !important needed: grid CSS from .ep-edition-open overrides without it */
 body.ep-fullscreen .ep-main {
   padding: 0 !important;
-  height: calc(100vh - var(--ep-nav-h));
-  overflow: hidden;
-  /* override grid layout so reader takes full width */
+  gap: 0 !important;
+  height: calc(100vh - var(--ep-nav-h)) !important;
+  overflow: hidden !important;
   display: flex !important;
   align-items: stretch !important;
+  justify-content: flex-start !important;
 }
 
 body.ep-fullscreen .ep-reader-container {
   flex: 1 !important;
+  overflow: hidden !important;
+  /* align-items:stretch on ep-main gives it definite height, no need for height:100% */
+}
+
+body.ep-fullscreen .ep-paper {
+  max-width: 100% !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  display: flex !important;
+  flex-direction: column !important;
   height: 100% !important;
   overflow: hidden !important;
+  align-self: stretch !important;
 }
 
 body.ep-fullscreen .ep-toolbar {
   top: 50%;
 }
 
-/* Viewer fills remaining space after masthead and paper-footer via flex */
+/* Viewer fills remaining space after masthead and paper-footer.
+   height:auto overrides paper-viewer-container's height:100% which
+   would otherwise steal all of ep-paper's height, pushing masthead off-screen. */
 body.ep-fullscreen .ep-viewer {
   flex: 1 1 auto !important;
   min-height: 0 !important;
   max-height: none !important;
+  height: auto !important;
   overflow-y: auto !important;
 }
 
-/* Fullscreen masthead — same paper width, reduced height */
+/* Push dots footer above the 116px fixed thumbnail strip */
+body.ep-fullscreen .ep-paper-footer {
+  flex-shrink: 0 !important;
+  margin-bottom: 116px !important;
+}
+
+/* Fullscreen masthead — compact header */
 body.ep-fullscreen .ep-masthead,
 .ep-reader-container:fullscreen .ep-masthead {
+  flex-shrink: 0;
   padding: 0;
   overflow: hidden;
   max-height: 90px;
