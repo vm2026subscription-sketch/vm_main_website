@@ -1095,24 +1095,56 @@ body.epaper-body:not(.ep-edition-open) .ep-edition-card-language {
   box-shadow: none;
 }
 
-/* document.documentElement fullscreen — whole page visible incl masthead */
+/* ── Custom fullscreen (body.ep-fullscreen class, URL bar still visible) ── */
+
+/* Hide site navbar so full viewport height is available */
+body.ep-fullscreen .vm-main-header {
+  display: none !important;
+}
+
+/* Prevent page body from scrolling — only the viewer scrolls */
+body.ep-fullscreen {
+  overflow: hidden !important;
+  height: 100vh !important;
+}
+
 body.ep-fullscreen .ep-paper {
-  max-width: 100%;
+  max-width: 100% !important;
   border-radius: 0;
   box-shadow: none;
+  display: flex !important;
+  flex-direction: column !important;
+  height: calc(100vh - var(--ep-nav-h)) !important;
+  overflow: hidden !important;
+  /* leave room at bottom for fixed thumbnail strip */
+  padding-bottom: 116px !important;
 }
 
 body.ep-fullscreen .ep-main {
-  padding: 0 0 0;
-  min-height: calc(100vh - var(--ep-nav-h));
+  padding: 0 !important;
+  height: calc(100vh - var(--ep-nav-h));
+  overflow: hidden;
+  /* override grid layout so reader takes full width */
+  display: flex !important;
+  align-items: stretch !important;
+}
+
+body.ep-fullscreen .ep-reader-container {
+  flex: 1 !important;
+  height: 100% !important;
+  overflow: hidden !important;
 }
 
 body.ep-fullscreen .ep-toolbar {
   top: 50%;
 }
 
+/* Viewer fills remaining space after masthead and paper-footer via flex */
 body.ep-fullscreen .ep-viewer {
-  max-height: calc(100vh - var(--ep-nav-h) - 124px - 116px);
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow-y: auto !important;
 }
 
 /* Fullscreen masthead — same paper width, reduced height */
