@@ -2625,7 +2625,9 @@ def _is_admin():
                     (email,),
                 ).fetchone()
             if record is not None:
-                value = record["is_admin"] if isinstance(record, sqlite3.Row) else record[0]
+                # sqlite3.Row and psycopg2 RealDictRow both index by column name;
+                # positional access breaks on RealDictRow (KeyError: 0).
+                value = record["is_admin"]
                 if bool(value):
                     return True
         except Exception as exc:
