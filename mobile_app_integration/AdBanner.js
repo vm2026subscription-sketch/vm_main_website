@@ -99,8 +99,8 @@ export default function AdBanner({
     <>
       <Image
         source={{ uri }}
-        style={{ width: width - 24, height, borderRadius: 10 }}
-        resizeMode="cover"
+        style={{ width: width - 24, height, borderRadius: 10, backgroundColor: '#fff' }}
+        resizeMode="contain"   /* fit inside the fixed banner box, no cropping */
       />
       <View style={styles.tag}>
         <Text style={styles.tagText}>Ad</Text>

@@ -16,8 +16,8 @@
   const PLAT_LABELS = { website: "Website", mobile: "Mobile App", both: "Both" };
   const TYPE_ICON = { image: "fa-image", video: "fa-video", audio: "fa-volume-up" };
   const TYPE_CFG = {
-    image: { label: "Banner Image", hint: "JPG, PNG or WebP. Auto-optimized via CDN.", accept: "image/jpeg,image/png,image/webp" },
-    video: { label: "Video (MP4)", hint: "MP4 only. Compressed on upload. Plays with controls (no autoplay).", accept: "video/mp4" },
+    image: { label: "Banner Image", hint: "JPG, PNG or WebP. Recommended banner 970×120 (sidebar 300×250). Shown at a fixed size.", accept: "image/jpeg,image/png,image/webp" },
+    video: { label: "Video (MP4)", hint: "MP4 only, 16:9 recommended. Compressed on upload. Plays with controls (no autoplay).", accept: "video/mp4" },
     audio: { label: "Audio (MP3)", hint: "MP3 only. Compressed on upload.", accept: "audio/mpeg,.mp3" },
   };
 
