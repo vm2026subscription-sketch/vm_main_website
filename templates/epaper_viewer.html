@@ -80,7 +80,7 @@
 
   <!-- ── CATEGORY NAV ── -->
   <nav class="ep-nav" id="epNav">
-    <a class="ep-brand" href="/" title="Go to VidyarthiMitra.org">
+    <a class="ep-brand" href="{{ main_site_url or '/' }}" title="Go to VidyarthiMitra.org">
       <img class="ep-brand-logo" src="{{ url_for('static', filename='logo.png') }}" alt="Vidyarthi Mitra">
       <span class="ep-brand-label">E‑Paper</span>
     </a>
@@ -95,7 +95,7 @@
     <button class="ep-nav-scroll-btn" id="epNavLeft" aria-label="Scroll language tabs left"><i class="fa fa-chevron-left"></i></button>
     <div class="ep-nav-list" id="epNavList"></div>
     <button class="ep-nav-scroll-btn" id="epNavRight" aria-label="Scroll language tabs right"><i class="fa fa-chevron-right"></i></button>
-    <a class="ep-back-link" href="/" title="Back to VidyarthiMitra.org">
+    <a class="ep-back-link" href="{{ main_site_url or '/' }}" title="Back to VidyarthiMitra.org">
       <i class="fa fa-arrow-up-right-from-square"></i>
       <span>vidyarthimitra.org</span>
     </a>
