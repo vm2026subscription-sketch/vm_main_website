@@ -75,6 +75,20 @@
 
   function pickMedia() { $("adMediaFile").click(); }
 
+  // Use a pasted direct link instead of uploading a file.
+  function useMediaLink() {
+    const url = $("adMediaLink").value.trim();
+    const type = currentType();
+    if (type === "image") { $("adImageUrl").value = url; $("adMediaUrl").value = ""; }
+    else { $("adMediaUrl").value = url; $("adDuration").value = ""; } // re-read duration from the link
+    renderMediaPreview();
+  }
+
+  function useThumbLink() {
+    $("adThumbnail").value = $("adThumbLink").value.trim();
+    renderMediaPreview();
+  }
+
   function renderMediaPreview() {
     const type = currentType();
     const url = mediaUrlOf(type);
@@ -87,8 +101,18 @@
       vid.src = url;
       const poster = $("adThumbnail").value;
       if (poster) vid.setAttribute("poster", poster);
+      // Auto-read duration from the media itself (works for uploads AND links).
+      vid.onloadedmetadata = function () {
+        if (isFinite(vid.duration) && vid.duration > 0) $("adDuration").value = Math.round(vid.duration);
+      };
       vid.style.display = "block"; ph.style.display = "none";
-    } else { aud.src = url; aud.style.display = "block"; ph.style.display = "none"; }
+    } else {
+      aud.src = url;
+      aud.onloadedmetadata = function () {
+        if (isFinite(aud.duration) && aud.duration > 0) $("adDuration").value = Math.round(aud.duration);
+      };
+      aud.style.display = "block"; ph.style.display = "none";
+    }
 
     // Thumbnail preview
     const thumb = $("adThumbnail").value;
@@ -115,8 +139,12 @@
         else {
           $("adMediaUrl").value = data.url;
           $("adDuration").value = data.duration || "";
-          if (data.thumbnail && !$("adThumbnail").value) $("adThumbnail").value = data.thumbnail;
+          if (data.thumbnail && !$("adThumbnail").value) {
+            $("adThumbnail").value = data.thumbnail;
+            $("adThumbLink").value = data.thumbnail;
+          }
         }
+        $("adMediaLink").value = data.url; // reflect the uploaded file as a link too
         renderMediaPreview();
       } else {
         toast(data.error || "Upload failed");
@@ -140,7 +168,7 @@
     try {
       const res = await fetch("/api/v1/admin/ads/upload", { method: "POST", body: fd });
       const data = await res.json();
-      if (data.success && data.url) { $("adThumbnail").value = data.url; renderMediaPreview(); }
+      if (data.success && data.url) { $("adThumbnail").value = data.url; $("adThumbLink").value = data.url; renderMediaPreview(); }
       else { toast(data.error || "Upload failed"); $("thumbPh").textContent = "Click to upload poster"; }
     } catch (e) {
       toast("Upload failed: " + e.message); $("thumbPh").textContent = "Click to upload poster";
@@ -240,6 +268,8 @@
     $("adMediaUrl").value = "";
     $("adDuration").value = "";
     $("adThumbnail").value = "";
+    $("adMediaLink").value = "";
+    $("adThumbLink").value = "";
     $("uploadPh").textContent = "Click to upload";
     $("thumbPh").textContent = "Click to upload poster";
   }
@@ -273,6 +303,9 @@
     $("adMediaUrl").value = ad.media_url || "";
     $("adDuration").value = ad.duration || "";
     $("adThumbnail").value = ad.thumbnail || "";
+    // Show the current media/poster link in the link boxes so it can be edited.
+    $("adMediaLink").value = (ad.ad_type === "image" ? ad.image_url : ad.media_url) || "";
+    $("adThumbLink").value = ad.thumbnail || "";
     $("adRedirect").value = ad.redirect_url || "";
     $("adPlatform").value = ad.platform || "website";
     syncPositions();
@@ -386,7 +419,8 @@
   // Expose
   window.Ads = {
     load, debouncedLoad, syncPositions, syncType, pickMedia,
-    uploadMedia, uploadThumb, openCreate, openEdit, closeModal,
+    useMediaLink, useThumbLink, uploadMedia, uploadThumb,
+    openCreate, openEdit, closeModal,
     save, remove, preview, closePreview,
   };
 

@@ -191,6 +191,7 @@
           <input id="adMediaUrl" type="hidden">
           <input id="adDuration" type="hidden">
           <div class="hint" id="mediaHint">JPG, PNG or WebP. Auto-optimized via CDN.</div>
+          <input id="adMediaLink" type="url" placeholder="…or paste a direct media link (https://…)" onchange="Ads.useMediaLink()" oninput="Ads.useMediaLink()">
         </div>
         <div class="fg" id="thumbRow" style="display:none"><label>Video Thumbnail (optional)</label>
           <div class="upload-box" id="thumbBox" onclick="document.getElementById('adThumbFile').click()">
@@ -200,6 +201,7 @@
           <input type="file" id="adThumbFile" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="Ads.uploadThumb(this)">
           <input id="adThumbnail" type="hidden">
           <div class="hint">Shown before the video plays. Auto-generated if left blank.</div>
+          <input id="adThumbLink" type="url" placeholder="…or paste a poster image URL" onchange="Ads.useThumbLink()" oninput="Ads.useThumbLink()">
         </div>
       </div>
       <div class="fg" style="margin-bottom:14px"><label>Redirect URL (optional)</label>
@@ -257,6 +259,6 @@
       both:    {{ common_positions | tojson }}
     };
   </script>
-  <script src="{{ url_for('static', filename='ads-admin.js') }}?v=3"></script>
+  <script src="{{ url_for('static', filename='ads-admin.js') }}?v=4"></script>
 </body>
 </html>
