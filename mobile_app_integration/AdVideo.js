@@ -22,15 +22,16 @@ import {
 import Video from 'react-native-video';
 import { clickUrl } from './adsApi';
 
-export default function AdVideo({ ad, height = 200 }) {
+export default function AdVideo({ ad, height }) {
   const [paused, setPaused] = useState(true);
   const [started, setStarted] = useState(false);
   const [buffering, setBuffering] = useState(false);
   const { width } = useWindowDimensions();
   const w = width - 24;
+  const h = height || Math.round(w * 9 / 16); // 16:9 by default
 
   return (
-    <View style={[styles.wrap, { width: w, height }]}>
+    <View style={[styles.wrap, { width: w, height: h }]}>
       <Video
         source={{ uri: ad.media_url }}
         style={StyleSheet.absoluteFill}

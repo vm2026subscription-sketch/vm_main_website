@@ -4,19 +4,29 @@
      <div class="vm-ad-slot" data-position="homepage_top"></div>  (anywhere)
 #}
 <style>
-  /* ── Fixed ad dimensions (standard banner sizes) ── */
-  .vm-ad-slot{position:relative;margin:18px auto;max-width:970px;text-align:center;}
-  .vm-ad-slot .vm-ad-link{display:inline-block;line-height:0;max-width:100%;}
-  /* Banner image: full width up to 970px, FIXED 120px height, fit inside (no crop) */
-  .vm-ad-slot .vm-ad-img{width:100%;max-width:970px;height:120px;object-fit:contain;display:block;margin:0 auto;background:#fff;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.08);}
-  .vm-ad-slot .vm-ad-tag{position:absolute;top:6px;right:10px;background:rgba(0,0,0,.55);color:#fff;font-size:9px;font-weight:700;letter-spacing:.5px;padding:1px 6px;border-radius:4px;text-transform:uppercase;}
+  /* ── Fixed ad dimensions per position (official recommended sizes) ── */
+  .vm-ad-slot{position:relative;margin:18px auto;max-width:1200px;text-align:center;}
+  .vm-ad-slot .vm-ad-link{display:block;line-height:0;max-width:100%;}
+  .vm-ad-slot .vm-ad-img{width:100%;object-fit:cover;display:block;margin:0 auto;background:#fff;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.08);}
+  .vm-ad-slot .vm-ad-tag{position:absolute;top:6px;right:10px;background:rgba(0,0,0,.55);color:#fff;font-size:9px;font-weight:700;letter-spacing:.5px;padding:1px 6px;border-radius:4px;text-transform:uppercase;z-index:2;}
   .vm-ad-placeholder{border:1px dashed #d8d2c8;border-radius:10px;padding:26px;color:#9a938a;font-size:12px;letter-spacing:.5px;text-transform:uppercase;font-weight:700;background:#faf8f4;}
-  /* Sidebar: 300×250 medium rectangle */
+
+  /* Homepage Hero — 1920×600 (16:5) */
+  .vm-ad-slot[data-position="homepage_hero"]{max-width:1920px;}
+  .vm-ad-slot[data-position="homepage_hero"] .vm-ad-img{max-width:1920px;aspect-ratio:1920/600;}
+  /* Homepage Top / Middle / Bottom + Article — 1200×300 (4:1) */
+  .vm-ad-slot[data-position="homepage_top"] .vm-ad-img,
+  .vm-ad-slot[data-position="homepage_middle"] .vm-ad-img,
+  .vm-ad-slot[data-position="homepage_bottom"] .vm-ad-img,
+  .vm-ad-slot[data-position="article_page"] .vm-ad-img{max-width:1200px;aspect-ratio:1200/300;}
+  /* Footer — 1200×250 */
+  .vm-ad-slot[data-position="footer"] .vm-ad-img{max-width:1200px;aspect-ratio:1200/250;}
+  /* Sidebar — 300×600 (tall skyscraper) */
   .vm-ad-slot[data-position="sidebar"]{max-width:300px;margin:14px auto;}
-  .vm-ad-slot[data-position="sidebar"] .vm-ad-img{width:300px;max-width:100%;height:250px;object-fit:contain;}
-  /* Video: 16:9 fixed ratio, up to 970px wide */
-  .vm-ad-slot .vm-ad-video{width:100%;max-width:970px;aspect-ratio:16/9;height:auto;object-fit:cover;border-radius:10px;display:block;margin:0 auto;background:#000;box-shadow:0 2px 10px rgba(0,0,0,.08);}
-  @media(max-width:600px){ .vm-ad-slot .vm-ad-img{height:90px;} }
+  .vm-ad-slot[data-position="sidebar"] .vm-ad-img{max-width:300px;aspect-ratio:300/600;}
+
+  /* Video — website 16:9 (1920×1080), up to 1200px wide */
+  .vm-ad-slot .vm-ad-video{width:100%;max-width:1200px;aspect-ratio:16/9;height:auto;object-fit:cover;border-radius:10px;display:block;margin:0 auto;background:#000;box-shadow:0 2px 10px rgba(0,0,0,.08);}
   .vm-ad-slot .vm-ad-audio{border:1px solid #e1dad0;border-radius:10px;padding:12px 14px;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.06);text-align:left;}
   .vm-ad-slot .vm-ad-audio-title{font-size:13px;font-weight:700;margin-bottom:8px;color:#221f1f;}
   .vm-ad-slot .vm-ad-audio audio{width:100%;}

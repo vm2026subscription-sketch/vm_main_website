@@ -38,16 +38,20 @@ ads_bp = Blueprint("ads", __name__)
 
 # ── Allowed values ───────────────────────────────────────────
 PLATFORMS = ("website", "mobile", "both")
-WEBSITE_POSITIONS = ("homepage_top", "homepage_middle", "sidebar", "footer", "article_page")
+WEBSITE_POSITIONS = (
+    "homepage_hero", "homepage_top", "homepage_middle", "homepage_bottom",
+    "sidebar", "footer", "article_page",
+)
 MOBILE_POSITIONS = ("home_top", "home_middle", "home_bottom", "between_epaper_cards")
 # Common positions used for platform = "both" ads. Each concrete website/mobile
 # position maps into one of these buckets, so a single "both" ad renders in the
 # equivalent slot on each platform (e.g. "top" → website homepage_top + mobile home_top).
 COMMON_POSITIONS = ("top", "middle", "bottom")
 POSITION_TO_COMMON = {
-    "homepage_top": "top",    "home_top": "top",
+    "homepage_top": "top",       "home_top": "top",
     "homepage_middle": "middle", "home_middle": "middle",
-    "footer": "bottom",       "home_bottom": "bottom",
+    "homepage_bottom": "bottom", "home_bottom": "bottom",
+    "footer": "bottom",
 }
 ALL_POSITIONS = WEBSITE_POSITIONS + MOBILE_POSITIONS
 VALID_POSITIONS = set(ALL_POSITIONS) | set(COMMON_POSITIONS)

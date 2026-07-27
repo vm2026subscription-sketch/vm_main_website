@@ -28,15 +28,24 @@ import { fetchAds, trackImpression, clickUrl } from './adsApi';
 import AdVideo from './AdVideo';
 import AdAudio from './AdAudio';
 
+// Official recommended image ratios (height / width) per mobile position.
+const IMG_RATIO = {
+  home_top: 400 / 1080, home_middle: 400 / 1080, home_bottom: 400 / 1080,
+  between_epaper_cards: 300 / 1080,
+  top: 400 / 1080, middle: 400 / 1080, bottom: 400 / 1080,
+};
+
 export default function AdBanner({
   position,
-  height = 110,
+  height,               // optional override; otherwise derived from position ratio
   showPlaceholder = true,
   style,
 }) {
   const [ad, setAd] = useState(null);
   const [loading, setLoading] = useState(true);
   const { width } = useWindowDimensions();
+  const imgW = width - 24;
+  const bannerH = height || Math.round(imgW * (IMG_RATIO[position] || 300 / 1080));
 
   useEffect(() => {
     let alive = true;
@@ -59,7 +68,7 @@ export default function AdBanner({
 
   if (loading) {
     return (
-      <View style={[styles.wrap, { height }, style]}>
+      <View style={[styles.wrap, { height: bannerH }, style]}>
         <ActivityIndicator size="small" color="#d9252a" />
       </View>
     );
@@ -69,7 +78,7 @@ export default function AdBanner({
   if (!hasMedia) {
     if (!showPlaceholder) return null;
     return (
-      <View style={[styles.wrap, styles.placeholder, { height }, style]}>
+      <View style={[styles.wrap, styles.placeholder, { height: bannerH }, style]}>
         <Text style={styles.placeholderText}>Advertisement</Text>
       </View>
     );
@@ -99,7 +108,7 @@ export default function AdBanner({
     <>
       <Image
         source={{ uri }}
-        style={{ width: width - 24, height, borderRadius: 10, backgroundColor: '#fff' }}
+        style={{ width: imgW, height: bannerH, borderRadius: 10, backgroundColor: "#fff" }}
         resizeMode="contain"   /* fit inside the fixed banner box, no cropping */
       />
       <View style={styles.tag}>
@@ -114,7 +123,7 @@ export default function AdBanner({
       <TouchableOpacity
         activeOpacity={0.85}
         onPress={openTarget}
-        style={[styles.wrap, { height }, style]}
+        style={[styles.wrap, { height: bannerH }, style]}
         accessibilityRole="imagebutton"
         accessibilityLabel={ad.title || 'Advertisement'}
       >
@@ -122,7 +131,7 @@ export default function AdBanner({
       </TouchableOpacity>
     );
   }
-  return <View style={[styles.wrap, { height }, style]}>{img}</View>;
+  return <View style={[styles.wrap, { height: bannerH }, style]}>{img}</View>;
 }
 
 const styles = StyleSheet.create({

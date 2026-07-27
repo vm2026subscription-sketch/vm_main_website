@@ -217,7 +217,7 @@
           </select>
         </div>
         <div class="fg"><label>Position</label>
-          <select id="adPosition"></select>
+          <select id="adPosition" onchange="Ads.updateMediaHint()"></select>
         </div>
         <div class="fg"><label>Priority</label>
           <input id="adPriority" type="number" value="0" min="0">
@@ -259,6 +259,6 @@
       both:    {{ common_positions | tojson }}
     };
   </script>
-  <script src="{{ url_for('static', filename='ads-admin.js') }}?v=5"></script>
+  <script src="{{ url_for('static', filename='ads-admin.js') }}?v=6"></script>
 </body>
 </html>

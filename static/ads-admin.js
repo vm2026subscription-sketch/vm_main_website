@@ -7,11 +7,23 @@
 
   const POSITIONS = window.AD_POSITIONS || { website: [], mobile: [] };
   const POS_LABELS = {
-    homepage_top: "Homepage Top", homepage_middle: "Homepage Middle",
+    homepage_hero: "Homepage Hero", homepage_top: "Homepage Top",
+    homepage_middle: "Homepage Middle", homepage_bottom: "Homepage Bottom",
     sidebar: "Sidebar", footer: "Footer", article_page: "Article Page",
     home_top: "Home Top", home_middle: "Home Middle",
     home_bottom: "Home Bottom", between_epaper_cards: "Between ePaper Cards",
     top: "Top (both)", middle: "Middle (both)", bottom: "Bottom (both)",
+  };
+
+  // Official recommended image sizes per position.
+  const REC_SIZE = {
+    homepage_hero: "1920×600", homepage_top: "1200×300", homepage_middle: "1200×300",
+    homepage_bottom: "1200×300", sidebar: "300×600", footer: "1200×250",
+    article_page: "1200×300",
+    home_top: "1080×400", home_middle: "1080×400", home_bottom: "1080×400",
+    between_epaper_cards: "1080×300",
+    top: "1200×300 web / 1080×400 app", middle: "1200×300 web / 1080×400 app",
+    bottom: "1200×300 web / 1080×400 app",
   };
   const PLAT_LABELS = { website: "Website", mobile: "Mobile App", both: "Both" };
   const TYPE_ICON = { image: "fa-image", video: "fa-video", audio: "fa-volume-up" };
@@ -67,10 +79,28 @@
     const type = currentType();
     const cfg = TYPE_CFG[type];
     $("mediaLabel").textContent = cfg.label;
-    $("mediaHint").textContent = cfg.hint;
     $("adMediaFile").setAttribute("accept", cfg.accept);
     $("thumbRow").style.display = type === "video" ? "" : "none";
+    updateMediaHint();
     renderMediaPreview();
+  }
+
+  // Hint shows the recommended size for the selected type + position.
+  function updateMediaHint() {
+    const type = currentType();
+    const pos = $("adPosition").value;
+    if (type === "audio") {
+      $("mediaHint").textContent = "MP3 only. No dimensions needed. Compressed on upload.";
+      return;
+    }
+    if (type === "video") {
+      $("mediaHint").textContent = "MP4, 16:9 (1920×1080) for web, portrait 1080×1920 for app. No autoplay.";
+      return;
+    }
+    const size = REC_SIZE[pos];
+    $("mediaHint").textContent = size
+      ? `JPG/PNG/WebP. Recommended for ${label(POS_LABELS, pos)}: ${size} px. Shown at a fixed size.`
+      : "JPG, PNG or WebP. Shown at a fixed size.";
   }
 
   function pickMedia() { $("adMediaFile").click(); }
@@ -418,7 +448,7 @@
 
   // Expose
   window.Ads = {
-    load, debouncedLoad, syncPositions, syncType, pickMedia,
+    load, debouncedLoad, syncPositions, syncType, updateMediaHint, pickMedia,
     useMediaLink, useThumbLink, uploadMedia, uploadThumb,
     openCreate, openEdit, closeModal,
     save, remove, preview, closePreview,
