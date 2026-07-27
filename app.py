@@ -182,6 +182,9 @@ def add_cache_headers(response):
     # API responses — short cache or no-cache
     elif path.startswith('/api/epaper/latest') or path.startswith('/api/epaper/editions'):
         response.headers['Cache-Control'] = 'public, max-age=60, stale-while-revalidate=30'
+    elif path == '/api/v1/ads' or path.startswith('/api/v1/ads?'):
+        # Short cache so ad slots load fast; still refreshed within a minute.
+        response.headers['Cache-Control'] = 'public, max-age=60, stale-while-revalidate=30'
     elif path.startswith('/api/'):
         response.headers['Cache-Control'] = 'no-store'
     return response
@@ -253,6 +256,17 @@ try:
     csrf.exempt(epaper_bp)
 except Exception as exc:
     app.logger.warning("Skipping epaper blueprint registration: %s", exc)
+
+# Register advertisement blueprint (website + mobile app ads, managed from epaper admin)
+try:
+    from ads_routes import ads_bp
+
+    app.register_blueprint(ads_bp)
+    # Admin ad APIs are protected by the epaper admin session, same as epaper_bp.
+    # Exempt from CSRF so browser fetch() + mobile app calls work (see epaper note above).
+    csrf.exempt(ads_bp)
+except Exception as exc:
+    app.logger.warning("Skipping ads blueprint registration: %s", exc)
 
 
 # ── Subdomain routing: epaper.vidyarthimitra.org → /epaper ──────────

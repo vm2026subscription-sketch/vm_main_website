@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Advertisements — ePaper Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Hind:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <script>
+    // Attach CSRF token to same-origin mutating requests (mirrors epaper admin).
+    (function () {
+      const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+      if (!token) return;
+      const orig = window.fetch;
+      window.fetch = function () {
+        let [resource, config] = arguments;
+        config = config || {};
+        const method = (config.method || 'GET').toUpperCase();
+        const url = resource instanceof Request ? resource.url : resource;
+        let sameOrigin = true;
+        try { sameOrigin = new URL(url, location.href).origin === location.origin; } catch (e) {}
+        if (sameOrigin && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+          config.headers = config.headers || {};
+          if (config.headers instanceof Headers) config.headers.set('X-CSRFToken', token);
+          else config.headers['X-CSRFToken'] = token;
+        }
+        return orig(resource, config);
+      };
+    })();
+  </script>
+  <style>
+    :root{--r:#d9252a;--r-dark:#b21b20;--bg:#f3efe8;--white:#fff;--border:#e1dad0;--text:#221f1f;--muted:#6b645b;--radius:12px;}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'DM Sans','Hind',sans-serif;background:var(--bg);color:var(--text);}
+    a{color:inherit;}
+    .epa-header{background:linear-gradient(120deg,#d9252a 0%,#b21b20 45%,#781516 100%);padding:16px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+    .epa-header h1{color:#fff;font-size:20px;font-weight:700;}
+    .epa-header a{color:rgba(255,255,255,.75);font-size:13px;text-decoration:none;transition:color .2s;}
+    .epa-header a:hover{color:#fff;}
+    .epa-header .spacer{margin-left:auto;}
+    .epa-header a.btnlink{background:rgba(255,255,255,.15);padding:5px 12px;border-radius:6px;}
+
+    .wrap{max-width:1300px;margin:20px auto;padding:0 20px;}
+    .card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.04);}
+    .card h2{font-size:16px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+    .card h2 i{color:var(--r);font-size:14px;}
+
+    .row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;}
+    .row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+    .fg{display:flex;flex-direction:column;gap:4px;}
+    .fg label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+    .fg input,.fg select{padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;outline:none;transition:border-color .2s;background:#fff;}
+    .fg input:focus,.fg select:focus{border-color:var(--r);}
+    .fg .hint{font-size:10px;color:var(--muted);}
+
+    .btn{padding:9px 16px;border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .2s;}
+    .btn-primary{background:var(--r);color:#fff;}.btn-primary:hover{background:#c0171e;}
+    .btn-ghost{background:#f3f4f6;color:var(--text);border:1px solid var(--border);}
+    .btn-danger{background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;}.btn-danger:hover{background:#dc2626;color:#fff;}
+    .btn-sm{padding:6px 11px;font-size:11px;}
+
+    .upload-box{height:120px;border:1.5px dashed var(--border);border-radius:10px;display:flex;align-items:center;justify-content:center;background:#fafafa;overflow:hidden;cursor:pointer;position:relative;}
+    .upload-box img{width:100%;height:100%;object-fit:contain;}
+    .upload-box .ph{font-size:11px;color:var(--muted);text-align:center;text-transform:uppercase;letter-spacing:.5px;font-weight:700;}
+
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:14px;}
+    .toolbar .fg{min-width:150px;}
+    .toolbar .grow{flex:1;min-width:200px;}
+
+    table{width:100%;border-collapse:collapse;font-size:13px;}
+    th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--border);vertical-align:middle;}
+    th{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);}
+    .thumb{width:64px;height:40px;object-fit:cover;border-radius:6px;border:1px solid var(--border);background:#fff;}
+    .badge{padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;display:inline-block;}
+    .badge-plat{background:#eef2ff;color:#4338ca;}
+    .badge-active{background:#dcfce7;color:#166534;}
+    .badge-inactive{background:#f3f4f6;color:#6b7280;}
+    .badge-expired{background:#fee2e2;color:#b91c1c;}
+    .badge-scheduled{background:#fef9c3;color:#854d0e;}
+    .actions{display:flex;gap:6px;}
+    .empty{text-align:center;padding:36px;color:var(--muted);}
+
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
+    .stat{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
+    .stat .n{font-size:22px;font-weight:800;}
+    .stat .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700;}
+
+    /* Modal */
+    .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-start;justify-content:center;padding:30px 16px;z-index:100;overflow:auto;}
+    .modal-bg.open{display:flex;}
+    .modal{background:#fff;border-radius:14px;max-width:720px;width:100%;padding:22px;box-shadow:0 12px 40px rgba(0,0,0,.25);}
+    .modal h3{font-size:17px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+    .modal-foot{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+    .toggle{display:flex;align-items:center;gap:8px;}
+    .preview-img{max-width:100%;border-radius:8px;border:1px solid var(--border);}
+    .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .3s;z-index:200;}
+    .toast.show{opacity:1;}
+    @media(max-width:720px){.row,.stats{grid-template-columns:1fr;}.row-2{grid-template-columns:1fr;}table{font-size:12px;}}
+  </style>
+</head>
+<body>
+  <div class="epa-header">
+    <h1><i class="fa fa-bullhorn"></i> Advertisements</h1>
+    <a href="/epaper-admin" class="btnlink"><i class="fa fa-arrow-left"></i> Page Builder</a>
+    <a href="/epaper" class="btnlink"><i class="fa fa-eye"></i> View Site</a>
+    <span class="spacer"></span>
+    <a href="/epaper-admin/logout" class="btnlink"><i class="fa fa-sign-out-alt"></i> Logout</a>
+  </div>
+
+  <div class="wrap">
+    <!-- Analytics summary -->
+    <div class="stats">
+      <div class="stat"><div class="n" id="statTotal">0</div><div class="l">Total Ads</div></div>
+      <div class="stat"><div class="n" id="statImpr">0</div><div class="l">Impressions</div></div>
+      <div class="stat"><div class="n" id="statClicks">0</div><div class="l">Clicks</div></div>
+      <div class="stat"><div class="n" id="statCtr">0%</div><div class="l">Overall CTR</div></div>
+    </div>
+
+    <!-- List + filters -->
+    <div class="card">
+      <h2><i class="fa fa-list"></i> All Advertisements
+        <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="Ads.openCreate()"><i class="fa fa-plus"></i> New Advertisement</button>
+      </h2>
+      <div class="toolbar">
+        <div class="fg grow"><label>Search</label><input id="fSearch" type="text" placeholder="Search by title…" oninput="Ads.debouncedLoad()"></div>
+        <div class="fg"><label>Platform</label>
+          <select id="fPlatform" onchange="Ads.load()">
+            <option value="">All</option>
+            <option value="website">Website</option>
+            <option value="mobile">Mobile App</option>
+            <option value="both">Both</option>
+          </select>
+        </div>
+        <div class="fg"><label>Position</label>
+          <select id="fPosition" onchange="Ads.load()"><option value="">All</option></select>
+        </div>
+        <div class="fg"><label>Status</label>
+          <select id="fStatus" onchange="Ads.load()">
+            <option value="">All</option>
+            <option value="active">Active</option>
+            <option value="scheduled">Scheduled</option>
+            <option value="expired">Expired</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Banner</th><th>Title</th><th>Platform</th><th>Position</th>
+              <th>Priority</th><th>Dates</th><th>Status</th>
+              <th>Impr.</th><th>Clicks</th><th>CTR</th><th>Last Shown</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="adRows"><tr><td colspan="12" class="empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create / Edit modal -->
+  <div class="modal-bg" id="modal">
+    <div class="modal">
+      <h3 id="modalTitle"><i class="fa fa-plus-circle"></i> New Advertisement</h3>
+      <input type="hidden" id="adId">
+      <div class="row-2">
+        <div class="fg"><label>Advertisement Title *</label>
+          <input id="adTitle" type="text" placeholder="e.g. Summer Admission Drive">
+        </div>
+        <div class="fg"><label>Advertisement Type *</label>
+          <select id="adType" onchange="Ads.syncType()">
+            <option value="image">Image</option>
+            <option value="video">Video</option>
+            <option value="audio">Audio</option>
+          </select>
+        </div>
+      </div>
+      <div class="row-2">
+        <div class="fg"><label id="mediaLabel">Banner Image</label>
+          <div class="upload-box" id="uploadBox" onclick="Ads.pickMedia()">
+            <span class="ph" id="uploadPh">Click to upload</span>
+            <img id="uploadPreview" style="display:none">
+            <video id="uploadVideoPrev" style="display:none;max-width:100%;max-height:100%" controls preload="metadata"></video>
+            <audio id="uploadAudioPrev" style="display:none;width:92%" controls preload="none"></audio>
+          </div>
+          <input type="file" id="adMediaFile" style="display:none" onchange="Ads.uploadMedia(this)">
+          <input id="adImageUrl" type="hidden">
+          <input id="adMediaUrl" type="hidden">
+          <input id="adDuration" type="hidden">
+          <div class="hint" id="mediaHint">JPG, PNG or WebP. Auto-optimized via CDN.</div>
+        </div>
+        <div class="fg" id="thumbRow" style="display:none"><label>Video Thumbnail (optional)</label>
+          <div class="upload-box" id="thumbBox" onclick="document.getElementById('adThumbFile').click()">
+            <span class="ph" id="thumbPh">Click to upload poster</span>
+            <img id="thumbPreview" style="display:none">
+          </div>
+          <input type="file" id="adThumbFile" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="Ads.uploadThumb(this)">
+          <input id="adThumbnail" type="hidden">
+          <div class="hint">Shown before the video plays. Auto-generated if left blank.</div>
+        </div>
+      </div>
+      <div class="fg" style="margin-bottom:14px"><label>Redirect URL (optional)</label>
+        <input id="adRedirect" type="url" placeholder="https://…">
+        <div class="hint">Opens in the device browser / new tab on tap. Leave blank for no link.</div>
+      </div>
+      <div class="row">
+        <div class="fg"><label>Platform *</label>
+          <select id="adPlatform" onchange="Ads.syncPositions()">
+            <option value="website">Website</option>
+            <option value="mobile">Mobile App</option>
+            <option value="both">Both</option>
+          </select>
+        </div>
+        <div class="fg"><label>Position</label>
+          <select id="adPosition"></select>
+        </div>
+        <div class="fg"><label>Priority</label>
+          <input id="adPriority" type="number" value="0" min="0">
+          <div class="hint">Higher number shows first.</div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="fg"><label>Start Date</label><input id="adStart" type="date"></div>
+        <div class="fg"><label>End Date</label><input id="adEnd" type="date"></div>
+        <div class="fg"><label>Status</label>
+          <div class="toggle" style="margin-top:6px">
+            <input type="checkbox" id="adActive" checked style="width:18px;height:18px">
+            <label for="adActive" style="text-transform:none;font-size:13px;color:var(--text)">Active</label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost" onclick="Ads.closeModal()">Cancel</button>
+        <button class="btn btn-primary" id="saveBtn" onclick="Ads.save()"><i class="fa fa-save"></i> Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview modal -->
+  <div class="modal-bg" id="previewModal">
+    <div class="modal" style="max-width:560px">
+      <h3><i class="fa fa-eye"></i> Preview</h3>
+      <div id="previewBody"></div>
+      <div class="modal-foot"><button class="btn btn-ghost" onclick="Ads.closePreview()">Close</button></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    window.AD_POSITIONS = {
+      website: {{ website_positions | tojson }},
+      mobile:  {{ mobile_positions | tojson }},
+      both:    {{ common_positions | tojson }}
+    };
+  </script>
+  <script src="{{ url_for('static', filename='ads-admin.js') }}"></script>
+</body>
+</html>
