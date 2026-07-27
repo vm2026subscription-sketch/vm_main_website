@@ -299,10 +299,15 @@ def _fetch_live(platform, position=None, limit=None):
         try:
             conn = _pg_connect()
             _ensure_table(conn)
+            # Compare against the IST calendar date (not the DB's UTC CURRENT_DATE)
+            # so serving matches the date the admin sees. Avoids a 1-day gap where
+            # a "starts today" ad stays hidden because the DB clock is still on
+            # the previous UTC day.
+            today_sql = "(NOW() AT TIME ZONE 'Asia/Kolkata')::date"
             clauses = [
                 "active = TRUE",
-                "(start_date IS NULL OR start_date <= CURRENT_DATE)",
-                "(end_date IS NULL OR end_date >= CURRENT_DATE)",
+                f"(start_date IS NULL OR start_date <= {today_sql})",
+                f"(end_date IS NULL OR end_date >= {today_sql})",
             ]
             params = []
             if platform and platform != "both":
