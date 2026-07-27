@@ -16,7 +16,7 @@
   --ep-border: #e5e7eb;
   --ep-muted: #6b7280;
   --ep-text: #111827;
-  --ep-nav-h: 46px;
+  --ep-nav-h: 48px;
   --ep-toolbar-w: 46px;
   --ep-font: 'DM Sans', 'Hind', sans-serif;
   --ep-serif: 'Playfair Display', 'Hind', serif;
@@ -38,23 +38,55 @@ body.epaper-body {
   min-height: 100vh;
 }
 
-/* ── Shared navbar override: always solid on viewer (no hero image here) ── */
+/* ── Epaper is a standalone experience — hide main site navbar ── */
 body.epaper-body .vm-main-header {
-  background: rgba(5, 10, 21, 0.92) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+  display: none !important;
 }
-body.epaper-body .vm-nav-item,
-body.epaper-body .vm-dropdown-trigger,
-body.epaper-body .vm-btn-link {
-  color: #ffffff;
+
+/* ── Epaper brand strip inside ep-nav ── */
+.ep-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px 0 10px;
+  border-right: 1px solid rgba(255,255,255,0.1);
+  flex-shrink: 0;
+  text-decoration: none;
+  color: inherit;
 }
-body.epaper-body .vm-nav-item:hover,
-body.epaper-body .vm-dropdown-trigger:hover {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.08);
+.ep-brand-logo {
+  height: 26px;
+  width: auto;
+  display: block;
+}
+.ep-brand-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--ep-orange);
+  white-space: nowrap;
+}
+.ep-back-link {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.55);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color .2s;
+  flex-shrink: 0;
+  border-left: 1px solid rgba(255,255,255,0.1);
+}
+.ep-back-link:hover {
+  color: #fff;
+}
+.ep-back-link i {
+  font-size: 10px;
 }
 
 
