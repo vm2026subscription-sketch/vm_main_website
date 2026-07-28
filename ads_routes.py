@@ -61,7 +61,7 @@ AD_TYPES = ("image", "video", "audio")
 ALLOWED_MEDIA_EXT = {
     "image": {"jpg", "jpeg", "png", "webp"},
     "video": {"mp4"},
-    "audio": {"mp3"},
+    "audio": {"mp3", "aac", "wav"},
 }
 
 # ── File fallback paths ──────────────────────────────────────
@@ -360,6 +360,241 @@ def _get_one(ad_id):
     return None
 
 
+# ══════════════════════════════════════════════════════════════
+#  ADVERTISEMENT POSITION CONFIGURATION  (configurable slots)
+#  Everything about a slot — recommended size, aspect ratio, allowed
+#  types/formats, size/duration limits, validation toggle — lives here so it
+#  can be managed from the admin without any code change. The existing
+#  hardcoded slugs are seeded as defaults → full backward compatibility.
+# ══════════════════════════════════════════════════════════════
+
+POSITIONS_FILE = os.path.join(os.path.dirname(__file__), "data", "ad_positions.json")
+_ADPOS_TMP = os.path.join(tempfile.gettempdir(), "ad_positions.json")
+_positions_table_ready = False
+
+IMAGE_FORMATS = ["png", "jpg", "jpeg", "webp"]
+VIDEO_FORMATS = ["mp4"]
+AUDIO_FORMATS = ["mp3", "aac", "wav"]
+
+# Seeded once (matches the current hardcoded slots + official recommended sizes).
+def _def_pos(slug, name, platform, w, h, ratio, types, fmts, size_mb=25, vdur=60, adur=180):
+    return {
+        "slug": slug, "name": name, "platform": platform,
+        "rec_width": w, "rec_height": h, "aspect_ratio": ratio,
+        "allowed_types": types, "allowed_formats": fmts,
+        "max_file_size_mb": size_mb, "max_video_duration": vdur,
+        "max_audio_duration": adur, "validation_enabled": True, "is_active": True,
+    }
+
+_ALL_FMT = IMAGE_FORMATS + VIDEO_FORMATS + AUDIO_FORMATS
+_AV = ["image", "video", "audio"]
+DEFAULT_POSITIONS = [
+    _def_pos("homepage_hero",        "Homepage Hero",        "website", 1920, 600, "16:5",  _AV, _ALL_FMT),
+    _def_pos("homepage_top",         "Homepage Top",         "website", 1200, 300, "4:1",   _AV, _ALL_FMT),
+    _def_pos("homepage_middle",      "Homepage Middle",      "website", 1200, 300, "4:1",   _AV, _ALL_FMT),
+    _def_pos("homepage_bottom",      "Homepage Bottom",      "website", 1200, 300, "4:1",   _AV, _ALL_FMT),
+    _def_pos("sidebar",              "Sidebar",              "website", 300,  600, "1:2",   ["image"], IMAGE_FORMATS),
+    _def_pos("footer",               "Footer",               "website", 1200, 250, "24:5",  _AV, _ALL_FMT),
+    _def_pos("article_page",         "Article Page",         "website", 1200, 300, "4:1",   _AV, _ALL_FMT),
+    _def_pos("home_top",             "Home Top",             "mobile",  1080, 400, "27:10", _AV, _ALL_FMT),
+    _def_pos("home_middle",          "Home Middle",          "mobile",  1080, 400, "27:10", _AV, _ALL_FMT),
+    _def_pos("home_bottom",          "Home Bottom",          "mobile",  1080, 400, "27:10", _AV, _ALL_FMT),
+    _def_pos("between_epaper_cards", "Between ePaper Cards",  "mobile",  1080, 300, "18:5",  _AV, _ALL_FMT),
+    _def_pos("top",                  "Top (both)",           "both",    1200, 300, "4:1",   _AV, _ALL_FMT),
+    _def_pos("middle",               "Middle (both)",        "both",    1200, 300, "4:1",   _AV, _ALL_FMT),
+    _def_pos("bottom",               "Bottom (both)",        "both",    1200, 300, "4:1",   _AV, _ALL_FMT),
+]
+
+
+def _ensure_positions_table(conn):
+    global _positions_table_ready
+    if _positions_table_ready:
+        return
+    with conn.cursor() as cur:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS ad_positions (
+                id                 BIGSERIAL PRIMARY KEY,
+                slug               TEXT UNIQUE NOT NULL,
+                name               TEXT NOT NULL,
+                platform           TEXT NOT NULL DEFAULT 'website',
+                rec_width          INTEGER,
+                rec_height         INTEGER,
+                aspect_ratio       TEXT NOT NULL DEFAULT '',
+                allowed_types      JSONB NOT NULL DEFAULT '["image"]'::jsonb,
+                allowed_formats    JSONB NOT NULL DEFAULT '[]'::jsonb,
+                max_file_size_mb   INTEGER NOT NULL DEFAULT 25,
+                max_video_duration INTEGER,
+                max_audio_duration INTEGER,
+                validation_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+                is_active          BOOLEAN NOT NULL DEFAULT TRUE,
+                created_at         TIMESTAMPTZ DEFAULT NOW(),
+                updated_at         TIMESTAMPTZ DEFAULT NOW()
+            )
+        """)
+        # Seed defaults only when the table is empty (first run).
+        cur.execute("SELECT COUNT(*) FROM ad_positions")
+        if cur.fetchone()[0] == 0:
+            for p in DEFAULT_POSITIONS:
+                cur.execute("""
+                    INSERT INTO ad_positions
+                        (slug, name, platform, rec_width, rec_height, aspect_ratio,
+                         allowed_types, allowed_formats, max_file_size_mb,
+                         max_video_duration, max_audio_duration, validation_enabled, is_active)
+                    VALUES (%(slug)s, %(name)s, %(platform)s, %(rec_width)s, %(rec_height)s,
+                            %(aspect_ratio)s, %(allowed_types)s::jsonb, %(allowed_formats)s::jsonb,
+                            %(max_file_size_mb)s, %(max_video_duration)s, %(max_audio_duration)s,
+                            %(validation_enabled)s, %(is_active)s)
+                    ON CONFLICT (slug) DO NOTHING
+                """, {**p,
+                      "allowed_types": json.dumps(p["allowed_types"]),
+                      "allowed_formats": json.dumps(p["allowed_formats"])})
+    conn.commit()
+    _positions_table_ready = True
+
+
+def _jsonb_list(v):
+    if v is None:
+        return []
+    if isinstance(v, list):
+        return v
+    try:
+        return json.loads(v)
+    except Exception:
+        return []
+
+
+def _serialize_position(p):
+    w = p.get("rec_width")
+    h = p.get("rec_height")
+    return {
+        "id": p.get("id"),
+        "slug": p.get("slug") or "",
+        "name": p.get("name") or "",
+        "platform": p.get("platform") or "website",
+        "rec_width": w,
+        "rec_height": h,
+        "resolution": (f"{w}×{h}" if w and h else ""),
+        "aspect_ratio": p.get("aspect_ratio") or "",
+        "allowed_types": _jsonb_list(p.get("allowed_types")),
+        "allowed_formats": _jsonb_list(p.get("allowed_formats")),
+        "max_file_size_mb": p.get("max_file_size_mb"),
+        "max_video_duration": p.get("max_video_duration"),
+        "max_audio_duration": p.get("max_audio_duration"),
+        "validation_enabled": bool(p.get("validation_enabled", True)),
+        "is_active": bool(p.get("is_active", True)),
+    }
+
+
+# ── Positions file fallback ──────────────────────────────────
+
+def _load_positions_file():
+    for path in (POSITIONS_FILE, _ADPOS_TMP):
+        if os.path.exists(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    return json.load(f) or []
+            except Exception:
+                continue
+    # First-run default seed for file mode.
+    seeded = []
+    for i, p in enumerate(DEFAULT_POSITIONS, start=1):
+        seeded.append({**p, "id": i})
+    _save_positions_file(seeded)
+    return seeded
+
+
+def _save_positions_file(items):
+    for path in (POSITIONS_FILE, _ADPOS_TMP):
+        try:
+            d = os.path.dirname(path)
+            if d:
+                os.makedirs(d, exist_ok=True)
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(items, f, ensure_ascii=False, indent=2)
+            return True
+        except (PermissionError, OSError):
+            continue
+    return False
+
+
+# ── Positions data access ────────────────────────────────────
+
+def _positions_all(platform=None, active_only=False, exact=False):
+    """List positions. exact=True matches the platform strictly (used by the ad
+    form so a platform's slots are exactly its own); otherwise a platform also
+    includes 'both' positions."""
+    if _use_pg():
+        try:
+            conn = _pg_connect()
+            _ensure_positions_table(conn)
+            clauses, params = [], []
+            if platform:
+                if exact or platform == "both":
+                    clauses.append("platform = %s")
+                    params.append(platform)
+                else:
+                    clauses.append("(platform = %s OR platform = 'both')")
+                    params.append(platform)
+            if active_only:
+                clauses.append("is_active = TRUE")
+            sql = "SELECT * FROM ad_positions"
+            if clauses:
+                sql += " WHERE " + " AND ".join(clauses)
+            sql += " ORDER BY platform, name"
+            with conn.cursor() as cur:
+                cur.execute(sql, params)
+                rows = _rows_as_dicts(cur)
+            conn.close()
+            return [_serialize_position(r) for r in rows]
+        except Exception as exc:
+            print(f"[ads] positions PG list failed, using file: {exc}")
+    items = _load_positions_file()
+    out = []
+    for p in items:
+        if platform:
+            if exact or platform == "both":
+                if p.get("platform") != platform:
+                    continue
+            elif p.get("platform") not in (platform, "both"):
+                continue
+        if active_only and not p.get("is_active", True):
+            continue
+        out.append(_serialize_position(p))
+    return sorted(out, key=lambda x: (x["platform"], x["name"]))
+
+
+def _position_by_slug(slug):
+    if not slug:
+        return None
+    for p in _positions_all():
+        if p["slug"] == slug:
+            return p
+    return None
+
+
+def _position_by_id(pid):
+    for p in _positions_all():
+        if str(p["id"]) == str(pid):
+            return p
+    return None
+
+
+def _position_in_use(slug):
+    """True if any advertisement references this position slug."""
+    if _use_pg():
+        try:
+            conn = _pg_connect()
+            _ensure_table(conn)
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1 FROM advertisements WHERE position = %s LIMIT 1", (slug,))
+                used = cur.fetchone() is not None
+            conn.close()
+            return used
+        except Exception as exc:
+            print(f"[ads] position in-use check failed: {exc}")
+    return any(a.get("position") == slug for a in _load_file_ads())
+
+
 # ── Payload validation ───────────────────────────────────────
 
 def _clean_payload(data):
@@ -374,7 +609,9 @@ def _clean_payload(data):
         return None, f"Invalid platform. Allowed: {', '.join(PLATFORMS)}."
 
     position = (data.get("position") or "").strip()
-    if position and position not in VALID_POSITIONS:
+    # Positions are now configurable in the DB; accept any known slug (DB or the
+    # seeded static set for backward compatibility).
+    if position and not _position_by_slug(position) and position not in VALID_POSITIONS:
         return None, f"Invalid position '{position}'."
 
     ad_type = (data.get("advertisement_type") or data.get("ad_type") or "image").strip().lower()
@@ -706,7 +943,9 @@ def _upload_media(file_bytes, filename, mtype):
         }
         result = cloudinary.uploader.upload(_io.BytesIO(file_bytes), **opts)
         url = result["secure_url"]
-        out = {"url": url, "thumbnail": "", "duration": None}
+        out = {"url": url, "thumbnail": "", "duration": None,
+               "width": result.get("width"), "height": result.get("height"),
+               "bytes": result.get("bytes") or len(file_bytes), "format": ext}
         if mtype == "video":
             # First-frame poster generated by Cloudinary (so_0 = start offset).
             poster = _re.sub(r"\.(mp4|mov|webm)$", ".jpg", url, flags=_re.I)
@@ -725,14 +964,32 @@ def _upload_media(file_bytes, filename, mtype):
     fname = f"{stem}-{_dt.now().strftime('%Y%m%d%H%M%S%f')}.{ext}"
     with open(_os.path.join(updir, fname), "wb") as fh:
         fh.write(file_bytes)
-    return {"url": f"/static/uploads/ads/{fname}", "thumbnail": "", "duration": None}
+    return {"url": f"/static/uploads/ads/{fname}", "thumbnail": "", "duration": None,
+            "width": None, "height": None, "bytes": len(file_bytes), "format": ext}
+
+
+def _aspect_ok(w, h, ratio_str, tol=0.06):
+    """True if w:h roughly matches a 'A:B' aspect ratio string."""
+    if not (w and h and ratio_str and ":" in ratio_str):
+        return True
+    try:
+        a, b = ratio_str.split(":")
+        target = float(a) / float(b)
+        actual = float(w) / float(h)
+        return abs(actual - target) / target <= tol
+    except (ValueError, ZeroDivisionError):
+        return True
 
 
 @ads_bp.route("/api/v1/admin/ads/upload", methods=["POST"])
 def api_admin_upload_media():
     """Upload an image / video / audio file for an advertisement.
-    Validates the file format per type, compresses, and returns the media URL
-    (+ auto thumbnail & duration for video/audio)."""
+
+    Validates the file against the selected POSITION configuration (allowed
+    types/formats, max file size, max duration). If the position has
+    validation_enabled = false, mismatches become warnings instead of errors.
+    Returns the media URL plus metadata (resolution, size, duration, format,
+    match status) for the preview panel."""
     guard = _require_epaper_admin()
     if guard is not None:
         return guard
@@ -746,29 +1003,326 @@ def api_admin_upload_media():
         return jsonify({"success": False, "error": "No file uploaded."}), 400
 
     ext = f.filename.rsplit(".", 1)[-1].lower() if "." in f.filename else ""
-    if ext not in ALLOWED_MEDIA_EXT[mtype]:
-        allowed = ", ".join(sorted(ALLOWED_MEDIA_EXT[mtype])).upper()
-        return jsonify({"success": False,
-                        "error": f"Invalid file for {mtype}. Allowed: {allowed}."}), 400
+    file_bytes = f.read()
+    size_mb = len(file_bytes) / (1024 * 1024)
+
+    # Load the position configuration (dimensions/limits come from the DB — nothing
+    # is hardcoded). If none selected, fall back to the base per-type extension list.
+    cfg = _position_by_slug((request.form.get("position") or "").strip())
+    strict = bool(cfg and cfg.get("validation_enabled", True))
+    warnings, errors = [], []
+
+    def _flag(msg):
+        (errors if strict else warnings).append(msg)
+
+    if cfg:
+        if cfg.get("allowed_types") and mtype not in cfg["allowed_types"]:
+            _flag(f"This position does not allow {mtype} ads (allowed: {', '.join(cfg['allowed_types'])}).")
+        if cfg.get("allowed_formats") and ext not in [x.lower() for x in cfg["allowed_formats"]]:
+            _flag(f"Format .{ext} not allowed here (allowed: {', '.join(cfg['allowed_formats']).upper()}).")
+        if cfg.get("max_file_size_mb") and size_mb > cfg["max_file_size_mb"]:
+            _flag(f"File is {size_mb:.1f} MB — exceeds the {cfg['max_file_size_mb']} MB limit.")
+    else:
+        # No position config → base extension guard still applies.
+        if ext not in ALLOWED_MEDIA_EXT[mtype]:
+            errors.append(f"Invalid file for {mtype}. Allowed: {', '.join(sorted(ALLOWED_MEDIA_EXT[mtype])).upper()}.")
+
+    # Hard-stop before uploading if strict validation already failed.
+    if errors:
+        return jsonify({"success": False, "error": " ".join(errors)}), 400
 
     try:
-        result = _upload_media(f.read(), f.filename, mtype)
-        return jsonify({"success": True, **result}), 201
+        result = _upload_media(file_bytes, f.filename, mtype)
     except Exception as e:
         return jsonify({"success": False, "error": f"Upload failed: {e}"}), 500
 
+    # Post-upload checks using the real media metadata.
+    dur = result.get("duration")
+    w, h = result.get("width"), result.get("height")
+    if cfg:
+        if mtype == "video" and cfg.get("max_video_duration") and dur and dur > cfg["max_video_duration"]:
+            _flag(f"Video is {dur}s — exceeds the {cfg['max_video_duration']}s limit.")
+        if mtype == "audio" and cfg.get("max_audio_duration") and dur and dur > cfg["max_audio_duration"]:
+            _flag(f"Audio is {dur}s — exceeds the {cfg['max_audio_duration']}s limit.")
 
-# ── Admin page ───────────────────────────────────────────────
+    # Dimension / aspect are informational (match status), never a hard reject.
+    match = True
+    if mtype == "image" and w and h and cfg:
+        rw, rh = cfg.get("rec_width"), cfg.get("rec_height")
+        if rw and rh and (w != rw or h != rh):
+            match = False
+        if not _aspect_ok(w, h, cfg.get("aspect_ratio")):
+            match = False
+            warnings.append(f"Aspect ratio {w}×{h} differs from recommended {cfg.get('aspect_ratio')}.")
+
+    if strict and errors:
+        return jsonify({"success": False, "error": " ".join(errors), "warnings": warnings}), 400
+
+    return jsonify({
+        "success": True,
+        **result,
+        "size_mb": round(size_mb, 2),
+        "match": match,
+        "warnings": warnings,
+    }), 201
+
+
+# ══════════════════════════════════════════════════════════════
+#  POSITION CONFIGURATION APIs
+# ══════════════════════════════════════════════════════════════
+
+def _slugify(name):
+    s = re.sub(r"[^a-z0-9]+", "_", (name or "").strip().lower()).strip("_")
+    return s or "position"
+
+
+def _unique_slug(base):
+    existing = {p["slug"] for p in _positions_all()}
+    if base not in existing:
+        return base
+    i = 2
+    while f"{base}_{i}" in existing:
+        i += 1
+    return f"{base}_{i}"
+
+
+def _auto_ratio(w, h):
+    if not (w and h):
+        return ""
+    from math import gcd
+    g = gcd(int(w), int(h)) or 1
+    return f"{int(w)//g}:{int(h)//g}"
+
+
+def _clean_position_payload(data, existing=None):
+    name = (data.get("name") or "").strip()
+    if not name:
+        return None, "Position name is required."
+    platform = (data.get("platform") or "website").strip().lower()
+    if platform not in PLATFORMS:
+        return None, f"Invalid platform. Allowed: {', '.join(PLATFORMS)}."
+
+    types = [t for t in (data.get("allowed_types") or []) if t in AD_TYPES]
+    if not types:
+        types = ["image"]
+    formats = [str(x).strip().lower().lstrip(".") for x in (data.get("allowed_formats") or []) if str(x).strip()]
+
+    def _int(v):
+        try:
+            return int(v) if v not in (None, "") else None
+        except (TypeError, ValueError):
+            return None
+
+    w, h = _int(data.get("rec_width")), _int(data.get("rec_height"))
+    ratio = (data.get("aspect_ratio") or "").strip() or _auto_ratio(w, h)
+    clean = {
+        "name": name,
+        "platform": platform,
+        "rec_width": w,
+        "rec_height": h,
+        "aspect_ratio": ratio,
+        "allowed_types": types,
+        "allowed_formats": formats,
+        "max_file_size_mb": _int(data.get("max_file_size_mb")) or 25,
+        "max_video_duration": _int(data.get("max_video_duration")),
+        "max_audio_duration": _int(data.get("max_audio_duration")),
+        "validation_enabled": bool(data.get("validation_enabled", True)),
+        "is_active": bool(data.get("is_active", True)),
+    }
+    return clean, None
+
+
+def _create_position(clean):
+    clean = {**clean, "slug": _unique_slug(_slugify(clean["name"]))}
+    if _use_pg():
+        conn = _pg_connect()
+        _ensure_positions_table(conn)
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO ad_positions
+                    (slug, name, platform, rec_width, rec_height, aspect_ratio,
+                     allowed_types, allowed_formats, max_file_size_mb,
+                     max_video_duration, max_audio_duration, validation_enabled, is_active)
+                VALUES (%(slug)s, %(name)s, %(platform)s, %(rec_width)s, %(rec_height)s,
+                        %(aspect_ratio)s, %(allowed_types)s::jsonb, %(allowed_formats)s::jsonb,
+                        %(max_file_size_mb)s, %(max_video_duration)s, %(max_audio_duration)s,
+                        %(validation_enabled)s, %(is_active)s)
+                RETURNING id
+            """, {**clean,
+                  "allowed_types": json.dumps(clean["allowed_types"]),
+                  "allowed_formats": json.dumps(clean["allowed_formats"])})
+            new_id = cur.fetchone()[0]
+        conn.commit()
+        conn.close()
+        return _position_by_id(new_id)
+    items = _load_positions_file()
+    clean["id"] = (max([int(p.get("id", 0)) for p in items], default=0) + 1)
+    items.append(clean)
+    _save_positions_file(items)
+    return _serialize_position(clean)
+
+
+def _update_position(pid, clean):
+    if _use_pg():
+        conn = _pg_connect()
+        _ensure_positions_table(conn)
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE ad_positions SET
+                    name=%(name)s, platform=%(platform)s, rec_width=%(rec_width)s,
+                    rec_height=%(rec_height)s, aspect_ratio=%(aspect_ratio)s,
+                    allowed_types=%(allowed_types)s::jsonb, allowed_formats=%(allowed_formats)s::jsonb,
+                    max_file_size_mb=%(max_file_size_mb)s, max_video_duration=%(max_video_duration)s,
+                    max_audio_duration=%(max_audio_duration)s, validation_enabled=%(validation_enabled)s,
+                    is_active=%(is_active)s, updated_at=NOW()
+                WHERE id=%(id)s
+            """, {**clean, "id": pid,
+                  "allowed_types": json.dumps(clean["allowed_types"]),
+                  "allowed_formats": json.dumps(clean["allowed_formats"])})
+            found = cur.rowcount > 0
+        conn.commit()
+        conn.close()
+        return _position_by_id(pid) if found else None
+    items = _load_positions_file()
+    hit = None
+    for p in items:
+        if str(p.get("id")) == str(pid):
+            p.update(clean)
+            hit = p
+            break
+    if not hit:
+        return None
+    _save_positions_file(items)
+    return _serialize_position(hit)
+
+
+def _delete_position(pid):
+    if _use_pg():
+        conn = _pg_connect()
+        _ensure_positions_table(conn)
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM ad_positions WHERE id=%s", (pid,))
+            found = cur.rowcount > 0
+        conn.commit()
+        conn.close()
+        return found
+    items = _load_positions_file()
+    new = [p for p in items if str(p.get("id")) != str(pid)]
+    if len(new) == len(items):
+        return False
+    _save_positions_file(new)
+    return True
+
+
+def _toggle_position(pid):
+    cur_pos = _position_by_id(pid)
+    if not cur_pos:
+        return None
+    if _use_pg():
+        conn = _pg_connect()
+        _ensure_positions_table(conn)
+        with conn.cursor() as c:
+            c.execute("UPDATE ad_positions SET is_active = NOT is_active, updated_at=NOW() WHERE id=%s", (pid,))
+        conn.commit()
+        conn.close()
+        return _position_by_id(pid)
+    items = _load_positions_file()
+    for p in items:
+        if str(p.get("id")) == str(pid):
+            p["is_active"] = not bool(p.get("is_active", True))
+            _save_positions_file(items)
+            return _serialize_position(p)
+    return None
+
+
+@ads_bp.route("/api/v1/positions")
+def api_list_positions():
+    """Public: list positions (used by the ad form + optionally the app).
+    ?platform=website|mobile|both  ?active=1 (only active)."""
+    platform = (request.args.get("platform") or "").strip().lower() or None
+    active_only = request.args.get("active") in ("1", "true", "yes")
+    exact = request.args.get("exact") in ("1", "true", "yes")
+    return jsonify({"success": True, "positions": _positions_all(platform, active_only, exact)})
+
+
+@ads_bp.route("/api/v1/admin/positions", methods=["GET"])
+def api_admin_list_positions():
+    guard = _require_epaper_admin()
+    if guard is not None:
+        return guard
+    positions = _positions_all()
+    for p in positions:
+        p["in_use"] = _position_in_use(p["slug"])
+    return jsonify({"success": True, "positions": positions})
+
+
+@ads_bp.route("/api/v1/admin/positions", methods=["POST"])
+def api_admin_create_position():
+    guard = _require_epaper_admin()
+    if guard is not None:
+        return guard
+    clean, err = _clean_position_payload(request.get_json(force=True, silent=True) or {})
+    if err:
+        return jsonify({"success": False, "error": err}), 400
+    return jsonify({"success": True, "position": _create_position(clean)}), 201
+
+
+@ads_bp.route("/api/v1/admin/positions/<int:pid>", methods=["PUT"])
+def api_admin_update_position(pid):
+    guard = _require_epaper_admin()
+    if guard is not None:
+        return guard
+    clean, err = _clean_position_payload(request.get_json(force=True, silent=True) or {})
+    if err:
+        return jsonify({"success": False, "error": err}), 400
+    updated = _update_position(pid, clean)
+    if not updated:
+        return jsonify({"success": False, "error": "Position not found."}), 404
+    return jsonify({"success": True, "position": updated})
+
+
+@ads_bp.route("/api/v1/admin/positions/<int:pid>", methods=["DELETE"])
+def api_admin_delete_position(pid):
+    guard = _require_epaper_admin()
+    if guard is not None:
+        return guard
+    pos = _position_by_id(pid)
+    if not pos:
+        return jsonify({"success": False, "error": "Position not found."}), 404
+    if _position_in_use(pos["slug"]):
+        return jsonify({"success": False,
+                        "error": "This position is used by one or more advertisements. "
+                                 "Reassign or delete those ads first."}), 409
+    _delete_position(pid)
+    return jsonify({"success": True})
+
+
+@ads_bp.route("/api/v1/admin/positions/<int:pid>/toggle", methods=["POST"])
+def api_admin_toggle_position(pid):
+    guard = _require_epaper_admin()
+    if guard is not None:
+        return guard
+    updated = _toggle_position(pid)
+    if not updated:
+        return jsonify({"success": False, "error": "Position not found."}), 404
+    return jsonify({"success": True, "position": updated})
+
+
+# ── Admin pages ──────────────────────────────────────────────
 
 @ads_bp.route("/epaper-admin/ads")
 def ads_admin_page():
     guard = _require_epaper_admin()
     if guard is not None:
         return guard
-    return render_template(
-        "ads_admin.html",
-        website_positions=WEBSITE_POSITIONS,
-        mobile_positions=MOBILE_POSITIONS,
-        common_positions=COMMON_POSITIONS,
-        ad_types=AD_TYPES,
-    )
+    return render_template("ads_admin.html", ad_types=AD_TYPES)
+
+
+@ads_bp.route("/epaper-admin/ad-positions")
+def ad_positions_page():
+    guard = _require_epaper_admin()
+    if guard is not None:
+        return guard
+    return render_template("ad_positions.html", platforms=PLATFORMS, ad_types=AD_TYPES,
+                           image_formats=IMAGE_FORMATS, video_formats=VIDEO_FORMATS,
+                           audio_formats=AUDIO_FORMATS)

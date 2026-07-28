@@ -97,6 +97,18 @@
     .preview-img{max-width:100%;border-radius:8px;border:1px solid var(--border);}
     .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .3s;z-index:200;}
     .toast.show{opacity:1;}
+    /* Position config panel + media metadata */
+    .pos-config{background:#f8fafc;border:1px solid #e1dad0;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12.5px;}
+    .pos-config .pc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 16px;}
+    .pos-config .pc-item{display:flex;flex-direction:column;gap:2px;}
+    .pos-config .pc-k{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:700;}
+    .pos-config .pc-v{font-weight:600;color:var(--text);}
+    .pos-config .pc-off{color:#b45309;font-weight:700;}
+    .media-meta{margin-top:8px;font-size:12px;}
+    .media-meta .mm-row{display:flex;flex-wrap:wrap;gap:6px 12px;color:var(--muted);}
+    .media-meta .mm-ok{color:#166534;font-weight:700;}
+    .media-meta .mm-warn{color:#b45309;font-weight:700;}
+    .media-meta .mm-chip{background:#fff;border:1px solid var(--border);border-radius:6px;padding:1px 7px;}
     @media(max-width:720px){.row,.stats{grid-template-columns:1fr;}.row-2{grid-template-columns:1fr;}table{font-size:12px;}}
   </style>
 </head>
@@ -104,6 +116,7 @@
   <div class="epa-header">
     <h1><i class="fa fa-bullhorn"></i> Advertisements</h1>
     <a href="/epaper-admin" class="btnlink"><i class="fa fa-arrow-left"></i> Page Builder</a>
+    <a href="/epaper-admin/ad-positions" class="btnlink"><i class="fa fa-table-cells-large"></i> Positions</a>
     <a href="/epaper" class="btnlink"><i class="fa fa-eye"></i> View Site</a>
     <span class="spacer"></span>
     <a href="/epaper-admin/logout" class="btnlink"><i class="fa fa-sign-out-alt"></i> Logout</a>
@@ -178,6 +191,24 @@
           </select>
         </div>
       </div>
+      <div class="row">
+        <div class="fg"><label>Platform *</label>
+          <select id="adPlatform" onchange="Ads.syncPositions()">
+            <option value="website">Website</option>
+            <option value="mobile">Mobile App</option>
+            <option value="both">Both</option>
+          </select>
+        </div>
+        <div class="fg"><label>Position</label>
+          <select id="adPosition" onchange="Ads.onPositionChange()"></select>
+        </div>
+        <div class="fg"><label>Priority</label>
+          <input id="adPriority" type="number" value="0" min="0">
+          <div class="hint">Higher number shows first.</div>
+        </div>
+      </div>
+      <!-- Auto-loaded configuration for the selected position -->
+      <div id="posConfig" class="pos-config" style="display:none"></div>
       <div class="row-2">
         <div class="fg"><label id="mediaLabel">Banner Image</label>
           <div class="upload-box" id="uploadBox" onclick="Ads.pickMedia()">
@@ -192,6 +223,7 @@
           <input id="adDuration" type="hidden">
           <div class="hint" id="mediaHint">JPG, PNG or WebP. Auto-optimized via CDN.</div>
           <input id="adMediaLink" type="url" placeholder="…or paste a direct media link (https://…)" onchange="Ads.useMediaLink()" oninput="Ads.useMediaLink()">
+          <div id="mediaMeta" class="media-meta"></div>
         </div>
         <div class="fg" id="thumbRow" style="display:none"><label>Video Thumbnail (optional)</label>
           <div class="upload-box" id="thumbBox" onclick="document.getElementById('adThumbFile').click()">
@@ -207,22 +239,6 @@
       <div class="fg" style="margin-bottom:14px"><label>Redirect URL (optional)</label>
         <input id="adRedirect" type="url" placeholder="https://…">
         <div class="hint">Opens in the device browser / new tab on tap. Leave blank for no link.</div>
-      </div>
-      <div class="row">
-        <div class="fg"><label>Platform *</label>
-          <select id="adPlatform" onchange="Ads.syncPositions()">
-            <option value="website">Website</option>
-            <option value="mobile">Mobile App</option>
-            <option value="both">Both</option>
-          </select>
-        </div>
-        <div class="fg"><label>Position</label>
-          <select id="adPosition" onchange="Ads.updateMediaHint()"></select>
-        </div>
-        <div class="fg"><label>Priority</label>
-          <input id="adPriority" type="number" value="0" min="0">
-          <div class="hint">Higher number shows first.</div>
-        </div>
       </div>
       <div class="row">
         <div class="fg"><label>Start Date</label><input id="adStart" type="date"></div>
@@ -252,13 +268,6 @@
 
   <div class="toast" id="toast"></div>
 
-  <script>
-    window.AD_POSITIONS = {
-      website: {{ website_positions | tojson }},
-      mobile:  {{ mobile_positions | tojson }},
-      both:    {{ common_positions | tojson }}
-    };
-  </script>
-  <script src="{{ url_for('static', filename='ads-admin.js') }}?v=6"></script>
+  <script src="{{ url_for('static', filename='ads-admin.js') }}?v=7"></script>
 </body>
 </html>
