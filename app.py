@@ -48,6 +48,12 @@ except ImportError:
     Json = None
     execute_values = None
 try:
+    from authlib.integrations.flask_client import OAuth as _AuthlibOAuth
+    _has_authlib = True
+except ImportError:
+    _AuthlibOAuth = None
+    _has_authlib = False
+try:
     import psycopg2
     import psycopg2.extras
     import psycopg2.pool as _pg_pool
@@ -87,6 +93,17 @@ limiter = Limiter(
     default_limits=[]
 )
 app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024  # 200 MB upload limit
+
+oauth = None
+if _has_authlib:
+    oauth = _AuthlibOAuth(app)
+    oauth.register(
+        name='google',
+        client_id=os.getenv('GOOGLE_CLIENT_ID'),
+        client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
+        server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+        client_kwargs={'scope': 'openid email profile'},
+    )
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 # Enable SECURE cookies only when not running locally
@@ -1329,6 +1346,7 @@ def get_auth_db_connection():
                     ALTER TABLE users ADD COLUMN IF NOT EXISTS verified BOOLEAN NOT NULL DEFAULT TRUE;
                     ALTER TABLE users ADD COLUMN IF NOT EXISTS login_count BIGINT NOT NULL DEFAULT 0;
                     ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
+                    ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT;
                 """)
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS bookmarks (
@@ -1415,6 +1433,7 @@ def get_auth_db_connection():
         "verified BOOLEAN NOT NULL DEFAULT 1",
         "login_count INTEGER NOT NULL DEFAULT 0",
         "last_login_at TEXT",
+        "google_id TEXT",
     ):
         try:
             connection.execute(f"ALTER TABLE users ADD COLUMN {column_sql}")
@@ -5119,7 +5138,15 @@ def login():
                 (email,),
             ).fetchone()
 
-        if user is None or not check_password_hash(user["password_hash"], password):
+        if user is None:
+            flash("Invalid email or password.", "error")
+            return render_template("auth.html", mode="login", page_title="Login", next=next_url)
+
+        if str(user.get("password_hash", "")).startswith("google:"):
+            flash("This account uses Google Sign-In. Please use the 'Continue with Google' button.", "error")
+            return render_template("auth.html", mode="login", page_title="Login", next=next_url)
+
+        if not check_password_hash(user["password_hash"], password):
             flash("Invalid email or password.", "error")
             return render_template("auth.html", mode="login", page_title="Login", next=next_url)
 
@@ -5414,6 +5441,75 @@ def reset_password(token):
         return redirect(url_for("login"))
 
     return render_template("auth.html", mode="reset", page_title="Reset Password")
+
+
+@app.route("/auth/google")
+def google_auth():
+    if not oauth:
+        flash("Google login is not available.", "error")
+        return redirect(url_for("login"))
+    next_url = request.args.get("next", "")
+    if next_url:
+        session["next_url"] = next_url
+    redirect_uri = url_for("google_callback", _external=True)
+    return oauth.google.authorize_redirect(redirect_uri)
+
+
+@app.route("/auth/google/callback")
+def google_callback():
+    if not oauth:
+        flash("Google login is not available.", "error")
+        return redirect(url_for("login"))
+    try:
+        token = oauth.google.authorize_access_token()
+    except Exception as exc:
+        app.logger.warning("Google OAuth error: %s", exc)
+        flash("Google login failed. Please try again.", "error")
+        return redirect(url_for("login"))
+
+    userinfo = token.get("userinfo")
+    if not userinfo or not userinfo.get("email"):
+        flash("Could not retrieve account info from Google. Please try again.", "error")
+        return redirect(url_for("login"))
+
+    google_id = userinfo["sub"]
+    email = userinfo["email"].strip().lower()
+    name = (userinfo.get("name") or email.split("@")[0]).strip()
+    is_admin_flag = False
+
+    try:
+        with get_auth_db_connection() as conn:
+            user = conn.execute(
+                "SELECT name, email, is_admin, google_id FROM users WHERE email = ?",
+                (email,),
+            ).fetchone()
+            if user is None:
+                is_admin_flag = email == _get_dashboard_admin_credentials()[0]
+                conn.execute(
+                    "INSERT INTO users (name, email, password_hash, google_id, is_admin, verified)"
+                    " VALUES (?, ?, ?, ?, ?, ?)",
+                    (name, email, f"google:{google_id}", google_id, bool(is_admin_flag), True),
+                )
+                conn.commit()
+            else:
+                name = user["name"]
+                is_admin_flag = bool(user.get("is_admin", False))
+                if not user.get("google_id"):
+                    conn.execute(
+                        "UPDATE users SET google_id = ? WHERE email = ?",
+                        (google_id, email),
+                    )
+                    conn.commit()
+    except Exception as exc:
+        app.logger.error("Google callback DB error: %s", exc)
+        flash("Login failed due to a server error. Please try again.", "error")
+        return redirect(url_for("login"))
+
+    record_user_login(email)
+    session["auth_user"] = {"name": name, "email": email, "is_admin": is_admin_flag}
+    flash(f"Welcome, {name}!", "success")
+    next_url = session.pop("next_url", None) or ""
+    return redirect(next_url or url_for("dashboard"))
 
 
 @app.route("/logout")
