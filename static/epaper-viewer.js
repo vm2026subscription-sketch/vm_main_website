@@ -316,6 +316,7 @@ const EP = {
       main: document.getElementById('epMain'),
       newsToggleBtn: document.getElementById('epNewsToggleBtn'),
       newsReopenBtn: document.getElementById('epNewsReopenBtn'),
+      newsBackdrop: document.getElementById('epNewsBackdrop'),
       editionLanding: document.getElementById('epEditionLanding'),
       editionFilterButtons: document.querySelectorAll('.ep-edition-filter-btn'),
       editionGrid: document.getElementById('epEditionGrid'),
@@ -399,6 +400,7 @@ const EP = {
     this.el.dateBtn?.addEventListener('click', async () => await this.toggleCalendar());
     this.el.newsToggleBtn?.addEventListener('click', () => this.toggleNewsSidebar());
     this.el.newsReopenBtn?.addEventListener('click', () => this.toggleNewsSidebar());
+    this.el.newsBackdrop?.addEventListener('click', () => this.setNewsSidebarState(false));
     this.el.editionFilterButtons?.forEach(btn => {
       btn.addEventListener('click', () => this.setLandingLanguageFilter(btn.dataset.language || ''));
     });
