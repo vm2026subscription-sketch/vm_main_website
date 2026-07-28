@@ -5451,7 +5451,10 @@ def google_auth():
     next_url = request.args.get("next", "")
     if next_url:
         session["next_url"] = next_url
-    redirect_uri = url_for("google_callback", _external=True)
+    redirect_uri = (
+        os.getenv("GOOGLE_REDIRECT_URI")
+        or url_for("google_callback", _external=True)
+    )
     return oauth.google.authorize_redirect(redirect_uri)
 
 
