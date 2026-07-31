@@ -802,7 +802,47 @@ const EP = {
 
     grid.innerHTML = '';
 
+    // Newest edition on display gets a small "Latest" badge (only the first match).
+    const _newestDate = visibleEntries.reduce((m, e) => ((e.edition.date || '') > m ? (e.edition.date || '') : m), '');
+    // ── Weekly-release context bar — all languages of the newest edition, treated equally ──
+    const _weeklyOld = document.getElementById('epWeeklyBar');
+    if (_weeklyOld) _weeklyOld.remove();
+    if (_newestDate) {
+      const _newestSet = visibleEntries.filter(e => (e.edition.date || '') === _newestDate);
+      const _langs = [...new Set(_newestSet.map(e => (e.edition.language || '').trim()).filter(Boolean))];
+      const _tMatch = (this.getEditionCardTitle(_newestSet[0].edition) || '').match(/(\d{2,})/);
+      const _edNo = _tMatch ? _tMatch[1] : '';
+      let _dateStr = this.formatEditionCardDate(_newestDate);
+      try {
+        const _d = new Date(_newestDate + 'T00:00:00');
+        _dateStr = _d.toLocaleDateString('en-US', { weekday: 'long' }) + ', ' + _dateStr;
+      } catch (e) { /* keep plain date */ }
+      const _paperSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:7px"><path d="M15 18h-5"/><path d="M18 14h-8"/><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><rect width="8" height="4" x="10" y="6" rx="1"/></svg>';
+      const _bar = document.createElement('div');
+      _bar.id = 'epWeeklyBar';
+      _bar.className = 'ep-weekly-bar';
+      _bar.innerHTML =
+        '<span class="ep-weekly-tag">' + _paperSvg + 'Latest Weekly Release</span>' +
+        '<span class="ep-weekly-main">' + (_edNo ? 'Edition #' + _edNo + ' • ' : '') + 'Published ' + _dateStr + '</span>' +
+        (_langs.length ? '<span class="ep-weekly-langs">Available in ' + _langs.join(' • ') + '</span>' : '');
+      grid.parentNode.insertBefore(_bar, grid);
+    }
+
+    let _prevMonth = '';
     visibleEntries.forEach(({ edition, previewUrl }) => {
+      // Timeline: month divider when browsing all editions (older ones grouped by month).
+      if (this._landingShowAll) {
+        const _mk = (edition.date || '').slice(0, 7);
+        if (_mk && _mk !== _prevMonth) {
+          _prevMonth = _mk;
+          const mh = document.createElement('div');
+          mh.className = 'ep-month-header';
+          let _ml = _mk;
+          try { _ml = new Date(edition.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }); } catch (e) { /* keep key */ }
+          mh.textContent = _ml;
+          grid.appendChild(mh);
+        }
+      }
       const card = document.createElement('button');
       card.type = 'button';
       card.className = 'ep-edition-card';
@@ -811,6 +851,12 @@ const EP = {
 
       const cover = document.createElement('div');
       cover.className = 'ep-edition-card-cover';
+
+      // Page-curl hover flourish — reinforces the "ePaper" feel.
+      const curl = document.createElement('span');
+      curl.className = 'ep-page-curl';
+      curl.setAttribute('aria-hidden', 'true');
+      cover.appendChild(curl);
 
       const previewFrame = document.createElement('div');
       previewFrame.className = 'ep-edition-card-preview-frame';
@@ -833,18 +879,10 @@ const EP = {
       const body = document.createElement('div');
       body.className = 'ep-edition-card-body';
 
-      const info = document.createElement('div');
-      info.className = 'ep-edition-card-info';
-
       const title = document.createElement('div');
       title.className = 'ep-edition-card-title';
-      title.textContent = this.getEditionCardTitle(edition);
-
-      const subtitle = document.createElement('div');
-      subtitle.className = 'ep-edition-card-subtitle';
-      subtitle.textContent = this.formatEditionCardDate(edition.date);
-
-      info.append(title, subtitle);
+      title.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:7px;flex:none"><path d="M15 18h-5"/><path d="M18 14h-8"/><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><rect width="8" height="4" x="10" y="6" rx="1"/></svg>';
+      title.append(document.createTextNode(this.getEditionCardTitle(edition)));
 
       const langLabel = (edition.language || 'Edition').trim();
       const langKey = langLabel.toLowerCase();
@@ -852,9 +890,26 @@ const EP = {
       const language = document.createElement('div');
       language.className = `ep-edition-card-language ${this.getEditionLanguageClass(langLabel)}`;
       language.dataset.lang = langKey;
-      language.textContent = langLabel;
+      language.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
+      language.append(document.createTextNode(langLabel));
 
-      body.append(info, language);
+      const subtitle = document.createElement('div');
+      subtitle.className = 'ep-edition-card-subtitle';
+      const calIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>';
+      subtitle.innerHTML = calIcon;
+      subtitle.append(document.createTextNode(this.formatEditionCardDate(edition.date)));
+
+      // Title on top; date + language share one line below.
+      const metaRow = document.createElement('div');
+      metaRow.className = 'ep-edition-card-metarow';
+      metaRow.append(subtitle, language);
+
+      const cta = document.createElement('span');
+      cta.className = 'ep-read-cta';
+      cta.setAttribute('aria-hidden', 'true');
+      cta.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Read Newspaper';
+
+      body.append(title, metaRow, cta);
 
       card.append(cover, body);
       card.addEventListener('click', async () => {
@@ -869,12 +924,63 @@ const EP = {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'ep-load-more-btn';
-      btn.textContent = `Load ${remaining} more edition${remaining !== 1 ? 's' : ''}`;
+      btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Load ${remaining} more edition${remaining !== 1 ? 's' : ''}`;
       btn.addEventListener('click', () => {
         this._landingShowAll = true;
         this.renderEditionLanding();
       });
       grid.appendChild(btn);
+    }
+
+    this._filterRenderedEditions();
+  },
+
+  // Search editions by number/title. Loads all editions so search spans everything.
+  searchEditions(q) {
+    this._landingSearch = q || '';
+    if (this._landingSearch.trim()) this._landingShowAll = true;
+    this.renderEditionLanding();
+  },
+
+  // Hide cards (and empty month headers) that don't match the active search.
+  _filterRenderedEditions() {
+    const grid = document.getElementById('epEditionGrid');
+    if (!grid) return;
+    const q = (this._landingSearch || '').trim().toLowerCase();
+    const weekly = document.getElementById('epWeeklyBar');
+    const loadMore = grid.querySelector('.ep-load-more-btn');
+    const oldEmpty = grid.querySelector('.ep-search-empty');
+    if (oldEmpty) oldEmpty.remove();
+    if (!q) {
+      grid.querySelectorAll('.ep-edition-card, .ep-month-header').forEach((el) => { el.style.display = ''; });
+      if (weekly) weekly.style.display = '';
+      if (loadMore) loadMore.style.display = '';
+      return;
+    }
+    if (weekly) weekly.style.display = 'none';
+    if (loadMore) loadMore.style.display = 'none';
+    let anyVisible = false;
+    grid.querySelectorAll('.ep-edition-card').forEach((card) => {
+      const show = (card.textContent || '').toLowerCase().includes(q);
+      card.style.display = show ? '' : 'none';
+      if (show) anyVisible = true;
+    });
+    const kids = Array.from(grid.children);
+    kids.forEach((el, i) => {
+      if (!el.classList.contains('ep-month-header')) return;
+      let has = false;
+      for (let j = i + 1; j < kids.length; j++) {
+        if (kids[j].classList.contains('ep-month-header')) break;
+        if (kids[j].classList.contains('ep-edition-card') && kids[j].style.display !== 'none') { has = true; break; }
+      }
+      el.style.display = has ? '' : 'none';
+    });
+    if (!anyVisible) {
+      const empty = document.createElement('div');
+      empty.className = 'ep-edition-empty ep-search-empty';
+      empty.style.gridColumn = '1 / -1';
+      empty.textContent = `No editions match "${this._landingSearch.trim()}". Try another number.`;
+      grid.appendChild(empty);
     }
   },
 
@@ -1378,7 +1484,7 @@ const EP = {
       if (grid) {
         grid.style.display = 'block';
         grid.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;min-height:300px;color:#9ca3af;font-size:15px;">
-          <div style="text-align:center;"><div style="font-size:40px;margin-bottom:12px;">📰</div>Page content not available</div>
+          <div style="text-align:center;"><div style="margin-bottom:12px;"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18h-5"/><path d="M18 14h-8"/><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><rect width="8" height="4" x="10" y="6" rx="1"/></svg></div>Page content not available</div>
         </div>`;
       }
     }

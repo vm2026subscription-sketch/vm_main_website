@@ -29,6 +29,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"></noscript>
   <link rel="stylesheet" href="{{ url_for('static', filename='epaper-viewer.css', v='20260705-calendar-editions-only') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='epaper-landing-light.css', v='17') }}">
   <style>
     .ep-views-badge {
       display: inline-flex;
@@ -154,17 +155,22 @@
       <section class="ep-edition-landing" id="epEditionLanding" aria-label="Available editions">
         <div class="ep-edition-landing-header">
           <div>
-            <p class="ep-edition-landing-kicker">Today Edition</p>
+            <p class="ep-edition-landing-kicker">Today's Edition</p>
             <h2>Select an edition to open the newspaper</h2>
+            <p class="ep-edition-landing-copy">Read this week's editions in your preferred language.</p>
           </div>
-          <p class="ep-edition-landing-copy">Latest published editions appear here. Open any card to view the full newspaper.</p>
         </div>
         <div class="ep-edition-filter" id="epEditionFilter" aria-label="Filter editions by language">
           <button class="ep-edition-filter-btn active" data-language="" type="button">All</button>
           <button class="ep-edition-filter-btn" data-language="Hindi" type="button">Hindi</button>
           <button class="ep-edition-filter-btn" data-language="English" type="button">English</button>
           <button class="ep-edition-filter-btn" data-language="Marathi" type="button">Marathi</button>
+          <div class="ep-edition-search">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="search" id="epEditionSearch" placeholder="Search edition (e.g. 135)" oninput="EP.searchEditions(this.value)" aria-label="Search editions by number" autocomplete="off">
+          </div>
         </div>
+        <p class="ep-edition-hint">Choose your preferred language to read today's newspaper.</p>
         <div class="ep-edition-grid" id="epEditionGrid">
           <div class="ep-edition-card-skeleton"></div>
           <div class="ep-edition-card-skeleton"></div>
@@ -430,7 +436,7 @@
   <!-- ── Toast ── -->
   <div class="ep-toast" id="epToast"></div>
 
-  <script src="{{ url_for('static', filename='epaper-viewer.js', v='20260705-calendar-editions-only') }}"></script>
+  <script src="{{ url_for('static', filename='epaper-viewer.js', v='20260731-readcta') }}"></script>
 
   <!-- PWA Service Worker -->
   <script>
