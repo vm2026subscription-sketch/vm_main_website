@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Advertisement Positions — ePaper Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Hind:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <script>
+    (function () {
+      const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+      if (!token) return;
+      const orig = window.fetch;
+      window.fetch = function () {
+        let [resource, config] = arguments; config = config || {};
+        const method = (config.method || 'GET').toUpperCase();
+        const url = resource instanceof Request ? resource.url : resource;
+        let same = true; try { same = new URL(url, location.href).origin === location.origin; } catch (e) {}
+        if (same && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+          config.headers = config.headers || {};
+          if (config.headers instanceof Headers) config.headers.set('X-CSRFToken', token);
+          else config.headers['X-CSRFToken'] = token;
+        }
+        return orig(resource, config);
+      };
+    })();
+  </script>
+  <style>
+    :root{--r:#d9252a;--bg:#f3efe8;--white:#fff;--border:#e1dad0;--text:#221f1f;--muted:#6b645b;--radius:12px;}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'DM Sans','Hind',sans-serif;background:var(--bg);color:var(--text);}
+    a{color:inherit;}
+    .epa-header{background:linear-gradient(120deg,#d9252a 0%,#b21b20 45%,#781516 100%);padding:16px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+    .epa-header h1{color:#fff;font-size:20px;font-weight:700;}
+    .epa-header a{color:rgba(255,255,255,.75);font-size:13px;text-decoration:none;}
+    .epa-header a:hover{color:#fff;} .epa-header .spacer{margin-left:auto;}
+    .epa-header a.btnlink{background:rgba(255,255,255,.15);padding:5px 12px;border-radius:6px;}
+    .wrap{max-width:1300px;margin:20px auto;padding:0 20px;}
+    .card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.04);}
+    .card h2{font-size:16px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+    .card h2 i{color:var(--r);font-size:14px;}
+    .btn{padding:9px 16px;border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .2s;}
+    .btn-primary{background:var(--r);color:#fff;}.btn-primary:hover{background:#c0171e;}
+    .btn-ghost{background:#f3f4f6;color:var(--text);border:1px solid var(--border);}
+    .btn-danger{background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;}.btn-danger:hover{background:#dc2626;color:#fff;}
+    .btn-sm{padding:6px 11px;font-size:11px;}
+    table{width:100%;border-collapse:collapse;font-size:13px;}
+    th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--border);vertical-align:middle;}
+    th{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);}
+    .badge{padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;display:inline-block;}
+    .badge-plat{background:#eef2ff;color:#4338ca;}
+    .badge-on{background:#dcfce7;color:#166534;} .badge-off{background:#f3f4f6;color:#6b7280;}
+    .badge-type{background:#fef3c7;color:#92400e;margin:1px;}
+    .actions{display:flex;gap:6px;flex-wrap:wrap;}
+    .empty{text-align:center;padding:36px;color:var(--muted);}
+    .fg{display:flex;flex-direction:column;gap:4px;}
+    .fg label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+    .fg input,.fg select{padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;outline:none;background:#fff;}
+    .fg input:focus,.fg select:focus{border-color:var(--r);}
+    .row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;}
+    .row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+    .chips{display:flex;flex-wrap:wrap;gap:8px;}
+    .chip{display:inline-flex;align-items:center;gap:5px;border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;user-select:none;}
+    .chip input{width:15px;height:15px;}
+    .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-start;justify-content:center;padding:30px 16px;z-index:100;overflow:auto;}
+    .modal-bg.open{display:flex;}
+    .modal{background:#fff;border-radius:14px;max-width:760px;width:100%;padding:22px;box-shadow:0 12px 40px rgba(0,0,0,.25);}
+    .modal h3{font-size:17px;font-weight:700;margin-bottom:16px;}
+    .modal-foot{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+    .toggle{display:flex;align-items:center;gap:8px;margin-top:6px;}
+    .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .3s;z-index:200;}
+    .toast.show{opacity:1;}
+    @media(max-width:720px){.row,.row-2{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body>
+  <div class="epa-header">
+    <h1><i class="fa fa-table-cells-large"></i> Advertisement Positions</h1>
+    <a href="/epaper-admin/ads" class="btnlink"><i class="fa fa-bullhorn"></i> Advertisements</a>
+    <a href="/epaper-admin" class="btnlink"><i class="fa fa-arrow-left"></i> Page Builder</a>
+    <span class="spacer"></span>
+    <a href="/epaper-admin/logout" class="btnlink"><i class="fa fa-sign-out-alt"></i> Logout</a>
+  </div>
+
+  <div class="wrap">
+    <div class="card">
+      <h2><i class="fa fa-list"></i> Positions
+        <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="Pos.openCreate()"><i class="fa fa-plus"></i> New Position</button>
+      </h2>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th>Platform</th><th>Position Name</th><th>Resolution</th><th>Aspect</th>
+            <th>Types</th><th>Max Size</th><th>Validation</th><th>Status</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="posRows"><tr><td colspan="9" class="empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create / Edit modal -->
+  <div class="modal-bg" id="modal">
+    <div class="modal">
+      <h3 id="modalTitle"><i class="fa fa-plus-circle"></i> New Position</h3>
+      <input type="hidden" id="pId">
+      <div class="row-2">
+        <div class="fg"><label>Position Name *</label><input id="pName" type="text" placeholder="e.g. Homepage Hero"></div>
+        <div class="fg"><label>Platform *</label>
+          <select id="pPlatform">
+            {% for pl in platforms %}<option value="{{ pl }}">{{ pl|capitalize }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="fg"><label>Recommended Width (px)</label><input id="pWidth" type="number" min="0" oninput="Pos.autoRatio()"></div>
+        <div class="fg"><label>Recommended Height (px)</label><input id="pHeight" type="number" min="0" oninput="Pos.autoRatio()"></div>
+        <div class="fg"><label>Aspect Ratio</label><input id="pRatio" type="text" placeholder="e.g. 16:9"></div>
+      </div>
+      <div class="fg" style="margin-bottom:14px"><label>Allowed Advertisement Types</label>
+        <div class="chips" id="pTypes">
+          {% for t in ad_types %}<label class="chip"><input type="checkbox" value="{{ t }}"> {{ t|capitalize }}</label>{% endfor %}
+        </div>
+      </div>
+      <div class="fg" style="margin-bottom:14px"><label>Allowed Formats</label>
+        <div class="chips" id="pFormats">
+          {% for f in (image_formats + video_formats + audio_formats) %}<label class="chip"><input type="checkbox" value="{{ f }}"> {{ f|upper }}</label>{% endfor %}
+        </div>
+      </div>
+      <div class="row">
+        <div class="fg"><label>Max File Size (MB)</label><input id="pMaxSize" type="number" min="1" value="25"></div>
+        <div class="fg"><label>Max Video Duration (s)</label><input id="pMaxVideo" type="number" min="0" placeholder="e.g. 60"></div>
+        <div class="fg"><label>Max Audio Duration (s)</label><input id="pMaxAudio" type="number" min="0" placeholder="e.g. 180"></div>
+      </div>
+      <div class="row-2">
+        <div class="fg"><label>Validation Enabled</label>
+          <div class="toggle"><input type="checkbox" id="pValidation" checked style="width:18px;height:18px"><label for="pValidation" style="text-transform:none;font-size:13px;color:var(--text)">Reject invalid uploads (off = warn only)</label></div>
+        </div>
+        <div class="fg"><label>Active</label>
+          <div class="toggle"><input type="checkbox" id="pActive" checked style="width:18px;height:18px"><label for="pActive" style="text-transform:none;font-size:13px;color:var(--text)">Position is active</label></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost" onclick="Pos.closeModal()">Cancel</button>
+        <button class="btn btn-primary" id="saveBtn" onclick="Pos.save()"><i class="fa fa-save"></i> Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="{{ url_for('static', filename='ad-positions.js') }}?v=1"></script>
+</body>
+</html>

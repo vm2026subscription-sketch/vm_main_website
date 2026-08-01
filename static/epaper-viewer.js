@@ -316,6 +316,7 @@ const EP = {
       main: document.getElementById('epMain'),
       newsToggleBtn: document.getElementById('epNewsToggleBtn'),
       newsReopenBtn: document.getElementById('epNewsReopenBtn'),
+      newsBackdrop: document.getElementById('epNewsBackdrop'),
       editionLanding: document.getElementById('epEditionLanding'),
       editionFilterButtons: document.querySelectorAll('.ep-edition-filter-btn'),
       editionGrid: document.getElementById('epEditionGrid'),
@@ -399,6 +400,7 @@ const EP = {
     this.el.dateBtn?.addEventListener('click', async () => await this.toggleCalendar());
     this.el.newsToggleBtn?.addEventListener('click', () => this.toggleNewsSidebar());
     this.el.newsReopenBtn?.addEventListener('click', () => this.toggleNewsSidebar());
+    this.el.newsBackdrop?.addEventListener('click', () => this.setNewsSidebarState(false));
     this.el.editionFilterButtons?.forEach(btn => {
       btn.addEventListener('click', () => this.setLandingLanguageFilter(btn.dataset.language || ''));
     });
@@ -800,7 +802,47 @@ const EP = {
 
     grid.innerHTML = '';
 
+    // Newest edition on display gets a small "Latest" badge (only the first match).
+    const _newestDate = visibleEntries.reduce((m, e) => ((e.edition.date || '') > m ? (e.edition.date || '') : m), '');
+    // ── Weekly-release context bar — all languages of the newest edition, treated equally ──
+    const _weeklyOld = document.getElementById('epWeeklyBar');
+    if (_weeklyOld) _weeklyOld.remove();
+    if (_newestDate) {
+      const _newestSet = visibleEntries.filter(e => (e.edition.date || '') === _newestDate);
+      const _langs = [...new Set(_newestSet.map(e => (e.edition.language || '').trim()).filter(Boolean))];
+      const _tMatch = (this.getEditionCardTitle(_newestSet[0].edition) || '').match(/(\d{2,})/);
+      const _edNo = _tMatch ? _tMatch[1] : '';
+      let _dateStr = this.formatEditionCardDate(_newestDate);
+      try {
+        const _d = new Date(_newestDate + 'T00:00:00');
+        _dateStr = _d.toLocaleDateString('en-US', { weekday: 'long' }) + ', ' + _dateStr;
+      } catch (e) { /* keep plain date */ }
+      const _paperSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:7px"><path d="M15 18h-5"/><path d="M18 14h-8"/><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><rect width="8" height="4" x="10" y="6" rx="1"/></svg>';
+      const _bar = document.createElement('div');
+      _bar.id = 'epWeeklyBar';
+      _bar.className = 'ep-weekly-bar';
+      _bar.innerHTML =
+        '<span class="ep-weekly-tag">' + _paperSvg + 'Latest Weekly Release</span>' +
+        '<span class="ep-weekly-main">' + (_edNo ? 'Edition #' + _edNo + ' • ' : '') + 'Published ' + _dateStr + '</span>' +
+        (_langs.length ? '<span class="ep-weekly-langs">Available in ' + _langs.join(' • ') + '</span>' : '');
+      grid.parentNode.insertBefore(_bar, grid);
+    }
+
+    let _prevMonth = '';
     visibleEntries.forEach(({ edition, previewUrl }) => {
+      // Timeline: month divider when browsing all editions (older ones grouped by month).
+      if (this._landingShowAll) {
+        const _mk = (edition.date || '').slice(0, 7);
+        if (_mk && _mk !== _prevMonth) {
+          _prevMonth = _mk;
+          const mh = document.createElement('div');
+          mh.className = 'ep-month-header';
+          let _ml = _mk;
+          try { _ml = new Date(edition.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }); } catch (e) { /* keep key */ }
+          mh.textContent = _ml;
+          grid.appendChild(mh);
+        }
+      }
       const card = document.createElement('button');
       card.type = 'button';
       card.className = 'ep-edition-card';
@@ -809,6 +851,12 @@ const EP = {
 
       const cover = document.createElement('div');
       cover.className = 'ep-edition-card-cover';
+
+      // Page-curl hover flourish — reinforces the "ePaper" feel.
+      const curl = document.createElement('span');
+      curl.className = 'ep-page-curl';
+      curl.setAttribute('aria-hidden', 'true');
+      cover.appendChild(curl);
 
       const previewFrame = document.createElement('div');
       previewFrame.className = 'ep-edition-card-preview-frame';
@@ -831,18 +879,10 @@ const EP = {
       const body = document.createElement('div');
       body.className = 'ep-edition-card-body';
 
-      const info = document.createElement('div');
-      info.className = 'ep-edition-card-info';
-
       const title = document.createElement('div');
       title.className = 'ep-edition-card-title';
-      title.textContent = this.getEditionCardTitle(edition);
-
-      const subtitle = document.createElement('div');
-      subtitle.className = 'ep-edition-card-subtitle';
-      subtitle.textContent = this.formatEditionCardDate(edition.date);
-
-      info.append(title, subtitle);
+      title.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:7px;flex:none"><path d="M15 18h-5"/><path d="M18 14h-8"/><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><rect width="8" height="4" x="10" y="6" rx="1"/></svg>';
+      title.append(document.createTextNode(this.getEditionCardTitle(edition)));
 
       const langLabel = (edition.language || 'Edition').trim();
       const langKey = langLabel.toLowerCase();
@@ -850,9 +890,26 @@ const EP = {
       const language = document.createElement('div');
       language.className = `ep-edition-card-language ${this.getEditionLanguageClass(langLabel)}`;
       language.dataset.lang = langKey;
-      language.textContent = langLabel;
+      language.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
+      language.append(document.createTextNode(langLabel));
 
-      body.append(info, language);
+      const subtitle = document.createElement('div');
+      subtitle.className = 'ep-edition-card-subtitle';
+      const calIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>';
+      subtitle.innerHTML = calIcon;
+      subtitle.append(document.createTextNode(this.formatEditionCardDate(edition.date)));
+
+      // Title on top; date + language share one line below.
+      const metaRow = document.createElement('div');
+      metaRow.className = 'ep-edition-card-metarow';
+      metaRow.append(subtitle, language);
+
+      const cta = document.createElement('span');
+      cta.className = 'ep-read-cta';
+      cta.setAttribute('aria-hidden', 'true');
+      cta.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Read Newspaper';
+
+      body.append(title, metaRow, cta);
 
       card.append(cover, body);
       card.addEventListener('click', async () => {
@@ -867,12 +924,63 @@ const EP = {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'ep-load-more-btn';
-      btn.textContent = `Load ${remaining} more edition${remaining !== 1 ? 's' : ''}`;
+      btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Load ${remaining} more edition${remaining !== 1 ? 's' : ''}`;
       btn.addEventListener('click', () => {
         this._landingShowAll = true;
         this.renderEditionLanding();
       });
       grid.appendChild(btn);
+    }
+
+    this._filterRenderedEditions();
+  },
+
+  // Search editions by number/title. Loads all editions so search spans everything.
+  searchEditions(q) {
+    this._landingSearch = q || '';
+    if (this._landingSearch.trim()) this._landingShowAll = true;
+    this.renderEditionLanding();
+  },
+
+  // Hide cards (and empty month headers) that don't match the active search.
+  _filterRenderedEditions() {
+    const grid = document.getElementById('epEditionGrid');
+    if (!grid) return;
+    const q = (this._landingSearch || '').trim().toLowerCase();
+    const weekly = document.getElementById('epWeeklyBar');
+    const loadMore = grid.querySelector('.ep-load-more-btn');
+    const oldEmpty = grid.querySelector('.ep-search-empty');
+    if (oldEmpty) oldEmpty.remove();
+    if (!q) {
+      grid.querySelectorAll('.ep-edition-card, .ep-month-header').forEach((el) => { el.style.display = ''; });
+      if (weekly) weekly.style.display = '';
+      if (loadMore) loadMore.style.display = '';
+      return;
+    }
+    if (weekly) weekly.style.display = 'none';
+    if (loadMore) loadMore.style.display = 'none';
+    let anyVisible = false;
+    grid.querySelectorAll('.ep-edition-card').forEach((card) => {
+      const show = (card.textContent || '').toLowerCase().includes(q);
+      card.style.display = show ? '' : 'none';
+      if (show) anyVisible = true;
+    });
+    const kids = Array.from(grid.children);
+    kids.forEach((el, i) => {
+      if (!el.classList.contains('ep-month-header')) return;
+      let has = false;
+      for (let j = i + 1; j < kids.length; j++) {
+        if (kids[j].classList.contains('ep-month-header')) break;
+        if (kids[j].classList.contains('ep-edition-card') && kids[j].style.display !== 'none') { has = true; break; }
+      }
+      el.style.display = has ? '' : 'none';
+    });
+    if (!anyVisible) {
+      const empty = document.createElement('div');
+      empty.className = 'ep-edition-empty ep-search-empty';
+      empty.style.gridColumn = '1 / -1';
+      empty.textContent = `No editions match "${this._landingSearch.trim()}". Try another number.`;
+      grid.appendChild(empty);
     }
   },
 
@@ -1376,7 +1484,7 @@ const EP = {
       if (grid) {
         grid.style.display = 'block';
         grid.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;min-height:300px;color:#9ca3af;font-size:15px;">
-          <div style="text-align:center;"><div style="font-size:40px;margin-bottom:12px;">📰</div>Page content not available</div>
+          <div style="text-align:center;"><div style="margin-bottom:12px;"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18h-5"/><path d="M18 14h-8"/><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><rect width="8" height="4" x="10" y="6" rx="1"/></svg></div>Page content not available</div>
         </div>`;
       }
     }
@@ -1805,6 +1913,7 @@ const EP = {
   toggleFullscreen() {
     const reader = document.getElementById('epReaderContainer');
     if (!document.fullscreenElement) {
+      window.scrollTo(0, 0);
       document.body.classList.add('ep-fullscreen');
       reader?.requestFullscreen?.();
     } else {
@@ -2154,10 +2263,15 @@ const EP = {
     playing: false,
     paused: false,
     text: '',
-    audio: null,        // HTML5 Audio element
-    selectedVoice: '',  // Edge TTS voice ID (auto-detect if empty)
+    audio: null,
+    selectedVoice: '',
     loading: false,
     abortController: null,
+    _session: 0,
+    _chunks: [],
+    _chunkIdx: -1,
+    _nextAudio: null,
+    _prefetchController: null,
   },
 
   detectLang(text) {
@@ -2415,15 +2529,15 @@ const EP = {
     const rawText = (displayedTitle + '। ' + displayedBody).trim() || this._getArticleText();
     if (!rawText) { this.showToast('No text to read'); return; }
 
-    // Cancel any in-flight request before starting a new one
-    if (this._voice.abortController) {
-      this._voice.abortController.abort();
-      this._voice.abortController = null;
-    }
-
     this.voiceStop();
+    this._voice._session = (this._voice._session || 0) + 1;
+    const session = this._voice._session;
+
     this._voice.loading = true;
-    this._voice.abortController = new AbortController();
+    this._voice._chunks = this._chunkText(this._preprocessTTSText(rawText));
+    this._voice._chunkIdx = -1;
+    this._voice._nextAudio = null;
+    this._voice.text = rawText;
 
     if (this.el.voiceBar) this.el.voiceBar.classList.add('loading', 'topbar');
     if (this.el.voiceTitle) this.el.voiceTitle.textContent = displayedTitle || this.currentArticle.headline || 'Article';
@@ -2431,61 +2545,131 @@ const EP = {
     this._voiceUpdatePlayIcon();
     this._prepareHighlight();
 
-    let textToRead = this._preprocessTTSText(rawText);
-    let rateStr = '+0%';
-    let pitchStr = '+0Hz';
-    if (rateStr === '+0%' && this._voice.rate !== 1) {
-      const pct = Math.round((this._voice.rate - 1) * 100);
-      rateStr = pct >= 0 ? `+${pct}%` : `${pct}%`;
+    await this._playChunk(0, session);
+  },
+
+  // Split text into ~600-char chunks at sentence boundaries
+  _chunkText(text, maxChars) {
+    maxChars = maxChars || 600;
+    const sentences = text.match(/[^।!?\n]+[।!?\n]*/g) || [text];
+    const chunks = [];
+    let cur = '';
+    for (const s of sentences) {
+      if (cur.length + s.length > maxChars && cur) {
+        chunks.push(cur.trim());
+        cur = s;
+      } else {
+        cur += s;
+      }
     }
-    this._voice.text = textToRead;
+    if (cur.trim()) chunks.push(cur.trim());
+    return chunks.length ? chunks : [text.slice(0, maxChars)];
+  },
+
+  // Fetch one chunk from the TTS API and return an Audio element
+  async _fetchChunkAudio(text, signal) {
+    const pct = Math.round((this._voice.rate - 1) * 100);
+    const rateStr = pct >= 0 ? `+${pct}%` : `${pct}%`;
+    const res = await fetch('/api/epaper/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, voice: this._voice.selectedVoice || '', rate: rateStr, pitch: '+0Hz' }),
+      signal,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'TTS failed');
+    }
+    const blob = await res.blob();
+    const audio = new Audio(URL.createObjectURL(blob));
+    audio.playbackRate = this._voice.rate;
+    return audio;
+  },
+
+  // Play chunk at idx; prefetch idx+1 while playing; chain to idx+1 on ended
+  async _playChunk(idx, session) {
+    if (session !== this._voice._session) return;
+
+    const chunks = this._voice._chunks;
+    if (idx >= chunks.length) {
+      this._voiceFinished();
+      return;
+    }
+
+    this._voice._chunkIdx = idx;
 
     try {
-      const res = await fetch('/api/epaper/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: textToRead, voice: this._voice.selectedVoice || '', rate: rateStr, pitch: pitchStr }),
-        signal: this._voice.abortController.signal,
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'TTS request failed');
-      }
-
-      // Try progressive streaming via MediaSource (plays on first chunk, ~300ms)
-      // Fallback to full blob if MediaSource unavailable (Safari)
       let audio;
-      const canStream = typeof MediaSource !== 'undefined'
-        && MediaSource.isTypeSupported('audio/mpeg')
-        && res.body;
-
-      if (canStream) {
-        audio = await this._createStreamingAudio(res, this._voice.abortController.signal);
+      if (idx > 0 && this._voice._nextAudio) {
+        audio = await this._voice._nextAudio;
+        this._voice._nextAudio = null;
+        this._voice._prefetchController = null;
+        if (!audio) throw new Error('Prefetch failed');
       } else {
-        const blob = await res.blob();
-        audio = new Audio(URL.createObjectURL(blob));
+        this._voice.abortController = new AbortController();
+        audio = await this._fetchChunkAudio(chunks[idx], this._voice.abortController.signal);
+        this._voice.abortController = null;
       }
 
-      // Guard: stop was called while we were loading
-      if (!this._voice.loading) { audio.pause(); return; }
+      if (session !== this._voice._session) {
+        audio.pause();
+        if (audio.src.startsWith('blob:')) URL.revokeObjectURL(audio.src);
+        return;
+      }
 
+      // Release previous chunk's audio
+      const prev = this._voice.audio;
+      if (prev && prev !== audio) {
+        prev.pause();
+        if (prev.src.startsWith('blob:')) URL.revokeObjectURL(prev.src);
+      }
       this._voice.audio = audio;
-      this._attachAudioListeners(audio);
+      audio.playbackRate = this._voice.rate;
+
+      // Wire up progress/highlight listeners (but NOT ended — we handle that ourselves)
+      audio.addEventListener('timeupdate', () => {
+        this._voiceUpdateUI();
+        this._highlightAt(audio.currentTime, audio.duration);
+      });
+      audio.addEventListener('loadedmetadata', () => {
+        if (this.el.voiceDuration) this.el.voiceDuration.textContent = this._formatTime(audio.duration || 0);
+      });
+      audio.addEventListener('error', () => {
+        if (session !== this._voice._session) return;
+        this.showToast('Audio error — skipping to next part');
+        this._playChunk(idx + 1, session);
+      }, { once: true });
+
+      // Prefetch next chunk in background while this one plays
+      if (idx + 1 < chunks.length) {
+        this._voice._prefetchController = new AbortController();
+        this._voice._nextAudio = this._fetchChunkAudio(chunks[idx + 1], this._voice._prefetchController.signal)
+          .catch(() => null);
+      }
+
       await audio.play();
 
-      if (this.el.voiceBar) this.el.voiceBar.classList.remove('loading');
+      if (session !== this._voice._session) return;
       this._voice.playing = true;
       this._voice.paused = false;
       this._voice.loading = false;
-      this._voice.abortController = null;
+      if (this.el.voiceBar) this.el.voiceBar.classList.remove('loading');
       if (this.el.ttsStartBtn) { this.el.ttsStartBtn.innerHTML = '<i class="fa fa-play"></i> <span>Play</span>'; this.el.ttsStartBtn.classList.remove('loading'); }
       this._voiceUpdatePlayIcon();
-      this.showToast('<i class="fa fa-volume-up"></i> Now playing');
-      this.trackEvent('voice_play', { article: this.currentArticle?.headline, voice: this._voice.selectedVoice || 'auto' });
+
+      if (idx === 0) {
+        this.showToast('<i class="fa fa-volume-up"></i> Now playing');
+        this.trackEvent('voice_play', { article: this.currentArticle?.headline, voice: this._voice.selectedVoice || 'auto' });
+      }
+
+      audio.addEventListener('ended', () => {
+        if (session !== this._voice._session) return;
+        this._playChunk(idx + 1, session);
+      }, { once: true });
 
     } catch (err) {
-      if (err.name === 'AbortError') return; // intentionally cancelled
-      console.error('TTS Error:', err);
+      if (err && err.name === 'AbortError') return;
+      if (session !== this._voice._session) return;
       this._voice.loading = false;
       this._voice.abortController = null;
       if (this.el.ttsStartBtn) { this.el.ttsStartBtn.innerHTML = '<i class="fa fa-play"></i> <span>Play</span>'; this.el.ttsStartBtn.classList.remove('loading'); }
@@ -2493,11 +2677,10 @@ const EP = {
       if (this.el.ttsPrompt) this.el.ttsPrompt.style.display = '';
       this._clearHighlight();
       this._voiceUpdatePlayIcon();
-      // Fallback: use browser's built-in Web Speech API
-      if (window.speechSynthesis) {
-        this._voicePlayBrowser(rawText);
+      if (idx === 0 && window.speechSynthesis) {
+        this._voicePlayBrowser(chunks.join(' '));
       } else {
-        this.showToast('Voice generation failed. Try again.');
+        this.showToast('Voice playback error. Try again.');
       }
     }
   },
@@ -2678,11 +2861,19 @@ const EP = {
 
   // Stop and hide voice bar
   voiceStop() {
-    // Cancel any pending TTS fetch
+    // Cancel current fetch and prefetch
     if (this._voice.abortController) {
       this._voice.abortController.abort();
       this._voice.abortController = null;
     }
+    if (this._voice._prefetchController) {
+      this._voice._prefetchController.abort();
+      this._voice._prefetchController = null;
+    }
+    this._voice._nextAudio = null;
+    this._voice._chunks = [];
+    this._voice._chunkIdx = -1;
+
     const audio = this._voice.audio;
     if (audio) {
       audio.pause();

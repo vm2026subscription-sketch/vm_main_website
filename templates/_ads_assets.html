@@ -1,0 +1,56 @@
+{# Advertisement styling + loader. Include ONCE per page that uses .vm-ad-slot.
+   Usage:
+     {% include '_ads_assets.html' %}                          (once, near end of body)
+     <div class="vm-ad-slot" data-position="homepage_top"></div>  (anywhere)
+#}
+<style>
+  /* ── Fixed ad dimensions per position (official recommended sizes) ── */
+  .vm-ad-slot{position:relative;margin:18px auto;max-width:1200px;text-align:center;}
+  .vm-ad-slot .vm-ad-link{display:block;line-height:0;max-width:100%;}
+  .vm-ad-slot .vm-ad-img{width:100%;object-fit:cover;display:block;margin:0 auto;background:#fff;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.08);}
+  .vm-ad-slot .vm-ad-tag{position:absolute;top:6px;right:10px;background:rgba(0,0,0,.55);color:#fff;font-size:9px;font-weight:700;letter-spacing:.5px;padding:1px 6px;border-radius:4px;text-transform:uppercase;z-index:2;}
+  .vm-ad-placeholder{border:1px dashed #d8d2c8;border-radius:10px;padding:26px;color:#9a938a;font-size:12px;letter-spacing:.5px;text-transform:uppercase;font-weight:700;background:#faf8f4;}
+
+  /* Homepage Hero — 1920×600 (16:5) */
+  .vm-ad-slot[data-position="homepage_hero"]{max-width:1920px;}
+  .vm-ad-slot[data-position="homepage_hero"] .vm-ad-img{max-width:1920px;aspect-ratio:1920/600;}
+  /* Homepage/ePaper Top / Middle / Bottom + Article — 1200×300 (4:1) */
+  .vm-ad-slot[data-position="homepage_top"] .vm-ad-img,
+  .vm-ad-slot[data-position="homepage_middle"] .vm-ad-img,
+  .vm-ad-slot[data-position="homepage_bottom"] .vm-ad-img,
+  .vm-ad-slot[data-position="article_page"] .vm-ad-img,
+  .vm-ad-slot[data-position="top"] .vm-ad-img,
+  .vm-ad-slot[data-position="middle"] .vm-ad-img,
+  .vm-ad-slot[data-position="bottom"] .vm-ad-img{max-width:1200px;aspect-ratio:1200/300;}
+  /* Footer — 1200×250 */
+  .vm-ad-slot[data-position="footer"] .vm-ad-img{max-width:1200px;aspect-ratio:1200/250;}
+  /* Sidebar — 300×600 (tall skyscraper) */
+  .vm-ad-slot[data-position="sidebar"]{max-width:300px;margin:14px auto;}
+  .vm-ad-slot[data-position="sidebar"] .vm-ad-img{max-width:300px;aspect-ratio:300/600;}
+
+  /* Video — website 16:9 (1920×1080), up to 1200px wide */
+  .vm-ad-slot .vm-ad-video{width:100%;max-width:1200px;aspect-ratio:16/9;height:auto;object-fit:cover;border-radius:10px;display:block;margin:0 auto;background:#000;box-shadow:0 2px 10px rgba(0,0,0,.08);}
+
+  /* Compact ad (ePaper landing) — a neat framed "ad card" so even a small
+     creative looks intentional and never overpowers the newspaper cards.
+     Overrides the per-position sizing above. */
+  /* Responsive HORIZONTAL banner (~3 cards wide) that fills its box — no empty
+     space. Use a wide creative (e.g. 1200×300 / 728×90) for best results. */
+  .vm-ad-slot.ep-ad-compact{width:100%;max-width:970px;margin:32px auto;
+    background:#fff;border:1px solid #e6e0d6;border-radius:16px;padding:18px 20px 16px;
+    box-shadow:0 6px 22px rgba(0,0,0,.10);}
+  .vm-ad-slot.ep-ad-compact::before{content:"Sponsored";position:absolute;top:10px;
+    left:0;right:0;text-align:center;font-size:10px;letter-spacing:1px;color:#a99f92;font-weight:700;}
+  .vm-ad-slot.ep-ad-compact .vm-ad-link{display:block;width:100%;line-height:0;}
+  .vm-ad-slot.ep-ad-compact .vm-ad-img{display:block;width:100%;
+    height:clamp(96px,13vw,150px);aspect-ratio:auto;object-fit:cover;
+    background:#faf8f3;border-radius:8px;box-shadow:none;}
+  .vm-ad-slot.ep-ad-compact .vm-ad-video{width:100%;max-width:100%;aspect-ratio:16/9;box-shadow:none;}
+  .vm-ad-slot.ep-ad-compact .vm-ad-tag{display:none;}  /* replaced by the ADVERTISEMENT label */
+  .vm-ad-slot .vm-ad-audio{border:1px solid #e1dad0;border-radius:10px;padding:12px 14px;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.06);text-align:left;}
+  .vm-ad-slot .vm-ad-audio-title{font-size:13px;font-weight:700;margin-bottom:8px;color:#221f1f;}
+  .vm-ad-slot .vm-ad-audio audio{width:100%;}
+  .vm-ad-slot .vm-ad-cta{display:inline-block;margin-top:8px;font-size:12px;font-weight:700;color:#d9252a;text-decoration:none;}
+  .vm-ad-slot .vm-ad-cta:hover{text-decoration:underline;}
+</style>
+<script src="{{ url_for('static', filename='ads-web.js') }}?v=3" defer></script>
