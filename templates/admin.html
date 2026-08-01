@@ -57,6 +57,7 @@
     .field-wrap{display:flex;flex-direction:column;}
     /* Buttons */
     .btn{padding:8px 16px;border:none;border-radius:8px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .2s;}
+    .btn:disabled{opacity:.4;cursor:not-allowed;}
     .btn-orange{background:#ff6600;color:#fff;}.btn-orange:hover{background:#ff7733;}
     .btn-red{background:#dc2626;color:#fff;}.btn-red:hover{background:#b91c1c;}
     .btn-ghost{background:rgba(255,255,255,.05);color:#94a3b8;border:1px solid rgba(255,255,255,.1);}.btn-ghost:hover{background:rgba(255,255,255,.1);color:#fff;}
@@ -385,6 +386,13 @@
           <span style="display:flex;gap:8px;align-items:center">
             <input id="usr-search" type="text" placeholder="Search name or email"
                    style="background:#131f35;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:7px 12px;font-size:12px;font-family:inherit;outline:none">
+            <select id="usr-page-size" title="Entries per page"
+                    style="background:#131f35;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:7px 10px;font-size:12px;font-family:inherit;outline:none;cursor:pointer">
+              <option value="1">1 / page</option>
+              <option value="10" selected>10 / page</option>
+              <option value="20">20 / page</option>
+              <option value="50">50 / page</option>
+            </select>
             <button class="btn btn-ghost btn-sm" id="usr-refresh"><i class="fa fa-rotate"></i> Refresh</button>
           </span>
         </div>
@@ -400,6 +408,15 @@
               <tr><td colspan="8" class="muted">Loading users…</td></tr>
             </tbody>
           </table>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px">
+          <span class="muted" id="usr-page-info" style="font-size:12px"></span>
+          <span style="display:flex;gap:6px;align-items:center">
+            <button class="btn btn-ghost btn-sm" id="usr-first" title="First page"><i class="fa fa-angles-left"></i></button>
+            <button class="btn btn-ghost btn-sm" id="usr-prev"><i class="fa fa-angle-left"></i> Prev</button>
+            <button class="btn btn-ghost btn-sm" id="usr-next">Next <i class="fa fa-angle-right"></i></button>
+            <button class="btn btn-ghost btn-sm" id="usr-last" title="Last page"><i class="fa fa-angles-right"></i></button>
+          </span>
         </div>
       </div>
     </div>
@@ -744,6 +761,7 @@
 
   // ── USERS: list, login activity, admin management ──
   let ALL_USERS = [];
+  let USR_PAGE = 1;
 
   async function loadUsers() {
     const tbody = document.getElementById('usr-tbody');
@@ -756,6 +774,8 @@
       renderUsers();
     } catch (e) {
       tbody.innerHTML = '<tr><td colspan="8" class="muted">Unable to load users.</td></tr>';
+      USR_PAGE = 1;
+      renderUsersPager(0, 0, 0, 0);
     }
   }
 
@@ -766,9 +786,19 @@
     const tbody = document.getElementById('usr-tbody');
     if (!rows.length) {
       tbody.innerHTML = '<tr><td colspan="8" class="muted">No users found.</td></tr>';
+      renderUsersPager(0, 0, 0, 0);
       return;
     }
-    tbody.innerHTML = rows.map(u => `
+
+    const perPage = parseInt(document.getElementById('usr-page-size').value, 10) || 10;
+    const totalPages = Math.max(1, Math.ceil(rows.length / perPage));
+    if (USR_PAGE > totalPages) USR_PAGE = totalPages;
+    if (USR_PAGE < 1) USR_PAGE = 1;
+    const start = (USR_PAGE - 1) * perPage;
+    const pageRows = rows.slice(start, start + perPage);
+    renderUsersPager(start + 1, start + pageRows.length, rows.length, totalPages);
+
+    tbody.innerHTML = pageRows.map(u => `
       <tr>
         <td>${escHtml(u.name || '—')}</td>
         <td>${escHtml(u.email || '')}</td>
@@ -788,6 +818,21 @@
     tbody.querySelectorAll('.usr-role-btn').forEach(btn => {
       btn.addEventListener('click', () => setUserAdmin(btn.dataset.email, btn.dataset.admin === '1'));
     });
+  }
+
+  function renderUsersPager(from, to, total, totalPages) {
+    document.getElementById('usr-page-info').textContent = total
+      ? `Showing ${from}–${to} of ${total} users · Page ${USR_PAGE} of ${totalPages}`
+      : 'No users to show';
+    document.getElementById('usr-first').disabled = USR_PAGE <= 1 || !total;
+    document.getElementById('usr-prev').disabled  = USR_PAGE <= 1 || !total;
+    document.getElementById('usr-next').disabled  = USR_PAGE >= totalPages || !total;
+    document.getElementById('usr-last').disabled  = USR_PAGE >= totalPages || !total;
+  }
+
+  function gotoUsersPage(delta) {
+    USR_PAGE = Math.max(1, USR_PAGE + delta);
+    renderUsers();
   }
 
   async function setUserAdmin(email, makeAdmin) {
@@ -848,8 +893,13 @@
   }
 
   document.getElementById('nu-create').addEventListener('click', createUser);
-  document.getElementById('usr-refresh').addEventListener('click', loadUsers);
-  document.getElementById('usr-search').addEventListener('input', renderUsers);
+  document.getElementById('usr-refresh').addEventListener('click', () => { USR_PAGE = 1; loadUsers(); });
+  document.getElementById('usr-search').addEventListener('input', () => { USR_PAGE = 1; renderUsers(); });
+  document.getElementById('usr-page-size').addEventListener('change', () => { USR_PAGE = 1; renderUsers(); });
+  document.getElementById('usr-first').addEventListener('click', () => { USR_PAGE = 1; renderUsers(); });
+  document.getElementById('usr-prev').addEventListener('click', () => gotoUsersPage(-1));
+  document.getElementById('usr-next').addEventListener('click', () => gotoUsersPage(1));
+  document.getElementById('usr-last').addEventListener('click', () => { USR_PAGE = Number.MAX_SAFE_INTEGER; renderUsers(); });
 
   // ── UTILS ──
   function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
