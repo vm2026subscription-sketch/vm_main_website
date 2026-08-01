@@ -129,14 +129,21 @@ body.epaper-body .vm-dropdown-trigger:hover {
 }
 
 /* Centre the date button + language tabs together in the middle of the header
-   so both are easy to find. The views badge is pinned to the far right, out of
-   flow, so it doesn't shift the centring. */
+   so both are easy to find. The views badge rides at the right end of the row,
+   in flow, so it sits beside the back-to-main-site link instead of on top of
+   it. */
 .ep-nav { justify-content: center; }
 .ep-nav .ep-views-badge {
-  position: absolute;
-  right: 14px;
-  top: 50%;
-  transform: translateY(-50%);
+  position: static;
+  transform: none;
+  order: 98;
+  margin-left: auto;
+  margin-right: 10px;
+  align-self: center;
+}
+.ep-nav .ep-back-link {
+  order: 99;
+  margin-left: 0;
 }
 
 .ep-nav-list::-webkit-scrollbar {
