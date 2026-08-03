@@ -1744,6 +1744,84 @@ def api_article(article_id):
 
 
 # ── API: Create / Update edition (Admin) ───────────
+# ── Push notifications (FCM) — notify the mobile app on a new edition ──────────
+# Server-side send to topic "new_edition". The app subscribes to this topic.
+# Credentials come from env (Vercel-friendly): FIREBASE_SERVICE_ACCOUNT_JSON
+# (inline JSON) OR FIREBASE_SERVICE_ACCOUNT (path to the service-account file).
+_fcm_ready = None
+
+
+def _get_fcm():
+    """Initialise firebase-admin once. Returns True if push is usable."""
+    global _fcm_ready
+    if _fcm_ready is not None:
+        return _fcm_ready
+    try:
+        import firebase_admin
+        from firebase_admin import credentials
+        if not firebase_admin._apps:
+            raw = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON", "").strip()
+            path = os.getenv("FIREBASE_SERVICE_ACCOUNT", "").strip()
+            if raw:
+                cred = credentials.Certificate(json.loads(raw))
+            elif path and os.path.exists(path):
+                cred = credentials.Certificate(path)
+            else:
+                print("[epaper] FCM not configured (no service account) — skipping push.")
+                _fcm_ready = False
+                return False
+            firebase_admin.initialize_app(cred)
+        _fcm_ready = True
+    except Exception as e:
+        print(f"[epaper] FCM init failed (non-fatal): {e}")
+        _fcm_ready = False
+    return _fcm_ready
+
+
+def _send_new_edition_notification(edition):
+    """Send a 'New ePaper Available' push to every subscribed phone. Best-effort."""
+    if not _get_fcm():
+        return
+    try:
+        from firebase_admin import messaging
+        msg = messaging.Message(
+            topic="new_edition",
+            notification=messaging.Notification(
+                title="New ePaper Available 📰",
+                body="Aaj ka edition ab padhne ke liye taiyaar hai",
+            ),
+            data={"type": "new_edition", "date": str(edition.get("date", ""))},
+        )
+        resp = messaging.send(msg)
+        print(f"[epaper] FCM new_edition push sent: {resp}")
+    except Exception as e:
+        print(f"[epaper] FCM send failed (non-fatal): {e}")
+
+
+def _push_once_for_date(conn, date):
+    """Return True only the FIRST time a date is seen, so all 3 languages of one
+    weekly release trigger a single notification (not three)."""
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS epaper_push_sent (
+                    edition_date TEXT PRIMARY KEY,
+                    sent_at TIMESTAMPTZ DEFAULT NOW()
+                )
+            """)
+            cur.execute(
+                "INSERT INTO epaper_push_sent (edition_date) VALUES (%s) "
+                "ON CONFLICT (edition_date) DO NOTHING",
+                (date,),
+            )
+            first_time = cur.rowcount > 0
+        conn.commit()
+        return first_time
+    except Exception as e:
+        print(f"[epaper] push dedupe check failed (non-fatal): {e}")
+        return False
+
+
 @epaper_bp.route("/api/epaper/admin/edition", methods=["POST"])
 def api_create_edition():
     guard = _require_epaper_admin()
@@ -1812,6 +1890,13 @@ def api_create_edition():
             conn.commit()
             # Reuse same connection for the per-edition snapshot backup
             _save_edition_backup(saved_edition, conn=conn)
+            # Notify the mobile app on a NEW published edition (once per date).
+            try:
+                if existing is None and saved_edition.get("published", True):
+                    if _push_once_for_date(conn, date_str):
+                        _send_new_edition_notification(saved_edition)
+            except Exception as _pe:
+                print(f"[epaper] new-edition push failed (non-fatal): {_pe}")
             conn.close()
             return jsonify({"success": True}), 201
         except Exception as exc:
@@ -1842,6 +1927,11 @@ def api_create_edition():
     except Exception as exc:
         return jsonify({"error": f"Save failed: {exc}"}), 500
     _save_edition_backup(saved_edition)
+    try:
+        if existing is None and saved_edition.get("published", True):
+            _send_new_edition_notification(saved_edition)
+    except Exception as _pe:
+        print(f"[epaper] new-edition push (file) failed (non-fatal): {_pe}")
     return jsonify({"success": True}), 201
 
 
