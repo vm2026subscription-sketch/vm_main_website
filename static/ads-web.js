@@ -1,24 +1,38 @@
 /* Website advertisement loader.
  *
  * Drop a slot anywhere on a page:
- *   <div class="vm-ad-slot" data-position="homepage_top"></div>
+ *   <div class="vm-ad-slot" data-position="homepage_top"></div>          (top ad only)
+ *   <div class="vm-ad-slot" data-position="homepage_top" data-limit="all"></div>
+ *   <div class="vm-ad-slot" data-position="all" data-limit="all"></div>  (every live ad)
  *
- * This script finds every slot, lazy-loads the highest-priority active ad for
- * that position (platform=website|both), renders it, tracks an impression when
- * it scrolls into view, and routes taps through the click-tracking redirect.
- * Nothing is hardcoded — all content comes from /api/v1/ads.
+ * This script finds every slot, lazy-loads the active ads for that position
+ * (platform=website|both), renders them in priority order, tracks an impression
+ * when each scrolls into view, and routes taps through the click-tracking
+ * redirect. Nothing is hardcoded — all content comes from /api/v1/ads.
+ *
+ * data-limit : "1" (default) | "<n>" | "all"  — how many ads the slot renders.
+ * data-position : a position slug, or "all"/"*" to pull every live website ad.
  */
 (function () {
   "use strict";
 
   var API = "/api/v1/ads";
 
-  function fetchAd(position) {
-    var url = API + "?platform=website&position=" + encodeURIComponent(position) + "&limit=1";
+  // Ads already rendered on this page, so an "all" slot never repeats a
+  // creative that a specific-position slot on the same page already shows.
+  var rendered = Object.create(null);
+
+  function fetchAds(position, limit) {
+    var url = API + "?platform=website";
+    // "all"/"*"/empty → no position filter, so the API returns every live ad.
+    if (position && position !== "all" && position !== "*") {
+      url += "&position=" + encodeURIComponent(position);
+    }
+    if (limit) url += "&limit=" + encodeURIComponent(limit);
     return fetch(url, { headers: { Accept: "application/json" } })
       .then(function (r) { return r.json(); })
-      .then(function (d) { return (d && d.ads && d.ads[0]) || null; })
-      .catch(function () { return null; });
+      .then(function (d) { return (d && d.ads) || []; })
+      .catch(function () { return []; });
   }
 
   function trackImpression(id) {
@@ -91,27 +105,24 @@
     return a;
   }
 
-  function renderAd(slot, ad) {
-    slot.innerHTML = "";
-    slot.classList.add("vm-ad-loaded");
-
+  function renderAd(box, ad) {
     var node;
     if (ad.ad_type === "video" && ad.media_url) node = buildVideo(ad);
     else if (ad.ad_type === "audio" && ad.media_url) node = buildAudio(ad);
     else node = buildImage(ad); // image (or backward-compatible fallback)
-    slot.appendChild(node);
+    box.appendChild(node);
 
     // Video/audio players can't be wrapped in a link (it would block controls),
     // so surface an optional call-to-action when a redirect URL is set.
     if ((ad.ad_type === "video" || ad.ad_type === "audio") && ad.redirect_url) {
-      slot.appendChild(buildCta(ad));
+      box.appendChild(buildCta(ad));
     }
 
     // Small "Ad" marker for transparency
     var tag = document.createElement("span");
     tag.className = "vm-ad-tag";
     tag.textContent = "Ad";
-    slot.appendChild(tag);
+    box.appendChild(tag);
 
     // Track impression once the ad is actually visible.
     if ("IntersectionObserver" in window) {
@@ -123,7 +134,7 @@
           }
         });
       }, { threshold: 0.5 });
-      io.observe(slot);
+      io.observe(box);
     } else {
       trackImpression(ad.id);
     }
@@ -137,15 +148,47 @@
     }
   }
 
+  function slotLimit(slot) {
+    var raw = (slot.getAttribute("data-limit") || "").trim().toLowerCase();
+    if (raw === "all" || raw === "0") return null;   // null → no API limit
+    var n = parseInt(raw, 10);
+    return n > 0 ? n : 1;                            // default: single ad
+  }
+
   function loadSlot(slot) {
     if (slot.getAttribute("data-loaded") === "1") return;
     slot.setAttribute("data-loaded", "1");
     var position = slot.getAttribute("data-position");
     if (!position) return;
-    fetchAd(position).then(function (ad) {
-      var hasMedia = ad && (ad.media_url || ad.image_url);
-      if (hasMedia) renderAd(slot, ad);
-      else renderPlaceholder(slot);
+    var limit = slotLimit(slot);
+    // Slots that show everything skip creatives already rendered elsewhere on
+    // the page; a single-ad slot keeps its own top-priority pick regardless.
+    var dedupe = limit === null || limit > 1;
+    // data-dedupe="false" forces a slot to show every ad even if another slot on
+    // the page already rendered it (used where only one slot is ever visible).
+    if (slot.getAttribute("data-dedupe") === "false") dedupe = false;
+
+    fetchAds(position, limit).then(function (ads) {
+      var list = ads.filter(function (ad) {
+        if (!ad || !(ad.media_url || ad.image_url)) return false;
+        if (dedupe && rendered[ad.id]) return false;
+        return true;
+      });
+      if (!list.length) { renderPlaceholder(slot); return; }
+
+      slot.innerHTML = "";
+      slot.classList.add("vm-ad-loaded");
+      if (list.length > 1) slot.classList.add("vm-ad-multi");
+
+      list.forEach(function (ad) {
+        rendered[ad.id] = true;
+        var box = document.createElement("div");
+        box.className = "vm-ad-item";
+        box.setAttribute("data-ad-id", ad.id);
+        box.setAttribute("data-ad-position", ad.position || "");
+        renderAd(box, ad);
+        slot.appendChild(box);
+      });
     });
   }
 

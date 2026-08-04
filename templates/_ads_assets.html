@@ -6,6 +6,9 @@
 <style>
   /* ── Fixed ad dimensions per position (official recommended sizes) ── */
   .vm-ad-slot{position:relative;margin:18px auto;max-width:1200px;text-align:center;}
+  /* Each creative inside a slot. A slot may hold many ads (data-limit="all"). */
+  .vm-ad-slot .vm-ad-item{position:relative;}
+  .vm-ad-slot.vm-ad-multi{display:flex;flex-direction:column;gap:18px;}
   .vm-ad-slot .vm-ad-link{display:block;line-height:0;max-width:100%;}
   /* Show the full creative: never crop, keep the image's own aspect ratio. */
   .vm-ad-slot .vm-ad-img{width:auto;max-width:100%;height:auto;object-fit:contain;display:block;margin:0 auto;background:#fff;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.08);}
@@ -38,16 +41,25 @@
      Overrides the per-position sizing above. */
   /* Responsive HORIZONTAL banner (~3 cards wide) that fills its box — no empty
      space. Use a wide creative (e.g. 1200×300 / 728×90) for best results. */
-  .vm-ad-slot.ep-ad-compact{width:100%;max-width:970px;margin:32px auto;
-    background:#fff;border:1px solid #e6e0d6;border-radius:16px;padding:18px 20px 16px;
+  .vm-ad-slot.ep-ad-compact{width:100%;max-width:970px;margin:32px auto;}
+  /* The card frame lives on each creative, so a slot holding several uploaded
+     ads renders them as a clean stack instead of one oversized box. */
+  .vm-ad-slot.ep-ad-compact .vm-ad-item{
+    background:#fff;border:1px solid #e6e0d6;border-radius:16px;padding:26px 20px 16px;
     box-shadow:0 6px 22px rgba(0,0,0,.10);}
-  .vm-ad-slot.ep-ad-compact::before{content:"Sponsored";position:absolute;top:10px;
+  .vm-ad-slot.ep-ad-compact .vm-ad-item::before{content:"Sponsored";position:absolute;top:10px;
     left:0;right:0;text-align:center;font-size:10px;letter-spacing:1px;color:#a99f92;font-weight:700;}
   .vm-ad-slot.ep-ad-compact .vm-ad-link{display:block;width:100%;line-height:0;}
   .vm-ad-slot.ep-ad-compact .vm-ad-img{display:block;width:auto;max-width:100%;
     height:auto;aspect-ratio:auto;object-fit:contain;
     background:#faf8f3;border-radius:8px;box-shadow:none;}
   .vm-ad-slot.ep-ad-compact .vm-ad-video{width:100%;max-width:100%;aspect-ratio:16/9;box-shadow:none;}
+  /* Reader variant: same cards, sized to the open newspaper column. */
+  .vm-ad-slot.ep-ad-reader{max-width:900px;margin:20px auto 26px;padding:0 12px;}
+  @media (max-width:640px){
+    .vm-ad-slot.ep-ad-compact{margin:22px auto;}
+    .vm-ad-slot.ep-ad-compact .vm-ad-item{padding:24px 12px 12px;border-radius:12px;}
+  }
   .vm-ad-slot.ep-ad-compact .vm-ad-tag{display:none;}  /* replaced by the ADVERTISEMENT label */
   .vm-ad-slot .vm-ad-audio{border:1px solid #e1dad0;border-radius:10px;padding:12px 14px;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.06);text-align:left;}
   .vm-ad-slot .vm-ad-audio-title{font-size:13px;font-weight:700;margin-bottom:8px;color:#221f1f;}
@@ -55,4 +67,4 @@
   .vm-ad-slot .vm-ad-cta{display:inline-block;margin-top:8px;font-size:12px;font-weight:700;color:#d9252a;text-decoration:none;}
   .vm-ad-slot .vm-ad-cta:hover{text-decoration:underline;}
 </style>
-<script src="{{ url_for('static', filename='ads-web.js') }}?v=3" defer></script>
+<script src="{{ url_for('static', filename='ads-web.js') }}?v=4" defer></script>
