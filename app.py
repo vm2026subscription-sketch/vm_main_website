@@ -129,7 +129,7 @@ _MAIN_HOST   = os.getenv("MAIN_HOST",  "vidyarthimitra.org")
 _EPAPER_SUBPATH_RE = re.compile(
     r'^(?:'
     r'/$'
-    r'|/(hindi|english|marathi|college edition )(?:/[^/?#]+(?:/page-\d+)?)?/?$'
+    r'|/(hindi|english|marathi|college edition)(?:/[^/?#]+(?:/page-\d+)?)?/?$'
     r'|/\d{4}-\d{2}-\d{2}(?:/page-\d+)?/?$'
     r'|/admin(?:/.*)?$'
     r')',

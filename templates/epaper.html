@@ -1172,6 +1172,7 @@
         <button class="pill" data-filter="marathi"><i class="fa fa-language"></i> Marathi</button>
         <button class="pill" data-filter="hindi"><i class="fa fa-language"></i> Hindi</button>
         <button class="pill" data-filter="english"><i class="fa fa-globe"></i> English</button>
+        <button class="pill" data-filter="college"><i class="fa fa-graduation-cap"></i> College Edition</button>
       </div>
 
       <select class="sort-select" id="sortSelect">
@@ -1433,7 +1434,8 @@
           activeFilter === 'all'     ? true :
           activeFilter === 'marathi' ? e.lang === 'Marathi' :
           activeFilter === 'hindi'   ? e.lang === 'Hindi' :
-          activeFilter === 'english' ? e.lang === 'English' : true;
+          activeFilter === 'english' ? e.lang === 'English' :
+          activeFilter === 'college' ? e.lang === 'College Edition' : true;
 
         return matchDate && matchFilter;
       });

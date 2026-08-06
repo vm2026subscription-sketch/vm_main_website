@@ -744,7 +744,10 @@ const EP = {
     const selectedLanguage = (this.landingLanguageFilter || '').trim().toLowerCase();
     const all = (Array.isArray(this.editions) ? this.editions : [])
       .filter(edition => edition && edition.published !== false)
-      .filter(edition => !selectedLanguage || (edition.language || '').trim().toLowerCase() === selectedLanguage)
+      .filter(edition => {
+        if (!selectedLanguage) return true;
+        return (edition.language || '').trim().toLowerCase() === selectedLanguage;
+      })
       .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
     let published, hasMore;
