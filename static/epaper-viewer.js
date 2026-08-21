@@ -220,9 +220,9 @@ const EP = {
     this.setDate(new Date(date + 'T00:00:00'));
   },
 
-  // API response cache (5-minute TTL)
+  // API response cache (30-second TTL — shorter so new editions appear faster after admin save)
   _apiCache: {},
-  _cacheTTL: 5 * 60 * 1000,
+  _cacheTTL: 30 * 1000,
   async _cachedFetch(url) {
     const now = Date.now();
     const cached = this._apiCache[url];

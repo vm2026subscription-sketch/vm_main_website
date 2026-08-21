@@ -75,18 +75,66 @@ const EPAdmin = {
   },
 
   // ── Local draft persistence (Step 1: never lose work, even on refresh) ──
+  // Drafts live in IndexedDB (hundreds of MB quota) — localStorage (~5MB)
+  // silently failed for large editions, which is how work used to get lost.
   _draftKey(date, lang) {
     const d = date || document.getElementById('edDate')?.value || '';
     const l = lang || document.getElementById('edLang')?.value || '';
     return `epaper_draft::${d}::${l}`;
   },
 
-  _saveDraftLocal() {
+  _idbOpen() {
+    if (this._idbPromise) return this._idbPromise;
+    this._idbPromise = new Promise((resolve) => {
+      try {
+        const req = indexedDB.open('epaper_admin', 1);
+        req.onupgradeneeded = () => { req.result.createObjectStore('drafts'); };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => resolve(null);
+        req.onblocked = () => resolve(null);
+      } catch { resolve(null); }
+    });
+    return this._idbPromise;
+  },
+
+  _idbPut(db, key, value) {
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction('drafts', 'readwrite');
+        tx.objectStore('drafts').put(value, key);
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => resolve(false);
+        tx.onabort = () => resolve(false);
+      } catch { resolve(false); }
+    });
+  },
+
+  _idbAll(db) {
+    return new Promise((resolve) => {
+      try {
+        const out = [];
+        const tx = db.transaction('drafts', 'readonly');
+        const store = tx.objectStore('drafts');
+        const keysReq = store.getAllKeys();
+        const valsReq = store.getAll();
+        tx.oncomplete = () => {
+          (keysReq.result || []).forEach((k, i) => {
+            try { if (valsReq.result[i]) out.push(valsReq.result[i]); } catch {}
+          });
+          resolve(out);
+        };
+        tx.onerror = () => resolve([]);
+      } catch { resolve([]); }
+    });
+  },
+
+  async _saveDraftLocal() {
+    let date, language, draft;
     try {
-      const date = document.getElementById('edDate')?.value;
+      date = document.getElementById('edDate')?.value;
       if (!date) return; // need at least a date to key the draft
-      const language = document.getElementById('edLang')?.value || 'Hindi';
-      const draft = {
+      language = document.getElementById('edLang')?.value || 'Hindi';
+      draft = {
         savedAt: Date.now(),
         date,
         name: document.getElementById('edName')?.value || '',
@@ -97,25 +145,56 @@ const EPAdmin = {
         pages: this.pages,
         editionMeta: this.editionMeta,
       };
-      localStorage.setItem(this._draftKey(date, language), JSON.stringify(draft));
-    } catch (e) { /* storage full/unavailable — non-fatal */ }
+    } catch (e) { return; }
+    const key = this._draftKey(date, language);
+    let stored = false;
+    const db = await this._idbOpen();
+    if (db) stored = await this._idbPut(db, key, draft);
+    if (!stored) {
+      // Fallback: localStorage (small editions only)
+      try {
+        localStorage.setItem(key, JSON.stringify(draft));
+        stored = true;
+      } catch (e) {
+        console.warn('[epaper-admin] local draft save FAILED:', e);
+        this._updateAutoSaveStatus('⚠ Draft NOT saved locally (storage full)', '#ef4444');
+      }
+    }
   },
 
   _clearDraftLocal(date, lang) {
-    try { localStorage.removeItem(this._draftKey(date, lang)); } catch (e) {}
+    const key = this._draftKey(date, lang);
+    try { localStorage.removeItem(key); } catch (e) {}
+    // Also drop the IndexedDB copy (fire-and-forget)
+    this._idbOpen().then(db => {
+      if (!db) return;
+      try {
+        const tx = db.transaction('drafts', 'readwrite');
+        tx.objectStore('drafts').delete(key);
+      } catch (e) {}
+    }).catch(() => {});
   },
 
-  _listDrafts() {
+  async _listDrafts() {
     const out = [];
+    const db = await this._idbOpen();
+    if (db) out.push(...(await this._idbAll(db)));
+    // Legacy localStorage drafts (older versions stored them there)
     try {
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);
         if (k && k.startsWith('epaper_draft::')) {
-          try { const v = JSON.parse(localStorage.getItem(k)); if (v) out.push(v); } catch (e) {}
+          try { const v = JSON.parse(localStorage.getItem(k)); if (v) out.push(v); } catch {}
         }
       }
-    } catch (e) {}
-    return out.sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+    } catch {}
+    // Dedupe by date+lang keeping the newest copy
+    const byKey = {};
+    for (const d of out) {
+      const key = `${d.date}::${d.language}`;
+      if (!byKey[key] || (d.savedAt || 0) > (byKey[key].savedAt || 0)) byKey[key] = d;
+    }
+    return Object.values(byKey).sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
   },
 
   _loadStateFromDraft(draft) {
@@ -143,8 +222,8 @@ const EPAdmin = {
     document.getElementById('builderSection').scrollIntoView({ behavior: 'smooth' });
   },
 
-  _offerDraftRecovery() {
-    const drafts = this._listDrafts();
+  async _offerDraftRecovery() {
+    const drafts = await this._listDrafts();
     if (!drafts.length) return;
     const d = drafts[0];
     const when = d.savedAt ? new Date(d.savedAt).toLocaleString() : 'earlier';
@@ -1339,6 +1418,75 @@ const EPAdmin = {
     } catch (e) { alert('Error loading edition'); }
   },
 
+  _serializePage(p) {
+    return {
+      page_number: p.page_number, category: p.category || 'मुख पृष्ठ',
+      date_range: p.date_range || '',
+      image_path: p.page_image_url || p.image_path || '',
+      page_image_url: p.page_image_url || p.image_path || '',
+      blocks: (p.blocks || []).map(b => {
+        const base = { id: b.id, type: b.type || 'article', x: b.x || 0, y: b.y || 0, w: b.w || 200, h: b.h || 150, width: b.w || 200, height: b.h || 150 };
+        if (b.type === 'shape') {
+          return { ...base, shape_type: b.shape_type, fill_color: b.fill_color, stroke_color: b.stroke_color, stroke_width: b.stroke_width, opacity: b.opacity, corner_radius: b.corner_radius, no_fill: b.no_fill, goto_page: b.goto_page || null };
+        }
+        return { ...base, article_id: b.article_id || b.id, headline: b.headline, title: b.headline, sub_headline: b.sub_headline, body_text: b.body_text, body_html: b.body_html || '', author: b.author || 'Vidyarthi Mitra Desk', category_label: b.category_label, category: b.category_label, image_url: b.image_url, image: b.image_url, gallery: b.gallery || [], border_width: b.border_width ?? 0, border_radius: b.border_radius ?? 0, border_color: b.border_color || '#e41e26', border_style: b.border_style || 'solid', goto_page: b.goto_page || null };
+      }),
+    };
+  },
+
+  async _postEditionPayload(payload) {
+    const res = await fetch('/api/epaper/admin/edition', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    let body = null;
+    try { body = await res.json(); } catch {}
+    const confirmed = res.ok && (!body || body.success === true);
+    return { confirmed, status: res.status, body };
+  },
+
+  // Safety-guard (409) handling shared by single-shot and chunked saves.
+  // Asks the user to confirm before force-overwriting content.
+  async _postWithGuard(payload, label) {
+    let attempt = { ...payload };
+    for (;;) {
+      const r = await this._postEditionPayload(attempt);
+      if (r.status === 409 && r.body?.guard && !attempt.force) {
+        const g = r.body.guard;
+        const ok = confirm(
+          `SAFETY GUARD${label ? ` (${label})` : ''}: Is save se edition ke filled articles ` +
+          `${g.existing_filled} se ${g.incoming_filled} par gir jayenge — yaani bahut saara saved content delete hoga.\n\n` +
+          `Agar aap jaan-boojh kar ye kar rahe ho, toh OK dabao (force overwrite).\n` +
+          `Cancel dabao toh save ruk jayega — aapka kaam is device par draft me safe hai.`
+        );
+        if (!ok) {
+          return { confirmed: false, status: 409, cancelled: true, body: { error: 'Save cancelled (safety guard)' } };
+        }
+        attempt = { ...attempt, force: true };
+        continue;
+      }
+      return r;
+    }
+  },
+
+  // Large editions are saved one page per request so no single request body
+  // approaches the ~4.5MB proxy limit that silently killed big saves before.
+  // The last chunk carries backup=true so exactly one full snapshot is taken.
+  async _saveChunked(meta, pages) {
+    const pageSet = pages.map(p => p.page_number).filter(n => n != null);
+    // 1) Edition shell (no pages key → server preserves existing pages)
+    const shell = await this._postEditionPayload({ ...meta });
+    if (!shell.confirmed) return shell;
+    // 2) One request per page
+    for (let i = 0; i < pages.length; i++) {
+      this._updateAutoSaveStatus(`Saving page ${i + 1}/${pages.length}…`, '#f59e0b');
+      const chunk = { ...meta, merge_pages: true, page_set: pageSet, pages: [pages[i]], backup: i === pages.length - 1 };
+      const r = await this._postWithGuard(chunk, `page ${pages[i].page_number}`);
+      if (!r.confirmed) return r;
+    }
+    return { confirmed: true, status: 200, body: {} };
+  },
+
   async saveEdition(opts = {}) {
     const silent = opts.silent || false;
     if (this._autoSaving) return;
@@ -1363,42 +1511,31 @@ const EPAdmin = {
     }
 
     const wasRenamed = !!(this._originalDate && (this._originalDate !== date || this._originalLang !== lang));
-    const payload = {
+    const meta = {
       date, name: name || `Edition ${date}`, language: lang,
       published: status === 'published',
       masthead_image_url: this.editionMeta.masthead_image_url || '',
       footer_links: this.editionMeta.footer_links || [],
-      pages: this.pages.map(p => ({
-        page_number: p.page_number, category: p.category || 'मुख पृष्ठ',
-        date_range: p.date_range || '',
-        image_path: p.page_image_url || p.image_path || '',
-        page_image_url: p.page_image_url || p.image_path || '',
-        blocks: (p.blocks || []).map(b => {
-          const base = { id: b.id, type: b.type || 'article', x: b.x || 0, y: b.y || 0, w: b.w || 200, h: b.h || 150, width: b.w || 200, height: b.h || 150 };
-          if (b.type === 'shape') {
-            return { ...base, shape_type: b.shape_type, fill_color: b.fill_color, stroke_color: b.stroke_color, stroke_width: b.stroke_width, opacity: b.opacity, corner_radius: b.corner_radius, no_fill: b.no_fill, goto_page: b.goto_page || null };
-          }
-          return { ...base, article_id: b.article_id || b.id, headline: b.headline, title: b.headline, sub_headline: b.sub_headline, body_text: b.body_text, body_html: b.body_html || '', author: b.author || 'Vidyarthi Mitra Desk', category_label: b.category_label, category: b.category_label, image_url: b.image_url, image: b.image_url, gallery: b.gallery || [], border_width: b.border_width ?? 0, border_radius: b.border_radius ?? 0, border_color: b.border_color || '#e41e26', border_style: b.border_style || 'solid', goto_page: b.goto_page || null };
-        }),
-      })),
     };
-
     if (this._originalDate && (this._originalDate !== date || this._originalLang !== lang)) {
-      payload.original_date = this._originalDate;
-      payload.original_lang = this._originalLang;
+      meta.original_date = this._originalDate;
+      meta.original_lang = this._originalLang;
     }
 
     try {
-      const res = await fetch('/api/epaper/admin/edition', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      let confirmed = false;
-      if (res.ok) {
-        try { const body = await res.json(); confirmed = body && body.success === true; }
-        catch { confirmed = true; } // 2xx with no/invalid body — treat as success
+      const serializedPages = this.pages.map(p => this._serializePage(p));
+      const payloadBytes = new Blob([JSON.stringify({ ...meta, pages: serializedPages })]).size;
+      // Stay well under the ~4.5MB platform body limit (3MB threshold, exact
+      // UTF-8 byte count via Blob.size — string length lies for Hindi text).
+      const CHUNK_LIMIT = 3 * 1024 * 1024;
+      let result;
+      if (payloadBytes > CHUNK_LIMIT && serializedPages.length > 1) {
+        result = await this._saveChunked(meta, serializedPages);
+      } else {
+        result = await this._postWithGuard({ ...meta, pages: serializedPages });
       }
-      if (confirmed) {
+
+      if (result.confirmed) {
         this._isDirty = false;
         this._originalDate = date;
         this._originalLang = lang;
@@ -1413,11 +1550,22 @@ const EPAdmin = {
         } else {
           this.showToast('<i class="fa fa-check-circle" style="color:#22c55e"></i> Edition saved!');
         }
+        // Show warning if server returned one (e.g., local file fallback on Vercel)
+        try {
+          const body = result.body;
+          if (body?.warning) {
+            this.showToast(`<i class="fa fa-exclamation-triangle" style="color:#f59e0b"></i> ${body.warning}`, 8000);
+          }
+        } catch {}
         await this.loadEditions();
         if (wasRenamed) this._scrollToEdition(date, lang);
       } else {
-        let msg = `Save failed (${res.status})`;
-        try { const e = await res.json(); msg = e.error || msg; } catch {}
+        let msg = result.cancelled
+          ? (result.body?.error || 'Save cancelled')
+          : `Save failed (${result.status})`;
+        if (!result.cancelled) {
+          try { msg = result.body?.error || msg; } catch {}
+        }
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         this._updateAutoSaveStatus(`Save FAILED ${timeStr}`, '#ef4444');
         // Loud, persistent warning — draft is kept until a real save succeeds

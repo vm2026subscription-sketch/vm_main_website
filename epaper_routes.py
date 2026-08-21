@@ -520,6 +520,59 @@ def _row_to_edition(row_data):
     return json.loads(row_data) if isinstance(row_data, str) else row_data
 
 
+def _count_filled_articles(pages):
+    """Count article blocks that actually have body content (text or html)."""
+    n = 0
+    for p in pages or []:
+        for b in p.get("blocks") or []:
+            if b.get("type", "article") == "article" and (
+                (b.get("body_text") or "").strip() or (b.get("body_html") or "").strip()
+            ):
+                n += 1
+    return n
+
+
+def _content_regression(existing_edition, incoming_pages):
+    """Detect a save that would drastically reduce stored article content.
+    Returns guard info dict, or None if the save looks safe."""
+    old_n = _count_filled_articles((existing_edition or {}).get("pages"))
+    new_n = _count_filled_articles(incoming_pages)
+    # Only trip when there is real content to lose and >30% of filled articles
+    # would vanish (rounded up). Small editions are exempt to avoid nagging.
+    if old_n >= 8 and new_n < (old_n * 7 + 9) // 10:
+        return {"existing_filled": old_n, "incoming_filled": new_n}
+    return None
+
+
+def _merge_pages_into(base_pages, incoming_pages, page_set=None):
+    """Merge incoming pages into base pages by page_number. If page_set is a
+    list, prune any pages whose number is not in it (handles page deletions).
+    Every chunked request carries the same page_set, so deletions propagate
+    consistently no matter which chunk lands last."""
+    by_num = {}
+    for p in incoming_pages or []:
+        n = p.get("page_number")
+        if n is not None:
+            by_num[n] = p
+    merged, replaced = [], set()
+    for p in base_pages or []:
+        n = p.get("page_number")
+        if n in by_num:
+            merged.append(by_num[n])
+            replaced.add(n)
+        else:
+            merged.append(p)
+    for p in incoming_pages or []:
+        n = p.get("page_number")
+        if n is not None and n not in replaced:
+            merged.append(p)
+    if isinstance(page_set, list):
+        allowed = set(page_set)
+        merged = [p for p in merged if p.get("page_number") in allowed]
+    merged.sort(key=lambda p: p.get("page_number") or 0)
+    return merged
+
+
 def _upsert_edition_row(cur, edition):
     """Upsert a single edition into the per-edition v2 table using an open cursor."""
     cur.execute("""
@@ -1510,8 +1563,6 @@ def api_publish_edition(date):
     lang = request.args.get("lang", None)
     effective_lang = lang or "Hindi"
 
-    _invalidate_editions_cache(date=date, lang=effective_lang)
-
     edition = None
     # ── Fast path: load, update and upsert only one row in Postgres ──
     if _pg_url():
@@ -1538,6 +1589,8 @@ def api_publish_edition(date):
                 with conn.cursor() as cur:
                     _upsert_edition_row(cur, edition)
                 conn.commit()
+                # Invalidate cache AFTER successful commit
+                _invalidate_editions_cache(date=date, lang=effective_lang)
                 # Save backup
                 _save_edition_backup(edition, conn=conn)
                 conn.close()
@@ -1568,6 +1621,8 @@ def api_publish_edition(date):
             except Exception as exc:
                 return jsonify({"error": f"Save failed: {exc}"}), 500
             _save_edition_backup(e)
+            # Invalidate cache after file save
+            _invalidate_editions_cache(date=date, lang=effective_lang)
             return jsonify({"success": True, "published": published})
             
     return jsonify({"error": "Edition not found."}), 404
@@ -1865,11 +1920,6 @@ def api_create_edition():
             existing["pages"] = data["pages"]
         return existing
 
-    # Invalidate both the list cache and any cached single-edition entries
-    _invalidate_editions_cache(date=date_str, lang=lang_str)
-    if renamed:
-        _invalidate_editions_cache(date=original_date, lang=original_lang)
-
     # ── Fast path: write only THIS edition's row (no 32 MB rewrite) ──
     if _pg_url():
         conn = None
@@ -1878,18 +1928,52 @@ def api_create_edition():
             _pg_ensure_table(conn)
             existing = _load_one_edition_pg(conn, date_str, lang_str)
             saved_edition = _apply_payload(existing)
+            # Chunked-save mode: merge incoming pages into the stored edition
+            # instead of replacing the whole pages array. Lets the admin save
+            # one page per request to stay under proxy body-size limits.
+            if data.get("merge_pages") and "pages" in data:
+                saved_edition["pages"] = _merge_pages_into(
+                    saved_edition.get("pages"),
+                    data.get("pages") or [],
+                    data.get("page_set"),
+                )
+            # Safety guard: refuse saves that would wipe most of the stored
+            # article content (e.g. a stale/partial autosave overwriting a
+            # full edition). Client can retry with force=true after confirm.
+            if existing and not data.get("force"):
+                guard = _content_regression(existing, saved_edition.get("pages"))
+                if guard:
+                    return jsonify({
+                        "error": (
+                            f"SAFETY GUARD: this save would drop filled articles from "
+                            f"{guard['existing_filled']} to {guard['incoming_filled']}. "
+                            f"If this is intentional, confirm the overwrite in the editor."
+                        ),
+                        "guard": guard,
+                    }), 409
             with conn.cursor() as cur:
                 _upsert_edition_row(cur, saved_edition)
                 # If the date or language key changed, delete the old row so we
-                # don't leave a duplicate behind.
+                # don't leave a duplicate behind. Snapshot the OLD row first —
+                # Plan B if anything goes wrong mid-rename.
                 if renamed:
+                    old_row = _load_one_edition_pg(conn, original_date, original_lang or "Hindi")
+                    if old_row:
+                        _save_edition_backup(old_row, conn=conn)
                     cur.execute(
                         "DELETE FROM epaper_editions_v2 WHERE edition_date=%s AND edition_language=%s",
                         (original_date, original_lang or "Hindi"),
                     )
             conn.commit()
-            # Reuse same connection for the per-edition snapshot backup
-            _save_edition_backup(saved_edition, conn=conn)
+            # Invalidate cache AFTER successful commit
+            _invalidate_editions_cache(date=date_str, lang=lang_str)
+            if renamed:
+                _invalidate_editions_cache(date=original_date, lang=original_lang)
+            # Reuse same connection for the per-edition snapshot backup.
+            # Chunked saves opt out on intermediate chunks (backup=true only
+            # on the final chunk) so we don't spam 20 snapshots per save.
+            if data.get("backup", True):
+                _save_edition_backup(saved_edition, conn=conn)
             # Notify the mobile app on a NEW published edition (once per date).
             try:
                 if existing is None and saved_edition.get("published", True):
@@ -1898,7 +1982,7 @@ def api_create_edition():
             except Exception as _pe:
                 print(f"[epaper] new-edition push failed (non-fatal): {_pe}")
             conn.close()
-            return jsonify({"success": True}), 201
+            return jsonify({"success": True, "published": saved_edition.get("published", True)}), 201
         except Exception as exc:
             if conn:
                 try: conn.close()
@@ -1922,17 +2006,44 @@ def api_create_edition():
     else:
         saved_edition = _apply_payload(None)
         editions.append(saved_edition)
+    # Same chunked-merge + safety-guard semantics as the Postgres path
+    if data.get("merge_pages") and "pages" in data:
+        saved_edition["pages"] = _merge_pages_into(
+            saved_edition.get("pages"),
+            data.get("pages") or [],
+            data.get("page_set"),
+        )
+    if existing and not data.get("force"):
+        guard = _content_regression(existing, saved_edition.get("pages"))
+        if guard:
+            return jsonify({
+                "error": (
+                    f"SAFETY GUARD: this save would drop filled articles from "
+                    f"{guard['existing_filled']} to {guard['incoming_filled']}. "
+                    f"If this is intentional, confirm the overwrite in the editor."
+                ),
+                "guard": guard,
+            }), 409
     try:
         _save_editions_to_file(editions)
     except Exception as exc:
         return jsonify({"error": f"Save failed: {exc}"}), 500
-    _save_edition_backup(saved_edition)
+    # Invalidate cache after file save
+    _invalidate_editions_cache(date=date_str, lang=lang_str)
+    if renamed:
+        _invalidate_editions_cache(date=original_date, lang=original_lang)
+    if data.get("backup", True):
+        _save_edition_backup(saved_edition)
     try:
         if existing is None and saved_edition.get("published", True):
             _send_new_edition_notification(saved_edition)
     except Exception as _pe:
         print(f"[epaper] new-edition push (file) failed (non-fatal): {_pe}")
-    return jsonify({"success": True}), 201
+    # Warn if using file fallback on Vercel (ephemeral filesystem)
+    warning = None
+    if not _pg_url() and (os.getenv("VERCEL") == "1" or os.getenv("RENDER")):
+        warning = "⚠️ Saved to local file (ephemeral on Vercel). Configure SUPABASE_POSTGRES_URL for persistence."
+    return jsonify({"success": True, "published": saved_edition.get("published", True), "warning": warning}), 201
 
 
 # ── API: Get edition (admin — no published filter, fast single-row lookup) ────
@@ -2002,6 +2113,25 @@ def api_delete_edition(date):
     if not lang:
         return jsonify({"error": "Language parameter required for deletion."}), 400
     try:
+        # Plan B: snapshot the edition to the backups table BEFORE deleting,
+        # so even explicit deletes are always recoverable.
+        if _pg_url():
+            conn = None
+            try:
+                conn = _pg_connect()
+                _pg_ensure_table(conn)
+                doomed = _load_one_edition_pg(conn, date, lang)
+                if doomed:
+                    _save_edition_backup(doomed, conn=conn)
+                if conn:
+                    conn.close()
+                    conn = None
+            except Exception as be:
+                print(f"[epaper] pre-delete backup failed (non-fatal): {be}")
+            finally:
+                if conn:
+                    try: conn.close()
+                    except: pass
         _delete_edition_row(date, lang)          # explicit single-row delete in v2
         _invalidate_editions_cache(date=date, lang=lang)
         # Keep the file fallback in sync (best-effort)
