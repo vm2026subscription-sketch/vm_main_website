@@ -2634,6 +2634,17 @@ def api_epaper_diagnostics():
     except Exception as e:
         out["mongo_error"] = str(e)
 
+    # Redis (Upstash) — is the L2 cache actually configured & reachable?
+    r = _get_redis()
+    if not r:
+        out["redis"] = "not configured (set UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN)"
+    else:
+        try:
+            r.set("ep:diag", "ok", ex=30)
+            out["redis"] = "reachable"
+        except Exception as e:
+            out["redis"] = f"configured but unreachable: {e}"
+
     # Local file fallback (bundled/ephemeral)
     try:
         out["local_file"] = _summary(_load_editions_from_file())
