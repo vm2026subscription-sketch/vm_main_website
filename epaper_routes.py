@@ -155,7 +155,22 @@ def _require_epaper_admin():
         return None
     if request.is_json or request.path.startswith("/api/"):
         return jsonify({"error": "Unauthorized. Please log in to epaper admin."}), 401
-    return redirect(url_for("epaper.epaper_admin_login", next=request.full_path))
+    return _admin_login_redirect()
+
+
+def _admin_login_redirect():
+    """The standalone e-paper login is retired — admins sign in via the main
+    site dashboard (/admin), which already grants the builder session."""
+    next_url = request.args.get("next") or "/epaper-admin"
+    if "?" in next_url:
+        next_url = next_url.split("?")[0]
+    if not next_url.startswith("/") or next_url.startswith("//"):
+        next_url = "/epaper-admin"
+    quoted = urllib.parse.quote(next_url, safe="")
+    host = (request.host or "").lower()
+    if host.startswith("epaper."):
+        return redirect(f"https://www.vidyarthimitra.org/admin/login?next={quoted}")
+    return redirect(f"/admin/login?next={quoted}")
 
 # ── Cloudinary auto-config ─────────────────────────
 _CLOUDINARY_URL = os.getenv("CLOUDINARY_URL", "")
@@ -1142,32 +1157,17 @@ def epaper_viewer(date=None, page=1):
 # ── Epaper Admin Login / Logout ───────────────────
 @epaper_bp.route("/epaper-admin/login", methods=["GET", "POST"])
 def epaper_admin_login():
-    if _is_epaper_admin():
-        return redirect(url_for("epaper.epaper_admin_v2"))
-    error = None
-    if request.method == "POST":
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "")
-        user_ok = bool(_EPAPER_ADMIN_USER) and hmac.compare_digest(username, _EPAPER_ADMIN_USER)
-        pass_ok = bool(_EPAPER_ADMIN_PASS) and hmac.compare_digest(password, _EPAPER_ADMIN_PASS)
-        if user_ok and pass_ok:
-            session[_EPAPER_ADMIN_SESSION_KEY] = True
-            session.permanent = True
-            next_url = request.args.get("next") or url_for("epaper.epaper_admin_v2")
-            parsed = urllib.parse.urlparse(next_url)
-            if parsed.scheme or parsed.netloc or next_url.startswith("//"):
-                next_url = url_for("epaper.epaper_admin_v2")
-            elif "?" in next_url:
-                next_url = next_url.split("?")[0]
-            return redirect(next_url)
-        error = "Invalid username or password."
-    return render_template("epaper_admin_login.html", error=error)
+    # Retired — the main site dashboard login (/admin) is the only way in.
+    return _admin_login_redirect()
 
 
 @epaper_bp.route("/epaper-admin/logout")
 def epaper_admin_logout():
     session.pop(_EPAPER_ADMIN_SESSION_KEY, None)
-    return redirect(url_for("epaper.epaper_admin_login"))
+    host = (request.host or "").lower()
+    if host.startswith("epaper."):
+        return redirect("https://www.vidyarthimitra.org/admin/login")
+    return redirect("/admin/login")
 
 
 # ── Admin Page ────────────────────────────────────
