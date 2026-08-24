@@ -559,6 +559,34 @@ def _content_regression(existing_edition, incoming_pages):
     return None
 
 
+def _per_page_wipes(base_pages, new_pages):
+    """Catch content loss the whole-edition check misses: a save that empties
+    individual rich pages (or deletes them) while other chunks/pages keep the
+    edition-wide average above the regression threshold. Chunked saves wipe
+    page-by-page, so each request alone can look harmless — this looks at
+    every page individually. Returns a list of wiped-page info dicts."""
+    new_by = {}
+    for p in new_pages or []:
+        n = p.get("page_number")
+        if n is not None:
+            new_by[n] = p
+    wiped = []
+    for p in base_pages or []:
+        n = p.get("page_number")
+        if n is None:
+            continue
+        old_f = _count_filled_articles([p])
+        if old_f < 4:
+            continue  # only flag pages that had real content
+        if n not in new_by:
+            wiped.append({"page": n, "existing_filled": old_f, "incoming_filled": 0, "removed": True})
+            continue
+        new_f = _count_filled_articles([new_by[n]])
+        if new_f == 0:
+            wiped.append({"page": n, "existing_filled": old_f, "incoming_filled": 0})
+    return wiped
+
+
 def _merge_pages_into(base_pages, incoming_pages, page_set=None):
     """Merge incoming pages into base pages by page_number. If page_set is a
     list, prune any pages whose number is not in it (handles page deletions).
@@ -1938,15 +1966,28 @@ def api_create_edition():
                     data.get("page_set"),
                 )
             # Safety guard: refuse saves that would wipe most of the stored
-            # article content (e.g. a stale/partial autosave overwriting a
-            # full edition). Client can retry with force=true after confirm.
+            # article content — either edition-wide or page-by-page (chunked
+            # saves can otherwise sneak past the aggregate check).
             if existing and not data.get("force"):
                 guard = _content_regression(existing, saved_edition.get("pages"))
+                wiped = _per_page_wipes(existing.get("pages"), saved_edition.get("pages"))
+                if wiped:
+                    if guard is None:
+                        guard = {}
+                    guard["wiped_pages"] = wiped[:8]
+                    guard["total_wiped_pages"] = len(wiped)
                 if guard:
+                    detail = ""
+                    if "existing_filled" in guard:
+                        detail = (
+                            f"filled articles {guard['existing_filled']} → "
+                            f"{guard['incoming_filled']}"
+                        )
+                    elif guard.get("total_wiped_pages"):
+                        detail = f"{guard['total_wiped_pages']} page(s) ka poora content khali ho jayega"
                     return jsonify({
                         "error": (
-                            f"SAFETY GUARD: this save would drop filled articles from "
-                            f"{guard['existing_filled']} to {guard['incoming_filled']}. "
+                            f"SAFETY GUARD: this save would drop {detail}. "
                             f"If this is intentional, confirm the overwrite in the editor."
                         ),
                         "guard": guard,
@@ -2015,11 +2056,16 @@ def api_create_edition():
         )
     if existing and not data.get("force"):
         guard = _content_regression(existing, saved_edition.get("pages"))
+        wiped = _per_page_wipes(existing.get("pages"), saved_edition.get("pages"))
+        if wiped:
+            if guard is None:
+                guard = {}
+            guard["wiped_pages"] = wiped[:8]
+            guard["total_wiped_pages"] = len(wiped)
         if guard:
             return jsonify({
                 "error": (
-                    f"SAFETY GUARD: this save would drop filled articles from "
-                    f"{guard['existing_filled']} to {guard['incoming_filled']}. "
+                    f"SAFETY GUARD: this save would drop significant content. "
                     f"If this is intentional, confirm the overwrite in the editor."
                 ),
                 "guard": guard,

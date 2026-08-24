@@ -1453,9 +1453,12 @@ const EPAdmin = {
       const r = await this._postEditionPayload(attempt);
       if (r.status === 409 && r.body?.guard && !attempt.force) {
         const g = r.body.guard;
+        const detail = (g.existing_filled != null)
+          ? `edition ke filled articles ${g.existing_filled} se ${g.incoming_filled} par gir jayenge`
+          : `${g.total_wiped_pages} page(s) ka poora article content khali/delete ho jayega` +
+            (Array.isArray(g.wiped_pages) ? ` (pages: ${g.wiped_pages.map(w => w.page).join(', ')})` : '');
         const ok = confirm(
-          `SAFETY GUARD${label ? ` (${label})` : ''}: Is save se edition ke filled articles ` +
-          `${g.existing_filled} se ${g.incoming_filled} par gir jayenge — yaani bahut saara saved content delete hoga.\n\n` +
+          `SAFETY GUARD${label ? ` (${label})` : ''}: Is save se ${detail} — yaani saved content delete hoga.\n\n` +
           `Agar aap jaan-boojh kar ye kar rahe ho, toh OK dabao (force overwrite).\n` +
           `Cancel dabao toh save ruk jayega — aapka kaam is device par draft me safe hai.`
         );
