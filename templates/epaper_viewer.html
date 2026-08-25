@@ -178,9 +178,6 @@
           <div class="ep-edition-card-skeleton"></div>
           <div class="ep-edition-card-skeleton"></div>
         </div>
-        <!-- Advertisements: EVERY live ad uploaded from ePaper admin → Ads,
-             stacked in priority order so none is skipped. -->
-        <div class="vm-ad-slot ep-ad-compact" data-position="all" data-limit="all" data-dedupe="false"></div>
       </section>
       <div class="ep-paper" id="epPaper">
         <div class="ep-masthead">
@@ -204,10 +201,6 @@
             <p style="color:#9ca3af;font-size:13px;line-height:1.7;margin-top:6px;">No E-Paper is available for this date.<br>Please select another date from the calendar.</p>
           </div>
         </div>
-
-        <!-- Advertisements while reading an edition. The landing slot above is
-             hidden in edition mode, so this one carries the same full set. -->
-        <div class="vm-ad-slot ep-ad-compact ep-ad-reader" data-position="all" data-limit="all" data-dedupe="false"></div>
 
         <div class="ep-paper-footer">
           <div class="ep-footer-dots" aria-hidden="true">
@@ -460,6 +453,5 @@
         .catch(function () {});
     }
   </script>
-  {% include '_ads_assets.html' %}
 </body>
 </html>

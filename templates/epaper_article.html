@@ -141,12 +141,10 @@
         <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.url|urlencode }}" target="_blank" rel="noopener">Facebook</a>
         <button type="button" onclick="navigator.clipboard?.writeText(location.href)">Copy link</button>
       </div>
-      <!-- Advertisement: Article Page (managed from ePaper admin → Ads) -->
-      <div class="vm-ad-slot" data-position="article_page"></div>
+
     </article>
     <aside class="article-side">
-      <!-- Advertisement: Sidebar (managed from ePaper admin → Ads) -->
-      <div class="vm-ad-slot" data-position="sidebar"></div>
+
       <div class="side-card">
         <h2>Related Articles</h2>
         {% for item in related_articles %}
@@ -488,6 +486,5 @@
       });
     });
   </script>
-  {% include '_ads_assets.html' %}
 </body>
 </html>
