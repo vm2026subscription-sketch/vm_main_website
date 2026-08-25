@@ -221,18 +221,34 @@ const EP = {
     this.setDate(new Date(date + 'T00:00:00'));
   },
 
-  // API response cache (5-minute TTL)
+  // API response cache (30-second TTL — shorter so new editions appear faster after admin save)
   _apiCache: {},
-  _cacheTTL: 5 * 60 * 1000,
+  _cacheTTL: 30 * 1000,
+
+  // Big editions take 5-8s on cold serverless instances and can hit the
+  // platform timeout — a single failed request must not blank the reader.
+  async _fetchJsonWithRetry(url, tries = 3) {
+    let lastErr;
+    for (let i = 0; i < tries; i++) {
+      try {
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return await r.json();
+      } catch (e) {
+        lastErr = e;
+        if (i < tries - 1) await new Promise(res => setTimeout(res, 900 * (i + 1)));
+      }
+    }
+    throw lastErr;
+  },
+
   async _cachedFetch(url) {
     const now = Date.now();
     const cached = this._apiCache[url];
     if (cached && (now - cached.ts) < this._cacheTTL) {
       return cached.data;
     }
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
+    const data = await this._fetchJsonWithRetry(url);
     this._apiCache[url] = { data, ts: now };
     return data;
   },
@@ -1048,10 +1064,7 @@ const EP = {
     this.showLoadingSkeleton();
     try {
       const data = lang
-        ? await fetch(url).then(r => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.json();
-        })
+        ? await this._fetchJsonWithRetry(url)
         : await this._cachedFetch(url);
       this.applyEditionData(data, true);
     } catch (e) {
@@ -1303,7 +1316,7 @@ const EP = {
     this.showLoadingSkeleton();
 
     try {
-      const data = await this._cachedFetch(`/api/epaper/edition/${iso}`);
+      const data = await this._fetchJsonWithRetry(`/api/epaper/edition/${iso}`);
       this.applyEditionData(data, true);
     } catch (e) {
       console.warn('Edition load error:', e);
@@ -1400,10 +1413,7 @@ const EP = {
     this.setReaderMode(true);
     this.showLoadingSkeleton();
     try {
-      const data = await fetch(url).then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      });
+      const data = await this._fetchJsonWithRetry(url);
       this.applyEditionData(data, true);
       this.el.navList?.querySelectorAll('.ep-nav-item').forEach(n => {
         n.classList.toggle('active', n.dataset.lang === this.currentLanguage);
