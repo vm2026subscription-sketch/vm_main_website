@@ -28,9 +28,8 @@
   <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"></noscript>
-  <link rel="stylesheet" href="{{ url_for('static', filename='epaper-viewer.css', v='20260801-views-badge-inline') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='epaper-viewer.css', v='20260705-calendar-editions-only') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='epaper-landing-light.css', v='17') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='epaper-viewer.css', v='20260825-3dflip') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='epaper-landing-light.css', v='18') }}">
   <style>
     .ep-views-badge {
       display: inline-flex;
@@ -194,6 +193,26 @@
           <div class="ep-page-container" id="epPageContainer">
             <img class="ep-page-img" id="epPageImg" src="" alt="E-Paper Page" draggable="false">
             <div id="epHotspots" style="position:absolute;inset:0;"></div>
+          </div>
+
+          <!-- ── 3D Page Turn Stage ── -->
+          <div class="ep-3d-flip-stage" id="ep3DFlipStage" style="display:none;" aria-hidden="true">
+            <div class="ep-3d-under-page" id="ep3DUnderPage">
+              <img class="ep-3d-under-img" id="ep3DUnderImg" src="" alt="" draggable="false">
+              <div class="ep-3d-under-shadow" id="ep3DUnderShadow"></div>
+            </div>
+            <div class="ep-3d-turning-page" id="ep3DTurningPage">
+              <div class="ep-3d-page-face ep-3d-page-front" id="ep3DPageFront">
+                <img class="ep-3d-face-img ep-3d-front-img" id="ep3DFrontImg" src="" alt="" draggable="false">
+                <div class="ep-3d-spine-shadow"></div>
+                <div class="ep-3d-lift-shadow" id="ep3DFrontShadow"></div>
+              </div>
+              <div class="ep-3d-page-face ep-3d-page-back" id="ep3DPageBack">
+                <img class="ep-3d-face-img ep-3d-back-img" id="ep3DBackImg" src="" alt="" draggable="false">
+                <div class="ep-3d-spine-shadow"></div>
+                <div class="ep-3d-lift-shadow" id="ep3DBackShadow"></div>
+              </div>
+            </div>
           </div>
 
           <!-- Empty state -->
@@ -442,7 +461,7 @@
   <!-- ── Toast ── -->
   <div class="ep-toast" id="epToast"></div>
 
-  <script src="{{ url_for('static', filename='epaper-viewer.js', v='20260731-readcta') }}"></script>
+  <script src="{{ url_for('static', filename='epaper-viewer.js', v='20260825-3dflip') }}"></script>
 
   <!-- PWA Service Worker -->
   <script>
