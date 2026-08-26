@@ -2767,6 +2767,74 @@ def admin():
     )
 
 
+@app.route("/api/admin/content-health")
+@require_admin
+def api_content_health():
+    """Return per-edition page/article counts from epaper_editions_v2."""
+    pg_url = get_postgres_connection_url()
+    if not pg_url:
+        return jsonify({"error": "Postgres not configured."}), 500
+    try:
+        import psycopg2
+        conn = psycopg2.connect(pg_url, connect_timeout=10)
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT edition_date, edition_language, data, updated_at "
+                "FROM epaper_editions_v2 ORDER BY edition_date DESC, edition_language"
+            )
+            rows = cur.fetchall()
+        conn.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    editions = []
+    for date, lang, data, updated_at in rows:
+        if isinstance(data, str):
+            data = json.loads(data)
+        pages = data.get("pages") or []
+        total_pages = len(pages)
+        filled_pages = 0
+        total_articles = 0
+        total_words = 0
+        for p in pages:
+            blocks = p.get("blocks") or []
+            page_has_content = False
+            for b in blocks:
+                if b.get("type", "article") == "article":
+                    body = (b.get("body_text") or "").strip()
+                    if body:
+                        total_articles += 1
+                        total_words += len(body.split())
+                        page_has_content = True
+            if page_has_content or any(
+                (b.get("type") != "article") for b in blocks
+            ):
+                filled_pages += 1
+        editions.append({
+            "date": date,
+            "language": lang,
+            "published": data.get("published", False),
+            "total_pages": total_pages,
+            "filled_pages": filled_pages,
+            "articles": total_articles,
+            "words": total_words,
+            "updated_at": str(updated_at)[:19] if updated_at else None,
+        })
+
+    total_ed = len(editions)
+    total_art = sum(e["articles"] for e in editions)
+    total_pg = sum(e["total_pages"] for e in editions)
+    total_wd = sum(e["words"] for e in editions)
+    summary = {
+        "total_editions": total_ed,
+        "total_articles": total_art,
+        "total_pages": total_pg,
+        "total_words": total_wd,
+        "avg_articles_per_edition": round(total_art / total_ed, 1) if total_ed else 0,
+    }
+    return jsonify({"editions": editions, "summary": summary})
+
+
 @app.route("/api/admin/users", methods=["GET"])
 @require_admin
 def api_admin_users_list():
