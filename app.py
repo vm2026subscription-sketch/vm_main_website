@@ -5625,6 +5625,123 @@ def sitemap_xml():
     return Response(xml, mimetype='application/xml')
 
 
+# ── Public env-health diagnostics (no auth) ──────────────────────────
+@app.route("/api/env-health")
+def api_env_health():
+    """Verify that critical external services are configured and reachable."""
+    import time as _time
+
+    result = {"status": "ok", "env_check": {}}
+
+    # ── 1. Env var presence (no values leaked) ──
+    env_keys = [
+        "UPSTASH_REDIS_REST_URL",
+        "UPSTASH_REDIS_REST_TOKEN",
+        "SUPABASE_URL",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "SUPABASE_ANON_KEY",
+        "SUPABASE_POSTGRES_URL",
+        "SUPABASE_POOLER_URL",
+        "DATABASE_URL",
+        "CLOUDINARY_URL",
+    ]
+    for k in env_keys:
+        result["env_check"][k] = bool(os.environ.get(k, "").strip())
+
+    # ── 2. Redis (Upstash) ──
+    redis_url = os.getenv("UPSTASH_REDIS_REST_URL", "").strip()
+    redis_token = os.getenv("UPSTASH_REDIS_REST_TOKEN", "").strip()
+    if redis_url and redis_token:
+        try:
+            from upstash_redis import Redis as _UpstashRedis
+            _rc = _UpstashRedis(url=redis_url, token=redis_token)
+            t0 = _time.monotonic()
+            _rc.set("env:health:ping", "ok", ex=30)
+            val = _rc.get("env:health:ping")
+            latency = round((_time.monotonic() - t0) * 1000)
+            result["redis"] = {"ok": val == "ok", "latency_ms": latency}
+        except Exception as e:
+            result["redis"] = {"ok": False, "error": str(e)[:200]}
+            result["status"] = "degraded"
+    else:
+        result["redis"] = {"ok": False, "error": "env vars missing"}
+        result["status"] = "degraded"
+
+    # ── 3. Supabase client ──
+    sb_url = os.getenv("SUPABASE_URL", "").strip()
+    sb_key = (
+        os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+        or os.getenv("SUPABASE_ANON_KEY", "").strip()
+    )
+    if sb_url and sb_key:
+        try:
+            from supabase import create_client as _sb_create
+            t0 = _time.monotonic()
+            _sb = _sb_create(sb_url, sb_key)
+            # A lightweight introspection — just confirming the client initializes
+            result["supabase"] = {
+                "ok": True,
+                "url_set": True,
+                "latency_ms": round((_time.monotonic() - t0) * 1000),
+            }
+        except Exception as e:
+            result["supabase"] = {"ok": False, "error": str(e)[:200]}
+            result["status"] = "degraded"
+    else:
+        result["supabase"] = {"ok": False, "error": "env vars missing"}
+        result["status"] = "degraded"
+
+    # ── 4. Supabase Postgres ──
+    pg_url = os.getenv("SUPABASE_POSTGRES_URL", "").strip() or os.getenv("DATABASE_URL", "").strip()
+    if pg_url:
+        try:
+            import psycopg2 as _psycopg2
+            _pg_ssl = pg_url
+            if "sslmode" not in _pg_ssl:
+                _pg_ssl += ("&" if "?" in _pg_ssl else "?") + "sslmode=require"
+            t0 = _time.monotonic()
+            _conn = _psycopg2.connect(_pg_ssl, connect_timeout=8)
+            with _conn.cursor() as _cur:
+                _cur.execute("SELECT 1")
+            _conn.close()
+            result["postgres"] = {"ok": True, "latency_ms": round((_time.monotonic() - t0) * 1000)}
+        except Exception as e:
+            result["postgres"] = {"ok": False, "error": str(e)[:200]}
+            result["status"] = "degraded"
+    else:
+        result["postgres"] = {"ok": False, "error": "env var missing"}
+        result["status"] = "degraded"
+
+    # ── 5. Cloudinary ──
+    c_url = os.getenv("CLOUDINARY_URL", "").strip()
+    if c_url:
+        try:
+            import cloudinary as _cld
+            import cloudinary.api as _cld_api
+            _cld.config(cloudinary_url=c_url)
+            _cloud_name = getattr(_cld.config(), "cloud_name", None)
+            if not _cloud_name and "@" in c_url:
+                _cloud_name = c_url.split("@")[-1].split(".")[0]
+            t0 = _time.monotonic()
+            _cld_api.ping()
+            result["cloudinary"] = {
+                "ok": True,
+                "cloud_name": _cloud_name or "unknown",
+                "latency_ms": round((_time.monotonic() - t0) * 1000),
+            }
+        except Exception as e:
+            result["cloudinary"] = {"ok": False, "error": str(e)[:200]}
+            result["status"] = "degraded"
+    else:
+        result["cloudinary"] = {"ok": False, "error": "env var missing"}
+        result["status"] = "degraded"
+
+    from datetime import datetime, timezone
+    result["timestamp"] = datetime.now(timezone.utc).isoformat()
+
+    return jsonify(result)
+
+
 # Preload heavy data in background so first HTTP request is fast
 def _preload_cutoff_data():
     try:
