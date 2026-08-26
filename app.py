@@ -81,6 +81,23 @@ if not _secret_key:
 
 app = Flask(__name__)
 app.secret_key = _secret_key
+
+# ── Sentry error monitoring (production) ──────────────────────
+_sentry_dsn = os.environ.get("SENTRY_DSN", "")
+if _sentry_dsn:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.flask import FlaskIntegration
+        sentry_sdk.init(
+            dsn=_sentry_dsn,
+            integrations=[FlaskIntegration()],
+            traces_sample_rate=0.1,
+            environment=os.getenv("FLASK_ENV", "production"),
+            send_default_pii=False,
+        )
+    except Exception as _sentry_exc:
+        app.logger.warning("Sentry init failed (non-fatal): %s", _sentry_exc)
+
 # Disable CSRF on JSON/API requests — they are protected by session auth
 # (require_admin / _require_epaper_admin). CSRF tokens are only enforced on
 # HTML form submissions (login, register) via the admin_login.html hidden field.
