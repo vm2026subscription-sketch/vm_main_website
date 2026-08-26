@@ -434,3 +434,108 @@ def push_once_for_date(conn, date):
     except Exception as e:
         print(f"[epaper] push dedupe check failed (non-fatal): {e}")
         return False
+
+
+# ── Input sanitization (XSS protection) ───────────────────────
+
+# Tags allowed in body_html (rich text articles)
+ALLOWED_HTML_TAGS = [
+    "p", "br", "strong", "b", "em", "i", "u", "s",
+    "h1", "h2", "h3", "h4", "h5", "h6",
+    "ul", "ol", "li",
+    "blockquote", "pre", "code",
+    "a", "img",
+    "table", "thead", "tbody", "tr", "th", "td",
+    "sub", "sup", "span", "div",
+]
+
+ALLOWED_HTML_ATTRS = {
+    "a": ["href", "title", "target"],
+    "img": ["src", "alt", "width", "height", "title"],
+    "span": ["style"],
+    "div": ["style"],
+    "td": ["colspan", "rowspan"],
+    "th": ["colspan", "rowspan"],
+}
+
+
+def _strip_all_tags(text):
+    """Remove ALL HTML tags from text. Used for plain-text fields (title, author, etc.)."""
+    if not text or not isinstance(text, str):
+        return text
+    import bleach
+    return bleach.clean(text, tags=[], strip=True).strip()
+
+
+def _sanitize_html(html_text):
+    """Sanitize rich HTML (body_html) — keep safe tags, strip dangerous ones."""
+    if not html_text or not isinstance(html_text, str):
+        return html_text
+    import bleach
+    return bleach.clean(
+        html_text,
+        tags=ALLOWED_HTML_TAGS,
+        attributes=ALLOWED_HTML_ATTRS,
+        strip=True,
+    )
+
+
+def _sanitize_url(url):
+    """Ensure a URL string is safe — only allow http/https/cloudinary schemes."""
+    if not url or not isinstance(url, str):
+        return url
+    url = url.strip()
+    if url.startswith("//"):
+        return url
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme and parsed.scheme not in ("http", "https", "data"):
+        return ""
+    return url
+
+
+def _sanitize_edition_payload(data):
+    """Sanitize all text/HTML fields in an edition payload before storage."""
+    # Top-level string fields
+    for key in ("name", "masthead_image_url"):
+        if key in data and isinstance(data[key], str):
+            if key == "masthead_image_url":
+                data[key] = _sanitize_url(data[key])
+            else:
+                data[key] = _strip_all_tags(data[key])
+
+    # Sanitize pages + nested article blocks
+    for page in data.get("pages", []) or []:
+        for block in page.get("blocks", []) or []:
+            for field in ("title", "headline", "author", "category", "category_label"):
+                if field in block and isinstance(block[field], str):
+                    block[field] = _strip_all_tags(block[field])
+            if "body_html" in block and isinstance(block["body_html"], str):
+                block["body_html"] = _sanitize_html(block["body_html"])
+            if "body_text" in block and isinstance(block["body_text"], str):
+                block["body_text"] = _strip_all_tags(block["body_text"])
+            if "content" in block and isinstance(block["content"], str):
+                block["content"] = _strip_all_tags(block["content"])
+            # Sanitize image URLs inside blocks
+            for img_field in ("image", "image_url", "article_image_url"):
+                if img_field in block and isinstance(block[img_field], str):
+                    block[img_field] = _sanitize_url(block[img_field])
+
+    # Sanitize footer_links
+    for link in data.get("footer_links", []) or []:
+        if isinstance(link, dict):
+            for k in ("url", "href", "link"):
+                if k in link and isinstance(link[k], str):
+                    link[k] = _sanitize_url(link[k])
+            if "text" in link and isinstance(link["text"], str):
+                link["text"] = _strip_all_tags(link["text"])
+
+    # Sanitize header_items
+    for item in data.get("header_items", []) or []:
+        if isinstance(item, str):
+            pass  # header items are plain strings, bleach handles it
+        elif isinstance(item, dict):
+            for k in ("text", "label", "value"):
+                if k in item and isinstance(item[k], str):
+                    item[k] = _strip_all_tags(item[k])
+
+    return data

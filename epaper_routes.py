@@ -89,6 +89,7 @@ from epaper_helpers import (
     get_fcm,
     send_new_edition_notification,
     push_once_for_date,
+    _sanitize_edition_payload,
 )
 
 # ── Backward-compat re-exports (ads_routes.py imports these) ──
@@ -829,7 +830,7 @@ def api_create_edition():
 
     def _apply_payload(existing):
         if existing is None:
-            return {
+            edition = {
                 "date": date_str,
                 "name": data.get("name", f"Edition {date_str}"),
                 "language": data.get("language", "Hindi"),
@@ -840,18 +841,20 @@ def api_create_edition():
                 "pages": data.get("pages", []),
                 "created_at": datetime.now().isoformat(),
             }
-        existing["date"] = date_str
-        existing["name"] = data.get("name", existing.get("name", ""))
-        existing["language"] = data.get("language", existing.get("language", "Hindi"))
-        existing["published"] = data.get("published", existing.get("published", True))
-        existing["masthead_image_url"] = data.get("masthead_image_url", existing.get("masthead_image_url", ""))
-        if "footer_links" in data:
-            existing["footer_links"] = data["footer_links"]
-        if "header_items" in data:
-            existing["header_items"] = data["header_items"]
-        if "pages" in data:
-            existing["pages"] = data["pages"]
-        return existing
+        else:
+            edition = existing
+            edition["date"] = date_str
+            edition["name"] = data.get("name", existing.get("name", ""))
+            edition["language"] = data.get("language", existing.get("language", "Hindi"))
+            edition["published"] = data.get("published", existing.get("published", True))
+            edition["masthead_image_url"] = data.get("masthead_image_url", existing.get("masthead_image_url", ""))
+            if "footer_links" in data:
+                edition["footer_links"] = data["footer_links"]
+            if "header_items" in data:
+                edition["header_items"] = data["header_items"]
+            if "pages" in data:
+                edition["pages"] = data["pages"]
+        return _sanitize_edition_payload(edition)
 
     if pg_url():
         conn = None
