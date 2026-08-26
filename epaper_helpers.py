@@ -131,14 +131,8 @@ def epaper_preview_image_meta(edition):
             "height": 512,
         }
     parsed = urllib.parse.urlparse(image_url)
-    cloudinary_marker = "/image/upload/"
-    if parsed.netloc.endswith("cloudinary.com") and cloudinary_marker in parsed.path:
-        transformed_path = parsed.path.replace(
-            cloudinary_marker,
-            "/image/upload/f_jpg,q_auto,c_fill,g_north,w_1200,h_1500/",
-            1,
-        )
-        transformed_url = urllib.parse.urlunparse(parsed._replace(path=transformed_path))
+    if parsed.netloc.endswith("cloudinary.com") and _CLOUDINARY_MARKER in parsed.path:
+        transformed_url = cloudinary_transform(image_url, PRESET_OG)
         return {
             "url": transformed_url,
             "type": "image/jpeg",
@@ -151,6 +145,40 @@ def epaper_preview_image_meta(edition):
         "width": None,
         "height": None,
     }
+
+
+_CLOUDINARY_MARKER = "/image/upload/"
+_CLOUDINARY_VARIANT_RE = re.compile(r'/image/upload/(?:f_|q_|w_|h_|c_|g_|dpr_)[^/]+/')
+
+PRESET_PAGE_VIEWER   = "f_auto,q_auto"                          # full-res, format + quality only
+PRESET_PAGE_WEB      = "f_auto,q_auto,w_800"                    # 800px wide for article pages
+PRESET_CARD          = "f_auto,q_auto,w_640,c_fill,g_auto"      # edition / block cards
+PRESET_THUMB         = "f_auto,q_auto,w_160,c_fill,g_auto"      # thumbnail strip
+PRESET_MASTHEAD      = "f_auto,q_auto,w_1200,c_fill,g_north"    # masthead / hero
+PRESET_OG            = "f_jpg,q_auto,c_fill,g_north,w_1200,h_1500"  # social previews
+
+
+def cloudinary_transform(url, preset=PRESET_PAGE_VIEWER):
+    """Insert Cloudinary transformation parameters into an image URL.
+
+    Non-Cloudinary URLs are returned unchanged.  If the URL already carries
+    a transformation segment (f_*, w_*, …) it is replaced with *preset* so
+    repeated calls never double-stack parameters.
+    """
+    url = str(url or "")
+    if not url:
+        return ""
+    parsed = urllib.parse.urlparse(url)
+    if not parsed.netloc.endswith("cloudinary.com") or _CLOUDINARY_MARKER not in parsed.path:
+        return url
+    # Strip any existing transformation params so we always apply a clean preset
+    clean_path = _CLOUDINARY_VARIANT_RE.sub(_CLOUDINARY_MARKER, parsed.path)
+    transformed_path = clean_path.replace(
+        _CLOUDINARY_MARKER,
+        f"/image/upload/{preset}/",
+        1,
+    )
+    return urllib.parse.urlunparse(parsed._replace(path=transformed_path))
 
 
 def epaper_preview_title(edition, requested_date=None):

@@ -253,9 +253,27 @@ const EP = {
     return data;
   },
 
-  // Return Cloudinary URL as-is — PNG is already lossless, no transformation needed
+  // Apply Cloudinary transformations: f_auto (WebP/AVIF), q_auto (quality), width cap
   optimizeCloudinaryUrl(url, width = 400) {
-    return url || '';
+    if (!url) return '';
+    try {
+      const parsed = new URL(url);
+      if (!parsed.hostname.endsWith('cloudinary.com')) return url;
+      // Strip any existing f_*/q_*/w_* transformation segment
+      parsed.pathname = parsed.pathname.replace(
+        /\/image\/upload\/(?:f_|q_|w_|h_|c_|g_|dpr_)[^/]+\//,
+        '/image/upload/'
+      );
+      // Insert new transformation: auto format + quality + width
+      const preset = `f_auto,q_auto,w_${width}`;
+      parsed.pathname = parsed.pathname.replace(
+        '/image/upload/',
+        `/image/upload/${preset}/`
+      );
+      return parsed.href;
+    } catch (e) {
+      return url;
+    }
   },
 
   invalidateEditionCache(date = '') {
@@ -1430,11 +1448,15 @@ const EP = {
     if (!this.pages || !this.pages.length) return '';
     const p = this.pages[pageNum - 1];
     if (!p) return '';
-    if (p.page_image_url) return p.page_image_url;
-    if (p.image_path) return p.image_path;
-    const blockWithImg = (p.blocks || []).find(b => b.type !== 'shape' && b.image_url && b.image_url.length > 10);
-    if (blockWithImg) return blockWithImg.image_url;
-    return '';
+    let raw = '';
+    if (p.page_image_url) raw = p.page_image_url;
+    else if (p.image_path) raw = p.image_path;
+    else {
+      const blockWithImg = (p.blocks || []).find(b => b.type !== 'shape' && b.image_url && b.image_url.length > 10);
+      if (blockWithImg) raw = blockWithImg.image_url;
+    }
+    // Apply Cloudinary optimizations for display (800px wide, auto format + quality)
+    return raw ? this.optimizeCloudinaryUrl(raw, 800) : '';
   },
 
   _getActivePageElement() {
@@ -1653,7 +1675,7 @@ const EP = {
     // Check if page uses new block format
     if (page.blocks && page.blocks.length > 0) {
       if (this.el.pageContainer) this.el.pageContainer.style.display = 'none';
-      this.renderBlockGrid(page.blocks, viewer, page.page_image_url || page.image_path || '');
+      this.renderBlockGrid(page.blocks, viewer, this.optimizeCloudinaryUrl(page.page_image_url || page.image_path || '', 800));
     } else if (page.page_image_url) {
       const isPdf = page.page_image_url.toLowerCase().endsWith('.pdf');
       if (this.el.pageContainer) this.el.pageContainer.style.display = '';
@@ -1675,7 +1697,7 @@ const EP = {
         if (pdfFrame) pdfFrame.style.display = 'none';
         if (this.el.pageImg) {
           this.el.pageImg.style.display = 'block';
-          this.el.pageImg.src = page.page_image_url;
+          this.el.pageImg.src = this.optimizeCloudinaryUrl(page.page_image_url, 800);
           if (this.el.pageImg.complete) this.scheduleFitToWidth();
         }
         if (this.el.hotspotsLayer) this.el.hotspotsLayer.style.display = 'block';
@@ -2452,7 +2474,8 @@ const EP = {
       if (gallery.length > 0) {
         galHTML = '<div class="ep-article-gallery-full">';
         gallery.forEach((img, i) => {
-          galHTML += `<img src="${img}" alt="Image ${i + 1}" class="ep-gallery-full-img" loading="lazy" onload="this.classList.add('loaded')" onclick="EP.openGalleryViewer(${index}, ${i})">`;
+          const optImg = this.optimizeCloudinaryUrl(img, 800);
+          galHTML += `<img src="${optImg}" alt="Image ${i + 1}" class="ep-gallery-full-img" loading="lazy" onload="this.classList.add('loaded')" onclick="EP.openGalleryViewer(${index}, ${i})">`;
         });
         galHTML += '</div>';
       }

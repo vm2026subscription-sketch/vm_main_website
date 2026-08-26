@@ -206,18 +206,18 @@
 
       {%- if article.gallery and article.gallery|length > 0 %}
         {%- if article.gallery|length == 1 %}
-          <img class="article-hero" src="{{ article.gallery[0] }}" alt="{{ article.title }}">
+          <img class="article-hero" src="{{ cloudinary_transform(article.gallery[0], 'f_auto,q_auto,w_800') }}" alt="{{ article.title }}" loading="eager" decoding="async">
         {%- else %}
           <div class="article-gallery">
             <div class="gallery-main-wrap">
-              <img class="article-hero gallery-main-img" id="galleryMain" src="{{ article.gallery[0] }}" alt="{{ article.title }}">
+              <img class="article-hero gallery-main-img" id="galleryMain" src="{{ cloudinary_transform(article.gallery[0], 'f_auto,q_auto,w_800') }}" alt="{{ article.title }}" loading="eager" decoding="async">
               <button class="gallery-nav gallery-prev" onclick="galleryNav(-1)">&#8249;</button>
               <button class="gallery-nav gallery-next" onclick="galleryNav(1)">&#8250;</button>
               <div class="gallery-counter"><span id="galleryCurrent">1</span> / {{ article.gallery|length }}</div>
             </div>
             <div class="gallery-thumbs">
               {%- for img in article.gallery %}
-                <img class="gallery-thumb {% if loop.first %}active{% endif %}" src="{{ img }}" alt="Image {{ loop.index }}" onclick="gallerySelect({{ loop.index0 }})">
+                <img class="gallery-thumb {% if loop.first %}active{% endif %}" src="{{ cloudinary_transform(img, 'f_auto,q_auto,w_160,c_fill,g_auto') }}" alt="Image {{ loop.index }}" loading="lazy" decoding="async" onclick="gallerySelect({{ loop.index0 }})">
               {%- endfor %}
             </div>
           </div>
@@ -547,20 +547,23 @@
     }
 
     // ── Gallery ──────────────────────────────────────
-    var _galleryImgs = [{% for img in article.gallery %}"{{ img }}"{% if not loop.last %},{% endif %}{% endfor %}];
+    var _galleryRaw = [{% for img in article.gallery %}"{{ img }}"{% if not loop.last %},{% endif %}{% endfor %}];
     var _galleryIdx = 0;
+    function _cT(url, w) {
+      try { var p = new URL(url); if (!p.hostname.endsWith('cloudinary.com')) return url; p.pathname = p.pathname.replace(/\/image\/upload\/(?:f_|q_|w_|h_|c_|g_|dpr_)[^/]+\//g, '/image/upload/').replace('/image/upload/', '/image/upload/f_auto,q_auto,w_' + w + '/'); return p.href; } catch(e) { return url; }
+    }
     function gallerySelect(idx) {
       _galleryIdx = idx;
       var main = document.getElementById('galleryMain');
       var cur  = document.getElementById('galleryCurrent');
-      if (main) main.src = _galleryImgs[idx];
+      if (main) main.src = _cT(_galleryRaw[idx], 800);
       if (cur)  cur.textContent = idx + 1;
       document.querySelectorAll('.gallery-thumb').forEach(function(t, i) {
         t.classList.toggle('active', i === idx);
       });
     }
     function galleryNav(dir) {
-      var next = (_galleryIdx + dir + _galleryImgs.length) % _galleryImgs.length;
+      var next = (_galleryIdx + dir + _galleryRaw.length) % _galleryRaw.length;
       gallerySelect(next);
     }
 

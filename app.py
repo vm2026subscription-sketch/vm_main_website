@@ -179,9 +179,11 @@ def _epaper_host_context():
         request.headers.get('X-Forwarded-Host') or request.host or ''
     ).lower().split(':')[0]
     is_sub = (host == _EPAPER_HOST)
+    from epaper_helpers import cloudinary_transform
     return {
         'epaper_subdomain': is_sub,
         'main_site_url': 'https://vidyarthimitra.org' if is_sub else '',
+        'cloudinary_transform': cloudinary_transform,
     }
 
 

@@ -90,6 +90,12 @@ from epaper_helpers import (
     send_new_edition_notification,
     push_once_for_date,
     _sanitize_edition_payload,
+    cloudinary_transform,
+    PRESET_PAGE_VIEWER,
+    PRESET_PAGE_WEB,
+    PRESET_CARD,
+    PRESET_THUMB,
+    PRESET_MASTHEAD,
 )
 
 # ── Backward-compat re-exports (ads_routes.py imports these) ──
