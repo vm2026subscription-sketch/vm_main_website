@@ -526,12 +526,19 @@ def epaper_article(article_id):
     article, related, edition, page = find_epaper_article(article_id)
     if not article:
         return redirect(url_for("epaper.epaper_viewer"))
+    canonical_url = absolute_public_url(request.path)
+    edition_image = ""
+    if edition:
+        img_meta = epaper_preview_image_meta(edition)
+        edition_image = img_meta.get("url", "")
     return render_template(
         "epaper_article.html",
         article=article,
         related_articles=related,
         edition=edition,
         page=page,
+        canonical_url=canonical_url,
+        edition_image=edition_image,
     )
 
 

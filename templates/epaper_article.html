@@ -2,11 +2,108 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="description" content="Read newspaper articles and education news from leading Marathi and Hindi publications on VidyarthiMitra ePaper.">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ article.title }} | Vidyarthi Mitra ePaper</title>
+  <link rel="canonical" href="{{ canonical_url }}">
+
+  {# ── Dynamic meta description ── #}
+  {% set meta_desc = (article.content or '')|striptags|truncate(160, True) %}
+  {% if not meta_desc %}
+    {% set meta_desc = 'Read "' ~ article.title ~ '" from Vidyarthi Mitra ePaper — education news, exam updates, careers and student resources.' %}
+  {% endif %}
+  <meta name="description" content="{{ meta_desc }}">
+
+  {# ── Open Graph ── #}
+  <meta property="og:site_name" content="Vidyarthi Mitra ePaper">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="{{ article.title }}">
+  <meta property="og:description" content="{{ meta_desc }}">
+  <meta property="og:url" content="{{ canonical_url }}">
+  {% if article.gallery and article.gallery|length > 0 %}
+    <meta property="og:image" content="{{ article.gallery[0] }}">
+    <meta property="og:image:secure_url" content="{{ article.gallery[0] }}">
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:alt" content="{{ article.title }}">
+  {% elif edition_image %}
+    <meta property="og:image" content="{{ edition_image }}">
+    <meta property="og:image:secure_url" content="{{ edition_image }}">
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:alt" content="{{ article.title }}">
+  {% endif %}
+  {% if article.publish_date %}<meta property="article:published_time" content="{{ article.publish_date }}">{% endif %}
+  {% if article.author %}<meta property="article:author" content="{{ article.author }}">{% endif %}
+  {% if article.category %}<meta property="article:section" content="{{ article.category }}">{% endif %}
+  <meta property="article:publisher" content="https://www.vidyarthimitra.org">
+
+  {# ── Twitter Card ── #}
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@VidyarthiMitra">
+  <meta name="twitter:title" content="{{ article.title }}">
+  <meta name="twitter:description" content="{{ meta_desc }}">
+  {% if article.gallery and article.gallery|length > 0 %}
+    <meta name="twitter:image" content="{{ article.gallery[0] }}">
+    <meta name="twitter:image:alt" content="{{ article.title }}">
+  {% elif edition_image %}
+    <meta name="twitter:image" content="{{ edition_image }}">
+    <meta name="twitter:image:alt" content="{{ article.title }}">
+  {% endif %}
+
+  {# ── Hreflang for language variants ── #}
+  <link rel="alternate" hreflang="hi" href="{{ canonical_url.replace('/english/', '/hindi/').replace('/marathi/', '/hindi/') }}">
+  <link rel="alternate" hreflang="en" href="{{ canonical_url.replace('/hindi/', '/english/').replace('/marathi/', '/english/') }}">
+  <link rel="alternate" hreflang="mr" href="{{ canonical_url.replace('/hindi/', '/marathi/').replace('/english/', '/marathi/') }}">
+  <link rel="alternate" hreflang="x-default" href="{{ canonical_url }}">
+
   <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"></noscript>
   <link rel="stylesheet" href="{{ url_for('static', filename='epaper-viewer.css') }}">
+
+  {# ── NewsArticle JSON-LD ── #}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    "headline": {{ article.title|tojson }},
+    "description": {{ meta_desc|tojson }},
+    {% if article.gallery and article.gallery|length > 0 %}
+      "image": [{% for img in article.gallery %}{{ img|tojson }}{% if not loop.last %},{% endif %}{% endfor %}],
+    {% elif edition_image %}
+      "image": [{{ edition_image|tojson }}],
+    {% endif %}
+    "author": { "@type": "Person", "name": {{ (article.author or 'Vidyarthi Mitra')|tojson }} },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Vidyarthi Mitra",
+      "logo": { "@type": "ImageObject", "url": "{{ url_for('static', filename='logo.png', _external=True) }}" }
+    },
+    {% if article.publish_date %}"datePublished": {{ article.publish_date|tojson }},{% endif %}
+    "mainEntityOfPage": { "@type": "WebPage", "@id": {{ canonical_url|tojson }} },
+    "isPartOf": {
+      "@type": "WebSite",
+      "name": "Vidyarthi Mitra ePaper",
+      "url": "https://epaper.vidyarthimitra.org"
+    }
+  }
+  </script>
+
+  {# ── BreadcrumbList JSON-LD ── #}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.vidyarthimitra.org" },
+      { "@type": "ListItem", "position": 2, "name": "ePaper", "item": "https://epaper.vidyarthimitra.org/epaper" },
+      {% if article.category %}
+        { "@type": "ListItem", "position": 3, "name": {{ article.category|tojson }}, "item": {{ canonical_url|tojson }} },
+        { "@type": "ListItem", "position": 4, "name": {{ article.title|tojson }} }
+      {% else %}
+        { "@type": "ListItem", "position": 3, "name": {{ article.title|tojson }} }
+      {% endif %}
+    ]
+  }
+  </script>
   <style>
     body{margin:0;background:#f4f1ec;color:#171717;font-family:Inter,"Noto Sans Devanagari",Arial,sans-serif}
     .article-shell{width:min(1120px,92vw);margin:34px auto 70px;display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:28px}

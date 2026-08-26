@@ -148,6 +148,7 @@ _EPAPER_SUBPATH_RE = re.compile(
     r'/$'
     r'|/(hindi|english|marathi|college edition)(?:/[^/?#]+(?:/page-\d+)?)?/?$'
     r'|/\d{4}-\d{2}-\d{2}(?:/page-\d+)?/?$'
+    r'|/latest/(hindi|english|marathi)/?$'
     r'|/admin(?:/.*)?$'
     r')',
     re.IGNORECASE,

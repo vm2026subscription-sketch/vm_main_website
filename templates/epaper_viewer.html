@@ -6,6 +6,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
   <meta name="description" content="{{ og_description }}"/>
   <link rel="canonical" href="{{ og_url }}"/>
+  {# ── Hreflang for language variants ── #}
+  {% if initial_language %}
+    {% if initial_date %}
+      <link rel="alternate" hreflang="hi" href="{{ og_url.replace('/english/' ~ initial_date, '/hindi/' ~ initial_date).replace('/marathi/' ~ initial_date, '/hindi/' ~ initial_date) }}">
+      <link rel="alternate" hreflang="en" href="{{ og_url.replace('/hindi/' ~ initial_date, '/english/' ~ initial_date).replace('/marathi/' ~ initial_date, '/english/' ~ initial_date) }}">
+      <link rel="alternate" hreflang="mr" href="{{ og_url.replace('/hindi/' ~ initial_date, '/marathi/' ~ initial_date).replace('/english/' ~ initial_date, '/marathi/' ~ initial_date) }}">
+    {% else %}
+      <link rel="alternate" hreflang="hi" href="{{ og_url.replace('/english', '/hindi').replace('/marathi', '/hindi') }}">
+      <link rel="alternate" hreflang="en" href="{{ og_url.replace('/hindi', '/english').replace('/marathi', '/english') }}">
+      <link rel="alternate" hreflang="mr" href="{{ og_url.replace('/hindi', '/marathi').replace('/english', '/marathi') }}">
+    {% endif %}
+    <link rel="alternate" hreflang="x-default" href="{{ og_url }}">
+  {% endif %}
   <meta property="og:site_name" content="Vidyarthi Mitra"/>
   <meta property="og:title" content="{{ og_title }}"/>
   <meta property="og:description" content="{{ og_description }}"/>
@@ -19,8 +32,9 @@
   {% endif %}
   <meta property="og:image:alt" content="{{ og_image_alt }}"/>
   <meta property="og:url" content="{{ og_url }}"/>
-  <meta property="og:type" content="website"/>
+  <meta property="og:type" content="{{ 'article' if initial_date else 'website' }}"/>
   <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:site" content="@VidyarthiMitra"/>
   <meta name="twitter:title" content="{{ og_title }}"/>
   <meta name="twitter:description" content="{{ og_description }}"/>
   <meta name="twitter:image" content="{{ og_image }}"/>
@@ -61,7 +75,7 @@
   <script type="application/json" id="__epInitialEdition__">{{ initial_edition_json|safe }}</script>
   {% endif %}
 
-  <!-- Schema.org -->
+  <!-- Schema.org: WebSite -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -75,6 +89,24 @@
     }
   }
   </script>
+
+  <!-- Schema.org: BreadcrumbList -->
+  {% if initial_language %}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.vidyarthimitra.org" },
+      { "@type": "ListItem", "position": 2, "name": "ePaper", "item": "https://epaper.vidyarthimitra.org/epaper" },
+      { "@type": "ListItem", "position": 3, "name": "{{ initial_language|capitalize }}", "item": "{{ og_url }}" }
+      {% if initial_date %},
+        { "@type": "ListItem", "position": 4, "name": "{{ initial_date }}" }
+      {% endif %}
+    ]
+  }
+  </script>
+  {% endif %}
 </head>
 <body class="epaper-body" data-epaper-mode="{{ 'edition' if initial_date else 'landing' }}" data-initial-language="{{ initial_language or '' }}">
   {% include '_shared_index_navbar.html' %}
