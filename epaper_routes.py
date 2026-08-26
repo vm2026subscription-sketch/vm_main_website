@@ -15,6 +15,7 @@ from datetime import datetime
 import tempfile
 from flask import jsonify, render_template, request, redirect, url_for, send_file, session, Response
 from werkzeug.utils import secure_filename
+from app import limiter
 
 # ── Import from new modules ─────────────────────────────
 from epaper_config import (
@@ -535,6 +536,7 @@ def epaper_article(article_id):
 
 # ── API: List editions ─────────────────────────────
 @epaper_bp.route("/api/epaper/editions")
+@limiter.limit("60 per minute")
 def api_editions():
     cached = redis_get(REDIS_EDITIONS_KEY)
     if cached is not None:
@@ -562,6 +564,7 @@ def api_editions():
 
 # ── API: Latest published edition ─────────────────
 @epaper_bp.route("/api/epaper/latest")
+@limiter.limit("60 per minute")
 def api_latest_edition():
     cached = redis_get(REDIS_LATEST_KEY)
     if cached is not None:
@@ -673,6 +676,7 @@ def api_publish_edition(date):
 
 # ── API: Available languages for a date ───────────
 @epaper_bp.route("/api/epaper/editions-by-date/<date>")
+@limiter.limit("60 per minute")
 def api_editions_by_date(date):
     if not re.match(r"\d{4}-\d{2}-\d{2}$", date):
         return jsonify({"error": "Invalid date format"}), 400
@@ -721,6 +725,7 @@ def api_editions_by_date(date):
 
 # ── API: Get edition by date ───────────────────────
 @epaper_bp.route("/api/epaper/edition/<date>")
+@limiter.limit("60 per minute")
 def api_edition(date):
     if not re.match(r"\d{4}-\d{2}-\d{2}$", date):
         return jsonify({"error": "Invalid date format. Use YYYY-MM-DD."}), 400
@@ -761,6 +766,7 @@ def api_edition(date):
 
 # ── API: Record an edition view ───────────────────
 @epaper_bp.route("/api/epaper/edition/<date>/view", methods=["POST"])
+@limiter.limit("30 per minute")
 def api_record_edition_view(date):
     if not re.match(r"\d{4}-\d{2}-\d{2}$", date):
         return jsonify({"error": "Invalid date format"}), 400
@@ -771,6 +777,7 @@ def api_record_edition_view(date):
 
 # ── API: Get edition view count (no increment) ────
 @epaper_bp.route("/api/epaper/edition/<date>/views", methods=["GET"])
+@limiter.limit("60 per minute")
 def api_get_edition_views(date):
     if not re.match(r"\d{4}-\d{2}-\d{2}$", date):
         return jsonify({"error": "Invalid date format"}), 400
@@ -797,6 +804,7 @@ def api_get_edition_views(date):
 
 # ── API: Get article ──────────────────────────────
 @epaper_bp.route("/api/epaper/article/<article_id>")
+@limiter.limit("60 per minute")
 def api_article(article_id):
     article, related, edition, page = find_epaper_article(article_id)
     if article:
@@ -1065,6 +1073,7 @@ def api_delete_edition(date):
 
 # ── AI: Translate ──────────────────────────────────
 @epaper_bp.route("/api/epaper/translate", methods=["POST"])
+@limiter.limit("10 per minute")
 def api_translate():
     data = request.get_json(silent=True) or {}
     text = data.get("text", "").strip()
@@ -1144,6 +1153,7 @@ def api_translate():
 
 # ── AI: Summarize ──────────────────────────────────
 @epaper_bp.route("/api/epaper/summarize", methods=["POST"])
+@limiter.limit("10 per minute")
 def api_summarize():
     data = request.get_json(silent=True) or {}
     text = data.get("text", "")
@@ -1300,6 +1310,7 @@ def _collect_edge_tts_audio(text, voice, rate, pitch):
 
 
 @epaper_bp.route("/api/epaper/tts", methods=["POST"])
+@limiter.limit("5 per minute")
 def api_tts():
     data = request.get_json(silent=True) or {}
     text = data.get("text", "").strip()
@@ -1335,6 +1346,7 @@ def api_tts():
 
 # ── API: Available TTS voices ───────────────────────
 @epaper_bp.route("/api/epaper/tts/voices")
+@limiter.limit("30 per minute")
 def api_tts_voices():
     return jsonify({"voices": [
         {"id": "hi-IN-MadhurNeural",  "name": "माधुर (Hindi Male)",     "lang": "hi", "gender": "male",   "style": "News Anchor"},
