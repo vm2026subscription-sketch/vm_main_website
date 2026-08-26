@@ -10,7 +10,7 @@ import sqlite3
 import secrets
 import smtplib
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, quote, unquote, urljoin, urlparse, urlencode
@@ -5808,6 +5808,61 @@ def api_env_health():
     result["timestamp"] = datetime.now(timezone.utc).isoformat()
 
     return jsonify(result)
+
+
+# ── Vercel Cron: Weekly DB backup ────────────────────────────────────
+@app.route("/api/cron/weekly-backup", methods=["GET", "POST"])
+def api_cron_weekly_backup():
+    """Triggered by Vercel cron (Sunday 3 AM UTC) or manual GET with CRON_SECRET."""
+    cron_secret = os.getenv("CRON_SECRET", "")
+    if cron_secret:
+        auth_header = request.headers.get("Authorization", "")
+        vercel_cron = request.headers.get("x-vercel-cron", "")
+        if vercel_cron != "1" and auth_header != f"Bearer {cron_secret}":
+            return jsonify({"error": "Unauthorized"}), 401
+
+    pg_url = get_postgres_connection_url()
+    if not pg_url:
+        return jsonify({"error": "Postgres not configured."}), 500
+
+    try:
+        import psycopg2 as _pg
+        import psycopg2.extras
+        conn = _pg.connect(pg_url, connect_timeout=15)
+        ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        backup = {"timestamp": datetime.now(timezone.utc).isoformat(), "tables": {}}
+
+        tables = [
+            ("epaper_editions_v2",
+             "SELECT edition_date, edition_language, data, updated_at FROM epaper_editions_v2 ORDER BY edition_date DESC"),
+            ("epaper_edition_backups",
+             "SELECT id, edition_date, edition_language, edition_name, pages_count, saved_at FROM epaper_edition_backups ORDER BY saved_at DESC"),
+            ("epaper_edition_views",
+             "SELECT edition_date, edition_language, view_count FROM epaper_edition_views ORDER BY edition_date DESC"),
+        ]
+
+        for name, sql in tables:
+            try:
+                with conn.cursor(cursor_factory=_pg.extras.RealDictCursor) as cur:
+                    cur.execute(sql)
+                    rows = cur.fetchall()
+                for r in rows:
+                    for k, v in r.items():
+                        if hasattr(v, "isoformat"):
+                            r[k] = v.isoformat()
+                        elif isinstance(v, (dict, list)):
+                            r[k] = json.loads(v) if isinstance(v, str) else v
+                backup["tables"][name] = {"rows": len(rows), "data": rows}
+            except Exception as e:
+                backup["tables"][name] = {"error": str(e)}
+        conn.close()
+
+        backup["total_rows"] = sum(
+            t.get("rows", 0) for t in backup["tables"].values()
+        )
+        return jsonify(backup)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 # Preload heavy data in background so first HTTP request is fast

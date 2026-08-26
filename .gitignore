@@ -49,3 +49,6 @@ data/guideme_requests.json
 data/contact_messages.json
 data/subscribers.json
 data/stories.json
+
+# Weekly DB backups (large JSON files)
+backups/

@@ -21,6 +21,12 @@
       "dest": "app.py"
     }
   ],
+  "crons": [
+    {
+      "path": "/api/cron/weekly-backup",
+      "schedule": "0 3 * * 0"
+    }
+  ],
   "headers": [
     {
       "source": "/static/(.*)\\.(js|css|woff|woff2|ttf|otf)",
