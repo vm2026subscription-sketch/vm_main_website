@@ -124,10 +124,20 @@ const EP = {
 
   async loadLatestEdition() {
     try {
+      // Prefer a server-embedded edition if the renderer provides one; otherwise
+      // fetch the exact edition for this URL (language + date) via the JSON API.
       const _initEl = document.getElementById('__epInitialEdition__');
-      const data = _initEl
-        ? JSON.parse(_initEl.textContent)
-        : await this._cachedFetch('/api/epaper/latest');
+      let data = _initEl ? JSON.parse(_initEl.textContent) : null;
+      if (!data) {
+        const m = location.pathname.match(/^\/epaper\/(hindi|english|marathi)\/(\d{4}-\d{2}-\d{2})(?:\/|$)/i);
+        if (m) {
+          const lang = m[1][0].toUpperCase() + m[1].slice(1);
+          data = await this._fetchJsonWithRetry(`/api/epaper/edition/${m[2]}?lang=${lang}`);
+          if (!data) data = await this._cachedFetch('/api/epaper/latest');
+        } else {
+          data = await this._cachedFetch('/api/epaper/latest');
+        }
+      }
       this.applyEditionData(data, false);
     } catch (e) {
       // No published editions — show empty state

@@ -140,7 +140,9 @@ def epaper_language_viewer(date=None, page=1):
         else:
             edition = sorted(published, key=lambda e: e["date"], reverse=True)[0] if published else None
         if edition:
-            initial_edition_json = _json.dumps(edition, ensure_ascii=False).replace('</script>', r'<\/script>')
+            # Edition data is loaded via the JSON API on the client; do NOT embed
+            # the full (potentially ~1MB) edition inline in the HTML.
+            initial_edition_json = None
     except Exception:
         pass
     og_url = absolute_public_url(request.path)
@@ -272,7 +274,9 @@ def epaper_viewer(date=None, page=1):
                     edition = next((e for e in file_editions if e["date"] == target_date), None)
                     
         if edition:
-            initial_edition_json = _json.dumps(edition, ensure_ascii=False).replace('</script>', r'<\/script>')
+            # Edition data is loaded via the JSON API on the client; do NOT embed
+            # the full edition inline in the HTML.
+            initial_edition_json = None
     except Exception as e:
         print(f"[epaper] Viewer logic exception: {e}")
     og_url = absolute_public_url(request.path)
