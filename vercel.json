@@ -13,6 +13,13 @@
   ],
   "routes": [
     {
+      "src": "^cutoff\\.vidyarthimitra\\.org$",
+      "headers": { "location": "https://www.vidyarthimitra.org/cutoffs" },
+      "status": 301,
+      "handle": "host",
+      "methods": ["GET", "HEAD", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+    },
+    {
       "src": "/static/(.*)",
       "dest": "/static/$1"
     },
