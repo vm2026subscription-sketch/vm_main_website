@@ -671,7 +671,7 @@
                                 <li><a href="{{ url_for('epaper.epaper_viewer') }}">E-Paper - Digital News</a></li>
                                 <li><a href="https://test.vidyarthimitra.org" target="_blank" rel="noopener">Career
                                         Assessment Test</a></li>
-                                <li><a href="{{ url_for('cutoffs') }}">DTE Cut-offs 2025-26</a></li>
+                                <li><a href="https://cutoff.vidyarthimitra.org/">DTE Cut-offs 2025-26</a></li>
                                 <li><a href="{{ url_for('fyjc_rank') }}">11th Cut-offs 2025-26</a></li>
                                 <li><a href="{{ url_for('news') }}?category=Govt+Jobs">Govt. &amp; Private Jobs</a></li>
                                 <li><a href="{{ url_for('mock_exams') }}">Practice Tests</a></li>
@@ -809,7 +809,7 @@
             // Search items: keywords map to URLs
             var searchItems = [
                 { keywords: ['fyjc', 'rank', 'predictor', 'fyjc rank', 'rank predictor'], url: '{{ url_for("fyjc_rank") }}', label: 'FYJC Rank Predictor' },
-                { keywords: ['cutoff', 'cut-off', 'cut off', 'cutoffs'], url: '{{ url_for("cutoffs") }}', label: 'Cut-offs' },
+                { keywords: ['cutoff', 'cut-off', 'cut off', 'cutoffs'], url: 'https://cutoff.vidyarthimitra.org/', label: 'Cut-offs' },
                 { keywords: ['admission', 'admissions', 'dte'], url: '{{ url_for("admissions") }}', label: 'Admissions' },
                 { keywords: ['university', 'universities', 'college', 'colleges'], url: '{{ url_for("universities") }}', label: 'Universities' },
                 { keywords: ['course', 'courses'], url: '{{ url_for("courses") }}', label: 'Courses' },

@@ -165,12 +165,9 @@ class _EpaperSubdomainMiddleware:
             environ.get('HTTP_X_FORWARDED_HOST') or environ.get('HTTP_HOST', '')
         ).lower().split(':')[0]
         if host == _CUTOFF_HOST:
-            # 301-redirect the whole cutoff subdomain to the main site's cutoffs page.
-            start_response('301 Moved Permanently', [
-                ('Location', 'https://www.vidyarthimitra.org/cutoffs'),
-                ('Content-Type', 'text/html; charset=utf-8'),
-            ])
-            return [b'<html><body>Moved to <a href="https://www.vidyarthimitra.org/cutoffs">https://www.vidyarthimitra.org/cutoffs</a></body></html>']
+            # cutoffs subdomain serves the cut-offs page at its root.
+            environ = dict(environ)
+            environ['PATH_INFO'] = '/cutoffs'
         if host == _EPAPER_HOST:
             path = environ.get('PATH_INFO', '/')
             if not path.startswith('/epaper') and _EPAPER_SUBPATH_RE.match(path):
@@ -3476,6 +3473,12 @@ def mock_exams():
 
 @app.route("/cutoffs")
 def cutoffs():
+    host = (
+        request.headers.get('X-Forwarded-Host') or request.host or ''
+    ).lower().split(':')[0]
+    # Cut-offs now lives on its own subdomain. Redirect main-site visits there.
+    if host != _CUTOFF_HOST:
+        return redirect('https://cutoff.vidyarthimitra.org/', 301)
     exam_cat = request.args.get("exam", "engineering").lower()
     branches, categories, genders, _ = get_cutoff_options()
     return render_template("cutoffs.html", exam_cat=exam_cat, branches=branches, categories=categories, genders=genders)
