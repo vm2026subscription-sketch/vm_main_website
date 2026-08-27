@@ -81,13 +81,13 @@
                 </div>
                 <div class="hero-right">
                     <div class="hero-card hero-card-1">
-                        <picture><source srcset="{{ url_for('static', filename='hero_card_1.webp') }}" type="image/webp"><img src="{{ url_for('static', filename='hero_card_1.jpg') }}" alt="Student"></picture>
+                        <picture><source srcset="{{ url_for('static', filename='hero_card_1.webp') }}" type="image/webp"><img src="{{ url_for('static', filename='hero_card_1.jpg') }}" alt="Student" width="800" height="800" fetchpriority="high" decoding="async"></picture>
                     </div>
                     <div class="hero-card hero-card-2">
-                        <picture><source srcset="{{ url_for('static', filename='hero_card_2.webp') }}" type="image/webp"><img src="{{ url_for('static', filename='hero_card_2.jpg') }}" alt="Students"></picture>
+                        <picture><source srcset="{{ url_for('static', filename='hero_card_2.webp') }}" type="image/webp"><img src="{{ url_for('static', filename='hero_card_2.jpg') }}" alt="Students" loading="lazy" width="800" height="800" decoding="async"></picture>
                     </div>
                     <div class="hero-card hero-card-3">
-                        <picture><source srcset="{{ url_for('static', filename='hero_card_3.webp') }}" type="image/webp"><img src="{{ url_for('static', filename='hero_card_3.jpg') }}" alt="Student"></picture>
+                        <picture><source srcset="{{ url_for('static', filename='hero_card_3.webp') }}" type="image/webp"><img src="{{ url_for('static', filename='hero_card_3.jpg') }}" alt="Student" loading="lazy" width="800" height="800" decoding="async"></picture>
                     </div>
                 </div>
             </div>
@@ -248,11 +248,11 @@
                 <div class="slider-viewport">
                     <div class="partner-track">
                         <div class="partner-logo-box">
-                            <img src="{{ url_for('static', filename='iiit-pune.webp') }}" alt="IIIT Pune" loading="lazy">
+                            <img src="{{ url_for('static', filename='iiit-pune.webp') }}" alt="IIIT Pune" loading="lazy" width="289" height="341" decoding="async">
                             <h5>IIIT (PUNE)</h5>
                         </div>
                         <div class="partner-logo-box">
-                            <img src="{{ url_for('static', filename='sitm-pune.webp') }}" alt="SITM" loading="lazy">
+                            <img src="{{ url_for('static', filename='sitm-pune.webp') }}" alt="SITM" loading="lazy" width="500" height="500" decoding="async">
                             <h5>SITM (PUNE)</h5>
                         </div>
                         <div class="partner-logo-box">
@@ -264,7 +264,7 @@
                             <h5>CDAC (PUNE)</h5>
                         </div>
                         <div class="partner-logo-box">
-                            <img src="{{ url_for('static', filename='iit-roorkee.webp') }}" alt="IIT Roorkee" loading="lazy">
+                            <img src="{{ url_for('static', filename='iit-roorkee.webp') }}" alt="IIT Roorkee" loading="lazy" width="910" height="612" decoding="async">
                             <h5>IIT ROORKEE</h5>
                         </div>
                     </div>
@@ -279,21 +279,21 @@
 
                 <div class="slider-container">
                     <div class="slider-track">
-                        <a href="https://www.sakaltimes.com" target="_blank" rel="noopener" class="logo-item"><img src="{{ url_for('static', filename='sakal-times.png') }}" alt="Sakal Times" loading="lazy"></a>
-                        <a href="https://www.loksatta.com" target="_blank" rel="noopener" class="logo-item"><img src="{{ url_for('static', filename='loksatta.png') }}" alt="Loksatta" loading="lazy"></a>
-                        <a href="https://maharashtratimes.com" target="_blank" rel="noopener" class="logo-item"><img src="{{ url_for('static', filename='maharashtra-times.png') }}" alt="Maharashtra Times" loading="lazy"></a>
-                        <a href="https://timesofindia.indiatimes.com" target="_blank" rel="noopener" class="logo-item"><img src="{{ url_for('static', filename='times-of-india.webp') }}" alt="Times of India" loading="lazy"></a>
-                        <a href="https://www.lokmat.com" target="_blank" rel="noopener" class="logo-item"><img src="{{ url_for('static', filename='lokmat.png') }}" alt="Lokmat" loading="lazy"></a>
-                        <a href="https://www.saamana.com" target="_blank" rel="noopener" class="logo-item"><img src="{{ url_for('static', filename='samna.png') }}" alt="Samna" loading="lazy"></a>
-                        <a href="https://www.ddinews.gov.in" target="_blank" rel="noopener" class="logo-item"><img src="{{ url_for('static', filename='doordarshan.webp') }}" alt="Doordarshan" loading="lazy"></a>
+                        <a href="https://www.sakaltimes.com" target="_blank" rel="noopener" class="logo-item"><img src="{{ url_for('static', filename='sakal-times.png') }}" alt="Sakal Times" loading="lazy" width="335" height="121" decoding="async"></a>
+                        <a href="https://www.loksatta.com" target="_blank" rel="noopener" class="logo-item"><img src="{{ url_for('static', filename='loksatta.png') }}" alt="Loksatta" loading="lazy" width="427" height="149" decoding="async"></a>
+                        <a href="https://maharashtratimes.com" target="_blank" rel="noopener" class="logo-item"><img src="{{ url_for('static', filename='maharashtra-times.png') }}" alt="Maharashtra Times" loading="lazy" width="283" height="124" decoding="async"></a>
+                        <a href="https://timesofindia.indiatimes.com" target="_blank" rel="noopener" class="logo-item"><img src="{{ url_for('static', filename='times-of-india.webp') }}" alt="Times of India" loading="lazy" width="512" height="250" decoding="async"></a>
+                        <a href="https://www.lokmat.com" target="_blank" rel="noopener" class="logo-item"><img src="{{ url_for('static', filename='lokmat.png') }}" alt="Lokmat" loading="lazy" width="270" height="113" decoding="async"></a>
+                        <a href="https://www.saamana.com" target="_blank" rel="noopener" class="logo-item"><img src="{{ url_for('static', filename='samna.png') }}" alt="Samna" loading="lazy" width="474" height="122" decoding="async"></a>
+                        <a href="https://www.ddinews.gov.in" target="_blank" rel="noopener" class="logo-item"><img src="{{ url_for('static', filename='doordarshan.webp') }}" alt="Doordarshan" loading="lazy" width="498" height="500" decoding="async"></a>
 
-                        <a href="https://www.sakaltimes.com" target="_blank" rel="noopener" class="logo-item"><img src="{{ url_for('static', filename='sakal-times.png') }}" alt="Sakal Times" loading="lazy"></a>
-                        <a href="https://www.loksatta.com" target="_blank" rel="noopener" class="logo-item"><img src="{{ url_for('static', filename='loksatta.png') }}" alt="Loksatta" loading="lazy"></a>
-                        <a href="https://maharashtratimes.com" target="_blank" rel="noopener" class="logo-item"><img src="{{ url_for('static', filename='maharashtra-times.png') }}" alt="Maharashtra Times" loading="lazy"></a>
-                        <a href="https://timesofindia.indiatimes.com" target="_blank" rel="noopener" class="logo-item"><img src="{{ url_for('static', filename='times-of-india.webp') }}" alt="Times of India" loading="lazy"></a>
-                        <a href="https://www.lokmat.com" target="_blank" rel="noopener" class="logo-item"><img src="{{ url_for('static', filename='lokmat.png') }}" alt="Lokmat" loading="lazy"></a>
-                        <a href="https://www.saamana.com" target="_blank" rel="noopener" class="logo-item"><img src="{{ url_for('static', filename='samna.png') }}" alt="Samna" loading="lazy"></a>
-                        <a href="https://www.ddinews.gov.in" target="_blank" rel="noopener" class="logo-item"><img src="{{ url_for('static', filename='doordarshan.webp') }}" alt="Doordarshan" loading="lazy"></a>
+                        <a href="https://www.sakaltimes.com" target="_blank" rel="noopener" class="logo-item"><img src="{{ url_for('static', filename='sakal-times.png') }}" alt="Sakal Times" loading="lazy" width="335" height="121" decoding="async"></a>
+                        <a href="https://www.loksatta.com" target="_blank" rel="noopener" class="logo-item"><img src="{{ url_for('static', filename='loksatta.png') }}" alt="Loksatta" loading="lazy" width="427" height="149" decoding="async"></a>
+                        <a href="https://maharashtratimes.com" target="_blank" rel="noopener" class="logo-item"><img src="{{ url_for('static', filename='maharashtra-times.png') }}" alt="Maharashtra Times" loading="lazy" width="283" height="124" decoding="async"></a>
+                        <a href="https://timesofindia.indiatimes.com" target="_blank" rel="noopener" class="logo-item"><img src="{{ url_for('static', filename='times-of-india.webp') }}" alt="Times of India" loading="lazy" width="512" height="250" decoding="async"></a>
+                        <a href="https://www.lokmat.com" target="_blank" rel="noopener" class="logo-item"><img src="{{ url_for('static', filename='lokmat.png') }}" alt="Lokmat" loading="lazy" width="270" height="113" decoding="async"></a>
+                        <a href="https://www.saamana.com" target="_blank" rel="noopener" class="logo-item"><img src="{{ url_for('static', filename='samna.png') }}" alt="Samna" loading="lazy" width="474" height="122" decoding="async"></a>
+                        <a href="https://www.ddinews.gov.in" target="_blank" rel="noopener" class="logo-item"><img src="{{ url_for('static', filename='doordarshan.webp') }}" alt="Doordarshan" loading="lazy" width="498" height="500" decoding="async"></a>
                     </div>
                 </div>
             </div>
