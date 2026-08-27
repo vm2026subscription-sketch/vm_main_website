@@ -141,6 +141,7 @@ if os.environ.get("FLASK_ENV") == "production" or os.environ.get("RENDER") or os
 
 # ── Epaper subdomain: rewrite /lang, /date, /admin → /epaper/... ─────────────
 _EPAPER_HOST = os.getenv("EPAPER_HOST", "epaper.vidyarthimitra.org")
+_CUTOFF_HOST = os.getenv("CUTOFF_HOST", "cutoff.vidyarthimitra.org")
 _MAIN_HOST   = os.getenv("MAIN_HOST",  "vidyarthimitra.org")
 
 _EPAPER_SUBPATH_RE = re.compile(
@@ -163,6 +164,13 @@ class _EpaperSubdomainMiddleware:
         host = (
             environ.get('HTTP_X_FORWARDED_HOST') or environ.get('HTTP_HOST', '')
         ).lower().split(':')[0]
+        if host == _CUTOFF_HOST:
+            # 301-redirect the whole cutoff subdomain to the main site's cutoffs page.
+            start_response('301 Moved Permanently', [
+                ('Location', 'https://www.vidyarthimitra.org/cutoffs'),
+                ('Content-Type', 'text/html; charset=utf-8'),
+            ])
+            return [b'<html><body>Moved to <a href="https://www.vidyarthimitra.org/cutoffs">https://www.vidyarthimitra.org/cutoffs</a></body></html>']
         if host == _EPAPER_HOST:
             path = environ.get('PATH_INFO', '/')
             if not path.startswith('/epaper') and _EPAPER_SUBPATH_RE.match(path):
