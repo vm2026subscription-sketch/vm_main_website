@@ -44,6 +44,7 @@
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"></noscript>
   <link rel="stylesheet" href="{{ url_for('static', filename='epaper-viewer.min.css', v='20260827-min') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='epaper-landing-light.min.css', v='min1') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='epaper-whatsapp.css', v='1') }}">
   <style>
     .ep-views-badge {
       display: inline-flex;
@@ -127,10 +128,6 @@
     <a class="ep-back-link" href="{{ main_site_url or '/' }}" title="Back to VidyarthiMitra.org">
       <i class="fa fa-arrow-up-right-from-square"></i>
       <span>vidyarthimitra.org</span>
-    </a>
-    <a class="ep-wa-broadcast" href="{{ WHATSAPP_BROADCAST_URL }}" target="_blank" rel="noopener noreferrer" title="WhatsApp Broadcast">
-      <i class="fab fa-whatsapp" aria-hidden="true"></i>
-      <span class="ep-wa-broadcast-label">WhatsApp Broadcast</span>
     </a>
   </nav>
 

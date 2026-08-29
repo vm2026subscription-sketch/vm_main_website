@@ -41,16 +41,50 @@
   .vm-nav-topbar a:hover { color: #ff6600; }
   .vm-nav-topbar .vm-whatsapp-broadcast {
     font-weight: 700;
-    color: #4ade80;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0;
+    padding: 6px 12px;
+    border: 1px solid #b7eac8;
+    border-radius: 999px;
+    background: #f6fff8;
+    color: #153b2a !important;
     white-space: nowrap;
+    font-size: 11px;
+    line-height: 1;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
+    transition: background-color 0.2s ease, border-color 0.2s ease,
+      box-shadow 0.2s ease, color 0.2s ease, transform 0.2s ease;
   }
-  .vm-nav-topbar .vm-whatsapp-broadcast:hover { color: #ff6600; }
-  .vm-nav-topbar .vm-whatsapp-broadcast::before {
-    content: "\25CF";
+  .vm-nav-topbar .vm-whatsapp-broadcast:visited {
+    color: #153b2a !important;
+    text-decoration: none;
+  }
+  .vm-nav-topbar .vm-whatsapp-broadcast:hover {
+    border-color: #25d366;
+    background: #e9fff0;
+    color: #0f2d20 !important;
+    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.24);
+    transform: translateY(-1px);
+  }
+  .vm-nav-topbar .vm-whatsapp-broadcast:focus-visible {
+    outline: 3px solid rgba(37, 211, 102, 0.42);
+    outline-offset: 2px;
+    color: #153b2a !important;
+    text-decoration: none;
+  }
+  .vm-nav-topbar .vm-whatsapp-broadcast i {
     color: #25d366;
-    font-size: 8px;
-    vertical-align: middle;
-    margin-right: 5px;
+    font-size: 15px;
+    line-height: 1;
+  }
+  .vm-nav-topbar .vm-whatsapp-broadcast .vm-whatsapp-arrow {
+    color: #153b2a;
+    font-size: 10px;
+  }
+  .vm-whatsapp-label-short {
+    display: none;
   }
   .vm-nav-right {
     font-weight: 700;
@@ -640,14 +674,19 @@
 <!-- ── TOP BAR ── -->
 <div class="vm-nav-topbar">
   <div class="vm-nav-inner">
-    <div>
-      <a href="{{ url_for('blog') }}">Blog</a>
-      <a href="{{ 'https://' + 'epaper.vidyarthimitra.org' if not epaper_subdomain else '/' }}">E-Paper</a>
-      <a class="vm-whatsapp-broadcast" href="{{ WHATSAPP_BROADCAST_URL }}" target="_blank" rel="noopener noreferrer">WhatsApp Broadcast</a>
+      <div class="vm-nav-links">
+        <a href="{{ url_for('blog') }}">Blog</a>
+        <a href="{{ 'https://' + 'epaper.vidyarthimitra.org' if not epaper_subdomain else '/' }}">E-Paper</a>
+      </div>
+      <div class="vm-nav-right">विद्यार्थी मित्र<span style="color:#ff6600;">.org</span></div>
+      <a class="vm-whatsapp-broadcast" href="{{ WHATSAPP_BROADCAST_URL }}" target="_blank" rel="noopener noreferrer" aria-label="Join WhatsApp Broadcast">
+        <i class="fab fa-whatsapp" aria-hidden="true"></i>
+        <span class="vm-whatsapp-label-full">WhatsApp Broadcast</span>
+        <span class="vm-whatsapp-label-short" aria-hidden="true">Broadcast</span>
+        <i class="fa fa-arrow-right vm-whatsapp-arrow" aria-hidden="true"></i>
+      </a>
     </div>
-    <div class="vm-nav-right">विद्यार्थी मित्र<span style="color:#ff6600;">.org</span></div>
   </div>
-</div>
 
 <script>
   // Centralized WhatsApp broadcast URL (single source of truth: app.py)
