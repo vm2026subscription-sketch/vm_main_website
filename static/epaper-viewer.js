@@ -2557,7 +2557,7 @@ const EP = {
   _showGalImg() {
     const img = document.getElementById('epGalImg');
     const counter = document.getElementById('epGalCounter');
-    if (img) img.src = this._galImgs[this._galIdx];
+    if (img) img.src = this.optimizeCloudinaryUrl(this._galImgs[this._galIdx], 1200);
     if (counter) counter.textContent = `${this._galIdx + 1} / ${this._galImgs.length}`;
   },
 

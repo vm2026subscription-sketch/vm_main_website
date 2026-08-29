@@ -139,6 +139,9 @@ if os.environ.get("FLASK_ENV") == "production" or os.environ.get("RENDER") or os
     except ImportError:
         pass
 
+# ── WhatsApp Broadcast (centralized config) ──────────────────────────────────
+WHATSAPP_BROADCAST_URL = "https://whatsapp.com/channel/0029VaACr78KgsNwuLhL3w2F"
+
 # ── Epaper subdomain: rewrite /lang, /date, /admin → /epaper/... ─────────────
 _EPAPER_HOST = os.getenv("EPAPER_HOST", "epaper.vidyarthimitra.org")
 _CUTOFF_HOST = os.getenv("CUTOFF_HOST", "cutoff.vidyarthimitra.org")
@@ -189,6 +192,7 @@ def _epaper_host_context():
         'epaper_subdomain': is_sub,
         'main_site_url': 'https://vidyarthimitra.org' if is_sub else '',
         'cloudinary_transform': cloudinary_transform,
+        'WHATSAPP_BROADCAST_URL': WHATSAPP_BROADCAST_URL,
     }
 
 
