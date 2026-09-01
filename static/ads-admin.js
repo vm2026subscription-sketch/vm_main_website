@@ -269,7 +269,7 @@
     const tbody = $("adRows");
     try {
       const res = await fetch("/api/v1/admin/ads?" + params.toString());
-      if (res.status === 401) { location.href = "/epaper-admin/login"; return; }
+      if (res.status === 401) { location.href = "/admin/login?next=" + encodeURIComponent(location.pathname); return; }
       const data = await res.json();
       const ads = data.ads || []; const t = data.totals || {};
       $("statTotal").textContent = t.count || 0;

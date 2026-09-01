@@ -19,7 +19,7 @@
     const tb = $("posRows");
     try {
       const res = await fetch("/api/v1/admin/positions");
-      if (res.status === 401) { location.href = "/epaper-admin/login"; return; }
+      if (res.status === 401) { location.href = "/admin/login?next=" + encodeURIComponent(location.pathname); return; }
       const data = await res.json();
       const rows = data.positions || [];
       _cache = {}; rows.forEach((p) => { _cache[p.id] = p; });

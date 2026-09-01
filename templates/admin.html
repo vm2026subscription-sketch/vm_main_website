@@ -127,6 +127,7 @@
     <div class="adm-tab" data-panel="responses"><i class="fa fa-inbox"></i> Form Responses</div>
     <div class="adm-tab" data-panel="blogs"><i class="fa fa-pen-nib"></i> Blogs</div>
     <div class="adm-tab" data-panel="upload"><i class="fa fa-upload"></i> Upload Data</div>
+    <div class="adm-tab" data-panel="content-health"><i class="fa fa-heart-pulse"></i> Content Health</div>
     <div class="adm-tab" data-panel="tools"><i class="fa fa-screwdriver-wrench"></i> Tools</div>
   </div>
 
@@ -322,6 +323,75 @@
       </div>
     </div>
 
+    <!-- ── CONTENT HEALTH ── -->
+    <div class="adm-panel" id="panel-content-health">
+      <div class="link-card-grid" style="margin-bottom:20px">
+        <div class="link-card stats-card" style="background:linear-gradient(135deg,rgba(255,102,0,.15),rgba(255,102,0,.05));border-color:rgba(255,102,0,.3);cursor:default;">
+          <i class="fa fa-newspaper"></i>
+          <h3>Editions</h3>
+          <p style="font-size:28px;font-weight:700;color:#ff6600;margin-top:8px;" id="ch-total-editions">—</p>
+        </div>
+        <div class="link-card stats-card" style="background:linear-gradient(135deg,rgba(34,197,94,.15),rgba(34,197,94,.05));border-color:rgba(34,197,94,.3);cursor:default;">
+          <i class="fa fa-file-lines" style="color:#22c55e"></i>
+          <h3>Total Pages</h3>
+          <p style="font-size:28px;font-weight:700;color:#22c55e;margin-top:8px;" id="ch-total-pages">—</p>
+        </div>
+        <div class="link-card stats-card" style="background:linear-gradient(135deg,rgba(59,130,246,.15),rgba(59,130,246,.05));border-color:rgba(59,130,246,.3);cursor:default;">
+          <i class="fa fa-file-pen" style="color:#3b82f6"></i>
+          <h3>Total Articles</h3>
+          <p style="font-size:28px;font-weight:700;color:#3b82f6;margin-top:8px;" id="ch-total-articles">—</p>
+        </div>
+        <div class="link-card stats-card" style="background:linear-gradient(135deg,rgba(168,85,247,.15),rgba(168,85,247,.05));border-color:rgba(168,85,247,.3);cursor:default;">
+          <i class="fa fa-font" style="color:#a855f7"></i>
+          <h3>Total Words</h3>
+          <p style="font-size:28px;font-weight:700;color:#a855f7;margin-top:8px;" id="ch-total-words">—</p>
+        </div>
+      </div>
+
+      <div class="adm-card">
+        <div class="adm-card-title" style="justify-content:space-between">
+          <span style="display:flex;align-items:center;gap:8px"><i class="fa fa-table"></i> Edition Content Health</span>
+          <span style="display:flex;gap:8px;align-items:center">
+            <select id="ch-lang-filter"
+                    style="background:#131f35;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:7px 10px;font-size:12px;font-family:inherit;outline:none;cursor:pointer">
+              <option value="all">All Languages</option>
+              <option value="Hindi">Hindi</option>
+              <option value="English">English</option>
+              <option value="Marathi">Marathi</option>
+            </select>
+            <select id="ch-status-filter"
+                    style="background:#131f35;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:7px 10px;font-size:12px;font-family:inherit;outline:none;cursor:pointer">
+              <option value="all">All Status</option>
+              <option value="published">Published</option>
+              <option value="draft">Draft</option>
+            </select>
+            <button class="btn btn-ghost btn-sm" id="ch-refresh"><i class="fa fa-rotate"></i> Refresh</button>
+          </span>
+        </div>
+        <div class="adm-table-wrap">
+          <table class="adm-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Language</th>
+                <th>Status</th>
+                <th>Pages</th>
+                <th>Filled</th>
+                <th>Fill %</th>
+                <th>Articles</th>
+                <th>Words</th>
+                <th>Avg Words/Art</th>
+                <th>Last Updated</th>
+              </tr>
+            </thead>
+            <tbody id="ch-tbody">
+              <tr><td colspan="10" class="muted">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- ── TOOLS ── -->
     <div class="adm-panel" id="panel-tools">
       <div class="link-card-grid">
@@ -437,6 +507,7 @@
       document.getElementById('panel-' + tab.dataset.panel).classList.add('active');
       if (tab.dataset.panel === 'responses') loadResponses('feedback');
       if (tab.dataset.panel === 'blogs') loadBlogs();
+      if (tab.dataset.panel === 'content-health') loadContentHealth();
       if (tab.dataset.panel === 'tools') loadUsers();
     });
   });
@@ -900,6 +971,74 @@
   document.getElementById('usr-prev').addEventListener('click', () => gotoUsersPage(-1));
   document.getElementById('usr-next').addEventListener('click', () => gotoUsersPage(1));
   document.getElementById('usr-last').addEventListener('click', () => { USR_PAGE = Number.MAX_SAFE_INTEGER; renderUsers(); });
+
+  // ── CONTENT HEALTH ──
+  let chEditions = [];
+
+  async function loadContentHealth() {
+    document.getElementById('ch-tbody').innerHTML = '<tr><td colspan="10" class="muted"><i class="fa fa-spinner fa-spin"></i> Loading…</td></tr>';
+    try {
+      const res = await fetch('/api/admin/content-health');
+      const data = await res.json();
+      if (data.error) {
+        document.getElementById('ch-tbody').innerHTML = `<tr><td colspan="10" class="muted">${escHtml(data.error)}</td></tr>`;
+        return;
+      }
+      chEditions = data.editions || [];
+      const s = data.summary || {};
+      document.getElementById('ch-total-editions').textContent = s.total_editions || 0;
+      document.getElementById('ch-total-pages').textContent = s.total_pages || 0;
+      document.getElementById('ch-total-articles').textContent = s.total_articles || 0;
+      document.getElementById('ch-total-words').textContent = (s.total_words || 0).toLocaleString();
+      renderContentHealth();
+    } catch (e) {
+      document.getElementById('ch-tbody').innerHTML = '<tr><td colspan="10" class="muted"><i class="fa fa-circle-xmark"></i> Failed to load</td></tr>';
+    }
+  }
+
+  function renderContentHealth() {
+    const lang = document.getElementById('ch-lang-filter').value;
+    const status = document.getElementById('ch-status-filter').value;
+    let filtered = chEditions;
+    if (lang !== 'all') filtered = filtered.filter(e => e.language === lang);
+    if (status === 'published') filtered = filtered.filter(e => e.published);
+    if (status === 'draft') filtered = filtered.filter(e => !e.published);
+
+    if (!filtered.length) {
+      document.getElementById('ch-tbody').innerHTML = '<tr><td colspan="10" class="muted">No editions match filters</td></tr>';
+      return;
+    }
+    document.getElementById('ch-tbody').innerHTML = filtered.map(e => {
+      const pct = e.total_pages ? Math.round((e.filled_pages / e.total_pages) * 100) : 0;
+      const pctColor = pct >= 80 ? '#22c55e' : pct >= 40 ? '#f59e0b' : '#ef4444';
+      const barWidth = Math.min(pct, 100);
+      return `<tr>
+        <td style="font-weight:600">${escHtml(e.date)}</td>
+        <td><span class="badge">${escHtml(e.language)}</span></td>
+        <td>${e.published
+              ? '<span style="color:#22c55e;font-weight:600"><i class="fa fa-circle-check"></i> Published</span>'
+              : '<span style="color:#f59e0b;font-weight:600"><i class="fa fa-pen"></i> Draft</span>'}</td>
+        <td style="font-weight:700;color:#e2e8f0">${e.total_pages}</td>
+        <td style="font-weight:700;color:#e2e8f0">${e.filled_pages}</td>
+        <td style="min-width:110px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="flex:1;height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden">
+              <div style="width:${barWidth}%;height:100%;background:${pctColor};border-radius:3px;transition:width .3s"></div>
+            </div>
+            <span style="font-size:12px;font-weight:700;color:${pctColor};min-width:32px;text-align:right">${pct}%</span>
+          </div>
+        </td>
+        <td style="font-weight:700;color:#3b82f6">${e.articles}</td>
+        <td style="font-weight:600;color:#a855f7">${e.words.toLocaleString()}</td>
+        <td class="muted">${e.articles ? Math.round(e.words / e.articles) : '—'}</td>
+        <td class="muted" style="font-size:11px">${escHtml(e.updated_at || '—')}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  document.getElementById('ch-lang-filter').addEventListener('change', renderContentHealth);
+  document.getElementById('ch-status-filter').addEventListener('change', renderContentHealth);
+  document.getElementById('ch-refresh').addEventListener('click', loadContentHealth);
 
   // ── UTILS ──
   function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
