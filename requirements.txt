@@ -19,6 +19,11 @@ pymupdf==1.24.11
 cloudinary==1.44.2
 pymongo[srv]==4.10.1
 upstash-redis>=1.1.0
+authlib>=1.3.0
 Authlib>=1.3.0
 
 firebase-admin
+google-api-python-client>=2.100.0
+google-auth>=2.23.0
+sentry-sdk[flask]>=2.0.0
+bleach>=6.0.0

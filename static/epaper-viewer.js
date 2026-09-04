@@ -65,6 +65,7 @@ const EP = {
     this.startAutoRefreshPoll();
     this._initSwipeHint();
     this._initViewportFit();
+    this._init3DGestures();
   },
 
   // Make the Back button on a specific edition page (/epaper/YYYY-MM-DD) return
@@ -123,10 +124,20 @@ const EP = {
 
   async loadLatestEdition() {
     try {
+      // Prefer a server-embedded edition if the renderer provides one; otherwise
+      // fetch the exact edition for this URL (language + date) via the JSON API.
       const _initEl = document.getElementById('__epInitialEdition__');
-      const data = _initEl
-        ? JSON.parse(_initEl.textContent)
-        : await this._cachedFetch('/api/epaper/latest');
+      let data = _initEl ? JSON.parse(_initEl.textContent) : null;
+      if (!data) {
+        const m = location.pathname.match(/^\/epaper\/(hindi|english|marathi)\/(\d{4}-\d{2}-\d{2})(?:\/|$)/i);
+        if (m) {
+          const lang = m[1][0].toUpperCase() + m[1].slice(1);
+          data = await this._fetchJsonWithRetry(`/api/epaper/edition/${m[2]}?lang=${lang}`);
+          if (!data) data = await this._cachedFetch('/api/epaper/latest');
+        } else {
+          data = await this._cachedFetch('/api/epaper/latest');
+        }
+      }
       this.applyEditionData(data, false);
     } catch (e) {
       // No published editions — show empty state
@@ -220,25 +231,59 @@ const EP = {
     this.setDate(new Date(date + 'T00:00:00'));
   },
 
-  // API response cache (5-minute TTL)
+  // API response cache (30-second TTL — shorter so new editions appear faster after admin save)
   _apiCache: {},
-  _cacheTTL: 5 * 60 * 1000,
+  _cacheTTL: 30 * 1000,
+
+  // Big editions take 5-8s on cold serverless instances and can hit the
+  // platform timeout — a single failed request must not blank the reader.
+  async _fetchJsonWithRetry(url, tries = 3) {
+    let lastErr;
+    for (let i = 0; i < tries; i++) {
+      try {
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return await r.json();
+      } catch (e) {
+        lastErr = e;
+        if (i < tries - 1) await new Promise(res => setTimeout(res, 900 * (i + 1)));
+      }
+    }
+    throw lastErr;
+  },
+
   async _cachedFetch(url) {
     const now = Date.now();
     const cached = this._apiCache[url];
     if (cached && (now - cached.ts) < this._cacheTTL) {
       return cached.data;
     }
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
+    const data = await this._fetchJsonWithRetry(url);
     this._apiCache[url] = { data, ts: now };
     return data;
   },
 
-  // Return Cloudinary URL as-is — PNG is already lossless, no transformation needed
+  // Apply Cloudinary transformations: f_auto (WebP/AVIF), q_auto (quality), width cap
   optimizeCloudinaryUrl(url, width = 400) {
-    return url || '';
+    if (!url) return '';
+    try {
+      const parsed = new URL(url);
+      if (!parsed.hostname.endsWith('cloudinary.com')) return url;
+      // Strip any existing f_*/q_*/w_* transformation segment
+      parsed.pathname = parsed.pathname.replace(
+        /\/image\/upload\/(?:f_|q_|w_|h_|c_|g_|dpr_)[^/]+\//,
+        '/image/upload/'
+      );
+      // Insert new transformation: auto format + quality + width
+      const preset = `f_auto,q_auto,w_${width}`;
+      parsed.pathname = parsed.pathname.replace(
+        '/image/upload/',
+        `/image/upload/${preset}/`
+      );
+      return parsed.href;
+    } catch (e) {
+      return url;
+    }
   },
 
   invalidateEditionCache(date = '') {
@@ -324,6 +369,18 @@ const EP = {
       pageContainer: document.getElementById('epPageContainer'),
       pageImg: document.getElementById('epPageImg'),
       hotspotsLayer: document.getElementById('epHotspots'),
+      // 3D Flip Stage elements
+      flipStage: document.getElementById('ep3DFlipStage'),
+      underPage: document.getElementById('ep3DUnderPage'),
+      underImg: document.getElementById('ep3DUnderImg'),
+      underShadow: document.getElementById('ep3DUnderShadow'),
+      turningPage: document.getElementById('ep3DTurningPage'),
+      pageFront: document.getElementById('ep3DPageFront'),
+      frontImg: document.getElementById('ep3DFrontImg'),
+      frontShadow: document.getElementById('ep3DFrontShadow'),
+      pageBack: document.getElementById('ep3DPageBack'),
+      backImg: document.getElementById('ep3DBackImg'),
+      backShadow: document.getElementById('ep3DBackShadow'),
       editionName: document.getElementById('epEditionName'),
       editionMeta: document.getElementById('epEditionMeta'),
       dateBtn: document.getElementById('epDateBtn'),
@@ -547,32 +604,7 @@ const EP = {
       v._epWasPinching = () => _pinchGesture;
     }
 
-    // Swipe left/right to change pages (single finger, only when not zoomed)
-    {
-      const rc = document.getElementById('epReaderContainer');
-      let _swX = null, _swY = null, _swStartTs = 0;
-      if (rc) {
-        rc.addEventListener('touchstart', (e) => {
-          if (e.touches.length !== 1) return;
-          if (v && typeof v._epWasPinching === 'function' && v._epWasPinching()) return;
-          _swX = e.touches[0].clientX;
-          _swY = e.touches[0].clientY;
-          _swStartTs = Date.now();
-        }, { passive: true });
-        rc.addEventListener('touchend', (e) => {
-          if (_swX === null) return;
-          const fitLevel = this.isMobileReader() ? this.baseFitZoom : 1;
-          if (this.zoom > fitLevel + 0.05) { _swX = null; _swStartTs = 0; return; }
-          const dx = e.changedTouches[0].clientX - _swX;
-          const dy = e.changedTouches[0].clientY - _swY;
-          const dt = Date.now() - _swStartTs;
-          _swX = null;
-          _swStartTs = 0;
-          if (Math.abs(dx) < 72 || Math.abs(dx) <= Math.abs(dy) * 1.5 || dt > 700) return;
-          dx < 0 ? this.changePage(1) : this.changePage(-1);
-        }, { passive: true });
-      }
-    }
+    // 3D Touch and Drag gestures are handled via _init3DGestures()
 
     // Double-tap on viewer to toggle zoom in/out
     {
@@ -744,7 +776,10 @@ const EP = {
     const selectedLanguage = (this.landingLanguageFilter || '').trim().toLowerCase();
     const all = (Array.isArray(this.editions) ? this.editions : [])
       .filter(edition => edition && edition.published !== false)
-      .filter(edition => !selectedLanguage || (edition.language || '').trim().toLowerCase() === selectedLanguage)
+      .filter(edition => {
+        if (!selectedLanguage) return true;
+        return (edition.language || '').trim().toLowerCase() === selectedLanguage;
+      })
       .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
     let published, hasMore;
@@ -1057,10 +1092,7 @@ const EP = {
     this.showLoadingSkeleton();
     try {
       const data = lang
-        ? await fetch(url).then(r => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.json();
-        })
+        ? await this._fetchJsonWithRetry(url)
         : await this._cachedFetch(url);
       this.applyEditionData(data, true);
     } catch (e) {
@@ -1312,7 +1344,7 @@ const EP = {
     this.showLoadingSkeleton();
 
     try {
-      const data = await this._cachedFetch(`/api/epaper/edition/${iso}`);
+      const data = await this._fetchJsonWithRetry(`/api/epaper/edition/${iso}`);
       this.applyEditionData(data, true);
     } catch (e) {
       console.warn('Edition load error:', e);
@@ -1409,10 +1441,7 @@ const EP = {
     this.setReaderMode(true);
     this.showLoadingSkeleton();
     try {
-      const data = await fetch(url).then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      });
+      const data = await this._fetchJsonWithRetry(url);
       this.applyEditionData(data, true);
       this.el.navList?.querySelectorAll('.ep-nav-item').forEach(n => {
         n.classList.toggle('active', n.dataset.lang === this.currentLanguage);
@@ -1422,8 +1451,224 @@ const EP = {
     }
   },
 
-  // ── Page Display ──
-  showPage(num) {
+  // ── 3D Page Turn Engine ───────────────────────────
+  _isFlipping: false,
+
+  _getPageImageUrl(pageNum) {
+    if (!this.pages || !this.pages.length) return '';
+    const p = this.pages[pageNum - 1];
+    if (!p) return '';
+    let raw = '';
+    if (p.page_image_url) raw = p.page_image_url;
+    else if (p.image_path) raw = p.image_path;
+    else {
+      const blockWithImg = (p.blocks || []).find(b => b.type !== 'shape' && b.image_url && b.image_url.length > 10);
+      if (blockWithImg) raw = blockWithImg.image_url;
+    }
+    // Apply Cloudinary optimizations for display (800px wide, auto format + quality)
+    return raw ? this.optimizeCloudinaryUrl(raw, 800) : '';
+  },
+
+  _getActivePageElement() {
+    const blockGrid = document.getElementById('epBlockGrid');
+    if (blockGrid && blockGrid.style.display !== 'none' && blockGrid.offsetHeight > 50) {
+      return blockGrid;
+    }
+    const pageContainer = this.el.pageContainer || document.getElementById('epPageContainer');
+    if (pageContainer && pageContainer.style.display !== 'none' && pageContainer.offsetHeight > 50) {
+      return pageContainer;
+    }
+    return blockGrid || pageContainer;
+  },
+
+  _prepare3DStage(direction, targetPageNum) {
+    const stage = this.el.flipStage || document.getElementById('ep3DFlipStage');
+    if (!stage) return false;
+
+    const currentImgUrl = this._getPageImageUrl(this.currentPage);
+    const targetImgUrl = this._getPageImageUrl(targetPageNum);
+
+    if (!currentImgUrl || !targetImgUrl) return false;
+
+    const turningPage = this.el.turningPage || document.getElementById('ep3DTurningPage');
+    const underImg = this.el.underImg || document.getElementById('ep3DUnderImg');
+    const frontImg = this.el.frontImg || document.getElementById('ep3DFrontImg');
+    const backImg = this.el.backImg || document.getElementById('ep3DBackImg');
+    const frontShadow = this.el.frontShadow || document.getElementById('ep3DFrontShadow');
+    const backShadow = this.el.backShadow || document.getElementById('ep3DBackShadow');
+    const underShadow = this.el.underShadow || document.getElementById('ep3DUnderShadow');
+
+    if (!turningPage || !underImg || !frontImg || !backImg) return false;
+
+    // Match stage size and offset to the active page container
+    const activeEl = this._getActivePageElement();
+    if (activeEl) {
+      const topOffset = activeEl.offsetTop || 16;
+      stage.style.top = topOffset + 'px';
+      if (activeEl.offsetWidth > 0) stage.style.width = activeEl.offsetWidth + 'px';
+      if (activeEl.offsetHeight > 0) stage.style.height = activeEl.offsetHeight + 'px';
+    }
+
+    // Reset transitions and transform
+    turningPage.classList.remove('is-flipping-transition', 'is-spring-transition');
+
+    if (direction === 'forward') {
+      // Forward: turning from 0deg to -180deg
+      // Under page shows target page (Page N+1)
+      // Front face shows current page (Page N)
+      // Back face shows target page (Page N+1)
+      underImg.src = targetImgUrl;
+      frontImg.src = currentImgUrl;
+      backImg.src = targetImgUrl;
+
+      turningPage.style.transformOrigin = 'left center';
+      turningPage.style.transform = 'rotateY(0deg)';
+    } else {
+      // Backward: turning from -180deg to 0deg
+      // Under page shows current page (Page N)
+      // Front face shows target page (Page N-1)
+      // Back face shows current page (Page N)
+      underImg.src = currentImgUrl;
+      frontImg.src = targetImgUrl;
+      backImg.src = currentImgUrl;
+
+      turningPage.style.transformOrigin = 'left center';
+      turningPage.style.transform = 'rotateY(-180deg)';
+    }
+
+    if (frontShadow) frontShadow.style.opacity = '0';
+    if (backShadow) backShadow.style.opacity = '0';
+    if (underShadow) underShadow.style.opacity = '0';
+
+    if (this.el.hotspotsLayer) this.el.hotspotsLayer.style.display = 'none';
+    stage.style.display = 'block';
+    return true;
+  },
+
+  _update3DProgress(progress, direction) {
+    const turningPage = this.el.turningPage || document.getElementById('ep3DTurningPage');
+    const frontShadow = this.el.frontShadow || document.getElementById('ep3DFrontShadow');
+    const backShadow = this.el.backShadow || document.getElementById('ep3DBackShadow');
+    const underShadow = this.el.underShadow || document.getElementById('ep3DUnderShadow');
+    if (!turningPage) return;
+
+    // Clamped progress [0, 1]
+    const p = Math.max(0, Math.min(1, progress));
+
+    let angle = 0;
+    if (direction === 'forward') {
+      angle = -p * 180;
+    } else {
+      angle = -180 + (p * 180);
+    }
+
+    // Dynamic Lift Shadow: Math.sin(progress * PI) * 0.35
+    const shadowOpacity = Math.sin(p * Math.PI) * 0.35;
+    const underShadowOpacity = (1 - p) * Math.sin(p * Math.PI) * 0.22;
+
+    turningPage.style.transform = `rotateY(${angle}deg)`;
+    if (frontShadow) frontShadow.style.opacity = String(shadowOpacity);
+    if (backShadow) backShadow.style.opacity = String(shadowOpacity);
+    if (underShadow) underShadow.style.opacity = String(underShadowOpacity);
+  },
+
+  _cleanup3DStage() {
+    const stage = this.el.flipStage || document.getElementById('ep3DFlipStage');
+    if (stage) stage.style.display = 'none';
+    const turningPage = this.el.turningPage || document.getElementById('ep3DTurningPage');
+    if (turningPage) {
+      turningPage.classList.remove('is-flipping-transition', 'is-spring-transition');
+      turningPage.style.transform = '';
+    }
+    const frontShadow = this.el.frontShadow || document.getElementById('ep3DFrontShadow');
+    const backShadow = this.el.backShadow || document.getElementById('ep3DBackShadow');
+    const underShadow = this.el.underShadow || document.getElementById('ep3DUnderShadow');
+    if (frontShadow) frontShadow.style.opacity = '0';
+    if (backShadow) backShadow.style.opacity = '0';
+    if (underShadow) underShadow.style.opacity = '0';
+    this._isFlipping = false;
+  },
+
+  flipToPage(targetNum) {
+    const target = Math.max(1, Math.min(targetNum, this.totalPages));
+    if (target === this.currentPage) return;
+    if (this._isFlipping) return;
+
+    const direction = target > this.currentPage ? 'forward' : 'backward';
+    const ready = this._prepare3DStage(direction, target);
+
+    if (!ready) {
+      this.renderPageDirect(target);
+      return;
+    }
+
+    this._isFlipping = true;
+    const turningPage = this.el.turningPage || document.getElementById('ep3DTurningPage');
+    const frontShadow = this.el.frontShadow || document.getElementById('ep3DFrontShadow');
+    const backShadow = this.el.backShadow || document.getElementById('ep3DBackShadow');
+    const underShadow = this.el.underShadow || document.getElementById('ep3DUnderShadow');
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!turningPage) {
+          this.renderPageDirect(target);
+          this._cleanup3DStage();
+          return;
+        }
+
+        turningPage.classList.add('is-flipping-transition');
+
+        const startTime = performance.now();
+        const duration = 420;
+
+        const stepShadow = (now) => {
+          if (!this._isFlipping) return;
+          const elapsed = now - startTime;
+          const t = Math.min(1, elapsed / duration);
+          const easeProgress = 1 - Math.pow(1 - t, 3);
+          const shadow = Math.sin(easeProgress * Math.PI) * 0.35;
+          const underShadowVal = (1 - easeProgress) * Math.sin(easeProgress * Math.PI) * 0.22;
+
+          if (frontShadow) frontShadow.style.opacity = String(shadow);
+          if (backShadow) backShadow.style.opacity = String(shadow);
+          if (underShadow) underShadow.style.opacity = String(underShadowVal);
+
+          if (t < 1) {
+            requestAnimationFrame(stepShadow);
+          }
+        };
+        requestAnimationFrame(stepShadow);
+
+        const targetAngle = direction === 'forward' ? -180 : 0;
+        turningPage.style.transform = `rotateY(${targetAngle}deg)`;
+
+        let finished = false;
+        const onEnd = (e) => {
+          if (finished) return;
+          if (e && e.target !== turningPage) return;
+          finished = true;
+          turningPage.removeEventListener('transitionend', onEnd);
+          this.renderPageDirect(target);
+          this._cleanup3DStage();
+        };
+
+        turningPage.addEventListener('transitionend', onEnd, { once: true });
+        setTimeout(onEnd, 500);
+      });
+    });
+  },
+
+  showPage(num, animate = false) {
+    const target = Math.max(1, Math.min(num, this.totalPages));
+    if (animate && target !== this.currentPage && !this._isFlipping &&
+        this._getPageImageUrl(target) && this._getPageImageUrl(this.currentPage)) {
+      this.flipToPage(target);
+    } else {
+      this.renderPageDirect(target);
+    }
+  },
+
+  renderPageDirect(num) {
     this.currentPage = Math.max(1, Math.min(num, this.totalPages));
     this.panOffset = { x: 0, y: 0 };
     this._resetPageScroll();
@@ -1435,22 +1680,17 @@ const EP = {
     this.updatePageHeader(page, this.currentPage);
 
     const viewer = this.el.viewer || document.getElementById('epViewer');
-    if (viewer?.animate) {
-      viewer.animate([{ opacity: 0.72 }, { opacity: 1 }], { duration: 180, easing: 'ease-out' });
-    }
     document.getElementById('epEmptyState')?.style.setProperty('display', 'none');
 
     // Check if page uses new block format
     if (page.blocks && page.blocks.length > 0) {
-      // Hide legacy elements
       if (this.el.pageContainer) this.el.pageContainer.style.display = 'none';
-      this.renderBlockGrid(page.blocks, viewer, page.page_image_url || page.image_path || '');
+      this.renderBlockGrid(page.blocks, viewer, this.optimizeCloudinaryUrl(page.page_image_url || page.image_path || '', 800));
     } else if (page.page_image_url) {
       const isPdf = page.page_image_url.toLowerCase().endsWith('.pdf');
       if (this.el.pageContainer) this.el.pageContainer.style.display = '';
 
       if (isPdf) {
-        // Render PDF in an iframe
         if (this.el.pageImg) this.el.pageImg.style.display = 'none';
         let pdfFrame = document.getElementById('epPdfFrame');
         if (!pdfFrame) {
@@ -1463,12 +1703,11 @@ const EP = {
         pdfFrame.src = page.page_image_url;
         if (this.el.hotspotsLayer) this.el.hotspotsLayer.style.display = 'none';
       } else {
-        // Image page
         const pdfFrame = document.getElementById('epPdfFrame');
         if (pdfFrame) pdfFrame.style.display = 'none';
         if (this.el.pageImg) {
           this.el.pageImg.style.display = 'block';
-          this.el.pageImg.src = page.page_image_url;
+          this.el.pageImg.src = this.optimizeCloudinaryUrl(page.page_image_url, 800);
           if (this.el.pageImg.complete) this.scheduleFitToWidth();
         }
         if (this.el.hotspotsLayer) this.el.hotspotsLayer.style.display = 'block';
@@ -1478,7 +1717,6 @@ const EP = {
       const grid = document.getElementById('epBlockGrid');
       if (grid) grid.style.display = 'none';
     } else {
-      // Page has no blocks and no image — clear the loading skeleton so viewer doesn't hang
       if (this.el.pageContainer) this.el.pageContainer.style.display = 'none';
       const grid = document.getElementById('epBlockGrid');
       if (grid) {
@@ -1489,16 +1727,13 @@ const EP = {
       }
     }
 
-    // Scroll viewer to top when switching pages
     this._resetPageScroll();
-
-    // Update thumbnail active state
     this.updateThumbActive();
     this.scheduleFitToWidth();
   },
 
   changePage(dir) {
-    this.showPage(this.currentPage + dir);
+    this.showPage(this.currentPage + dir, true);
   },
 
   updatePager() {
@@ -1508,6 +1743,198 @@ const EP = {
     // Update edge arrows
     if (this.el.edgePrev) this.el.edgePrev.disabled = this.currentPage <= 1;
     if (this.el.edgeNext) this.el.edgeNext.disabled = this.currentPage >= this.totalPages;
+  },
+
+  _init3DGestures() {
+    const rc = document.getElementById('epReaderContainer') || document.getElementById('epViewer');
+    if (!rc) return;
+
+    let startX = 0;
+    let startY = 0;
+    let startTime = 0;
+    let direction = null;
+    let targetPage = null;
+    let containerWidth = 0;
+    let isGestureActive = false;
+    let isLocked3D = false;
+    let isVerticalScroll = false;
+
+    // Prevent default drag on images
+    rc.addEventListener('dragstart', (e) => e.preventDefault());
+
+    const onStart = (e) => {
+      if (this._isFlipping) return;
+      const fitLevel = this.isMobileReader() ? this.baseFitZoom : 1;
+      if (this.zoom > fitLevel + 0.05) return;
+
+      const targetEl = e.target;
+      if (targetEl && targetEl.closest('button, a, input, select, textarea, .ep-toolbar, .ep-pager, .ep-nav, .ep-news-sidebar, .ep-thumb-strip, .ep-article-panel')) {
+        return;
+      }
+
+      const touch = e.touches ? e.touches[0] : e;
+      if (!touch) return;
+      if (e.touches && e.touches.length !== 1) return;
+      if (e.button !== undefined && e.button !== 0) return;
+
+      startX = touch.clientX;
+      startY = touch.clientY;
+      startTime = performance.now();
+      const activeEl = this._getActivePageElement();
+      containerWidth = (activeEl || this.el.pageContainer || rc).clientWidth || window.innerWidth;
+      isGestureActive = true;
+      isLocked3D = false;
+      isVerticalScroll = false;
+      direction = null;
+      targetPage = null;
+    };
+
+    const onMove = (e) => {
+      if (!isGestureActive || this._isFlipping) return;
+      const touch = e.touches ? e.touches[0] : e;
+      if (!touch) return;
+
+      const dx = touch.clientX - startX;
+      const dy = touch.clientY - startY;
+
+      if (!isLocked3D && !isVerticalScroll) {
+        if (Math.hypot(dx, dy) > 8) {
+          if (Math.abs(dx) > Math.abs(dy) * 1.2) {
+            if (dx < 0 && this.currentPage < this.totalPages) {
+              direction = 'forward';
+              targetPage = this.currentPage + 1;
+              const ready = this._prepare3DStage(direction, targetPage);
+              if (ready) {
+                isLocked3D = true;
+                if (e.cancelable) e.preventDefault();
+              } else {
+                isVerticalScroll = true;
+              }
+            } else if (dx > 0 && this.currentPage > 1) {
+              direction = 'backward';
+              targetPage = this.currentPage - 1;
+              const ready = this._prepare3DStage(direction, targetPage);
+              if (ready) {
+                isLocked3D = true;
+                if (e.cancelable) e.preventDefault();
+              } else {
+                isVerticalScroll = true;
+              }
+            } else {
+              isVerticalScroll = true;
+            }
+          } else {
+            isVerticalScroll = true;
+          }
+        }
+      }
+
+      if (isLocked3D && direction) {
+        if (e.cancelable) e.preventDefault();
+        let progress = 0;
+        if (direction === 'forward') {
+          progress = Math.min(1, Math.max(0, -dx / containerWidth));
+        } else {
+          progress = Math.min(1, Math.max(0, dx / containerWidth));
+        }
+        this._update3DProgress(progress, direction);
+      }
+    };
+
+    const onEnd = (e) => {
+      if (!isGestureActive) return;
+      isGestureActive = false;
+
+      if (!isLocked3D || !direction || !targetPage) {
+        this._cleanup3DStage();
+        return;
+      }
+
+      const touch = e.changedTouches ? e.changedTouches[0] : e;
+      const endX = touch ? touch.clientX : startX;
+      const dx = endX - startX;
+      const dt = performance.now() - startTime;
+      const velocity = Math.abs(dx) / Math.max(1, dt);
+
+      let progress = 0;
+      if (direction === 'forward') {
+        progress = Math.min(1, Math.max(0, -dx / containerWidth));
+      } else {
+        progress = Math.min(1, Math.max(0, dx / containerWidth));
+      }
+
+      const isFlick = velocity > 0.38 && Math.abs(dx) > 35;
+      const shouldComplete = progress > 0.22 || isFlick;
+
+      this._isFlipping = true;
+      const turningPage = this.el.turningPage || document.getElementById('ep3DTurningPage');
+      const frontShadow = this.el.frontShadow || document.getElementById('ep3DFrontShadow');
+      const backShadow = this.el.backShadow || document.getElementById('ep3DBackShadow');
+      const underShadow = this.el.underShadow || document.getElementById('ep3DUnderShadow');
+
+      if (turningPage) {
+        turningPage.classList.add(shouldComplete ? 'is-flipping-transition' : 'is-spring-transition');
+
+        let targetAngle = 0;
+        if (direction === 'forward') {
+          targetAngle = shouldComplete ? -180 : 0;
+        } else {
+          targetAngle = shouldComplete ? 0 : -180;
+        }
+
+        if (frontShadow) frontShadow.style.opacity = '0';
+        if (backShadow) backShadow.style.opacity = '0';
+        if (underShadow) underShadow.style.opacity = '0';
+
+        turningPage.style.transform = `rotateY(${targetAngle}deg)`;
+
+        let finishHandled = false;
+        const onFinish = (ev) => {
+          if (finishHandled) return;
+          if (ev && ev.target !== turningPage) return;
+          finishHandled = true;
+          turningPage.removeEventListener('transitionend', onFinish);
+          if (shouldComplete) {
+            this.renderPageDirect(targetPage);
+          } else {
+            if (this.el.hotspotsLayer) this.el.hotspotsLayer.style.display = 'block';
+          }
+          this._cleanup3DStage();
+        };
+
+        turningPage.addEventListener('transitionend', onFinish, { once: true });
+        setTimeout(onFinish, 450);
+      } else {
+        if (shouldComplete) this.renderPageDirect(targetPage);
+        this._cleanup3DStage();
+      }
+    };
+
+    rc.addEventListener('touchstart', onStart, { passive: true });
+    rc.addEventListener('touchmove', onMove, { passive: false });
+    rc.addEventListener('touchend', onEnd, { passive: true });
+    rc.addEventListener('touchcancel', onEnd, { passive: true });
+
+    let isMouseDown = false;
+    rc.addEventListener('mousedown', (e) => {
+      const fitLevel = this.isMobileReader() ? this.baseFitZoom : 1;
+      if (this.zoom > fitLevel + 0.05) return;
+      if (e.button !== 0) return;
+      if (e.target && e.target.closest('button, a, input, select, textarea, .ep-toolbar, .ep-pager, .ep-nav, .ep-news-sidebar, .ep-thumb-strip, .ep-article-panel')) return;
+      isMouseDown = true;
+      onStart(e);
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isMouseDown) return;
+      onMove(e);
+    });
+
+    window.addEventListener('mouseup', (e) => {
+      if (!isMouseDown) return;
+      isMouseDown = false;
+      onEnd(e);
+    });
   },
 
   getBlockType(block) {
@@ -1615,7 +2042,7 @@ const EP = {
         const gotoPage = block.goto_page;
         if (gotoPage) {
           return `
-                <div style="${baseStyle}cursor:pointer;" onclick="EP.showPage(${gotoPage})" title="Go to page ${gotoPage}">
+                <div style="${baseStyle}cursor:pointer;" onclick="EP.showPage(${gotoPage}, true)" title="Go to page ${gotoPage}">
                   ${this.buildShapeMarkup(block)}
                 </div>
               `;
@@ -1644,7 +2071,7 @@ const EP = {
       // Optimize Cloudinary images: smaller width for card thumbnails
       const imgSrc = hasImg ? this.optimizeCloudinaryUrl(block.image_url, 400) : '';
       const clickHandler = gotoPage
-        ? `onclick="EP.showPage(${gotoPage})" title="Go to page ${gotoPage}"`
+        ? `onclick="EP.showPage(${gotoPage}, true)" title="Go to page ${gotoPage}"`
         : `onclick="EP.openArticle(${articleIndex})" title="${block.headline || ''}"`;
 
       return `
@@ -1955,7 +2382,7 @@ const EP = {
       }
 
       return `
-        <div class="ep-thumb-card ${isActive ? 'active' : ''}" onclick="EP.showPage(${i + 1})">
+        <div class="ep-thumb-card ${isActive ? 'active' : ''}" onclick="EP.showPage(${i + 1}, true)">
           <div class="ep-thumb-label">Page ${i + 1}</div>
           ${thumbUrl
           ? `<img class="ep-thumb-img" src="${thumbUrl}" alt="Page ${i + 1}" loading="lazy">`
@@ -2057,7 +2484,8 @@ const EP = {
       if (gallery.length > 0) {
         galHTML = '<div class="ep-article-gallery-full">';
         gallery.forEach((img, i) => {
-          galHTML += `<img src="${img}" alt="Image ${i + 1}" class="ep-gallery-full-img" loading="lazy" onload="this.classList.add('loaded')" onclick="EP.openGalleryViewer(${index}, ${i})">`;
+          const optImg = this.optimizeCloudinaryUrl(img, 800);
+          galHTML += `<img src="${optImg}" alt="Image ${i + 1}" class="ep-gallery-full-img" loading="lazy" onload="this.classList.add('loaded')" onclick="EP.openGalleryViewer(${index}, ${i})">`;
         });
         galHTML += '</div>';
       }
@@ -2129,7 +2557,7 @@ const EP = {
   _showGalImg() {
     const img = document.getElementById('epGalImg');
     const counter = document.getElementById('epGalCounter');
-    if (img) img.src = this._galImgs[this._galIdx];
+    if (img) img.src = this.optimizeCloudinaryUrl(this._galImgs[this._galIdx], 1200);
     if (counter) counter.textContent = `${this._galIdx + 1} / ${this._galImgs.length}`;
   },
 

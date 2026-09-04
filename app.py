@@ -10,7 +10,7 @@ import sqlite3
 import secrets
 import smtplib
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, quote, unquote, urljoin, urlparse, urlencode
@@ -81,6 +81,23 @@ if not _secret_key:
 
 app = Flask(__name__)
 app.secret_key = _secret_key
+
+# ── Sentry error monitoring (production) ──────────────────────
+_sentry_dsn = os.environ.get("SENTRY_DSN", "")
+if _sentry_dsn:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.flask import FlaskIntegration
+        sentry_sdk.init(
+            dsn=_sentry_dsn,
+            integrations=[FlaskIntegration()],
+            traces_sample_rate=0.1,
+            environment=os.getenv("FLASK_ENV", "production"),
+            send_default_pii=False,
+        )
+    except Exception as _sentry_exc:
+        app.logger.warning("Sentry init failed (non-fatal): %s", _sentry_exc)
+
 # Disable CSRF on JSON/API requests — they are protected by session auth
 # (require_admin / _require_epaper_admin). CSRF tokens are only enforced on
 # HTML form submissions (login, register) via the admin_login.html hidden field.
@@ -122,15 +139,20 @@ if os.environ.get("FLASK_ENV") == "production" or os.environ.get("RENDER") or os
     except ImportError:
         pass
 
+# ── WhatsApp Broadcast (centralized config) ──────────────────────────────────
+WHATSAPP_BROADCAST_URL = "https://whatsapp.com/channel/0029VaACr78KgsNwuLhL3w2F"
+
 # ── Epaper subdomain: rewrite /lang, /date, /admin → /epaper/... ─────────────
 _EPAPER_HOST = os.getenv("EPAPER_HOST", "epaper.vidyarthimitra.org")
+_CUTOFF_HOST = os.getenv("CUTOFF_HOST", "cutoff.vidyarthimitra.org")
 _MAIN_HOST   = os.getenv("MAIN_HOST",  "vidyarthimitra.org")
 
 _EPAPER_SUBPATH_RE = re.compile(
     r'^(?:'
     r'/$'
-    r'|/(hindi|english|marathi)(?:/[^/?#]+(?:/page-\d+)?)?/?$'
+    r'|/(hindi|english|marathi|college edition)(?:/[^/?#]+(?:/page-\d+)?)?/?$'
     r'|/\d{4}-\d{2}-\d{2}(?:/page-\d+)?/?$'
+    r'|/latest/(hindi|english|marathi)/?$'
     r'|/admin(?:/.*)?$'
     r')',
     re.IGNORECASE,
@@ -145,6 +167,10 @@ class _EpaperSubdomainMiddleware:
         host = (
             environ.get('HTTP_X_FORWARDED_HOST') or environ.get('HTTP_HOST', '')
         ).lower().split(':')[0]
+        if host == _CUTOFF_HOST:
+            # cutoffs subdomain serves the cut-offs page at its root.
+            environ = dict(environ)
+            environ['PATH_INFO'] = '/cutoffs'
         if host == _EPAPER_HOST:
             path = environ.get('PATH_INFO', '/')
             if not path.startswith('/epaper') and _EPAPER_SUBPATH_RE.match(path):
@@ -161,9 +187,12 @@ def _epaper_host_context():
         request.headers.get('X-Forwarded-Host') or request.host or ''
     ).lower().split(':')[0]
     is_sub = (host == _EPAPER_HOST)
+    from epaper_helpers import cloudinary_transform
     return {
         'epaper_subdomain': is_sub,
         'main_site_url': 'https://vidyarthimitra.org' if is_sub else '',
+        'cloudinary_transform': cloudinary_transform,
+        'WHATSAPP_BROADCAST_URL': WHATSAPP_BROADCAST_URL,
     }
 
 
@@ -2767,6 +2796,74 @@ def admin():
     )
 
 
+@app.route("/api/admin/content-health")
+@require_admin
+def api_content_health():
+    """Return per-edition page/article counts from epaper_editions_v2."""
+    pg_url = get_postgres_connection_url()
+    if not pg_url:
+        return jsonify({"error": "Postgres not configured."}), 500
+    try:
+        import psycopg2
+        conn = psycopg2.connect(pg_url, connect_timeout=10)
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT edition_date, edition_language, data, updated_at "
+                "FROM epaper_editions_v2 ORDER BY edition_date DESC, edition_language"
+            )
+            rows = cur.fetchall()
+        conn.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    editions = []
+    for date, lang, data, updated_at in rows:
+        if isinstance(data, str):
+            data = json.loads(data)
+        pages = data.get("pages") or []
+        total_pages = len(pages)
+        filled_pages = 0
+        total_articles = 0
+        total_words = 0
+        for p in pages:
+            blocks = p.get("blocks") or []
+            page_has_content = False
+            for b in blocks:
+                if b.get("type", "article") == "article":
+                    body = (b.get("body_text") or "").strip()
+                    if body:
+                        total_articles += 1
+                        total_words += len(body.split())
+                        page_has_content = True
+            if page_has_content or any(
+                (b.get("type") != "article") for b in blocks
+            ):
+                filled_pages += 1
+        editions.append({
+            "date": date,
+            "language": lang,
+            "published": data.get("published", False),
+            "total_pages": total_pages,
+            "filled_pages": filled_pages,
+            "articles": total_articles,
+            "words": total_words,
+            "updated_at": str(updated_at)[:19] if updated_at else None,
+        })
+
+    total_ed = len(editions)
+    total_art = sum(e["articles"] for e in editions)
+    total_pg = sum(e["total_pages"] for e in editions)
+    total_wd = sum(e["words"] for e in editions)
+    summary = {
+        "total_editions": total_ed,
+        "total_articles": total_art,
+        "total_pages": total_pg,
+        "total_words": total_wd,
+        "avg_articles_per_edition": round(total_art / total_ed, 1) if total_ed else 0,
+    }
+    return jsonify({"editions": editions, "summary": summary})
+
+
 @app.route("/api/admin/users", methods=["GET"])
 @require_admin
 def api_admin_users_list():
@@ -3380,6 +3477,12 @@ def mock_exams():
 
 @app.route("/cutoffs")
 def cutoffs():
+    host = (
+        request.headers.get('X-Forwarded-Host') or request.host or ''
+    ).lower().split(':')[0]
+    # Cut-offs now lives on its own subdomain. Redirect main-site visits there.
+    if host != _CUTOFF_HOST:
+        return redirect('https://cutoff.vidyarthimitra.org/', 301)
     exam_cat = request.args.get("exam", "engineering").lower()
     branches, categories, genders, _ = get_cutoff_options()
     return render_template("cutoffs.html", exam_cat=exam_cat, branches=branches, categories=categories, genders=genders)
@@ -5623,6 +5726,178 @@ def sitemap_xml():
     )
     xml = f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{urls}\n</urlset>'
     return Response(xml, mimetype='application/xml')
+
+
+# ── Public env-health diagnostics (no auth) ──────────────────────────
+@app.route("/api/env-health")
+def api_env_health():
+    """Verify that critical external services are configured and reachable."""
+    import time as _time
+
+    result = {"status": "ok", "env_check": {}}
+
+    # ── 1. Env var presence (no values leaked) ──
+    env_keys = [
+        "UPSTASH_REDIS_REST_URL",
+        "UPSTASH_REDIS_REST_TOKEN",
+        "SUPABASE_URL",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "SUPABASE_ANON_KEY",
+        "SUPABASE_POSTGRES_URL",
+        "SUPABASE_POOLER_URL",
+        "DATABASE_URL",
+        "CLOUDINARY_URL",
+    ]
+    for k in env_keys:
+        result["env_check"][k] = bool(os.environ.get(k, "").strip())
+
+    # ── 2. Redis (Upstash) ──
+    redis_url = os.getenv("UPSTASH_REDIS_REST_URL", "").strip()
+    redis_token = os.getenv("UPSTASH_REDIS_REST_TOKEN", "").strip()
+    if redis_url and redis_token:
+        try:
+            from upstash_redis import Redis as _UpstashRedis
+            _rc = _UpstashRedis(url=redis_url, token=redis_token)
+            t0 = _time.monotonic()
+            _rc.set("env:health:ping", "ok", ex=30)
+            val = _rc.get("env:health:ping")
+            latency = round((_time.monotonic() - t0) * 1000)
+            result["redis"] = {"ok": val == "ok", "latency_ms": latency}
+        except Exception as e:
+            result["redis"] = {"ok": False, "error": str(e)[:200]}
+            result["status"] = "degraded"
+    else:
+        result["redis"] = {"ok": False, "error": "env vars missing"}
+        result["status"] = "degraded"
+
+    # ── 3. Supabase client ──
+    sb_url = os.getenv("SUPABASE_URL", "").strip()
+    sb_key = (
+        os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+        or os.getenv("SUPABASE_ANON_KEY", "").strip()
+    )
+    if sb_url and sb_key:
+        try:
+            from supabase import create_client as _sb_create
+            t0 = _time.monotonic()
+            _sb = _sb_create(sb_url, sb_key)
+            # A lightweight introspection — just confirming the client initializes
+            result["supabase"] = {
+                "ok": True,
+                "url_set": True,
+                "latency_ms": round((_time.monotonic() - t0) * 1000),
+            }
+        except Exception as e:
+            result["supabase"] = {"ok": False, "error": str(e)[:200]}
+            result["status"] = "degraded"
+    else:
+        result["supabase"] = {"ok": False, "error": "env vars missing"}
+        result["status"] = "degraded"
+
+    # ── 4. Supabase Postgres ──
+    pg_url = os.getenv("SUPABASE_POSTGRES_URL", "").strip() or os.getenv("DATABASE_URL", "").strip()
+    if pg_url:
+        try:
+            import psycopg2 as _psycopg2
+            _pg_ssl = pg_url
+            if "sslmode" not in _pg_ssl:
+                _pg_ssl += ("&" if "?" in _pg_ssl else "?") + "sslmode=require"
+            t0 = _time.monotonic()
+            _conn = _psycopg2.connect(_pg_ssl, connect_timeout=8)
+            with _conn.cursor() as _cur:
+                _cur.execute("SELECT 1")
+            _conn.close()
+            result["postgres"] = {"ok": True, "latency_ms": round((_time.monotonic() - t0) * 1000)}
+        except Exception as e:
+            result["postgres"] = {"ok": False, "error": str(e)[:200]}
+            result["status"] = "degraded"
+    else:
+        result["postgres"] = {"ok": False, "error": "env var missing"}
+        result["status"] = "degraded"
+
+    # ── 5. Cloudinary ──
+    c_url = os.getenv("CLOUDINARY_URL", "").strip()
+    if c_url:
+        try:
+            import cloudinary as _cld
+            import cloudinary.api as _cld_api
+            _cld.config(cloudinary_url=c_url)
+            _cloud_name = getattr(_cld.config(), "cloud_name", None)
+            if not _cloud_name and "@" in c_url:
+                _cloud_name = c_url.split("@")[-1].split(".")[0]
+            t0 = _time.monotonic()
+            _cld_api.ping()
+            result["cloudinary"] = {
+                "ok": True,
+                "cloud_name": _cloud_name or "unknown",
+                "latency_ms": round((_time.monotonic() - t0) * 1000),
+            }
+        except Exception as e:
+            result["cloudinary"] = {"ok": False, "error": str(e)[:200]}
+            result["status"] = "degraded"
+    else:
+        result["cloudinary"] = {"ok": False, "error": "env var missing"}
+        result["status"] = "degraded"
+
+    from datetime import datetime, timezone
+    result["timestamp"] = datetime.now(timezone.utc).isoformat()
+
+    return jsonify(result)
+
+
+# ── Vercel Cron: Weekly DB backup ────────────────────────────────────
+@app.route("/api/cron/weekly-backup", methods=["GET", "POST"])
+def api_cron_weekly_backup():
+    """Triggered by Vercel cron (Sunday 3 AM UTC) or manual GET with CRON_SECRET."""
+    cron_secret = os.getenv("CRON_SECRET", "")
+    if cron_secret:
+        auth_header = request.headers.get("Authorization", "")
+        vercel_cron = request.headers.get("x-vercel-cron", "")
+        if vercel_cron != "1" and auth_header != f"Bearer {cron_secret}":
+            return jsonify({"error": "Unauthorized"}), 401
+
+    pg_url = get_postgres_connection_url()
+    if not pg_url:
+        return jsonify({"error": "Postgres not configured."}), 500
+
+    try:
+        import psycopg2 as _pg
+        import psycopg2.extras
+        conn = _pg.connect(pg_url, connect_timeout=15)
+        ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        backup = {"timestamp": datetime.now(timezone.utc).isoformat(), "tables": {}}
+
+        tables = [
+            ("epaper_editions_v2",
+             "SELECT edition_date, edition_language, data, updated_at FROM epaper_editions_v2 ORDER BY edition_date DESC"),
+            ("epaper_edition_backups",
+             "SELECT id, edition_date, edition_language, edition_name, pages_count, saved_at FROM epaper_edition_backups ORDER BY saved_at DESC"),
+            ("epaper_edition_views",
+             "SELECT edition_date, edition_language, view_count FROM epaper_edition_views ORDER BY edition_date DESC"),
+        ]
+
+        for name, sql in tables:
+            try:
+                with conn.cursor(cursor_factory=_pg.extras.RealDictCursor) as cur:
+                    cur.execute(sql)
+                    rows = cur.fetchall()
+                for r in rows:
+                    for k, v in r.items():
+                        if hasattr(v, "isoformat"):
+                            r[k] = v.isoformat()
+                        elif isinstance(v, (dict, list)):
+                            r[k] = json.loads(v) if isinstance(v, str) else v
+                backup["tables"][name] = {"rows": len(rows), "data": rows}
+            except Exception as e:
+                backup["tables"][name] = {"error": str(e)}
+        conn.close()
+
+        backup["total_rows"] = sum(
+            t.get("rows", 0) for t in backup["tables"].values()
+        )
+        return jsonify(backup)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 # Preload heavy data in background so first HTTP request is fast

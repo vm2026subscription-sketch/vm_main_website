@@ -2,885 +2,117 @@
 E-Paper routes — edition/page/article APIs + AI features
 """
 import asyncio
-import hashlib
-import hmac
 import io
 import json
 import os
-import queue as _queue
 import re
 import sys
 import threading
-import time
 import urllib.parse
-import urllib.request
-import contextlib
-from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
-from flask import Blueprint, jsonify, render_template, request, redirect, url_for, send_file, session, Response, stream_with_context
+import tempfile
+from flask import jsonify, render_template, request, redirect, url_for, send_file, session, Response
 from werkzeug.utils import secure_filename
+from app import limiter
 
-# ── In-memory caches ──────────────────────────────────────
-_tts_cache: OrderedDict[str, bytes] = OrderedDict()     # cache_key → bytes
-_TTS_CACHE_MAX = 30
-
-_trans_cache: OrderedDict[str, str] = OrderedDict()   # cache_key → translated_text
-_TRANS_CACHE_MAX = 80
-
-# ── Editions in-memory cache (avoids DB hit on every request) ──
-_editions_cache: list = None
-_editions_cache_ts: float = 0
-_EDITIONS_CACHE_TTL: int = 60          # seconds; invalidated on every save
-_editions_cache_lock = threading.Lock()
-
-# ── Redis cache key constants ──────────────────────────────────
-_REDIS_EDITIONS_KEY = "ep:editions:list"
-_REDIS_EDITIONS_TTL = 300   # 5 minutes
-_REDIS_EDITION_TTL  = 600   # 10 minutes per single edition
-_REDIS_LATEST_KEY   = "ep:latest"
-_REDIS_LATEST_TTL   = 300   # 5 minutes
-
-def _redis_edition_key(date, lang):
-    return f"ep:ed:{date}:{(lang or 'any').lower()}"
-
-# ── Upstash Redis (L2 cache — survives cold starts) ───────────
-_redis_client = None
-_redis_client_lock = threading.Lock()
-
-def _get_redis():
-    """Return a cached Upstash Redis client, or None if not configured."""
-    global _redis_client
-    if _redis_client is not None:
-        return _redis_client
-    url = os.getenv("UPSTASH_REDIS_REST_URL", "")
-    token = os.getenv("UPSTASH_REDIS_REST_TOKEN", "")
-    if not url or not token:
-        return None
-    with _redis_client_lock:
-        if _redis_client is None:
-            try:
-                from upstash_redis import Redis
-                _redis_client = Redis(url=url, token=token)
-            except Exception as e:
-                print(f"[redis] init failed: {e}")
-                return None
-    return _redis_client
-
-def _redis_get(key):
-    """Get a JSON value from Redis. Returns parsed object or None."""
-    r = _get_redis()
-    if not r:
-        return None
-    try:
-        val = r.get(key)
-        return json.loads(val) if val else None
-    except Exception as e:
-        print(f"[redis] get {key} failed: {e}")
-        return None
-
-def _redis_set(key, value, ttl=300):
-    """Set a JSON value in Redis with TTL (seconds)."""
-    r = _get_redis()
-    if not r:
-        return
-    try:
-        r.set(key, json.dumps(value, ensure_ascii=False), ex=ttl)
-    except Exception as e:
-        print(f"[redis] set {key} failed: {e}")
-
-def _redis_delete(*keys):
-    """Delete one or more keys from Redis."""
-    r = _get_redis()
-    if not r:
-        return
-    try:
-        r.delete(*keys)
-    except Exception as e:
-        print(f"[redis] delete failed: {e}")
-
-# ── Global MongoDB client (created once, reused across requests) ──
-_mongo_client = None
-_mongo_client_lock = threading.Lock()
-_mongo_disabled = (
-    os.getenv("MONGO_DISABLED", "").lower() in ("1", "true", "yes") or
-    not os.getenv("MONGODB_URI", "")
+# ── Import from new modules ─────────────────────────────
+from epaper_config import (
+    epaper_bp,
+    set_site_admin_check,
+    tts_cache, TTS_CACHE_MAX,
+    trans_cache, TRANS_CACHE_MAX,
+    REDIS_EDITIONS_KEY, REDIS_EDITIONS_TTL, REDIS_LATEST_KEY, REDIS_LATEST_TTL, REDIS_EDITION_TTL,
+    ADMIN_EMAIL,
+    EPAPER_ADMIN_SESSION_KEY,
+    CLOUDINARY_URL,
+    EDITIONS_FILE,
+    EPAPER_UPLOAD_DIR,
+    EPAPER_TMP_UPLOAD_DIR,
+    EPAPER_VIEWS_FILE,
+    LANG_SLUG as _LANG_SLUG,
+    redis_edition_key,
+)
+from epaper_storage import (
+    redis_get,
+    redis_set,
+    redis_delete,
+    pg_url,
+    pg_connect,
+    pg_ensure_table,
+    row_to_edition,
+    load_one_edition_pg,
+    load_editions_from_file,
+    load_editions_from_mongo,
+    load_editions,
+    invalidate_editions_cache,
+    save_editions,
+    save_editions_to_file,
+    save_edition_backup,
+    increment_edition_view,
+    load_views_file,
+    views_key,
+    fast_editions_list_from_pg,
+    fast_load_single_edition,
+    upsert_edition_row,
+    delete_edition_row,
+    upload_to_cloudinary,
+    get_redis,
+)
+from epaper_helpers import (
+    require_epaper_admin,
+    admin_login_redirect,
+    require_admin,
+    is_epaper_admin,
+    public_request_root,
+    absolute_public_url,
+    epaper_preview_image_meta,
+    epaper_preview_image_type,
+    epaper_preview_title,
+    epaper_preview_description,
+    edition_preview_url,
+    no_store_redirect,
+    article_from_block,
+    iter_epaper_articles,
+    find_epaper_article,
+    count_filled_articles,
+    content_regression,
+    per_page_wipes,
+    merge_pages_into,
+    allowed_image,
+    allowed_upload,
+    compress_image_bytes,
+    tts_cache_key,
+    trans_cache_key,
+    evict,
+    get_fcm,
+    send_new_edition_notification,
+    push_once_for_date,
+    _sanitize_edition_payload,
+    cloudinary_transform,
+    PRESET_PAGE_VIEWER,
+    PRESET_PAGE_WEB,
+    PRESET_CARD,
+    PRESET_THUMB,
+    PRESET_MASTHEAD,
 )
 
-def _tts_cache_key(text, voice, rate, pitch):
-    return hashlib.md5(f"{text}|{voice}|{rate}|{pitch}".encode("utf-8")).hexdigest()
-
-def _trans_cache_key(text, target):
-    return hashlib.md5(f"{text[:4000]}|{target}".encode("utf-8")).hexdigest()
-
-def _evict(cache, max_size):
-    while len(cache) >= max_size:
-        if isinstance(cache, OrderedDict):
-            cache.popitem(last=False)
-        else:
-            del cache[next(iter(cache))]
-
-ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "")
-
-# ── Epaper admin credentials ──────────────────────
-_EPAPER_ADMIN_USER = os.getenv("EPAPER_ADMIN_USER", "")
-_EPAPER_ADMIN_PASS = os.getenv("EPAPER_ADMIN_PASS", "")
-_EPAPER_ADMIN_SESSION_KEY = "epaper_admin_auth"
-_legacy_checked = False
-
-# Set by app.py to app._is_admin so a user who signed in on the normal login
-# page with an admin account gets the epaper builder straight from their
-# dashboard — no second login at /epaper-admin/login.
-_site_admin_check = None
-
-
-def set_site_admin_check(fn):
-    global _site_admin_check
-    _site_admin_check = fn
-
-
-def _is_epaper_admin():
-    if session.get(_EPAPER_ADMIN_SESSION_KEY) is True:
-        return True
-    if _site_admin_check is not None:
-        try:
-            return bool(_site_admin_check())
-        except Exception:
-            return False
-    return False
-
-def _require_epaper_admin():
-    if _is_epaper_admin():
-        return None
-    if request.is_json or request.path.startswith("/api/"):
-        return jsonify({"error": "Unauthorized. Please log in to epaper admin."}), 401
-    return redirect(url_for("epaper.epaper_admin_login", next=request.full_path))
-
-# ── Cloudinary auto-config ─────────────────────────
-_CLOUDINARY_URL = os.getenv("CLOUDINARY_URL", "")
-if _CLOUDINARY_URL:
-    try:
-        import cloudinary
-        cloudinary.config(cloudinary_url=_CLOUDINARY_URL)
-    except Exception:
-        pass
-
-
-def _upload_to_cloudinary(file_bytes, filename):
-    """Upload bytes to Cloudinary. Returns secure_url string or raises."""
-    import io
-    import cloudinary.uploader
-    result = cloudinary.uploader.upload(
-        io.BytesIO(file_bytes),
-        folder="epaper",
-        public_id=os.path.splitext(filename)[0],
-        overwrite=True,
-        resource_type="image",
-        quality=100,           # no lossy compression
-        flags="preserve_transparency",  # keep PNG alpha
-    )
-    # Strip any auto-transformation segment Cloudinary may insert in the URL
-    url = result["secure_url"]
-    url = re.sub(r'/upload/[^/]+/upload/', '/upload/', url)
-    return url
-
-
-def _require_admin():
-    """Return redirect to login if user is not an admin, else None."""
-    user = session.get("auth_user")
-    if not user or user.get("email", "").lower() != ADMIN_EMAIL.lower():
-        return redirect(url_for("login"))
-    return None
-
-epaper_bp = Blueprint("epaper", __name__)
-
-import tempfile
-
-EDITIONS_FILE = os.path.join(os.path.dirname(__file__), "data", "epaper_editions.json")
-_EDITIONS_TMP = os.path.join(tempfile.gettempdir(), "epaper_editions.json")
-EPAPER_UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "static", "uploads", "epaper")
-ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
-ALLOWED_UPLOAD_EXTENSIONS = ALLOWED_IMAGE_EXTENSIONS | {"pdf"}
-
-
-# ── MongoDB helpers ──────────────────────────────────
-
-def _mongo_url():
-    return os.getenv("MONGODB_URI", "")
-
-
-def _get_mongo_client():
-    """Return a cached global MongoClient (created once, reused across requests)."""
-    global _mongo_client
-    if _mongo_disabled:
-        return None
-    url = _mongo_url()
-    if not url:
-        return None
-    if _mongo_client is None:
-        with _mongo_client_lock:
-            if _mongo_client is None:
-                try:
-                    from pymongo import MongoClient
-                    _mongo_client = MongoClient(
-                        url,
-                        serverSelectionTimeoutMS=3000,
-                        connectTimeoutMS=3000,
-                        socketTimeoutMS=5000,
-                        maxPoolSize=5,
-                    )
-                except Exception as e:
-                    print(f"[epaper] MongoDB client init failed: {e}")
-                    return None
-    return _mongo_client
-
-
-def _load_editions_from_mongo():
-    """Read editions from MongoDB (Railway admin's database). Read-only — never writes."""
-    global _mongo_disabled
-    if _mongo_disabled:
-        return []
-    client = _get_mongo_client()
-    if not client:
-        return []
-    try:
-        db_name = os.getenv("MONGODB_DB", "vm")
-        col_name = os.getenv("MONGODB_COLLECTION", "editions")
-        docs = list(client[db_name][col_name].find({}, {"_id": 0}))
-        return docs
-    except Exception as e:
-        print(f"[epaper] MongoDB load failed: {e}")
-        # Disable MongoDB permanently if auth or connection/timeout failed
-        if "auth" in str(e).lower() or "timeout" in str(e).lower() or "connection" in str(e).lower():
-            print("[epaper] MongoDB disabled globally to prevent further timeouts.")
-            _mongo_disabled = True
-        return []
-
-
-# ── Postgres (Supabase) helpers ─────────────────────
-
-def _pg_url():
-    return os.getenv("SUPABASE_POSTGRES_URL") or os.getenv("DATABASE_URL")
-
-
-def _pg_connect():
-    import psycopg2
-    # Prefer pooler URL (pgBouncer port 6543) — much faster on serverless
-    url = os.getenv("SUPABASE_POOLER_URL") or _pg_url()
-    conn = psycopg2.connect(
-        url,
-        connect_timeout=8,
-        options="-c statement_timeout=25000",  # 25s max per query — prevents hanging
-    )
-    conn.autocommit = False
-    return conn
-
-
-# Skip repeated DDL on warm instances — reset to False on cold start
-_tables_ensured = False
-
-def _pg_ensure_table(conn):
-    global _tables_ensured
-    if _tables_ensured:
-        return
-    with conn.cursor() as cur:
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS epaper_editions_store (
-                id TEXT PRIMARY KEY,
-                data JSONB NOT NULL DEFAULT '[]'::jsonb,
-                updated_at TIMESTAMPTZ DEFAULT NOW()
-            )
-        """)
-        cur.execute("""
-            INSERT INTO epaper_editions_store (id, data)
-            VALUES ('editions', '[]'::jsonb)
-            ON CONFLICT (id) DO NOTHING
-        """)
-        # Per-edition store (v2): one row per (date, language) so a save touches
-        # only that edition instead of rewriting the whole ~32 MB blob.
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS epaper_editions_v2 (
-                edition_date TEXT NOT NULL,
-                edition_language TEXT NOT NULL DEFAULT 'Hindi',
-                data JSONB NOT NULL,
-                updated_at TIMESTAMPTZ DEFAULT NOW(),
-                PRIMARY KEY (edition_date, edition_language)
-            )
-        """)
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS epaper_edition_backups (
-                id SERIAL PRIMARY KEY,
-                edition_date TEXT NOT NULL,
-                edition_language TEXT NOT NULL,
-                edition_name TEXT,
-                pages_count INTEGER DEFAULT 0,
-                saved_at TIMESTAMPTZ DEFAULT NOW(),
-                snapshot JSONB NOT NULL
-            )
-        """)
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS epaper_edition_views (
-                edition_date TEXT NOT NULL,
-                edition_language TEXT NOT NULL DEFAULT '',
-                view_count BIGINT NOT NULL DEFAULT 0,
-                updated_at TIMESTAMPTZ DEFAULT NOW(),
-                PRIMARY KEY (edition_date, edition_language)
-            )
-        """)
-    conn.commit()
-    _tables_ensured = True
-
-
-def _save_edition_backup(edition, conn=None):
-    """Save a snapshot of one edition to the backup table. Keeps last 30 per edition.
-    Accepts an existing conn to avoid opening a second DB connection."""
-    if not _pg_url():
-        return
-    owns_conn = conn is None
-    try:
-        if owns_conn:
-            conn = _pg_connect()
-            _pg_ensure_table(conn)
-        with conn.cursor() as cur:
-            cur.execute("""
-                INSERT INTO epaper_edition_backups
-                    (edition_date, edition_language, edition_name, pages_count, snapshot)
-                VALUES (%s, %s, %s, %s, %s::jsonb)
-            """, (
-                edition.get("date", ""),
-                edition.get("language", ""),
-                edition.get("name", ""),
-                len(edition.get("pages", [])),
-                json.dumps(edition, ensure_ascii=False),
-            ))
-            # Keep only last 30 backups per (date, language)
-            cur.execute("""
-                DELETE FROM epaper_edition_backups
-                WHERE id IN (
-                    SELECT id FROM epaper_edition_backups
-                    WHERE edition_date = %s AND edition_language = %s
-                    ORDER BY saved_at DESC
-                    OFFSET 30
-                )
-            """, (edition.get("date", ""), edition.get("language", "")))
-        conn.commit()
-        if owns_conn:
-            conn.close()
-    except Exception as e:
-        print(f"[epaper] Backup save failed (non-fatal): {e}")
-
-
-# ── File fallback helpers ───────────────────────────
-
-def _ensure_data_dir():
-    d = os.path.dirname(EDITIONS_FILE)
-    if d and not os.path.exists(d):
-        try:
-            os.makedirs(d, exist_ok=True)
-        except OSError:
-            pass
-
-
-def _load_editions_from_file():
-    _ensure_data_dir()
-    for path in [_EDITIONS_TMP, EDITIONS_FILE]:
-        if os.path.exists(path):
-            try:
-                with open(path, "r", encoding="utf-8") as f:
-                    return json.load(f)
-            except Exception:
-                continue
-    return []
-
-
-def _save_editions_to_file(data):
-    _ensure_data_dir()
-    last_exc = None
-    for path in [EDITIONS_FILE, _EDITIONS_TMP]:
-        try:
-            dir_ = os.path.dirname(path)
-            if dir_:
-                os.makedirs(dir_, exist_ok=True)
-            with open(path, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-            return
-        except (PermissionError, OSError) as exc:
-            last_exc = exc
-            continue
-    raise RuntimeError(f"Cannot persist editions to file: {last_exc}")
-
-
-def _ensure_lock_dir(path):
-    lock_dir = os.path.dirname(path) or os.getcwd()
-    os.makedirs(lock_dir, exist_ok=True)
-    return lock_dir
-
-try:
-    import fcntl
-except ImportError:
-    fcntl = None
-
-try:
-    import msvcrt
-except ImportError:
-    msvcrt = None
-
-@contextlib.contextmanager
-def _exclusive_file_lock(path):
-    _ensure_lock_dir(path)
-    lock_path = f"{path}.lock"
-    with open(lock_path, "a+b") as lock_file:
-        if fcntl:
-            fcntl.flock(lock_file, fcntl.LOCK_EX)
-        elif msvcrt:
-            msvcrt.locking(lock_file.fileno(), msvcrt.LK_LOCK, 1)
-        try:
-            yield
-        finally:
-            if fcntl:
-                fcntl.flock(lock_file, fcntl.LOCK_UN)
-            elif msvcrt:
-                try:
-                    lock_file.seek(0)
-                    msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
-                except OSError:
-                    pass
-
-
-# ── Edition view counters ───────────────────────────
-
-EPAPER_VIEWS_FILE = os.path.join(os.path.dirname(__file__), "data", "epaper_views.json")
+# ── Backward-compat re-exports (ads_routes.py imports these) ──
+_pg_url = pg_url
+_pg_connect = pg_connect
+_require_epaper_admin = require_epaper_admin
+_CLOUDINARY_URL = CLOUDINARY_URL
+_EDITIONS_FILE = EDITIONS_FILE
+_EDITIONS_TMP = os.path.join(os.path.dirname(__file__), "data", "epaper_editions.json")
+EPAPER_VIEWS_FILE = EPAPER_VIEWS_FILE
 _EPAPER_VIEWS_TMP = os.path.join(tempfile.gettempdir(), "epaper_views.json")
 
+# Ensure EPAPER_TMP_UPLOAD_DIR is importable as module-level name
+EPAPER_TMP_UPLOAD_DIR = EPAPER_TMP_UPLOAD_DIR
 
-def _views_key(date, language):
-    return f"{date}|{language or ''}"
 
-
-def _load_views_file():
-    for path in [EPAPER_VIEWS_FILE, _EPAPER_VIEWS_TMP]:
-        if os.path.exists(path):
-            try:
-                with open(path, "r", encoding="utf-8") as f:
-                    return json.load(f)
-            except Exception:
-                continue
-    return {}
-
-
-def _save_views_file(data):
-    _ensure_data_dir()
-    for path in [EPAPER_VIEWS_FILE, _EPAPER_VIEWS_TMP]:
-        try:
-            dir_ = os.path.dirname(path)
-            if dir_:
-                os.makedirs(dir_, exist_ok=True)
-            with open(path, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-            return
-        except (PermissionError, OSError):
-            continue
-
-
-def _increment_edition_view(date, language):
-    """Increment and return the view count for one edition (keyed by date + language)."""
-    if _pg_url():
-        try:
-            conn = _pg_connect()
-            _pg_ensure_table(conn)
-            with conn.cursor() as cur:
-                cur.execute("""
-                    INSERT INTO epaper_edition_views (edition_date, edition_language, view_count, updated_at)
-                    VALUES (%s, %s, 1, NOW())
-                    ON CONFLICT (edition_date, edition_language)
-                    DO UPDATE SET view_count = epaper_edition_views.view_count + 1, updated_at = NOW()
-                    RETURNING view_count
-                """, (date, language or ""))
-                count = cur.fetchone()[0]
-            conn.commit()
-            conn.close()
-            return int(count)
-        except Exception as e:
-            print(f"[epaper] view increment (pg) failed, falling back to file: {e}")
-
-    lock_path = f"{EPAPER_VIEWS_FILE}.lock"
-    with _exclusive_file_lock(lock_path):
-        data = _load_views_file()
-        key = _views_key(date, language)
-        data[key] = int(data.get(key, 0)) + 1
-        _save_views_file(data)
-        return data[key]
-
-
-# ── Public load / save ──────────────────────────────
-
-def _row_to_edition(row_data):
-    """A v2 row's data column → edition dict (handles str or already-parsed jsonb)."""
-    return json.loads(row_data) if isinstance(row_data, str) else row_data
-
-
-def _upsert_edition_row(cur, edition):
-    """Upsert a single edition into the per-edition v2 table using an open cursor."""
-    cur.execute("""
-        INSERT INTO epaper_editions_v2 (edition_date, edition_language, data, updated_at)
-        VALUES (%s, %s, %s::jsonb, NOW())
-        ON CONFLICT (edition_date, edition_language)
-        DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()
-    """, (
-        edition.get("date", ""),
-        edition.get("language", "Hindi"),
-        json.dumps(edition, ensure_ascii=False),
-    ))
-
-
-def _load_one_edition_pg(conn, date, lang):
-    """Read a single edition row from v2. Returns dict or None."""
-    with conn.cursor() as cur:
-        cur.execute(
-            "SELECT data FROM epaper_editions_v2 WHERE edition_date=%s AND edition_language=%s",
-            (date, lang),
-        )
-        row = cur.fetchone()
-    return _row_to_edition(row[0]) if row else None
-
-
-def _delete_edition_row(date, lang):
-    """Explicitly delete ONE edition row from v2 (deletes are never implicit)."""
-    if not _pg_url():
-        return
-    conn = _pg_connect()
-    try:
-        _pg_ensure_table(conn)
-        with conn.cursor() as cur:
-            cur.execute(
-                "DELETE FROM epaper_editions_v2 WHERE edition_date=%s AND edition_language=%s",
-                (date, lang or "Hindi"),
-            )
-        conn.commit()
-    finally:
-        conn.close()
-
-
-def _load_editions_from_pg():
-    """Load editions from epaper_editions_v2.
-    Returns list or None on failure."""
-    if not _pg_url():
-        return None
-    try:
-        conn = _pg_connect()
-        _pg_ensure_table(conn)
-
-        # Read per-row v2 editions
-        with conn.cursor() as cur:
-            cur.execute("SELECT data FROM epaper_editions_v2")
-            rows = cur.fetchall()
-        v2_editions = [_row_to_edition(r[0]) for r in rows] if rows else []
-
-        conn.close()
-
-        if not v2_editions:
-            return _load_editions_from_file() or []
-
-        return v2_editions
-    except Exception as e:
-        print(f"[epaper] Postgres load failed, falling back: {e}")
-        return None
-
-
-def _edition_key(edition):
-    return (
-        edition.get("date", ""),
-        edition.get("language", "Hindi"),
-    )
-
-
-def _public_request_root():
-    proto = (request.headers.get("X-Forwarded-Proto") or request.scheme or "https").split(",")[0].strip()
-    host = (request.headers.get("X-Forwarded-Host") or request.host or "").split(",")[0].strip()
-    if host:
-        return f"{proto}://{host}/"
-    return request.url_root
-
-
-def _absolute_public_url(value):
-    raw = str(value or "").strip()
-    if not raw:
-        return ""
-    parsed = urllib.parse.urlparse(raw)
-    if parsed.scheme and parsed.netloc:
-        return raw
-    if raw.startswith("//"):
-        scheme = (request.headers.get("X-Forwarded-Proto") or request.scheme or "https").split(",")[0].strip()
-        return f"{scheme}:{raw}"
-    return urllib.parse.urljoin(_public_request_root(), raw)
-
-
-def _epaper_preview_image_meta(edition):
-    pages = (edition or {}).get("pages", []) or []
-    first_page = pages[0] if pages else {}
-    image_url = ""
-    for key in ("page_image_url", "image_path"):
-        image_url = _absolute_public_url(first_page.get(key))
-        if image_url:
-            break
-    if not image_url:
-        fallback = _absolute_public_url(url_for("static", filename="logo.png"))
-        return {
-            "url": fallback,
-            "type": _epaper_preview_image_type(fallback),
-            "width": 512,
-            "height": 512,
-        }
-    parsed = urllib.parse.urlparse(image_url)
-    cloudinary_marker = "/image/upload/"
-    if parsed.netloc.endswith("cloudinary.com") and cloudinary_marker in parsed.path:
-        transformed_path = parsed.path.replace(
-            cloudinary_marker,
-            "/image/upload/f_jpg,q_auto,c_fill,g_north,w_1200,h_1500/",
-            1,
-        )
-        transformed_url = urllib.parse.urlunparse(parsed._replace(path=transformed_path))
-        return {
-            "url": transformed_url,
-            "type": "image/jpeg",
-            "width": 1200,
-            "height": 1500,
-        }
-    return {
-        "url": image_url,
-        "type": _epaper_preview_image_type(image_url),
-        "width": None,
-        "height": None,
-    }
-
-
-def _epaper_preview_image_type(image_url):
-    path = urllib.parse.urlparse(str(image_url or "")).path.lower()
-    if path.endswith(".png"):
-        return "image/png"
-    if path.endswith(".webp"):
-        return "image/webp"
-    return "image/jpeg"
-
-
-def _epaper_preview_title(edition, requested_date=None):
-    return "Vidyarthi Mitra ePaper - Read Marathi, Hindi & English Newspaper Online"
-
-
-def _epaper_preview_description(edition):
-    language = (edition.get("language") or "").strip() if edition else ""
-    edition_date = (edition.get("date") or "").strip() if edition else ""
-    base = (
-        "Vidyarthi Mitra ePaper: Read today's latest education newspaper online with updates on "
-        "entrance exams, results, careers, government jobs, scholarships and student news in "
-        "Marathi, Hindi and English."
-    )
-    if language and edition_date:
-        return f"{base} Current featured edition: {language} ePaper dated {edition_date}."
-    if language:
-        return f"{base} Current featured edition: {language} ePaper."
-    return base
-
-
-def _edition_score(edition):
-    pages = edition.get("pages", []) or []
-    preview_pages = sum(
-        1 for page in pages
-        if (page.get("page_image_url") or page.get("image_path") or page.get("blocks"))
-    )
-    created_at = edition.get("created_at", "") or ""
-    return (
-        1 if edition.get("published", True) else 0,
-        len(pages),
-        preview_pages,
-        1 if edition.get("masthead_image_url") else 0,
-        len(edition.get("footer_links", []) or []),
-        created_at,
-    )
-
-
-def _merge_edition_lists(*sources):
-    merged = {}
-    for source in sources:
-        for edition in source or []:
-            key = _edition_key(edition)
-            current = merged.get(key)
-            if current is None or _edition_score(edition) > _edition_score(current):
-                merged[key] = edition
-    return list(merged.values())
-
-
-def _load_editions():
-    """Load editions with in-memory cache (60s TTL) + parallel Postgres & MongoDB fetch."""
-    global _editions_cache, _editions_cache_ts
-
-    # Serve from cache if fresh
-    now = time.time()
-    with _editions_cache_lock:
-        if _editions_cache is not None and (now - _editions_cache_ts) < _EDITIONS_CACHE_TTL:
-            return _editions_cache
-
-    # Fetch Postgres and MongoDB in parallel
-    with ThreadPoolExecutor(max_workers=2) as ex:
-        pg_future = ex.submit(_load_editions_from_pg)
-        mongo_future = ex.submit(_load_editions_from_mongo)
-        pg_data = pg_future.result()
-        mongo_data = mongo_future.result()
-
-    # Merge sources by edition identity and keep the richer version for duplicates.
-    base = pg_data if pg_data is not None else _load_editions_from_file()
-    result = _merge_edition_lists(base or [], mongo_data or [])
-
-    # Store in cache
-    with _editions_cache_lock:
-        _editions_cache = result
-        _editions_cache_ts = time.time()
-
-    return result
-
-
-def _invalidate_editions_cache(date=None, lang=None):
-    """Clear in-memory cache and Redis cache for editions list (and optionally a single edition)."""
-    global _editions_cache, _editions_cache_ts
-    with _editions_cache_lock:
-        _editions_cache = None
-        _editions_cache_ts = 0
-    # Clear Redis L2 cache
-    keys_to_delete = [_REDIS_EDITIONS_KEY, _REDIS_LATEST_KEY]
-    if date:
-        # Clear all lang variants for this date
-        for l in [lang, "any", "hindi", "english", "marathi", None]:
-            keys_to_delete.append(_redis_edition_key(date, l))
-    _redis_delete(*keys_to_delete)
-
-
-def _save_editions(data):
-    """Persist a full list of editions by upserting each into the per-edition v2
-    table. Upsert-only: rows missing from `data` are NOT deleted here, so a
-    momentarily-partial list can never wipe editions. Deletions go through
-    _delete_edition_row(). Used by the (rare) publish path; the hot create/update
-    path writes a single row directly in api_create_edition()."""
-    # Invalidate cache immediately on any save
-    _invalidate_editions_cache()
-    if _pg_url():
-        try:
-            conn = _pg_connect()
-            _pg_ensure_table(conn)
-            with conn.cursor() as cur:
-                for ed in data:
-                    _upsert_edition_row(cur, ed)
-            conn.commit()
-            conn.close()
-            # Dual-write to local file so the file fallback stays in sync
-            try:
-                _save_editions_to_file(data)
-            except Exception as fe:
-                print(f"[epaper] Local file sync after v2 save failed (non-fatal): {fe}")
-            return
-        except Exception as e:
-            print(f"[epaper] v2 save failed, falling back to file: {e}")
-    _save_editions_to_file(data)
-
-
-def _allowed_image(filename):
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
-
-
-def _allowed_upload(filename):
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_UPLOAD_EXTENSIONS
-
-
-def _compress_image_bytes(file_bytes, filename, max_width=1600, quality=85):
-    """Resize to max_width and convert to JPEG. Returns (bytes, new_filename)."""
-    try:
-        from PIL import Image
-        import io as _io
-        img = Image.open(_io.BytesIO(file_bytes))
-        w, h = img.size
-        if w > max_width:
-            img = img.resize((max_width, int(h * max_width / w)), Image.LANCZOS)
-        # Flatten alpha / palette → RGB for JPEG
-        if img.mode not in ('RGB',):
-            bg = Image.new('RGB', img.size, (255, 255, 255))
-            if img.mode == 'P':
-                img = img.convert('RGBA')
-            if img.mode in ('RGBA', 'LA'):
-                bg.paste(img, mask=img.split()[-1])
-            else:
-                bg.paste(img)
-            img = bg
-        buf = _io.BytesIO()
-        img.save(buf, 'JPEG', quality=quality, optimize=True)
-        stem = os.path.splitext(filename)[0]
-        return buf.getvalue(), stem + '.jpg'
-    except Exception as e:
-        print(f"[epaper] Image compression failed: {e}")
-        return file_bytes, filename
-
-
-def _article_from_block(block, edition=None, page=None):
-    article_id = block.get("article_id") or block.get("id")
-    return {
-        "id": article_id,
-        "article_id": article_id,
-        "title": block.get("title") or block.get("headline") or "Untitled article",
-        "headline": block.get("headline") or block.get("title") or "Untitled article",
-        "slug": block.get("slug") or f"article-{article_id}",
-        "content": block.get("content") or block.get("body_text") or "",
-        "body_text": block.get("body_text") or block.get("content") or "",
-        "body_html": block.get("body_html") or "",
-        "author": block.get("author") or "Vidyarthi Mitra Desk",
-        "category": block.get("category") or block.get("category_label") or "News",
-        "category_label": block.get("category_label") or block.get("category") or "News",
-        "image": block.get("image") or block.get("image_url") or block.get("article_image_url") or "",
-        "image_url": block.get("image_url") or block.get("image") or block.get("article_image_url") or "",
-        "gallery": block.get("gallery") or [],
-        "publish_date": (edition or {}).get("date") or block.get("publish_date") or "",
-        "edition_name": (edition or {}).get("name") or "",
-        "page_number": (page or {}).get("page_number"),
-    }
-
-
-def _iter_epaper_articles():
-    for edition in _load_editions():
-        for page in edition.get("pages", []):
-            sources = page.get("blocks") or page.get("articles", [])
-            for block in sources:
-                if block.get("type") == "shape":
-                    continue
-                yield _article_from_block(block, edition, page), edition, page
-
-
-def _find_epaper_article(article_id):
-    target_id = str(article_id)
-    articles = []
-    article_index = {}
-    for article, edition, page in _iter_epaper_articles():
-        aid = str(article.get("id"))
-        articles.append((article, edition, page))
-        article_index[aid] = (article, edition, page)
-
-    if target_id not in article_index:
-        return None, [], None, None
-
-    article, edition, page = article_index[target_id]
-    category = article.get("category")
-    related = [candidate for candidate, _, _ in articles
-               if str(candidate.get("id")) != target_id
-               and candidate.get("category") == category][:3]
-    if len(related) < 3:
-        excluded_ids = {target_id} | {str(item.get("id")) for item in related}
-        related.extend([
-            candidate for candidate, _, _ in articles
-            if str(candidate.get("id")) not in excluded_ids
-        ][:3 - len(related)])
-    return article, related, edition, page
-
-
-# ── Language-specific viewer — /epaper/english, /epaper/hindi, /epaper/marathi ──
-_LANG_SLUG = {"english": "English", "hindi": "Hindi", "marathi": "Marathi"}
-
+# ── Viewer Page (language variants) ──────────────────
 @epaper_bp.route("/epaper/english")
 @epaper_bp.route("/epaper/english/<date>")
 @epaper_bp.route("/epaper/english/<date>/page-<int:page>")
@@ -898,7 +130,7 @@ def epaper_language_viewer(date=None, page=1):
     initial_edition_json = None
     edition = None
     try:
-        editions = _load_editions()
+        editions = load_editions()
         published = [e for e in editions
                      if e.get("published", True)
                      and e.get("language", "Hindi") == language]
@@ -908,13 +140,15 @@ def epaper_language_viewer(date=None, page=1):
         else:
             edition = sorted(published, key=lambda e: e["date"], reverse=True)[0] if published else None
         if edition:
-            initial_edition_json = _json.dumps(edition, ensure_ascii=False).replace('</script>', r'<\/script>')
+            # Edition data is loaded via the JSON API on the client; do NOT embed
+            # the full (potentially ~1MB) edition inline in the HTML.
+            initial_edition_json = None
     except Exception:
         pass
-    og_url = _absolute_public_url(request.path)
-    og_image_meta = _epaper_preview_image_meta(edition)
-    og_title = _epaper_preview_title(edition, date)
-    og_description = _epaper_preview_description(edition)
+    og_url = absolute_public_url(request.path)
+    og_image_meta = epaper_preview_image_meta(edition)
+    og_title = epaper_preview_title(edition, date)
+    og_description = epaper_preview_description(edition)
     return render_template("epaper_viewer.html",
                            initial_date=date,
                            initial_page=page,
@@ -931,16 +165,6 @@ def epaper_language_viewer(date=None, page=1):
 
 
 # ── Permanent "latest" redirects — /epaper/latest/<language> ──────────
-# Always opens the newest published edition of the requested language.
-# 302 (never cached) so a newly published edition is picked up automatically.
-# No edition ID or date is ever hardcoded.
-
-def _no_store_redirect(location):
-    resp = redirect(location)  # 302 by default — MUST NOT be cached
-    resp.headers["Cache-Control"] = "no-store, max-age=0, must-revalidate"
-    return resp
-
-
 @epaper_bp.route("/epaper/latest/english")
 @epaper_bp.route("/epaper/latest/hindi")
 @epaper_bp.route("/epaper/latest/marathi")
@@ -948,14 +172,13 @@ def epaper_latest_language():
     slug = request.path.rstrip("/").rsplit("/", 1)[-1].lower()
     language = _LANG_SLUG.get(slug)
     if not language:
-        return _no_store_redirect(url_for("epaper.epaper_viewer"))
+        return no_store_redirect(url_for("epaper.epaper_viewer"))
 
     try:
-        editions = _load_editions()
+        editions = load_editions()
     except Exception:
         editions = []
 
-    # Published + active editions of this language only.
     candidates = [
         e for e in editions
         if e.get("published", True)
@@ -964,32 +187,26 @@ def epaper_latest_language():
     ]
 
     if not candidates:
-        # No edition for this language yet — fall back to Today's Edition.
         notice = f"No {language} ePaper edition is available yet."
-        return _no_store_redirect(url_for("epaper.epaper_viewer", notice=notice))
+        return no_store_redirect(url_for("epaper.epaper_viewer", notice=notice))
 
-    # Newest by publication date; tie-break on the created/published timestamp.
     latest = sorted(
         candidates,
         key=lambda e: (str(e.get("date", "")), str(e.get("created_at", ""))),
         reverse=True,
     )[0]
 
-    # Reuse the existing language reader route for that edition's date.
     reader_url = f"/epaper/{slug}/{urllib.parse.quote(str(latest['date']))}"
 
-    # Serve a lightweight page that (a) carries the front-page image as its rich
-    # link preview so WhatsApp/Facebook/etc. show the newspaper front page, and
-    # (b) instantly forwards real visitors to the reader.
-    image_meta = _epaper_preview_image_meta(latest)
+    image_meta = epaper_preview_image_meta(latest)
     html = render_template(
         "epaper_latest_redirect.html",
         language=language,
         reader_url=reader_url,
-        canonical_url=_absolute_public_url(reader_url),
-        og_url=_absolute_public_url(request.path),
-        og_title=_epaper_preview_title(latest, latest.get("date")),
-        og_description=_epaper_preview_description(latest),
+        canonical_url=absolute_public_url(reader_url),
+        og_url=absolute_public_url(request.path),
+        og_title=epaper_preview_title(latest, latest.get("date")),
+        og_description=epaper_preview_description(latest),
         og_image=image_meta["url"],
         og_image_type=image_meta["type"],
         og_image_width=image_meta["width"],
@@ -1009,15 +226,12 @@ def epaper_viewer(date=None, page=1):
     initial_edition_json = None
     edition = None
     try:
-        # ── Fast path: find target date and language using metadata-only list ──
         target_date = date
         target_lang = request.args.get("lang", None)
         
-        # Get fast metadata-only list
-        fast_list = _fast_editions_list_from_pg()
+        fast_list = fast_editions_list_from_pg()
         if fast_list is None:
-            # Fallback to local file list if Postgres fails
-            file_editions = _load_editions_from_file() or []
+            file_editions = load_editions_from_file() or []
             fast_list = [
                 {
                     "date": e["date"],
@@ -1030,14 +244,11 @@ def epaper_viewer(date=None, page=1):
         published_metadata = [e for e in fast_list if e.get("published", True)]
         
         if published_metadata:
-            # Find target edition metadata
             if target_date:
                 meta = next((e for e in published_metadata if e["date"] == target_date and (not target_lang or e["language"] == target_lang)), None)
                 if not meta:
-                    # Fallback to first matching date
                     meta = next((e for e in published_metadata if e["date"] == target_date), None)
                 if not meta:
-                    # Fallback to latest published
                     meta = sorted(published_metadata, key=lambda e: e["date"], reverse=True)[0]
             else:
                 meta = sorted(published_metadata, key=lambda e: e["date"], reverse=True)[0]
@@ -1046,32 +257,33 @@ def epaper_viewer(date=None, page=1):
                 target_date = meta["date"]
                 target_lang = meta["language"]
                 
-        # Load ONLY the single target edition
         if target_date:
-            if _pg_url():
+            if pg_url():
                 try:
-                    conn = _pg_connect()
-                    _pg_ensure_table(conn)
-                    edition = _load_one_edition_pg(conn, target_date, target_lang or "Hindi")
+                    conn = pg_connect()
+                    pg_ensure_table(conn)
+                    edition = load_one_edition_pg(conn, target_date, target_lang or "Hindi")
                     conn.close()
                 except Exception as exc:
                     print(f"[epaper] viewer load pg failed: {exc}")
                     edition = None
             if not edition:
-                file_editions = _load_editions_from_file() or []
+                file_editions = load_editions_from_file() or []
                 edition = next((e for e in file_editions if e["date"] == target_date and e.get("language", "Hindi") == (target_lang or "Hindi")), None)
                 if not edition:
                     edition = next((e for e in file_editions if e["date"] == target_date), None)
                     
         if edition:
-            initial_edition_json = _json.dumps(edition, ensure_ascii=False).replace('</script>', r'<\/script>')
+            # Edition data is loaded via the JSON API on the client; do NOT embed
+            # the full edition inline in the HTML.
+            initial_edition_json = None
     except Exception as e:
         print(f"[epaper] Viewer logic exception: {e}")
-    og_url = _absolute_public_url(request.path)
-    og_image_meta = _epaper_preview_image_meta(edition)
+    og_url = absolute_public_url(request.path)
+    og_image_meta = epaper_preview_image_meta(edition)
     og_image = og_image_meta["url"]
-    og_title = _epaper_preview_title(edition, date)
-    og_description = _epaper_preview_description(edition)
+    og_title = epaper_preview_title(edition, date)
+    og_description = epaper_preview_description(edition)
     og_image_type = og_image_meta["type"]
     return render_template("epaper_viewer.html", initial_date=date, initial_page=page,
                            initial_language='',
@@ -1089,61 +301,39 @@ def epaper_viewer(date=None, page=1):
 # ── Epaper Admin Login / Logout ───────────────────
 @epaper_bp.route("/epaper-admin/login", methods=["GET", "POST"])
 def epaper_admin_login():
-    if _is_epaper_admin():
-        return redirect(url_for("epaper.epaper_admin_v2"))
-    error = None
-    if request.method == "POST":
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "")
-        user_ok = bool(_EPAPER_ADMIN_USER) and hmac.compare_digest(username, _EPAPER_ADMIN_USER)
-        pass_ok = bool(_EPAPER_ADMIN_PASS) and hmac.compare_digest(password, _EPAPER_ADMIN_PASS)
-        if user_ok and pass_ok:
-            session[_EPAPER_ADMIN_SESSION_KEY] = True
-            session.permanent = True
-            next_url = request.args.get("next") or url_for("epaper.epaper_admin_v2")
-            parsed = urllib.parse.urlparse(next_url)
-            if parsed.scheme or parsed.netloc or next_url.startswith("//"):
-                next_url = url_for("epaper.epaper_admin_v2")
-            elif "?" in next_url:
-                next_url = next_url.split("?")[0]
-            return redirect(next_url)
-        error = "Invalid username or password."
-    return render_template("epaper_admin_login.html", error=error)
+    return admin_login_redirect()
 
 
 @epaper_bp.route("/epaper-admin/logout")
 def epaper_admin_logout():
-    session.pop(_EPAPER_ADMIN_SESSION_KEY, None)
-    return redirect(url_for("epaper.epaper_admin_login"))
+    session.pop(EPAPER_ADMIN_SESSION_KEY, None)
+    host = (request.host or "").lower()
+    if host.startswith("epaper."):
+        return redirect("https://www.vidyarthimitra.org/admin/login")
+    return redirect("/admin/login")
 
 
 # ── Admin Page ────────────────────────────────────
 @epaper_bp.route("/epaper-admin")
 def epaper_admin_v2():
-    guard = _require_epaper_admin()
+    guard = require_epaper_admin()
     if guard is not None:
         return guard
     admin_user = session.get("auth_user", {})
     return render_template("epaper_admin_v2.html", admin_user=admin_user)
 
 
-EPAPER_TMP_UPLOAD_DIR = os.path.join(tempfile.gettempdir(), "epaper_uploads")
-
-
 @epaper_bp.route("/api/epaper/admin/cloudinary-sign", methods=["POST"])
 def api_cloudinary_sign():
-    """Return signed params for a direct browser→Cloudinary upload (bypasses Vercel size limit)."""
-    guard = _require_epaper_admin()
+    guard = require_epaper_admin()
     if guard is not None: return guard
-    if not _CLOUDINARY_URL:
+    if not CLOUDINARY_URL:
         return jsonify({"error": "Cloudinary not configured"}), 503
     try:
         import cloudinary.utils
-        import time
-        timestamp = int(time.time())
+        timestamp = int(__import__('time').time())
         req_data = request.get_json(silent=True) or {}
         resource_type = req_data.get("resource_type", "auto")
-        # resource_type is NOT signed — it's a URL path param in Cloudinary API
         params = {"folder": "epaper", "timestamp": timestamp}
         signature = cloudinary.utils.api_sign_request(params, cloudinary.config().api_secret)
         return jsonify({
@@ -1160,12 +350,12 @@ def api_cloudinary_sign():
 
 @epaper_bp.route("/api/epaper/admin/upload-image", methods=["POST"])
 def api_upload_epaper_image():
-    guard = _require_epaper_admin()
+    guard = require_epaper_admin()
     if guard is not None: return guard
     image = request.files.get("image") or request.files.get("file")
     if not image or not image.filename:
         return jsonify({"error": "file required"}), 400
-    if not _allowed_upload(image.filename):
+    if not allowed_upload(image.filename):
         return jsonify({"error": "Unsupported file type. Allowed: images and PDF"}), 400
 
     original = secure_filename(image.filename)
@@ -1174,11 +364,11 @@ def api_upload_epaper_image():
 
     if ext.lower() == ".pdf":
         try:
-            import fitz  # PyMuPDF
+            import fitz
             pdf_bytes = image.read()
             doc = fitz.open(stream=pdf_bytes, filetype="pdf")
             pg = doc[0]
-            mat = fitz.Matrix(2.0, 2.0)  # 2x gives ~1200px — enough quality, half the data vs 4x
+            mat = fitz.Matrix(2.0, 2.0)
             pix = pg.get_pixmap(matrix=mat)
             doc.close()
             filename = f"{stem[:48]}-{ts}.png"
@@ -1189,18 +379,15 @@ def api_upload_epaper_image():
         filename = f"{stem[:48]}-{ts}{ext.lower()}"
         file_bytes = image.read()
 
-    # Auto-compress: resize to 1600px max + convert to JPEG (~3-5x smaller than raw PNG)
-    file_bytes, filename = _compress_image_bytes(file_bytes, filename)
+    file_bytes, filename = compress_image_bytes(file_bytes, filename)
 
-    # Cloudinary — persistent CDN storage (required on Vercel where filesystem is ephemeral)
-    if _CLOUDINARY_URL:
+    if CLOUDINARY_URL:
         try:
-            url = _upload_to_cloudinary(file_bytes, filename)
+            url = upload_to_cloudinary(file_bytes, filename)
             return jsonify({"success": True, "url": url}), 201
         except Exception as e:
             return jsonify({"error": f"Cloudinary upload failed: {e}"}), 500
 
-    # Local fallback: static uploads dir → /tmp (local dev only; /tmp is ephemeral on Vercel)
     for upload_dir, use_tmp in [(EPAPER_UPLOAD_DIR, False), (EPAPER_TMP_UPLOAD_DIR, True)]:
         try:
             os.makedirs(upload_dir, exist_ok=True)
@@ -1218,12 +405,9 @@ def api_upload_epaper_image():
     return jsonify({"error": "Could not save image — filesystem unavailable"}), 500
 
 
-
-
 @epaper_bp.route("/api/epaper/admin/pdf-url-to-pages", methods=["POST"])
 def api_pdf_url_to_pages():
-    """Convert a PDF already on Cloudinary (URL) to page images. Bypasses Vercel upload limit."""
-    guard = _require_epaper_admin()
+    guard = require_epaper_admin()
     if guard is not None: return guard
     data = request.get_json(silent=True) or {}
     pdf_url = data.get("pdf_url", "").strip()
@@ -1250,15 +434,14 @@ def api_pdf_url_to_pages():
         pages_data.append((i, img_bytes, f"pdf_page_{ts}_{i+1}.jpg"))
     doc.close()
 
-    if not _CLOUDINARY_URL:
+    if not CLOUDINARY_URL:
         return jsonify({"error": "Cloudinary not configured"}), 503
 
-    from concurrent.futures import ThreadPoolExecutor, as_completed
     results = [None] * len(pages_data)
 
     def _upload_page(item):
         idx, img_bytes, filename = item
-        url = _upload_to_cloudinary(img_bytes, filename)
+        url = upload_to_cloudinary(img_bytes, filename)
         return idx, url
 
     with ThreadPoolExecutor(max_workers=6) as ex:
@@ -1272,7 +455,7 @@ def api_pdf_url_to_pages():
 
 @epaper_bp.route("/api/epaper/admin/pdf-to-pages", methods=["POST"])
 def api_pdf_to_pages():
-    guard = _require_epaper_admin()
+    guard = require_epaper_admin()
     if guard is not None: return guard
     pdf_file = request.files.get("pdf")
     if not pdf_file or not pdf_file.filename:
@@ -1281,7 +464,7 @@ def api_pdf_to_pages():
         return jsonify({"error": "Only PDF files accepted"}), 400
 
     try:
-        import fitz  # PyMuPDF
+        import fitz
     except ImportError:
         return jsonify({"error": "PyMuPDF not installed. Run: pip install PyMuPDF"}), 500
 
@@ -1302,7 +485,6 @@ def api_pdf_to_pages():
 
     ts = datetime.now().strftime("%Y%m%d%H%M%S")
 
-    # Render all pages to JPEG bytes first (JPEG ~5x smaller than PNG → faster upload)
     pages_data = []
     for i, page in enumerate(doc):
         pix = page.get_pixmap(matrix=mat, alpha=False)
@@ -1310,14 +492,12 @@ def api_pdf_to_pages():
         pages_data.append((i, img_bytes, f"pdf_page_{ts}_{i+1}.jpg"))
     doc.close()
 
-    if _CLOUDINARY_URL:
-        # Upload all pages in parallel
-        from concurrent.futures import ThreadPoolExecutor, as_completed
+    if CLOUDINARY_URL:
         results = [None] * len(pages_data)
 
         def _upload_page(item):
             idx, img_bytes, filename = item
-            url = _upload_to_cloudinary(img_bytes, filename)
+            url = upload_to_cloudinary(img_bytes, filename)
             return idx, url
 
         with ThreadPoolExecutor(max_workers=6) as ex:
@@ -1344,7 +524,6 @@ def api_pdf_to_pages():
 
 @epaper_bp.route("/api/epaper/uploads/<filename>")
 def api_serve_tmp_upload(filename):
-    """Serve images saved to /tmp (Vercel fallback)."""
     safe = secure_filename(filename)
     filepath = os.path.join(EPAPER_TMP_UPLOAD_DIR, safe)
     if not os.path.exists(filepath):
@@ -1354,91 +533,39 @@ def api_serve_tmp_upload(filename):
 
 @epaper_bp.route("/article/<article_id>")
 def epaper_article(article_id):
-    article, related, edition, page = _find_epaper_article(article_id)
+    article, related, edition, page = find_epaper_article(article_id)
     if not article:
         return redirect(url_for("epaper.epaper_viewer"))
+    canonical_url = absolute_public_url(request.path)
+    edition_image = ""
+    if edition:
+        img_meta = epaper_preview_image_meta(edition)
+        edition_image = img_meta.get("url", "")
     return render_template(
         "epaper_article.html",
         article=article,
         related_articles=related,
         edition=edition,
         page=page,
+        canonical_url=canonical_url,
+        edition_image=edition_image,
     )
 
 
 # ── API: List editions ─────────────────────────────
-def _edition_preview_url(edition):
-    """Return the best preview image for an edition card — first page image or masthead."""
-    pages = edition.get("pages", [])
-    if pages:
-        first = pages[0]
-        url = first.get("page_image_url") or first.get("image_path") or ""
-        if url:
-            return url
-    return edition.get("masthead_image_url", "")
-
-
-def _fast_editions_list_from_pg():
-    """Server-side JSON extraction — returns only the metadata fields needed by
-    the editions list and calendar. Does NOT load full page/article content, so
-    it stays well under Vercel's 10-second function timeout even with 200+ editions."""
-    if not _pg_url():
-        return None
-    try:
-        conn = _pg_connect()
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT
-                    edition_date,
-                    edition_language,
-                    COALESCE(data->>'name', '')                              AS name,
-                    COALESCE((data->>'published')::boolean, true)            AS published,
-                    COALESCE(data->>'masthead_image_url', '')                AS masthead_image_url,
-                    jsonb_array_length(COALESCE(data->'pages','[]'::jsonb))  AS total_pages,
-                    COALESCE(
-                        data->'pages'->0->>'page_image_url',
-                        data->'pages'->0->>'image_path',
-                        ''
-                    )                                                        AS preview_image_url
-                FROM epaper_editions_v2
-                ORDER BY edition_date DESC
-            """)
-            rows = cur.fetchall()
-        conn.close()
-        if rows is None:
-            return []
-        return [
-            {
-                "date":               r[0],
-                "language":           r[1] or "Hindi",
-                "name":               r[2] or "",
-                "published":          r[3] if r[3] is not None else True,
-                "masthead_image_url": r[4] or "",
-                "total_pages":        r[5] or 0,
-                "preview_image_url":  r[6] or "",
-            }
-            for r in rows
-        ]
-    except Exception as e:
-        print(f"[epaper] Fast editions list failed: {e}")
-        return None
-
-
 @epaper_bp.route("/api/epaper/editions")
+@limiter.limit("60 per minute")
 def api_editions():
-    # L2: Redis cache (survives cold starts)
-    cached = _redis_get(_REDIS_EDITIONS_KEY)
+    cached = redis_get(REDIS_EDITIONS_KEY)
     if cached is not None:
         return jsonify({"editions": cached})
 
-    # L1: fast Postgres metadata query
-    fast = _fast_editions_list_from_pg()
+    fast = fast_editions_list_from_pg()
     if fast is not None:
-        _redis_set(_REDIS_EDITIONS_KEY, fast, ttl=_REDIS_EDITIONS_TTL)
+        redis_set(REDIS_EDITIONS_KEY, fast, ttl=REDIS_EDITIONS_TTL)
         return jsonify({"editions": fast})
 
-    # Fallback: full load (used when DB is unreachable or table missing)
-    editions = _load_editions()
+    editions = load_editions()
     return jsonify({"editions": [
         {
             "date": e["date"],
@@ -1447,7 +574,7 @@ def api_editions():
             "total_pages": len(e.get("pages", [])),
             "published": e.get("published", True),
             "masthead_image_url": e.get("masthead_image_url", ""),
-            "preview_image_url": _edition_preview_url(e),
+            "preview_image_url": edition_preview_url(e),
         }
         for e in editions
     ]})
@@ -1455,20 +582,19 @@ def api_editions():
 
 # ── API: Latest published edition ─────────────────
 @epaper_bp.route("/api/epaper/latest")
+@limiter.limit("60 per minute")
 def api_latest_edition():
-    # L2: Redis cache (survives cold starts)
-    cached = _redis_get(_REDIS_LATEST_KEY)
+    cached = redis_get(REDIS_LATEST_KEY)
     if cached is not None:
         return jsonify(cached)
 
-    # Fast path: get metadata list, find latest published, then load just that row
-    meta_list = _fast_editions_list_from_pg()
+    meta_list = fast_editions_list_from_pg()
     if meta_list is not None:
         published_meta = [e for e in meta_list if e.get("published", True)]
         if not published_meta:
             return jsonify({"error": "No published editions."}), 404
         best = sorted(published_meta, key=lambda e: e["date"], reverse=True)[0]
-        edition = _fast_load_single_edition(best["date"], best["language"])
+        edition = fast_load_single_edition(best["date"], best["language"])
         if edition:
             result = {
                 "date": edition["date"],
@@ -1480,11 +606,10 @@ def api_latest_edition():
                 "pages": edition.get("pages", []),
                 "published": edition.get("published", True),
             }
-            _redis_set(_REDIS_LATEST_KEY, result, ttl=_REDIS_LATEST_TTL)
+            redis_set(REDIS_LATEST_KEY, result, ttl=REDIS_LATEST_TTL)
             return jsonify(result)
 
-    # Fallback: full load
-    editions = _load_editions()
+    editions = load_editions()
     published = [e for e in editions if e.get("published", True)]
     if not published:
         return jsonify({"error": "No published editions."}), 404
@@ -1503,53 +628,47 @@ def api_latest_edition():
 
 @epaper_bp.route("/api/epaper/admin/edition/<date>/publish", methods=["POST"])
 def api_publish_edition(date):
-    guard = _require_epaper_admin()
+    guard = require_epaper_admin()
     if guard is not None: return guard
     data = request.get_json(silent=True) or {}
     published = bool(data.get("published", True))
     lang = request.args.get("lang", None)
     effective_lang = lang or "Hindi"
 
-    _invalidate_editions_cache(date=date, lang=effective_lang)
-
     edition = None
-    # ── Fast path: load, update and upsert only one row in Postgres ──
-    if _pg_url():
+    if pg_url():
         try:
-            conn = _pg_connect()
-            _pg_ensure_table(conn)
-            edition = _load_one_edition_pg(conn, date, effective_lang)
+            conn = pg_connect()
+            pg_ensure_table(conn)
+            edition = load_one_edition_pg(conn, date, effective_lang)
             if not edition and lang:
-                # If exact language not found and lang is provided, return 404
                 conn.close()
                 return jsonify({"error": "Edition not found."}), 404
             elif not edition:
-                # Try fallback language if no lang specified
                 with conn.cursor() as cur:
                     cur.execute(
                         "SELECT data FROM epaper_editions_v2 WHERE edition_date=%s LIMIT 1",
                         (date,),
                     )
                     row = cur.fetchone()
-                edition = _row_to_edition(row[0]) if row else None
+                edition = row_to_edition(row[0]) if row else None
             
             if edition:
                 edition["published"] = published
                 with conn.cursor() as cur:
-                    _upsert_edition_row(cur, edition)
+                    upsert_edition_row(cur, edition)
                 conn.commit()
-                # Save backup
-                _save_edition_backup(edition, conn=conn)
+                invalidate_editions_cache(date=date, lang=effective_lang)
+                save_edition_backup(edition, conn=conn)
                 conn.close()
                 
-                # Keep file fallback in sync (best effort)
                 try:
-                    all_eds = _load_editions_from_file() or []
+                    all_eds = load_editions_from_file() or []
                     for e in all_eds:
                         if e["date"] == edition["date"] and e.get("language", "Hindi") == edition.get("language", "Hindi"):
                             e["published"] = published
                             break
-                    _save_editions_to_file(all_eds)
+                    save_editions_to_file(all_eds)
                 except Exception as fe:
                     print(f"[epaper] Local file sync after publish failed (non-fatal): {fe}")
 
@@ -1558,16 +677,16 @@ def api_publish_edition(date):
         except Exception as exc:
             return jsonify({"error": f"Publish failed: {exc}"}), 500
 
-    # ── Fallback: File-based fallback ──
-    editions = _load_editions_from_file()
+    editions = load_editions_from_file()
     for e in editions:
         if e["date"] == date and (not lang or e.get("language", "Hindi") == lang):
             e["published"] = published
             try:
-                _save_editions_to_file(editions)
+                save_editions_to_file(editions)
             except Exception as exc:
                 return jsonify({"error": f"Save failed: {exc}"}), 500
-            _save_edition_backup(e)
+            save_edition_backup(e)
+            invalidate_editions_cache(date=date, lang=effective_lang)
             return jsonify({"success": True, "published": published})
             
     return jsonify({"error": "Edition not found."}), 404
@@ -1575,12 +694,12 @@ def api_publish_edition(date):
 
 # ── API: Available languages for a date ───────────
 @epaper_bp.route("/api/epaper/editions-by-date/<date>")
+@limiter.limit("60 per minute")
 def api_editions_by_date(date):
     if not re.match(r"\d{4}-\d{2}-\d{2}$", date):
         return jsonify({"error": "Invalid date format"}), 400
 
-    # Fast path: check Redis editions list cache first
-    cached_list = _redis_get(_REDIS_EDITIONS_KEY)
+    cached_list = redis_get(REDIS_EDITIONS_KEY)
     if cached_list is not None:
         matches = [
             {"language": e.get("language", "Hindi"), "name": e.get("name", "")}
@@ -1589,11 +708,10 @@ def api_editions_by_date(date):
         ]
         return jsonify({"editions": matches})
 
-    # Fast path: targeted Postgres query — only this date, no full load
-    if _pg_url():
+    if pg_url():
         try:
-            conn = _pg_connect()
-            _pg_ensure_table(conn)
+            conn = pg_connect()
+            pg_ensure_table(conn)
             with conn.cursor() as cur:
                 cur.execute(
                     """SELECT edition_language,
@@ -1614,8 +732,7 @@ def api_editions_by_date(date):
         except Exception as e:
             print(f"[epaper] editions-by-date fast query failed: {e}")
 
-    # Fallback: full load
-    editions = _load_editions()
+    editions = load_editions()
     matches = [
         {"language": e.get("language", "Hindi"), "name": e.get("name", "")}
         for e in editions
@@ -1625,57 +742,24 @@ def api_editions_by_date(date):
 
 
 # ── API: Get edition by date ───────────────────────
-def _fast_load_single_edition(date, lang=None):
-    """Fetch one edition from Postgres by date (+ optional language) without loading
-    all editions. Falls back to in-memory cache / full load on failure."""
-    if not _pg_url():
-        return None
-    try:
-        conn = _pg_connect()
-        _pg_ensure_table(conn)
-        edition = None
-        if lang:
-            edition = _load_one_edition_pg(conn, date, lang)
-        if not edition:
-            # Any published edition for this date (try common languages in order)
-            with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT data FROM epaper_editions_v2 WHERE edition_date = %s ORDER BY edition_language",
-                    (date,)
-                )
-                rows = cur.fetchall()
-            for r in rows:
-                e = _row_to_edition(r[0])
-                if e.get("published", True):
-                    edition = e
-                    break
-        conn.close()
-        return edition
-    except Exception as e:
-        print(f"[epaper] Fast single edition load failed: {e}")
-        return None
-
-
 @epaper_bp.route("/api/epaper/edition/<date>")
+@limiter.limit("60 per minute")
 def api_edition(date):
     if not re.match(r"\d{4}-\d{2}-\d{2}$", date):
         return jsonify({"error": "Invalid date format. Use YYYY-MM-DD."}), 400
 
     lang = request.args.get("lang", None)
-    rkey = _redis_edition_key(date, lang)
+    rkey = redis_edition_key(date, lang)
 
-    # L2: Redis cache
-    edition = _redis_get(rkey)
+    edition = redis_get(rkey)
 
-    # L1: Postgres single-row fetch
     if not edition:
-        edition = _fast_load_single_edition(date, lang)
+        edition = fast_load_single_edition(date, lang)
         if edition:
-            _redis_set(rkey, edition, ttl=_REDIS_EDITION_TTL)
+            redis_set(rkey, edition, ttl=REDIS_EDITION_TTL)
 
-    # Fallback: full load (in-memory cache)
     if not edition:
-        editions = _load_editions()
+        editions = load_editions()
         if lang:
             edition = next(
                 (e for e in editions if e["date"] == date and e.get("published", True) and e.get("language", "Hindi") == lang),
@@ -1700,24 +784,26 @@ def api_edition(date):
 
 # ── API: Record an edition view ───────────────────
 @epaper_bp.route("/api/epaper/edition/<date>/view", methods=["POST"])
+@limiter.limit("30 per minute")
 def api_record_edition_view(date):
     if not re.match(r"\d{4}-\d{2}-\d{2}$", date):
         return jsonify({"error": "Invalid date format"}), 400
     language = request.args.get("lang", "")
-    count = _increment_edition_view(date, language)
+    count = increment_edition_view(date, language)
     return jsonify({"date": date, "language": language, "views": count})
 
 
 # ── API: Get edition view count (no increment) ────
 @epaper_bp.route("/api/epaper/edition/<date>/views", methods=["GET"])
+@limiter.limit("60 per minute")
 def api_get_edition_views(date):
     if not re.match(r"\d{4}-\d{2}-\d{2}$", date):
         return jsonify({"error": "Invalid date format"}), 400
     language = request.args.get("lang", "")
-    if _pg_url():
+    if pg_url():
         try:
-            conn = _pg_connect()
-            _pg_ensure_table(conn)
+            conn = pg_connect()
+            pg_ensure_table(conn)
             with conn.cursor() as cur:
                 cur.execute(
                     "SELECT view_count FROM epaper_edition_views WHERE edition_date=%s AND edition_language=%s",
@@ -1729,104 +815,26 @@ def api_get_edition_views(date):
             return jsonify({"date": date, "language": language, "views": count})
         except Exception as e:
             print(f"[epaper] get views failed: {e}")
-    data = _load_views_file()
-    count = int(data.get(_views_key(date, language), 0))
+    data = load_views_file()
+    count = int(data.get(views_key(date, language), 0))
     return jsonify({"date": date, "language": language, "views": count})
 
 
 # ── API: Get article ──────────────────────────────
 @epaper_bp.route("/api/epaper/article/<article_id>")
+@limiter.limit("60 per minute")
 def api_article(article_id):
-    article, related, edition, page = _find_epaper_article(article_id)
+    article, related, edition, page = find_epaper_article(article_id)
     if article:
         return jsonify({**article, "related_articles": related})
     return jsonify({"error": "Article not found."}), 404
 
 
 # ── API: Create / Update edition (Admin) ───────────
-# ── Push notifications (FCM) — notify the mobile app on a new edition ──────────
-# Server-side send to topic "new_edition". The app subscribes to this topic.
-# Credentials come from env (Vercel-friendly): FIREBASE_SERVICE_ACCOUNT_JSON
-# (inline JSON) OR FIREBASE_SERVICE_ACCOUNT (path to the service-account file).
-_fcm_ready = None
-
-
-def _get_fcm():
-    """Initialise firebase-admin once. Returns True if push is usable."""
-    global _fcm_ready
-    if _fcm_ready is not None:
-        return _fcm_ready
-    try:
-        import firebase_admin
-        from firebase_admin import credentials
-        if not firebase_admin._apps:
-            raw = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON", "").strip()
-            path = os.getenv("FIREBASE_SERVICE_ACCOUNT", "").strip()
-            if raw:
-                cred = credentials.Certificate(json.loads(raw))
-            elif path and os.path.exists(path):
-                cred = credentials.Certificate(path)
-            else:
-                print("[epaper] FCM not configured (no service account) — skipping push.")
-                _fcm_ready = False
-                return False
-            firebase_admin.initialize_app(cred)
-        _fcm_ready = True
-    except Exception as e:
-        print(f"[epaper] FCM init failed (non-fatal): {e}")
-        _fcm_ready = False
-    return _fcm_ready
-
-
-def _send_new_edition_notification(edition):
-    """Send a 'New ePaper Available' push to every subscribed phone. Best-effort."""
-    if not _get_fcm():
-        return
-    try:
-        from firebase_admin import messaging
-        msg = messaging.Message(
-            topic="new_edition",
-            notification=messaging.Notification(
-                title="New ePaper Available 📰",
-                body="Aaj ka edition ab padhne ke liye taiyaar hai",
-            ),
-            data={"type": "new_edition", "date": str(edition.get("date", ""))},
-        )
-        resp = messaging.send(msg)
-        print(f"[epaper] FCM new_edition push sent: {resp}")
-    except Exception as e:
-        print(f"[epaper] FCM send failed (non-fatal): {e}")
-
-
-def _push_once_for_date(conn, date):
-    """Return True only the FIRST time a date is seen, so all 3 languages of one
-    weekly release trigger a single notification (not three)."""
-    try:
-        with conn.cursor() as cur:
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS epaper_push_sent (
-                    edition_date TEXT PRIMARY KEY,
-                    sent_at TIMESTAMPTZ DEFAULT NOW()
-                )
-            """)
-            cur.execute(
-                "INSERT INTO epaper_push_sent (edition_date) VALUES (%s) "
-                "ON CONFLICT (edition_date) DO NOTHING",
-                (date,),
-            )
-            first_time = cur.rowcount > 0
-        conn.commit()
-        return first_time
-    except Exception as e:
-        print(f"[epaper] push dedupe check failed (non-fatal): {e}")
-        return False
-
-
 @epaper_bp.route("/api/epaper/admin/edition", methods=["POST"])
 def api_create_edition():
-    guard = _require_epaper_admin()
+    guard = require_epaper_admin()
     if guard is not None: return guard
-    # force=True so Flask parses even if Content-Type isn't exactly application/json
     data = request.get_json(force=True, silent=True) or {}
     date_str = (data.get("date", "") or "").strip()
     if not re.match(r"^\d{4}-\d{2}-\d{2}$", date_str):
@@ -1838,10 +846,8 @@ def api_create_edition():
     renamed = bool(original_date) and (original_date != date_str or original_lang != lang_str)
 
     def _apply_payload(existing):
-        """Merge the request payload onto an existing edition (or build a new one),
-        preserving fields the client did not send."""
         if existing is None:
-            return {
+            edition = {
                 "date": date_str,
                 "name": data.get("name", f"Edition {date_str}"),
                 "language": data.get("language", "Hindi"),
@@ -1852,62 +858,89 @@ def api_create_edition():
                 "pages": data.get("pages", []),
                 "created_at": datetime.now().isoformat(),
             }
-        existing["date"] = date_str
-        existing["name"] = data.get("name", existing.get("name", ""))
-        existing["language"] = data.get("language", existing.get("language", "Hindi"))
-        existing["published"] = data.get("published", existing.get("published", True))
-        existing["masthead_image_url"] = data.get("masthead_image_url", existing.get("masthead_image_url", ""))
-        if "footer_links" in data:
-            existing["footer_links"] = data["footer_links"]
-        if "header_items" in data:
-            existing["header_items"] = data["header_items"]
-        if "pages" in data:
-            existing["pages"] = data["pages"]
-        return existing
+        else:
+            edition = existing
+            edition["date"] = date_str
+            edition["name"] = data.get("name", existing.get("name", ""))
+            edition["language"] = data.get("language", existing.get("language", "Hindi"))
+            edition["published"] = data.get("published", existing.get("published", True))
+            edition["masthead_image_url"] = data.get("masthead_image_url", existing.get("masthead_image_url", ""))
+            if "footer_links" in data:
+                edition["footer_links"] = data["footer_links"]
+            if "header_items" in data:
+                edition["header_items"] = data["header_items"]
+            if "pages" in data:
+                edition["pages"] = data["pages"]
+        return _sanitize_edition_payload(edition)
 
-    # Invalidate both the list cache and any cached single-edition entries
-    _invalidate_editions_cache(date=date_str, lang=lang_str)
-    if renamed:
-        _invalidate_editions_cache(date=original_date, lang=original_lang)
-
-    # ── Fast path: write only THIS edition's row (no 32 MB rewrite) ──
-    if _pg_url():
+    if pg_url():
         conn = None
         try:
-            conn = _pg_connect()
-            _pg_ensure_table(conn)
-            existing = _load_one_edition_pg(conn, date_str, lang_str)
+            conn = pg_connect()
+            pg_ensure_table(conn)
+            existing = load_one_edition_pg(conn, date_str, lang_str)
             saved_edition = _apply_payload(existing)
+            if data.get("merge_pages") and "pages" in data:
+                saved_edition["pages"] = merge_pages_into(
+                    saved_edition.get("pages"),
+                    data.get("pages") or [],
+                    data.get("page_set"),
+                )
+            if existing and not data.get("force"):
+                guard = content_regression(existing, saved_edition.get("pages"))
+                wiped = per_page_wipes(existing.get("pages"), saved_edition.get("pages"))
+                if wiped:
+                    if guard is None:
+                        guard = {}
+                    guard["wiped_pages"] = wiped[:8]
+                    guard["total_wiped_pages"] = len(wiped)
+                if guard:
+                    detail = ""
+                    if "existing_filled" in guard:
+                        detail = (
+                            f"filled articles {guard['existing_filled']} → "
+                            f"{guard['incoming_filled']}"
+                        )
+                    elif guard.get("total_wiped_pages"):
+                        detail = f"{guard['total_wiped_pages']} page(s) ka poora content khali ho jayega"
+                    return jsonify({
+                        "error": (
+                            f"SAFETY GUARD: this save would drop {detail}. "
+                            f"If this is intentional, confirm the overwrite in the editor."
+                        ),
+                        "guard": guard,
+                    }), 409
             with conn.cursor() as cur:
-                _upsert_edition_row(cur, saved_edition)
-                # If the date or language key changed, delete the old row so we
-                # don't leave a duplicate behind.
+                upsert_edition_row(cur, saved_edition)
                 if renamed:
+                    old_row = load_one_edition_pg(conn, original_date, original_lang or "Hindi")
+                    if old_row:
+                        save_edition_backup(old_row, conn=conn)
                     cur.execute(
                         "DELETE FROM epaper_editions_v2 WHERE edition_date=%s AND edition_language=%s",
                         (original_date, original_lang or "Hindi"),
                     )
             conn.commit()
-            # Reuse same connection for the per-edition snapshot backup
-            _save_edition_backup(saved_edition, conn=conn)
-            # Notify the mobile app on a NEW published edition (once per date).
+            invalidate_editions_cache(date=date_str, lang=lang_str)
+            if renamed:
+                invalidate_editions_cache(date=original_date, lang=original_lang)
+            if data.get("backup", True):
+                save_edition_backup(saved_edition, conn=conn)
             try:
                 if existing is None and saved_edition.get("published", True):
-                    if _push_once_for_date(conn, date_str):
-                        _send_new_edition_notification(saved_edition)
+                    if push_once_for_date(conn, date_str):
+                        send_new_edition_notification(saved_edition)
             except Exception as _pe:
                 print(f"[epaper] new-edition push failed (non-fatal): {_pe}")
             conn.close()
-            return jsonify({"success": True}), 201
+            return jsonify({"success": True, "published": saved_edition.get("published", True)}), 201
         except Exception as exc:
             if conn:
                 try: conn.close()
                 except: pass
             print(f"[epaper] Postgres save failed, falling back to file: {exc}")
 
-    # ── File-only fallback (no Postgres configured) ──
-    editions = _load_editions_from_file()
-    # Remove old row if date/language key changed to avoid duplicates
+    editions = load_editions_from_file()
     if renamed:
         editions = [
             e for e in editions
@@ -1922,37 +955,64 @@ def api_create_edition():
     else:
         saved_edition = _apply_payload(None)
         editions.append(saved_edition)
+    if data.get("merge_pages") and "pages" in data:
+        saved_edition["pages"] = merge_pages_into(
+            saved_edition.get("pages"),
+            data.get("pages") or [],
+            data.get("page_set"),
+        )
+    if existing and not data.get("force"):
+        guard = content_regression(existing, saved_edition.get("pages"))
+        wiped = per_page_wipes(existing.get("pages"), saved_edition.get("pages"))
+        if wiped:
+            if guard is None:
+                guard = {}
+            guard["wiped_pages"] = wiped[:8]
+            guard["total_wiped_pages"] = len(wiped)
+        if guard:
+            return jsonify({
+                "error": (
+                    f"SAFETY GUARD: this save would drop significant content. "
+                    f"If this is intentional, confirm the overwrite in the editor."
+                ),
+                "guard": guard,
+            }), 409
     try:
-        _save_editions_to_file(editions)
+        save_editions_to_file(editions)
     except Exception as exc:
         return jsonify({"error": f"Save failed: {exc}"}), 500
-    _save_edition_backup(saved_edition)
+    invalidate_editions_cache(date=date_str, lang=lang_str)
+    if renamed:
+        invalidate_editions_cache(date=original_date, lang=original_lang)
+    if data.get("backup", True):
+        save_edition_backup(saved_edition)
     try:
         if existing is None and saved_edition.get("published", True):
-            _send_new_edition_notification(saved_edition)
+            send_new_edition_notification(saved_edition)
     except Exception as _pe:
         print(f"[epaper] new-edition push (file) failed (non-fatal): {_pe}")
-    return jsonify({"success": True}), 201
+    warning = None
+    if not pg_url() and (os.getenv("VERCEL") == "1" or os.getenv("RENDER")):
+        warning = "⚠️ Saved to local file (ephemeral on Vercel). Configure SUPABASE_POSTGRES_URL for persistence."
+    return jsonify({"success": True, "published": saved_edition.get("published", True), "warning": warning}), 201
 
 
-# ── API: Get edition (admin — no published filter, fast single-row lookup) ────
+# ── API: Get edition (admin — no published filter) ────
 @epaper_bp.route("/api/epaper/admin/edition/<date>", methods=["GET"])
 def api_get_edition_admin(date):
-    guard = _require_epaper_admin()
+    guard = require_epaper_admin()
     if guard is not None: return guard
     if not re.match(r"\d{4}-\d{2}-\d{2}$", date):
         return jsonify({"error": "Invalid date format"}), 400
     lang = request.args.get("lang", None)
     effective_lang = lang or "Hindi"
 
-    # ── Fast path: single-row Postgres lookup (avoids loading all editions + MongoDB) ──
     edition = None
-    if _pg_url():
+    if pg_url():
         try:
-            conn = _pg_connect()
-            _pg_ensure_table(conn)
-            edition = _load_one_edition_pg(conn, date, effective_lang)
-            # Fallback: if exact lang not found, try any edition for that date
+            conn = pg_connect()
+            pg_ensure_table(conn)
+            edition = load_one_edition_pg(conn, date, effective_lang)
             if not edition and lang:
                 with conn.cursor() as cur:
                     cur.execute(
@@ -1960,15 +1020,14 @@ def api_get_edition_admin(date):
                         (date,),
                     )
                     row = cur.fetchone()
-                edition = _row_to_edition(row[0]) if row else None
+                edition = row_to_edition(row[0]) if row else None
             conn.close()
         except Exception as exc:
             print(f"[epaper] admin get fast-path failed: {exc}")
             edition = None
 
-    # ── Fallback: file-based load (no Postgres or connection failed) ──
     if edition is None:
-        all_editions = _load_editions_from_file() or []
+        all_editions = load_editions_from_file() or []
         if lang:
             edition = next(
                 (e for e in all_editions if e["date"] == date and e.get("language", "Hindi") == lang),
@@ -1996,19 +1055,35 @@ def api_get_edition_admin(date):
 # ── API: Delete edition ───────────────────────────
 @epaper_bp.route("/api/epaper/admin/edition/<date>", methods=["DELETE"])
 def api_delete_edition(date):
-    guard = _require_epaper_admin()
+    guard = require_epaper_admin()
     if guard is not None: return guard
     lang = request.args.get("lang", None)
     if not lang:
         return jsonify({"error": "Language parameter required for deletion."}), 400
     try:
-        _delete_edition_row(date, lang)          # explicit single-row delete in v2
-        _invalidate_editions_cache(date=date, lang=lang)
-        # Keep the file fallback in sync (best-effort)
+        if pg_url():
+            conn = None
+            try:
+                conn = pg_connect()
+                pg_ensure_table(conn)
+                doomed = load_one_edition_pg(conn, date, lang)
+                if doomed:
+                    save_edition_backup(doomed, conn=conn)
+                if conn:
+                    conn.close()
+                    conn = None
+            except Exception as be:
+                print(f"[epaper] pre-delete backup failed (non-fatal): {be}")
+            finally:
+                if conn:
+                    try: conn.close()
+                    except: pass
+        delete_edition_row(date, lang)
+        invalidate_editions_cache(date=date, lang=lang)
         try:
-            all_editions = _load_editions_from_file() or []
+            all_editions = load_editions_from_file() or []
             remaining = [e for e in all_editions if not (e["date"] == date and e.get("language", "Hindi") == lang)]
-            _save_editions_to_file(remaining)
+            save_editions_to_file(remaining)
         except Exception as fe:
             print(f"[epaper] Local file sync after delete failed (non-fatal): {fe}")
     except Exception as exc:
@@ -2018,6 +1093,7 @@ def api_delete_edition(date):
 
 # ── AI: Translate ──────────────────────────────────
 @epaper_bp.route("/api/epaper/translate", methods=["POST"])
+@limiter.limit("10 per minute")
 def api_translate():
     data = request.get_json(silent=True) or {}
     text = data.get("text", "").strip()
@@ -2026,11 +1102,10 @@ def api_translate():
     if not text:
         return jsonify({"error": "No text provided."}), 400
 
-    # Check cache first
-    ck = _trans_cache_key(text, target)
-    if ck in _trans_cache:
-        _trans_cache.move_to_end(ck)
-        return jsonify({"translated_text": _trans_cache[ck]})
+    ck = trans_cache_key(text, target)
+    if ck in trans_cache:
+        trans_cache.move_to_end(ck)
+        return jsonify({"translated_text": trans_cache[ck]})
 
     lang_names = {
         'hi': 'Hindi', 'mr': 'Marathi', 'en': 'English',
@@ -2040,11 +1115,10 @@ def api_translate():
     target_name = lang_names.get(target, target)
 
     def _save_cache(translated):
-        _evict(_trans_cache, _TRANS_CACHE_MAX)
-        _trans_cache[ck] = translated
+        evict(trans_cache, TRANS_CACHE_MAX)
+        trans_cache[ck] = translated
 
     fast_error = None
-    # ── Fast path: deep_translator (Google Translate, no API key, near-instant) ──
     try:
         from deep_translator import GoogleTranslator
         chunks, start = [], 0
@@ -2068,7 +1142,6 @@ def api_translate():
     except Exception as exc:
         fast_error = f"Google Translate path failed: {str(exc)}"
 
-    # ── Fallback: Groq LLM (higher quality but slower) ──
     api_key = os.getenv("GROQ_API_KEY")
     if api_key:
         try:
@@ -2100,6 +1173,7 @@ def api_translate():
 
 # ── AI: Summarize ──────────────────────────────────
 @epaper_bp.route("/api/epaper/summarize", methods=["POST"])
+@limiter.limit("10 per minute")
 def api_summarize():
     data = request.get_json(silent=True) or {}
     text = data.get("text", "")
@@ -2107,7 +1181,6 @@ def api_summarize():
     if not text:
         return jsonify({"error": "No text provided."}), 400
 
-    # Smart extractive summary with sentence scoring
     sentences = [s.strip() for s in re.split(r'[।.!?\n]+', text) if s.strip() and len(s.strip()) > 10]
 
     if not sentences:
@@ -2116,7 +1189,6 @@ def api_summarize():
     if len(sentences) <= 3:
         return jsonify({"summary": sentences})
 
-    # Build word frequency map (skip common Hindi/English stopwords)
     stopwords = {'का', 'की', 'के', 'में', 'है', 'हैं', 'को', 'से', 'और', 'पर', 'ने',
                  'एक', 'यह', 'वह', 'भी', 'इस', 'the', 'is', 'a', 'an', 'of', 'in',
                  'to', 'for', 'and', 'on', 'with', 'that', 'this', 'it', 'are', 'was'}
@@ -2128,31 +1200,24 @@ def api_summarize():
 
     max_freq = max(freq.values()) if freq else 1
 
-    # Score each sentence
     scored = []
     for i, sent in enumerate(sentences):
         score = 0
         sent_words = re.findall(r'\w+', sent.lower())
-        # Word importance score
         for w in sent_words:
             score += freq.get(w, 0) / max_freq
-        # Position bonus (first and last sentences matter more)
         if i == 0:
             score += 3
         elif i == len(sentences) - 1:
             score += 1.5
         elif i < 3:
             score += 1
-        # Length bonus (prefer medium-length sentences)
         if 20 < len(sent) < 150:
             score += 0.5
-        # Number bonus (sentences with numbers are often key facts)
         if re.search(r'\d', sent):
             score += 1
-
         scored.append((score, i, sent))
 
-    # Pick top 4-5 sentences, maintain original order
     scored.sort(key=lambda x: x[0], reverse=True)
     top = sorted(scored[:5], key=lambda x: x[1])
     summary = [s[2] for s in top]
@@ -2163,7 +1228,6 @@ def api_summarize():
 # ── AI: TTS (Edge Neural Voices — Real Indian Anchor) ───────────────────────────────────
 
 def _preprocess_tts_text(text):
-    """Shared text preprocessing for natural TTS delivery."""
     _abbr_map = {
         'JEE': 'जे ई ई', 'NEET': 'नीट', 'IIT': 'आई आई टी',
         'IIM': 'आई आई एम', 'NIT': 'एन आई टी',
@@ -2189,7 +1253,6 @@ def _preprocess_tts_text(text):
 
 
 def _resolve_voice(text, voice, rate, pitch):
-    """Auto-detect voice from text language if not specified."""
     devanagari_ratio = len(re.findall(r'[ऀ-ॿ]', text)) / max(len(text), 1)
     MARATHI_WORDS = ['आहे', 'नाही', 'आणि', 'मला', 'आपण', 'होते', 'केले', 'झाले',
                      'त्यांनी', 'म्हणाले', 'महाराष्ट्र', 'पुणे', 'मुंबई', 'नागपूर']
@@ -2230,7 +1293,6 @@ def _resolve_voice(text, voice, rate, pitch):
 
 
 def _collect_edge_tts_audio(text, voice, rate, pitch):
-    """Run edge_tts in a thread and return all audio as bytes. Raises on failure."""
     chunks = []
     error_holder = []
 
@@ -2268,8 +1330,8 @@ def _collect_edge_tts_audio(text, voice, rate, pitch):
 
 
 @epaper_bp.route("/api/epaper/tts", methods=["POST"])
+@limiter.limit("5 per minute")
 def api_tts():
-    """Server-side TTS using Microsoft Edge Neural voices."""
     data = request.get_json(silent=True) or {}
     text = data.get("text", "").strip()
     voice = data.get("voice", "")
@@ -2283,29 +1345,28 @@ def api_tts():
     text = _preprocess_tts_text(text)
     voice, rate, pitch = _resolve_voice(text, voice, rate, pitch)
 
-    ck = _tts_cache_key(text, voice, rate, pitch)
+    ck = tts_cache_key(text, voice, rate, pitch)
 
-    # Serve from cache
-    if ck in _tts_cache:
-        _tts_cache.move_to_end(ck)
-        return send_file(io.BytesIO(_tts_cache[ck]), mimetype="audio/mpeg",
+    if ck in tts_cache:
+        tts_cache.move_to_end(ck)
+        return send_file(io.BytesIO(tts_cache[ck]), mimetype="audio/mpeg",
                          as_attachment=False, download_name="tts_audio.mp3")
 
-    # Collect all audio first — ensures exceptions surface as proper JSON errors
     try:
         audio_bytes = _collect_edge_tts_audio(text, voice, rate, pitch)
     except Exception as e:
         print(f"[TTS] edge_tts failed: {e}")
         return jsonify({"error": f"TTS unavailable: {str(e)}"}), 500
 
-    _evict(_tts_cache, _TTS_CACHE_MAX)
-    _tts_cache[ck] = audio_bytes
+    evict(tts_cache, TTS_CACHE_MAX)
+    tts_cache[ck] = audio_bytes
     return send_file(io.BytesIO(audio_bytes), mimetype="audio/mpeg",
                      as_attachment=False, download_name="tts_audio.mp3")
 
 
 # ── API: Available TTS voices ───────────────────────
 @epaper_bp.route("/api/epaper/tts/voices")
+@limiter.limit("30 per minute")
 def api_tts_voices():
     return jsonify({"voices": [
         {"id": "hi-IN-MadhurNeural",  "name": "माधुर (Hindi Male)",     "lang": "hi", "gender": "male",   "style": "News Anchor"},
@@ -2318,17 +1379,15 @@ def api_tts_voices():
 
 
 # ── Re-sync: merge editions_store blob into v2 rows ──────────────────────────
-# One-time fix for editions added while legacy (vansh-dev) code was in production.
-# Safe to call multiple times — only upserts, never deletes.
 @epaper_bp.route("/api/epaper/admin/resync-editions-store", methods=["POST"])
 def api_resync_editions_store():
-    guard = _require_epaper_admin()
+    guard = require_epaper_admin()
     if guard is not None: return guard
-    if not _pg_url():
+    if not pg_url():
         return jsonify({"error": "Database not configured"}), 500
     try:
-        conn = _pg_connect()
-        _pg_ensure_table(conn)
+        conn = pg_connect()
+        pg_ensure_table(conn)
         with conn.cursor() as cur:
             cur.execute("SELECT data FROM epaper_editions_store WHERE id = 'editions'")
             row = cur.fetchone()
@@ -2342,7 +1401,6 @@ def api_resync_editions_store():
             conn.close()
             return jsonify({"error": "Unexpected data format in editions_store"}), 500
 
-        # Get existing v2 keys so we can count what's new
         with conn.cursor() as cur:
             cur.execute("SELECT edition_date, edition_language FROM epaper_editions_v2")
             existing = {(r[0], r[1]) for r in cur.fetchall()}
@@ -2350,13 +1408,13 @@ def api_resync_editions_store():
         new_count = 0
         with conn.cursor() as cur:
             for ed in blob:
-                _upsert_edition_row(cur, ed)
+                upsert_edition_row(cur, ed)
                 key = (ed.get("date", ""), ed.get("language", "Hindi"))
                 if key not in existing:
                     new_count += 1
         conn.commit()
         conn.close()
-        _invalidate_editions_cache()
+        invalidate_editions_cache()
         return jsonify({
             "synced": len(blob),
             "new": new_count,
@@ -2369,15 +1427,15 @@ def api_resync_editions_store():
 # ── Backup: list backups for an edition ───────────────
 @epaper_bp.route("/api/epaper/admin/backups")
 def api_list_backups():
-    guard = _require_epaper_admin()
+    guard = require_epaper_admin()
     if guard is not None: return guard
-    if not _pg_url():
+    if not pg_url():
         return jsonify({"backups": []})
     date = request.args.get("date", "")
     lang = request.args.get("lang", "")
     try:
-        conn = _pg_connect()
-        _pg_ensure_table(conn)
+        conn = pg_connect()
+        pg_ensure_table(conn)
         with conn.cursor() as cur:
             if date and lang:
                 cur.execute("""
@@ -2411,13 +1469,13 @@ def api_list_backups():
 # ── Backup: restore a specific backup ─────────────────
 @epaper_bp.route("/api/epaper/admin/backups/<int:backup_id>/restore", methods=["POST"])
 def api_restore_backup(backup_id):
-    guard = _require_epaper_admin()
+    guard = require_epaper_admin()
     if guard is not None: return guard
-    if not _pg_url():
+    if not pg_url():
         return jsonify({"error": "Database not configured"}), 500
     try:
-        conn = _pg_connect()
-        _pg_ensure_table(conn)
+        conn = pg_connect()
+        pg_ensure_table(conn)
         with conn.cursor() as cur:
             cur.execute("SELECT snapshot FROM epaper_edition_backups WHERE id = %s", (backup_id,))
             row = cur.fetchone()
@@ -2428,22 +1486,21 @@ def api_restore_backup(backup_id):
         if isinstance(edition, str):
             edition = json.loads(edition)
 
-        # Restore = upsert just this one edition's row in v2
         with conn.cursor() as cur:
-            _upsert_edition_row(cur, edition)
+            upsert_edition_row(cur, edition)
         conn.commit()
         conn.close()
-        _invalidate_editions_cache()
+        invalidate_editions_cache()
         return jsonify({"success": True,
                         "message": f"Edition {edition.get('date')} ({edition.get('language')}) restored successfully!"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
-# ── Diagnostics: where do editions survive across every store? (read-only) ──
+# ── Diagnostics: where do editions survive across every store? ──
 @epaper_bp.route("/api/epaper/admin/diagnostics")
 def api_epaper_diagnostics():
-    guard = _require_epaper_admin()
+    guard = require_epaper_admin()
     if guard is not None:
         return guard
 
@@ -2460,14 +1517,13 @@ def api_epaper_diagnostics():
 
     out = {}
 
-    # Postgres: v2 per-edition rows, backups table, legacy blob
-    if _pg_url():
+    if pg_url():
         try:
-            conn = _pg_connect()
-            _pg_ensure_table(conn)
+            conn = pg_connect()
+            pg_ensure_table(conn)
             with conn.cursor() as cur:
                 cur.execute("SELECT data FROM epaper_editions_v2")
-                v2 = [_row_to_edition(r[0]) for r in cur.fetchall()]
+                v2 = [row_to_edition(r[0]) for r in cur.fetchall()]
                 out["postgres_v2"] = _summary(v2)
 
                 cur.execute("""
@@ -2498,48 +1554,51 @@ def api_epaper_diagnostics():
     else:
         out["postgres"] = "not configured"
 
-    # MongoDB read-only mirror
     try:
-        out["mongodb"] = _summary(_load_editions_from_mongo())
+        out["mongodb"] = _summary(load_editions_from_mongo())
     except Exception as e:
         out["mongo_error"] = str(e)
 
-    # Local file fallback (bundled/ephemeral)
+    r = get_redis()
+    if not r:
+        out["redis"] = "not configured (set UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN)"
+    else:
+        try:
+            r.set("ep:diag", "ok", ex=30)
+            out["redis"] = "reachable"
+        except Exception as e:
+            out["redis"] = f"configured but unreachable: {e}"
+
     try:
-        out["local_file"] = _summary(_load_editions_from_file())
+        out["local_file"] = _summary(load_editions_from_file())
     except Exception as e:
         out["file_error"] = str(e)
 
-    # What the site actually shows after merging everything
     try:
-        out["what_site_shows"] = _summary(_load_editions())
+        out["what_site_shows"] = _summary(load_editions())
     except Exception as e:
         out["merge_error"] = str(e)
 
     return jsonify(out)
 
 
-# ── Recovery: restore every edition that exists in backups but is missing from
-# the live v2 store (safe & idempotent — only ADDS missing editions, never
-# deletes or overwrites what's already live). ──
+# ── Recovery: restore every missing edition from backups ──
 @epaper_bp.route("/api/epaper/admin/restore-all-missing", methods=["POST"])
 def api_restore_all_missing():
-    guard = _require_epaper_admin()
+    guard = require_epaper_admin()
     if guard is not None:
         return guard
-    if not _pg_url():
+    if not pg_url():
         return jsonify({"error": "Database not configured."}), 500
 
     conn = None
     try:
-        conn = _pg_connect()
-        _pg_ensure_table(conn)
+        conn = pg_connect()
+        pg_ensure_table(conn)
         with conn.cursor() as cur:
-            # (date, language) pairs already live in v2
             cur.execute("SELECT edition_date, edition_language FROM epaper_editions_v2")
             live = {(r[0], r[1]) for r in cur.fetchall()}
 
-            # Latest backup snapshot per (date, language)
             cur.execute("""
                 SELECT DISTINCT ON (edition_date, edition_language)
                        edition_date, edition_language, snapshot
@@ -2551,13 +1610,13 @@ def api_restore_all_missing():
             restored = []
             for date, lang, snap in rows:
                 if (date, lang) in live:
-                    continue  # already present — never overwrite live data
+                    continue
                 edition = snap if not isinstance(snap, str) else json.loads(snap)
-                _upsert_edition_row(cur, edition)
+                upsert_edition_row(cur, edition)
                 restored.append(f"{date} ({lang})")
         conn.commit()
         conn.close()
-        _invalidate_editions_cache()
+        invalidate_editions_cache()
         return jsonify({
             "success": True,
             "restored_count": len(restored),
@@ -2572,10 +1631,10 @@ def api_restore_all_missing():
 
 @epaper_bp.route("/api/supabase/keepalive")
 def api_supabase_keepalive():
-    if not _pg_url():
+    if not pg_url():
         return jsonify({"error": "Database not configured."}), 500
     try:
-        conn = _pg_connect()
+        conn = pg_connect()
         with conn.cursor() as cur:
             cur.execute("SELECT COUNT(*) FROM epaper_editions_store")
             count = cur.fetchone()[0]

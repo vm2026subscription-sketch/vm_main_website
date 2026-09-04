@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"></noscript>
-  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.min.css') }}">
   <style>
     /* ── Profile + Saved Colleges (added) ── */
     .dash-profile-card {
@@ -206,7 +206,7 @@
           <i class="fa fa-arrow-right dac-arrow"></i>
         </a>
 
-        <a href="{{ url_for('cutoffs') }}" class="dash-action-card" style="--accent: #ef4444;">
+        <a href="https://cutoff.vidyarthimitra.org/" target="_blank" rel="noopener" class="dash-action-card" style="--accent: #ef4444;">
           <div class="dac-icon"><i class="fa fa-chart-bar"></i></div>
           <div class="dac-content">
             <h3>Cut-offs</h3>

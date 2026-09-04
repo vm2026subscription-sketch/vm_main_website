@@ -39,6 +39,53 @@
     transition: color 0.2s ease;
   }
   .vm-nav-topbar a:hover { color: #ff6600; }
+  .vm-nav-topbar .vm-whatsapp-broadcast {
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0;
+    padding: 6px 12px;
+    border: 1px solid #b7eac8;
+    border-radius: 999px;
+    background: #f6fff8;
+    color: #153b2a !important;
+    white-space: nowrap;
+    font-size: 11px;
+    line-height: 1;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
+    transition: background-color 0.2s ease, border-color 0.2s ease,
+      box-shadow 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  }
+  .vm-nav-topbar .vm-whatsapp-broadcast:visited {
+    color: #153b2a !important;
+    text-decoration: none;
+  }
+  .vm-nav-topbar .vm-whatsapp-broadcast:hover {
+    border-color: #25d366;
+    background: #e9fff0;
+    color: #0f2d20 !important;
+    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.24);
+    transform: translateY(-1px);
+  }
+  .vm-nav-topbar .vm-whatsapp-broadcast:focus-visible {
+    outline: 3px solid rgba(37, 211, 102, 0.42);
+    outline-offset: 2px;
+    color: #153b2a !important;
+    text-decoration: none;
+  }
+  .vm-nav-topbar .vm-whatsapp-broadcast i {
+    color: #25d366;
+    font-size: 15px;
+    line-height: 1;
+  }
+  .vm-nav-topbar .vm-whatsapp-broadcast .vm-whatsapp-arrow {
+    color: #153b2a;
+    font-size: 10px;
+  }
+  .vm-whatsapp-label-short {
+    display: none;
+  }
   .vm-nav-right {
     font-weight: 700;
     letter-spacing: 0.5px;
@@ -627,13 +674,24 @@
 <!-- ── TOP BAR ── -->
 <div class="vm-nav-topbar">
   <div class="vm-nav-inner">
-    <div>
-      <a href="{{ url_for('blog') }}">Blog</a>
-      <a href="{{ 'https://' + 'epaper.vidyarthimitra.org' if not epaper_subdomain else '/' }}">E-Paper</a>
+      <div class="vm-nav-links">
+        <a href="{{ url_for('blog') }}">Blog</a>
+        <a href="{{ 'https://' + 'epaper.vidyarthimitra.org' if not epaper_subdomain else '/' }}">E-Paper</a>
+      </div>
+      <div class="vm-nav-right">विद्यार्थी मित्र<span style="color:#ff6600;">.org</span></div>
+      <a class="vm-whatsapp-broadcast" href="{{ WHATSAPP_BROADCAST_URL }}" target="_blank" rel="noopener noreferrer" aria-label="Join WhatsApp Broadcast">
+        <i class="fab fa-whatsapp" aria-hidden="true"></i>
+        <span class="vm-whatsapp-label-full">WhatsApp Broadcast</span>
+        <span class="vm-whatsapp-label-short" aria-hidden="true">Broadcast</span>
+        <i class="fa fa-arrow-right vm-whatsapp-arrow" aria-hidden="true"></i>
+      </a>
     </div>
-    <div class="vm-nav-right">विद्यार्थी मित्र<span style="color:#ff6600;">.org</span></div>
   </div>
-</div>
+
+<script>
+  // Centralized WhatsApp broadcast URL (single source of truth: app.py)
+  const WHATSAPP_BROADCAST_URL = "{{ WHATSAPP_BROADCAST_URL }}";
+</script>
 
 <!-- ── MAIN NAVIGATION HEADER ── -->
 <header class="vm-main-header">
@@ -669,7 +727,7 @@
           <a href="{{ url_for('exams') }}">Entrance Exams</a>
           <a href="{{ url_for('exam_updates') }}">Exam Updates</a>
           <a href="{{ url_for('mock_exams') }}">Mock Exams</a>
-          <a href="{{ url_for('cutoffs') }}" style="opacity:.6;pointer-events:none;">Cut-offs <span style="background:#ff6600;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:4px;vertical-align:middle;">SOON</span></a>
+          <a href="https://cutoff.vidyarthimitra.org/" target="_blank" rel="noopener">Cut-offs</a>
           <a href="{{ url_for('fyjc_rank') }}">FYJC Rank Predictor</a>
         </div>
       </div>
@@ -740,7 +798,7 @@
 
     var searchItems = [
       { keywords: ['fyjc', 'rank', 'predictor', 'fyjc rank', 'rank predictor', 'junior college', '11th admission'], url: '{{ url_for("fyjc_rank") }}', label: 'FYJC Rank Predictor' },
-      { keywords: ['cutoff', 'cut-off', 'cut off', 'cutoffs', 'merit list', 'marks'], url: '{{ url_for("cutoffs") }}', label: 'College Cut-offs (Coming Soon)' },
+      { keywords: ['cutoff', 'cut-off', 'cut off', 'cutoffs', 'merit list', 'marks'], url: 'https://cutoff.vidyarthimitra.org/', label: 'College Cut-offs' },
       { keywords: ['admission', 'admissions', 'dte', 'cap', 'counselling', 'process'], url: '{{ url_for("admissions") }}', label: 'Admissions & CAP Process' },
       { keywords: ['university', 'universities', 'institutions', 'campus'], url: '{{ url_for("universities") }}', label: 'Explore Universities' },
       { keywords: ['college', 'colleges', 'institute', 'institutes'], url: '{{ url_for("colleges") }}', label: 'Explore Colleges' },

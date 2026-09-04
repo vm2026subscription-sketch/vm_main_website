@@ -6,6 +6,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
   <meta name="description" content="{{ og_description }}"/>
   <link rel="canonical" href="{{ og_url }}"/>
+  {# ── Hreflang for language variants ── #}
+  {% if initial_language %}
+    {% if initial_date %}
+      <link rel="alternate" hreflang="hi" href="{{ og_url.replace('/english/' ~ initial_date, '/hindi/' ~ initial_date).replace('/marathi/' ~ initial_date, '/hindi/' ~ initial_date) }}">
+      <link rel="alternate" hreflang="en" href="{{ og_url.replace('/hindi/' ~ initial_date, '/english/' ~ initial_date).replace('/marathi/' ~ initial_date, '/english/' ~ initial_date) }}">
+      <link rel="alternate" hreflang="mr" href="{{ og_url.replace('/hindi/' ~ initial_date, '/marathi/' ~ initial_date).replace('/english/' ~ initial_date, '/marathi/' ~ initial_date) }}">
+    {% else %}
+      <link rel="alternate" hreflang="hi" href="{{ og_url.replace('/english', '/hindi').replace('/marathi', '/hindi') }}">
+      <link rel="alternate" hreflang="en" href="{{ og_url.replace('/hindi', '/english').replace('/marathi', '/english') }}">
+      <link rel="alternate" hreflang="mr" href="{{ og_url.replace('/hindi', '/marathi').replace('/english', '/marathi') }}">
+    {% endif %}
+    <link rel="alternate" hreflang="x-default" href="{{ og_url }}">
+  {% endif %}
   <meta property="og:site_name" content="Vidyarthi Mitra"/>
   <meta property="og:title" content="{{ og_title }}"/>
   <meta property="og:description" content="{{ og_description }}"/>
@@ -19,8 +32,9 @@
   {% endif %}
   <meta property="og:image:alt" content="{{ og_image_alt }}"/>
   <meta property="og:url" content="{{ og_url }}"/>
-  <meta property="og:type" content="website"/>
+  <meta property="og:type" content="{{ 'article' if initial_date else 'website' }}"/>
   <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:site" content="@VidyarthiMitra"/>
   <meta name="twitter:title" content="{{ og_title }}"/>
   <meta name="twitter:description" content="{{ og_description }}"/>
   <meta name="twitter:image" content="{{ og_image }}"/>
@@ -28,9 +42,9 @@
   <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"></noscript>
-  <link rel="stylesheet" href="{{ url_for('static', filename='epaper-viewer.css', v='20260801-views-badge-inline') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='epaper-viewer.css', v='20260705-calendar-editions-only') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='epaper-landing-light.css', v='17') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='epaper-viewer.min.css', v='20260827-min') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='epaper-landing-light.min.css', v='min1') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='epaper-whatsapp.css', v='1') }}">
   <style>
     .ep-views-badge {
       display: inline-flex;
@@ -58,11 +72,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='title.png') }}">
 
-  {% if initial_edition_json %}
-  <script type="application/json" id="__epInitialEdition__">{{ initial_edition_json|safe }}</script>
-  {% endif %}
-
-  <!-- Schema.org -->
+  <!-- Schema.org: WebSite -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -76,6 +86,24 @@
     }
   }
   </script>
+
+  <!-- Schema.org: BreadcrumbList -->
+  {% if initial_language %}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.vidyarthimitra.org" },
+      { "@type": "ListItem", "position": 2, "name": "ePaper", "item": "https://epaper.vidyarthimitra.org/epaper" },
+      { "@type": "ListItem", "position": 3, "name": "{{ initial_language|capitalize }}", "item": "{{ og_url }}" }
+      {% if initial_date %},
+        { "@type": "ListItem", "position": 4, "name": "{{ initial_date }}" }
+      {% endif %}
+    ]
+  }
+  </script>
+  {% endif %}
 </head>
 <body class="epaper-body" data-epaper-mode="{{ 'edition' if initial_date else 'landing' }}" data-initial-language="{{ initial_language or '' }}">
   {% include '_shared_index_navbar.html' %}
@@ -171,16 +199,13 @@
             <input type="search" id="epEditionSearch" placeholder="Search edition (e.g. 135)" oninput="EP.searchEditions(this.value)" aria-label="Search editions by number" autocomplete="off">
           </div>
         </div>
-        <p class="ep-edition-hint">Choose your preferred language to read today's newspaper.</p>
+        <p class="ep-edition-hint">Choose your preferred language or edition type to read today's newspaper.</p>
         <div class="ep-edition-grid" id="epEditionGrid">
           <div class="ep-edition-card-skeleton"></div>
           <div class="ep-edition-card-skeleton"></div>
           <div class="ep-edition-card-skeleton"></div>
           <div class="ep-edition-card-skeleton"></div>
         </div>
-        <!-- Advertisements: EVERY live ad uploaded from ePaper admin → Ads,
-             stacked in priority order so none is skipped. -->
-        <div class="vm-ad-slot ep-ad-compact" data-position="all" data-limit="all" data-dedupe="false"></div>
       </section>
       <div class="ep-paper" id="epPaper">
         <div class="ep-masthead">
@@ -192,8 +217,28 @@
         <!-- Page Viewer -->
         <div class="ep-viewer paper-viewer-container" id="epViewer">
           <div class="ep-page-container" id="epPageContainer">
-            <img class="ep-page-img" id="epPageImg" src="" alt="E-Paper Page" draggable="false">
+            <img class="ep-page-img" id="epPageImg" src="" alt="E-Paper Page" draggable="false" loading="lazy" decoding="async">
             <div id="epHotspots" style="position:absolute;inset:0;"></div>
+          </div>
+
+          <!-- ── 3D Page Turn Stage ── -->
+          <div class="ep-3d-flip-stage" id="ep3DFlipStage" style="display:none;" aria-hidden="true">
+            <div class="ep-3d-under-page" id="ep3DUnderPage">
+              <img class="ep-3d-under-img" id="ep3DUnderImg" src="" alt="" draggable="false">
+              <div class="ep-3d-under-shadow" id="ep3DUnderShadow"></div>
+            </div>
+            <div class="ep-3d-turning-page" id="ep3DTurningPage">
+              <div class="ep-3d-page-face ep-3d-page-front" id="ep3DPageFront">
+                <img class="ep-3d-face-img ep-3d-front-img" id="ep3DFrontImg" src="" alt="" draggable="false">
+                <div class="ep-3d-spine-shadow"></div>
+                <div class="ep-3d-lift-shadow" id="ep3DFrontShadow"></div>
+              </div>
+              <div class="ep-3d-page-face ep-3d-page-back" id="ep3DPageBack">
+                <img class="ep-3d-face-img ep-3d-back-img" id="ep3DBackImg" src="" alt="" draggable="false">
+                <div class="ep-3d-spine-shadow"></div>
+                <div class="ep-3d-lift-shadow" id="ep3DBackShadow"></div>
+              </div>
+            </div>
           </div>
 
           <!-- Empty state -->
@@ -204,10 +249,6 @@
             <p style="color:#9ca3af;font-size:13px;line-height:1.7;margin-top:6px;">No E-Paper is available for this date.<br>Please select another date from the calendar.</p>
           </div>
         </div>
-
-        <!-- Advertisements while reading an edition. The landing slot above is
-             hidden in edition mode, so this one carries the same full set. -->
-        <div class="vm-ad-slot ep-ad-compact ep-ad-reader" data-position="all" data-limit="all" data-dedupe="false"></div>
 
         <div class="ep-paper-footer">
           <div class="ep-footer-dots" aria-hidden="true">
@@ -421,7 +462,7 @@
       <div class="ep-article-category" id="epArtCategory">News</div>
       <h1 class="ep-article-title" id="epArtTitle"></h1>
       <div class="ep-article-date" id="epArtDate"></div>
-      <img class="ep-article-img" id="epArtImg" src="" alt="" style="display:none">
+      <img class="ep-article-img" id="epArtImg" src="" alt="" style="display:none" loading="lazy" decoding="async">
       <div class="ep-article-text" id="epArtText"></div>
     </div>
   </div>
@@ -442,7 +483,7 @@
   <!-- ── Toast ── -->
   <div class="ep-toast" id="epToast"></div>
 
-  <script src="{{ url_for('static', filename='epaper-viewer.js', v='20260731-readcta') }}"></script>
+  <script src="{{ url_for('static', filename='epaper-viewer.js', v='20260825-3dflip') }}"></script>
 
   <!-- PWA Service Worker -->
   <script>
@@ -460,6 +501,5 @@
         .catch(function () {});
     }
   </script>
-  {% include '_ads_assets.html' %}
 </body>
 </html>

@@ -2,16 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ og_title }}</title>
   <link rel="canonical" href="{{ canonical_url }}">
+  <meta name="description" content="{{ og_description }}">
+  <meta name="robots" content="noindex, follow">
 
   <!-- Rich link preview: shows the front page of the latest edition -->
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Vidyarthi Mitra ePaper">
   <meta property="og:title" content="{{ og_title }}">
   <meta property="og:description" content="{{ og_description }}">
-  <meta property="og:url" content="{{ og_url }}">
+  <meta property="og:url" content="{{ canonical_url }}">
   <meta property="og:image" content="{{ og_image }}">
   <meta property="og:image:secure_url" content="{{ og_image }}">
   <meta property="og:image:type" content="{{ og_image_type }}">
@@ -20,9 +22,16 @@
   <meta property="og:image:alt" content="{{ og_title }}">
 
   <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@VidyarthiMitra">
   <meta name="twitter:title" content="{{ og_title }}">
   <meta name="twitter:description" content="{{ og_description }}">
   <meta name="twitter:image" content="{{ og_image }}">
+
+  {# ── Hreflang ── #}
+  <link rel="alternate" hreflang="hi" href="{{ canonical_url.replace('/english', '/hindi').replace('/marathi', '/hindi') }}">
+  <link rel="alternate" hreflang="en" href="{{ canonical_url.replace('/hindi', '/english').replace('/marathi', '/english') }}">
+  <link rel="alternate" hreflang="mr" href="{{ canonical_url.replace('/hindi', '/marathi').replace('/english', '/marathi') }}">
+  <link rel="alternate" hreflang="x-default" href="{{ canonical_url }}">
 
   <!-- Forward real visitors to the reader immediately (crawlers read the tags above) -->
   <meta http-equiv="refresh" content="0; url={{ reader_url }}">

@@ -19,6 +19,7 @@ from datetime import datetime, date
 
 from flask import Blueprint, jsonify, render_template, request, redirect, session
 from werkzeug.utils import secure_filename
+from app import limiter
 
 # Reuse ePaper's DB + auth helpers so ads share the same infra and admin login.
 try:
@@ -676,6 +677,7 @@ def _clean_payload(data):
 # ══════════════════════════════════════════════════════════════
 
 @ads_bp.route("/api/v1/ads")
+@limiter.limit("60 per minute")
 def api_list_ads():
     """Return only ACTIVE ads whose current date is within [start,end], sorted by
     priority (highest first).
@@ -705,6 +707,7 @@ def api_list_ads():
 
 
 @ads_bp.route("/api/v1/ads/<int:ad_id>/impression", methods=["POST"])
+@limiter.limit("30 per minute")
 def api_track_impression(ad_id):
     """Fire when an ad is actually shown on screen. Increments impressions and
     updates last_displayed timestamp."""
@@ -733,6 +736,7 @@ def api_track_impression(ad_id):
 
 
 @ads_bp.route("/api/v1/ads/<int:ad_id>/click")
+@limiter.limit("30 per minute")
 def api_track_click(ad_id):
     """Increment click count, then 302-redirect to the ad's target URL.
     Works for both a website <a href> and a mobile app openURL()."""
@@ -1236,6 +1240,7 @@ def _toggle_position(pid):
 
 
 @ads_bp.route("/api/v1/positions")
+@limiter.limit("60 per minute")
 def api_list_positions():
     """Public: list positions (used by the ad form + optionally the app).
     ?platform=website|mobile|both  ?active=1 (only active)."""
