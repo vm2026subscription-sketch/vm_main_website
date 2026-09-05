@@ -286,6 +286,80 @@ const EP = {
     }
   },
 
+  // Reader images need enough source pixels for their zoomed size and screen DPR.
+  // Keep the card/thumbnail presets separate from this text-quality preset.
+  pageImageUrl(url, width) {
+    try {
+      const parsed = new URL(url);
+      if (!parsed.hostname.endsWith('.cloudinary.com') ||
+          !parsed.pathname.includes('/image/upload/') || /\.pdf$/i.test(parsed.pathname)) return url;
+      parsed.pathname = parsed.pathname.replace(
+        /\/image\/upload\/(?:(?:f_|q_|w_|h_|c_|g_|dpr_)[^/]+\/)+/,
+        '/image/upload/'
+      ).replace('/image/upload/', `/image/upload/c_limit,w_${width}/f_auto/q_auto:best/`);
+      return parsed.href;
+    } catch (_) {
+      return url;
+    }
+  },
+
+  resetPageImageQuality() {
+    clearTimeout(this._pageQualityTimer);
+    (this._pageQualityImages || []).forEach(state => {
+      if (state.pending) {
+        state.pending.onload = state.pending.onerror = null;
+        state.pending.removeAttribute('src');
+      }
+    });
+    this._pageQualityImages = [];
+  },
+
+  trackPageImage(element, source, width, background = false) {
+    if (!element || !source || this.pageImageUrl(source, width) === source) return;
+    this._pageQualityImages.push({ element, source, width, background });
+  },
+
+  schedulePageImageQuality() {
+    clearTimeout(this._pageQualityTimer);
+    this._pageQualityTimer = setTimeout(() => this.updatePageImageQuality(), 150);
+  },
+
+  updatePageImageQuality() {
+    if (!this.isEditionOpen) return;
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    (this._pageQualityImages || []).forEach(state => {
+      if (state.pending || !state.element.isConnected) return;
+      const rect = state.element.getBoundingClientRect();
+      if (!rect.width || rect.bottom < 0 || rect.top > window.innerHeight ||
+          rect.right < 0 || rect.left > window.innerWidth) return;
+      // Bounded, shared sizes avoid a new CDN variant on every pinch movement.
+      const width = [400, 800, 1200, 1600, 2400, 3200, 4096].find(w => w >= rect.width * dpr) || 4096;
+      if (width <= state.width || width <= (state.failedWidth || 0)) return;
+      const url = this.pageImageUrl(state.source, width);
+      const image = new Image();
+      state.pending = image;
+      image.onload = () => {
+        state.pending = null;
+        if (!this._pageQualityImages.includes(state)) return;
+        state.width = width;
+        if (state.background) {
+          state.element.style.backgroundImage = `url("${url}")`;
+        } else {
+          // Upgrading a scan must not trigger the initial fit/scroll reset.
+          state.element.dataset.qualityUpgrade = 'true';
+          state.element.src = url;
+        }
+        this.schedulePageImageQuality();
+      };
+      image.onerror = () => {
+        state.pending = null;
+        state.failedWidth = width;
+        // Keep the already-visible image when a CDN variant is unavailable.
+      };
+      image.src = url;
+    });
+  },
+
   invalidateEditionCache(date = '') {
     delete this._apiCache['/api/epaper/latest'];
     delete this._apiCache['/api/epaper/editions'];
@@ -546,7 +620,12 @@ const EP = {
       this.scheduleFitToWidth();
     });
 
-    this.el.pageImg?.addEventListener('load', () => this.scheduleFitToWidth());
+    this.el.pageImg?.addEventListener('load', () => {
+      if (this.el.pageImg.dataset.qualityUpgrade === 'true') return;
+      this.scheduleFitToWidth();
+    });
+    window.addEventListener('scroll', () => this.schedulePageImageQuality(), { passive: true });
+    this.el.viewer?.addEventListener('scroll', () => this.schedulePageImageQuality(), { passive: true });
 
     // Reset zoom when navigating away
     window.addEventListener('pagehide', () => {
@@ -1669,6 +1748,8 @@ const EP = {
   },
 
   renderPageDirect(num) {
+    this.resetPageImageQuality();
+    if (this.el.pageImg) delete this.el.pageImg.dataset.qualityUpgrade;
     this.currentPage = Math.max(1, Math.min(num, this.totalPages));
     this.panOffset = { x: 0, y: 0 };
     this._resetPageScroll();
@@ -1685,7 +1766,9 @@ const EP = {
     // Check if page uses new block format
     if (page.blocks && page.blocks.length > 0) {
       if (this.el.pageContainer) this.el.pageContainer.style.display = 'none';
-      this.renderBlockGrid(page.blocks, viewer, this.optimizeCloudinaryUrl(page.page_image_url || page.image_path || '', 800));
+      const source = page.page_image_url || page.image_path || '';
+      this.renderBlockGrid(page.blocks, viewer, this.pageImageUrl(source, 800));
+      this.trackPageImage(document.querySelector('#epBlockGrid .ep-canvas-viewer'), source, 800, true);
     } else if (page.page_image_url) {
       const isPdf = page.page_image_url.toLowerCase().endsWith('.pdf');
       if (this.el.pageContainer) this.el.pageContainer.style.display = '';
@@ -1707,7 +1790,8 @@ const EP = {
         if (pdfFrame) pdfFrame.style.display = 'none';
         if (this.el.pageImg) {
           this.el.pageImg.style.display = 'block';
-          this.el.pageImg.src = this.optimizeCloudinaryUrl(page.page_image_url, 800);
+          this.el.pageImg.src = this.pageImageUrl(page.page_image_url, 800);
+          this.trackPageImage(this.el.pageImg, page.page_image_url, 800);
           if (this.el.pageImg.complete) this.scheduleFitToWidth();
         }
         if (this.el.hotspotsLayer) this.el.hotspotsLayer.style.display = 'block';
@@ -2068,8 +2152,8 @@ const EP = {
         video_url: block.video_url || block.video || '',
       }) - 1;
 
-      // Optimize Cloudinary images: smaller width for card thumbnails
-      const imgSrc = hasImg ? this.optimizeCloudinaryUrl(block.image_url, 400) : '';
+      // Start block images small; visible blocks gain detail as the reader zooms.
+      const imgSrc = hasImg ? this.pageImageUrl(block.image_url, 400) : '';
       const clickHandler = gotoPage
         ? `onclick="EP.showPage(${gotoPage}, true)" title="Go to page ${gotoPage}"`
         : `onclick="EP.openArticle(${articleIndex})" title="${block.headline || ''}"`;
@@ -2082,6 +2166,11 @@ const EP = {
     }).join('')}
       </div>
     `;
+    const imageBlocks = blocks.filter(block => this.getBlockType(block) !== 'divider' &&
+      this.getBlockType(block) !== 'shape' && block.image_url && block.image_url.length > 10);
+    grid.querySelectorAll('.ep-block-img').forEach((image, index) => {
+      this.trackPageImage(image, imageBlocks[index].image_url, 400);
+    });
   },
 
   // ── Hotspots (Legacy) ──
@@ -2184,6 +2273,7 @@ const EP = {
       if (this.zoom <= fitLevel + 0.05) {
         this.fitToWidth();
       }
+      this.schedulePageImageQuality();
     }, 150);
   },
 
@@ -2335,6 +2425,7 @@ const EP = {
       container.style.width = targetWidth;
       container.style.maxWidth = 'none';
     }
+    this.schedulePageImageQuality();
   },
 
   toggleFullscreen() {
