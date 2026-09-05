@@ -1,3 +1,20 @@
+<script>
+  /* Apply saved/system theme BEFORE first paint to avoid flash (FOUC). */
+  (function () {
+    function currentTheme() {
+      try {
+        var saved = localStorage.getItem('theme');
+        if (saved === 'light' || saved === 'dark') return saved;
+      } catch (e) {}
+      return (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches)
+        ? 'light' : 'dark';
+    }
+    if (document.body) {
+      document.body.classList.toggle('light-mode', currentTheme() === 'light');
+    }
+  })();
+</script>
+
 <style>
   /* ── TOP BAR ── */
   .vm-nav-topbar {
@@ -1071,41 +1088,51 @@
 </style>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
+  function initThemeToggle() {
     var themeToggle = document.getElementById('themeToggle');
-    if (themeToggle) {
-      // Load preference
-      if (localStorage.getItem('theme') === 'light') {
-        document.body.classList.add('light-mode');
-        themeToggle.innerHTML = '<i class="fa fa-moon-o fa-moon"></i>';
-      } else {
-        themeToggle.innerHTML = '<i class="fa fa-sun-o fa-sun"></i>';
-      }
-      
-      themeToggle.addEventListener('click', function() {
-        document.body.classList.toggle('light-mode');
-        var isLight = document.body.classList.contains('light-mode');
-        if (isLight) {
-          localStorage.setItem('theme', 'light');
-          themeToggle.innerHTML = '<i class="fa fa-moon-o fa-moon"></i>';
-        } else {
-          localStorage.setItem('theme', 'dark');
-          themeToggle.innerHTML = '<i class="fa fa-sun-o fa-sun"></i>';
-        }
+    if (!themeToggle) return;
 
-        // Notify chatbot iframe
-        var chatFrame = document.getElementById('vmChatFrame');
-        if (chatFrame && chatFrame.contentWindow) {
-          try {
-            chatFrame.contentWindow.postMessage({
-              type: 'theme-change',
-              theme: isLight ? 'light' : 'dark'
-            }, '*');
-          } catch (e) {}
-        }
-      });
+    function syncIcon() {
+      var isLight = document.body.classList.contains('light-mode');
+      themeToggle.innerHTML = isLight
+        ? '<i class="fa fa-moon-o fa-moon"></i>'
+        : '<i class="fa fa-sun-o fa-sun"></i>';
     }
-  });
+
+    function notifyChat(isLight) {
+      var chatFrame = document.getElementById('vmChatFrame');
+      if (chatFrame && chatFrame.contentWindow) {
+        try {
+          chatFrame.contentWindow.postMessage({
+            type: 'theme-change',
+            theme: isLight ? 'light' : 'dark'
+          }, '*');
+        } catch (e) {}
+      }
+    }
+
+    syncIcon();
+
+    themeToggle.addEventListener('click', function() {
+      var isLight = document.body.classList.toggle('light-mode');
+      try {
+        localStorage.setItem('theme', isLight ? 'light' : 'dark');
+      } catch (e) {}
+      syncIcon();
+      notifyChat(isLight);
+    });
+
+    // Keep current tab in sync when the theme changes in another tab.
+    window.addEventListener('storage', function(e) {
+      if (e.key === 'theme') {
+        document.body.classList.toggle('light-mode', e.newValue === 'light');
+        syncIcon();
+        notifyChat(e.newValue === 'light');
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', initThemeToggle);
 </script>
 
 <script>

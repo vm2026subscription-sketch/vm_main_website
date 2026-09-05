@@ -361,7 +361,7 @@ def allowed_upload(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_UPLOAD_EXTENSIONS
 
 
-def compress_image_bytes(file_bytes, filename, max_width=1600, quality=85):
+def compress_image_bytes(file_bytes, filename, max_width=2800, quality=92):
     """Resize to max_width and convert to JPEG."""
     try:
         from PIL import Image

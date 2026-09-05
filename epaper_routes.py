@@ -368,7 +368,7 @@ def api_upload_epaper_image():
             pdf_bytes = image.read()
             doc = fitz.open(stream=pdf_bytes, filetype="pdf")
             pg = doc[0]
-            mat = fitz.Matrix(2.0, 2.0)
+            mat = fitz.Matrix(3.5, 3.5)
             pix = pg.get_pixmap(matrix=mat)
             doc.close()
             filename = f"{stem[:48]}-{ts}.png"
@@ -424,13 +424,13 @@ def api_pdf_url_to_pages():
     except Exception as e:
         return jsonify({"error": f"Could not fetch/open PDF: {e}"}), 400
 
-    dpi = 120
+    dpi = 300
     mat = fitz.Matrix(dpi / 72, dpi / 72)
     ts = datetime.now().strftime("%Y%m%d%H%M%S")
     pages_data = []
     for i, page in enumerate(doc):
         pix = page.get_pixmap(matrix=mat, alpha=False)
-        img_bytes = pix.tobytes("jpeg", jpg_quality=88)
+        img_bytes = pix.tobytes("jpeg", jpg_quality=92)
         pages_data.append((i, img_bytes, f"pdf_page_{ts}_{i+1}.jpg"))
     doc.close()
 
@@ -474,7 +474,7 @@ def api_pdf_to_pages():
     except Exception as e:
         return jsonify({"error": f"Could not open PDF: {e}"}), 400
 
-    dpi = 120
+    dpi = 300
     mat = fitz.Matrix(dpi / 72, dpi / 72)
 
     use_tmp = not os.path.exists(EPAPER_UPLOAD_DIR)
@@ -488,7 +488,7 @@ def api_pdf_to_pages():
     pages_data = []
     for i, page in enumerate(doc):
         pix = page.get_pixmap(matrix=mat, alpha=False)
-        img_bytes = pix.tobytes("jpeg", jpg_quality=88)
+        img_bytes = pix.tobytes("jpeg", jpg_quality=92)
         pages_data.append((i, img_bytes, f"pdf_page_{ts}_{i+1}.jpg"))
     doc.close()
 

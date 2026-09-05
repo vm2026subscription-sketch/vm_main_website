@@ -3481,7 +3481,7 @@ def cutoffs():
         request.headers.get('X-Forwarded-Host') or request.host or ''
     ).lower().split(':')[0]
     # Cut-offs now lives on its own subdomain. Redirect main-site visits there.
-    if host != _CUTOFF_HOST:
+    if host != _CUTOFF_HOST and host not in ('127.0.0.1', 'localhost', '0.0.0.0'):
         return redirect('https://cutoff.vidyarthimitra.org/', 301)
     exam_cat = request.args.get("exam", "engineering").lower()
     branches, categories, genders, _ = get_cutoff_options()

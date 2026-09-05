@@ -70,7 +70,32 @@
       text-decoration: none;
     }
     .btn-secondary:hover { border-color: rgba(255,255,255,.3); color: #e2e8f0; }
+
+    body.light-mode {
+      background: #f8fafc;
+      color: #0f172a;
+    }
+    body.light-mode h1 { color: #0f172a; }
+    body.light-mode p { color: #475569; }
+    body.light-mode .btn-secondary { color: #475569; border-color: #cbd5e1; }
+    body.light-mode .btn-secondary:hover { border-color: #94a3b8; color: #0f172a; }
   </style>
+  <script>
+    (function () {
+      function applyTheme() {
+        try {
+          var saved = localStorage.getItem('theme');
+          var light = saved === 'light' || (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches);
+          document.body.classList.toggle('light-mode', !!light);
+        } catch (e) {}
+      }
+      if (document.body) {
+        applyTheme();
+      } else {
+        document.addEventListener('DOMContentLoaded', applyTheme);
+      }
+    })();
+  </script>
 </head>
 <body>
   <a href="/" class="logo">
