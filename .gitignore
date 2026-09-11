@@ -52,3 +52,5 @@ data/stories.json
 
 # Weekly DB backups (large JSON files)
 backups/
+.vercel
+.env*
