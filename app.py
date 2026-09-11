@@ -102,6 +102,10 @@ if _sentry_dsn:
 # (require_admin / _require_epaper_admin). CSRF tokens are only enforced on
 # HTML form submissions (login, register) via the admin_login.html hidden field.
 csrf = CSRFProtect(app)
+# Relax the SSL referrer/origin check: behind CDN/proxy (Vercel) the Host header
+# seen by the app can differ from the browser's Referer (e.g. www vs apex).
+# The per-session CSRF token is still validated, so CSRF protection is intact.
+app.config["WTF_CSRF_SSL_STRICT"] = False
 redis_url = os.environ.get("RATELIMIT_STORAGE_URL", os.environ.get("REDIS_URL"))
 limiter = Limiter(
     get_remote_address,
