@@ -933,10 +933,18 @@
                 button.innerText = "Submitting...";
                 button.disabled = true;
 
-                await fetch("{{ url_for('subscribe') }}", {
+                const res = await fetch("{{ url_for('subscribe') }}", {
                     method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": "{{ csrf_token() }}"
+                    },
                     body: JSON.stringify(formData)
                 });
+
+                if (!res.ok) {
+                    throw new Error("Subscribe failed");
+                }
 
                 // Show success message
                 button.innerText = "Subscribed";
