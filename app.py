@@ -4776,7 +4776,9 @@ def guide_me():
         try:
             _send_notification_email(
                 subject=f"New Guide Me Request from {entry['name']}",
-                body=f"Name: {entry['name']}\nWhatsApp: {entry['whatsapp']}\nEmail: {entry['email']}\nAddress: {entry['address']}\nRequirement: {entry['requirement']}\n\nDetails:\n{entry['details']}"
+                body=f"Name: {entry['name']}\nWhatsApp: {entry['whatsapp']}\nEmail: {entry['email']}\nAddress: {entry['address']}\nRequirement: {entry['requirement']}\n\nDetails:\n{entry['details']}",
+                to_email=os.getenv("ADMIN_EMAIL", ""),
+                reply_to=entry['email'],
             )
         except Exception:
             pass
