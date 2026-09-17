@@ -2140,7 +2140,7 @@ COLLEGES_DATA = [
         "stream": "Engineering",
         "nirf": "73",
         "logo_url": "/static/logo.png",
-        "source_url": "https://www.coep.org.in",
+        "source_url": "https://coeptech.ac.in",
     },
     {
         "name": "VJTI Mumbai",
@@ -2180,7 +2180,7 @@ COLLEGES_DATA = [
         "stream": "Engineering",
         "nirf": "151-200",
         "logo_url": "/static/logo.png",
-        "source_url": "https://kjsit.somaiya.edu",
+        "source_url": "https://kjsit.somaiya.edu.in",
     },
     {
         "name": "Ness Wadia College",
@@ -2190,7 +2190,7 @@ COLLEGES_DATA = [
         "stream": "Commerce",
         "nirf": "101-150",
         "logo_url": "/static/logo.png",
-        "source_url": "https://nesswadia.edu",
+        "source_url": "https://nesswadiacollege.edu.in",
     },
 ]
 
@@ -2744,7 +2744,9 @@ def admin_login_post():
             or (admin_password and hmac.compare_digest(password, admin_password))
         ):
             session['epaper_admin_auth'] = True
-            next_url = request.form.get("next") or request.args.get("next") or url_for('admin')
+            next_url = request.form.get("next") or request.args.get("next") or ""
+            if not next_url or not next_url.startswith("/") or next_url.startswith("//"):
+                next_url = url_for('admin')
             return redirect(next_url)
         else:
             error = "Incorrect email or password. Please try again."
@@ -4752,6 +4754,7 @@ _GUIDEME_FILE = os.path.join(os.path.dirname(__file__), 'data', 'guideme_request
 
 @app.route("/guideme", methods=["GET", "POST"])
 @app.route("/guide-me", methods=["GET", "POST"])
+@limiter.limit("5 per 10 minutes", methods=["POST"])
 def guide_me():
     if request.method == "POST":
         required_fields = ["full_name", "whatsapp", "email", "address", "requirement_type"]

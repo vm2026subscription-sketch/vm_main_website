@@ -611,7 +611,7 @@
                                 <li><a href="/universities">Universities</a></li>
                                 <li><a href="/colleges">Colleges</a></li>
                                 <li><a href="/courses">Courses</a></li>
-                                <li><a href="/exams">Entrance Exams</a></li>
+                                <li><a href="/entrance-exams">Entrance Exams</a></li>
                                 <li><a href="/mock-exams">Mock Exams</a></li>
                                 <li><a href="/news">News</a></li>
                             </ul>
@@ -624,7 +624,7 @@
                                 <li><a
                                         href="https://play.google.com/store/apps/details?id=co.mark.jdhkd&pcampaignid=web_share">Download
                                         App</a></li>
-                                <li><a href="/guide">Expert Advise</a></li>
+                                <li><a href="/guide-me">Expert Advise</a></li>
                                 <li><a href="/feedback">Feedback</a></li>
                                 <li><a href="{{ url_for('login') }}">Sign In</a></li>
                                 <li><a href="{{ url_for('register') }}">Join Us</a></li>
@@ -933,7 +933,7 @@
                 button.innerText = "Submitting...";
                 button.disabled = true;
 
-                await fetch("YOUR_GOOGLE_SCRIPT_URL", {
+                await fetch("{{ url_for('subscribe') }}", {
                     method: "POST",
                     body: JSON.stringify(formData)
                 });
