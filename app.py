@@ -5178,7 +5178,7 @@ def verify_register_otp():
 
         if check_password_hash(pending_otp["otp_hash"], otp_code):
             with get_auth_db_connection() as connection:
-                connection.execute("UPDATE users SET verified = 1 WHERE email = ?", (pending_otp["email"],))
+                connection.execute("UPDATE users SET verified = TRUE WHERE email = ?", (pending_otp["email"],))
                 connection.commit()
             
             session["auth_user"] = {
