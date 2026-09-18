@@ -5173,13 +5173,24 @@ def govt_job_detail(job_id):
 
 
 @app.route("/register", methods=["GET", "POST"])
-@limiter.limit("5 per minute", methods=["POST"])
+@limiter.limit("5 per minute;20 per 6 hours", methods=["POST"])
 def register():
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
         confirm_password = request.form.get("confirm_password", "")
+
+        honeypot_field = request.form.get("website", "").strip()
+        if honeypot_field:
+            app.logger.info("REG_BOT: honeypot triggered for %s", email)
+            time.sleep(1)
+            flash("Registration received. Please check your inbox to verify your email.", "success")
+            return redirect(url_for("register"))
+
+        if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[A-Za-z]{2,}", email):
+            flash("Please enter a valid email address.", "error")
+            return render_template("auth.html", mode="register", page_title="Register")
 
         if not name or not email or not password or not confirm_password:
             flash("Please fill in all registration fields.", "error")
