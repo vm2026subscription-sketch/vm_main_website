@@ -5196,6 +5196,10 @@ def register():
             flash("Please fill in all registration fields.", "error")
             return render_template("auth.html", mode="register", page_title="Register")
 
+        if not re.search(r"[A-Za-z\u0900-\u097F]", name):
+            flash("Please enter a valid name. Names must contain letters.", "error")
+            return render_template("auth.html", mode="register", page_title="Register")
+
         if password != confirm_password:
             flash("Passwords do not match.", "error")
             return render_template("auth.html", mode="register", page_title="Register")
