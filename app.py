@@ -4032,10 +4032,101 @@ def news():
 
 _EXAM_UPDATES_FILE = os.path.join(os.path.dirname(__file__), 'data', 'exam_updates.json')
 
+_EXAM_CATEGORY_STREAMS = {
+    "engineering": {"Engineering", "Engineering (PG)", "Engineering/Pharmacy/Agriculture"},
+    "medical": {"Medical", "Medical (PG)"},
+    "law": {"Law"},
+    "management": {"Management"},
+    "defense": {"Defence"},
+    "government": {"Civil Services", "Govt Jobs"},
+    "banking": {"Banking"},
+    "research": {"Research/Eligibility (JRF)"},
+    "school": {"School Board (Class 10/12)"},
+    "university": {"Multiple (UG admissions)", "Multiple (PG admissions)"},
+}
+
+
+def _exam_category_for_stream(stream):
+    stream = (stream or "").strip()
+    for cat, streams in _EXAM_CATEGORY_STREAMS.items():
+        if stream in streams:
+            return cat
+    return "other"
+
+
+def _exam_payload_to_item(payload):
+    if not isinstance(payload, dict):
+        return None
+    category = _exam_category_for_stream(payload.get("stream"))
+    if category == "other":
+        return None
+    exam_name = str(payload.get("exam_name") or "Exam").strip()
+    event = str(payload.get("category") or "").strip()
+    title = str(payload.get("update_title") or "").strip()
+    if not title:
+        title = f"{exam_name} — {event}" if event else exam_name
+    description = str(payload.get("description") or "").strip()
+    date = str(payload.get("date") or "").strip()
+    if date and description:
+        description = f"[{date}] {description}"
+    return {"category": category, "title": title, "desc": description}
+
+
+def _fetch_exam_updates():
+    """Exam updates from Postgres (primary), supplemented by curated JSON, JSON as fallback."""
+    db_items = []
+    try:
+        db_url = get_postgres_connection_url()
+        if db_url and psycopg2:
+            conn = psycopg2.connect(db_url)
+            try:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "SELECT payload FROM exam_updates "
+                        "WHERE row_number >= 2 AND payload ? 'exam_name' "
+                        "ORDER BY payload->>'date' DESC NULLS LAST, uploaded_at DESC"
+                    )
+                    for (payload,) in cur.fetchall():
+                        item = _exam_payload_to_item(payload)
+                        if item:
+                            db_items.append(item)
+            finally:
+                conn.close()
+    except Exception as exc:
+        app.logger.warning("Exam updates DB fetch failed; using JSON fallback: %s", exc)
+
+    if db_items:
+        db_first = {i["title"].lower().split()[0] for i in db_items if i["title"].split()}
+        for rec in _read_json_file(_EXAM_UPDATES_FILE, []):
+            title = str(rec.get("title") or "").strip()
+            if not title:
+                continue
+            token = title.lower().split()[0] if title.split() else ""
+            if token in db_first:
+                continue
+            db_items.append({
+                "category": str(rec.get("category", "other")).strip() or "other",
+                "title": title,
+                "desc": str(rec.get("desc") or "").strip() or None,
+            })
+        return db_items
+
+    fallback = []
+    for rec in _read_json_file(_EXAM_UPDATES_FILE, []):
+        title = str(rec.get("title") or "").strip()
+        if not title:
+            continue
+        fallback.append({
+            "category": str(rec.get("category", "other")).strip() or "other",
+            "title": title,
+            "desc": str(rec.get("desc") or "").strip() or None,
+        })
+    return fallback
+
 
 @app.route('/exam-updates')
 def exam_updates():
-    exams = _read_json_file(_EXAM_UPDATES_FILE, [])
+    exams = _fetch_exam_updates()
     return render_template('exam-updates.html', exams=exams)
 
 @app.route("/articles")
