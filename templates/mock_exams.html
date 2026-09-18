@@ -11,6 +11,25 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"></noscript>
   <link rel="stylesheet" href="{{ url_for('static', filename='mock-exams.min.css') }}">
+  <style>
+    .mock-card { display: flex; flex-direction: column; }
+    .mc-start-btn {
+      margin-top: auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: var(--accent, #ff6600);
+      color: #fff;
+      font-weight: 600;
+      font-size: 14px;
+      text-decoration: none;
+      transition: transform .15s ease, opacity .15s ease;
+    }
+    .mc-start-btn:hover { transform: translateY(-2px); opacity: .92; }
+  </style>
 </head>
 <body>
   {% include '_shared_index_navbar.html' %}
@@ -73,6 +92,9 @@
                 <span><i class="fa fa-list-ol"></i> {{ edata.qs }} Qs</span>
                 <span><i class="fa fa-clock"></i> {{ edata.mins }} Mins</span>
               </div>
+              <a href="https://admin-panel-three-sable.vercel.app" target="_blank" rel="noopener" class="mc-start-btn">
+                Start {{ exam }} Test <i class="fa fa-arrow-right"></i>
+              </a>
             </div>
           {% endfor %}
         {% else %}
