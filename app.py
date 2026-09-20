@@ -4361,6 +4361,31 @@ def _append_json_file(filepath, entry):
         pass  # read-only filesystem on Vercel — that's fine, Postgres has it
 
 
+_REPEAT_EMAIL_MINUTES = 30
+
+
+def _recent_submission_email(table, email, minutes=_REPEAT_EMAIL_MINUTES):
+    """True if a form entry with the same email was persisted within the window."""
+    if not email:
+        return False
+    pg_url = get_postgres_connection_url()
+    if not pg_url or connect is None:
+        return False
+    try:
+        conn = connect(pg_url)
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT 1 FROM {table} WHERE data->>'email' = %s "
+                f"AND submitted_at > NOW() - INTERVAL '{int(minutes)} minutes' LIMIT 1",
+                (email,),
+            )
+            found = cur.fetchone() is not None
+        conn.close()
+        return found
+    except Exception:
+        return False
+
+
 @app.route("/feedback", methods=["GET", "POST"])
 def feedback():
     return redirect(url_for("contact"))
@@ -4851,6 +4876,11 @@ _GUIDEME_FILE = os.path.join(os.path.dirname(__file__), 'data', 'guideme_request
 @limiter.limit("5 per 10 minutes", methods=["POST"])
 def guide_me():
     if request.method == "POST":
+        honeypot_field = (request.form.get('website') or request.form.get('url') or '').strip()
+        if honeypot_field:
+            flash("Guide Me form submitted successfully.", "success")
+            return redirect(url_for("guide_me"))
+
         required_fields = ["full_name", "whatsapp", "email", "address", "requirement_type"]
         missing_fields = [f for f in required_fields if not request.form.get(f, "").strip()]
         if missing_fields:
@@ -4866,20 +4896,30 @@ def guide_me():
             'requirement':     request.form.get('requirement_type', '').strip(),
             'details':         request.form.get('details', '').strip(),
         }
+
+        if not _EMAIL_RE.match(entry['email']):
+            flash("Please enter a valid email address.", "error")
+            return render_template("GuideMe1.html")
+
+        if not re.search(r"[A-Za-z\u0900-\u097F]", entry['name']):
+            flash("Please enter a valid name. Names must contain letters.", "error")
+            return render_template("GuideMe1.html")
+
         try:
             _append_json_file(_GUIDEME_FILE, entry)
         except Exception:
             pass
-        try:
-            _send_notification_email(
-                subject=f"New Guide Me Request from {entry['name']}",
-                body=f"Name: {entry['name']}\nWhatsApp: {entry['whatsapp']}\nEmail: {entry['email']}\nAddress: {entry['address']}\nRequirement: {entry['requirement']}\n\nDetails:\n{entry['details']}",
-                to_email=os.getenv("ADMIN_EMAIL", ""),
-                reply_to=entry['email'],
-                sender_name=entry['name'],
-            )
-        except Exception:
-            pass
+        if not _recent_submission_email(_form_table_name(_GUIDEME_FILE), entry['email']):
+            try:
+                _send_notification_email(
+                    subject=f"New Guide Me Request from {entry['name']}",
+                    body=f"Name: {entry['name']}\nWhatsApp: {entry['whatsapp']}\nEmail: {entry['email']}\nAddress: {entry['address']}\nRequirement: {entry['requirement']}\n\nDetails:\n{entry['details']}",
+                    to_email=os.getenv("ADMIN_EMAIL", ""),
+                    reply_to=entry['email'],
+                    sender_name=entry['name'],
+                )
+            except Exception:
+                pass
 
         flash("Guide Me form submitted successfully.", "success")
         return redirect(url_for("guide_me"))
@@ -4945,6 +4985,8 @@ def send_message():
         return jsonify({'success': False, 'error': 'Name, email, and message are required.'}), 400
     if not _EMAIL_RE.match(email):
         return jsonify({'success': False, 'error': 'Please enter a valid email address.'}), 400
+    if not re.search(r"[A-Za-z\u0900-\u097F]", name):
+        return jsonify({'success': False, 'error': 'Please enter a valid name.'}), 400
 
     admin_email = os.getenv("ADMIN_EMAIL", "")
     if not admin_email:
@@ -4960,7 +5002,7 @@ def send_message():
     except Exception:
         pass
 
-    if admin_email:
+    if admin_email and not _recent_submission_email(_form_table_name(_CONTACT_FILE), email):
         try:
             _send_notification_email(
                 subject=f"[Contact] {subject or 'New message'} from {name}",
