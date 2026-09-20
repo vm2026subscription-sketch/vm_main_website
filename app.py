@@ -4182,14 +4182,17 @@ def submit_story():
 
 
 # ── Shared notification email + JSON file helpers ─────────────────────────────
-def _send_notification_email(subject, body, to_email=None, reply_to=None):
+def _send_notification_email(subject, body, to_email=None, reply_to=None, sender_name=None):
     settings = _get_smtp_settings()
     if not settings["configured"]:
         return False
     admin_email = os.getenv("ADMIN_EMAIL", "")
     msg = EmailMessage()
     msg["Subject"] = subject
-    msg["From"] = settings["from_email"]
+    if sender_name:
+        msg["From"] = f"{sender_name} <{settings['from_email']}>"
+    else:
+        msg["From"] = settings["from_email"]
     msg["To"] = to_email or admin_email
     if reply_to:
         msg["Reply-To"] = reply_to
@@ -4873,6 +4876,7 @@ def guide_me():
                 body=f"Name: {entry['name']}\nWhatsApp: {entry['whatsapp']}\nEmail: {entry['email']}\nAddress: {entry['address']}\nRequirement: {entry['requirement']}\n\nDetails:\n{entry['details']}",
                 to_email=os.getenv("ADMIN_EMAIL", ""),
                 reply_to=entry['email'],
+                sender_name=entry['name'],
             )
         except Exception:
             pass
@@ -4963,6 +4967,7 @@ def send_message():
                 body=f"Name: {name}\nPhone: {phone}\nEmail: {email}\nSubject: {subject}\n\nMessage:\n{message}",
                 to_email=admin_email,
                 reply_to=email,
+                sender_name=name,
             )
         except Exception:
             pass
