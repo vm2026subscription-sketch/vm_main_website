@@ -4365,7 +4365,7 @@ _REPEAT_EMAIL_MINUTES = 30
 
 
 def _recent_submission_email(table, email, minutes=_REPEAT_EMAIL_MINUTES):
-    """True if a form entry with the same email was persisted within the window."""
+    """True if a form entry with the same email was already persisted within the window."""
     if not email:
         return False
     pg_url = get_postgres_connection_url()
@@ -4905,11 +4905,12 @@ def guide_me():
             flash("Please enter a valid name. Names must contain letters.", "error")
             return render_template("GuideMe1.html")
 
+        already_notified = _recent_submission_email(_form_table_name(_GUIDEME_FILE), entry['email'])
         try:
             _append_json_file(_GUIDEME_FILE, entry)
         except Exception:
             pass
-        if not _recent_submission_email(_form_table_name(_GUIDEME_FILE), entry['email']):
+        if not already_notified:
             try:
                 _send_notification_email(
                     subject=f"New Guide Me Request from {entry['name']}",
@@ -4997,12 +4998,13 @@ def send_message():
         'name': name, 'phone': phone, 'email': email,
         'subject': subject, 'message': message,
     }
+    already_notified = _recent_submission_email(_form_table_name(_CONTACT_FILE), email)
     try:
         _append_json_file(_CONTACT_FILE, entry)
     except Exception:
         pass
 
-    if admin_email and not _recent_submission_email(_form_table_name(_CONTACT_FILE), email):
+    if admin_email and not already_notified:
         try:
             _send_notification_email(
                 subject=f"[Contact] {subject or 'New message'} from {name}",
