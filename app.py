@@ -5917,29 +5917,30 @@ def api_env_health():
     """Verify that critical external services are configured and reachable."""
     import time as _time
 
-    # Requires the server-side secret as proof of authorization; otherwise 404
-    # so the endpoint's existence and content are not publicly discoverable.
+    # Full diagnostics (including which env vars are configured) require the
+    # server-side secret as proof of authorization. Without it we still expose a
+    # sanitized status summary so monitoring keeps working without leaking config.
     expected_token = os.environ.get("SECRET_KEY", "")
     provided_token = request.headers.get("X-Health-Token", "") or request.args.get("token", "")
-    if not expected_token or not secrets.compare_digest(provided_token, expected_token):
-        return jsonify({"error": "Not found"}), 404
+    authorized = bool(expected_token) and secrets.compare_digest(provided_token, expected_token)
 
     result = {"status": "ok", "env_check": {}}
 
     # ── 1. Env var presence (no values leaked) ──
-    env_keys = [
-        "UPSTASH_REDIS_REST_URL",
-        "UPSTASH_REDIS_REST_TOKEN",
-        "SUPABASE_URL",
-        "SUPABASE_SERVICE_ROLE_KEY",
-        "SUPABASE_ANON_KEY",
-        "SUPABASE_POSTGRES_URL",
-        "SUPABASE_POOLER_URL",
-        "DATABASE_URL",
-        "CLOUDINARY_URL",
-    ]
-    for k in env_keys:
-        result["env_check"][k] = bool(os.environ.get(k, "").strip())
+    if authorized:
+        env_keys = [
+            "UPSTASH_REDIS_REST_URL",
+            "UPSTASH_REDIS_REST_TOKEN",
+            "SUPABASE_URL",
+            "SUPABASE_SERVICE_ROLE_KEY",
+            "SUPABASE_ANON_KEY",
+            "SUPABASE_POSTGRES_URL",
+            "SUPABASE_POOLER_URL",
+            "DATABASE_URL",
+            "CLOUDINARY_URL",
+        ]
+        for k in env_keys:
+            result["env_check"][k] = bool(os.environ.get(k, "").strip())
 
     # ── 2. Redis (Upstash) ──
     redis_url = os.getenv("UPSTASH_REDIS_REST_URL", "").strip()
@@ -6031,6 +6032,14 @@ def api_env_health():
 
     from datetime import datetime, timezone
     result["timestamp"] = datetime.now(timezone.utc).isoformat()
+
+    if not authorized:
+        # Public callers get service status only: no env var names, no error strings.
+        public_summary = {"status": result["status"]}
+        for service in ("postgres", "redis", "cloudinary", "supabase"):
+            entry = result.get(service)
+            public_summary[service] = bool(entry and entry.get("ok"))
+        result = public_summary
 
     return jsonify(result)
 
