@@ -6090,11 +6090,14 @@ def api_env_health():
 @app.route("/api/cron/weekly-backup", methods=["GET", "POST"])
 def api_cron_weekly_backup():
     """Triggered by Vercel cron (Sunday 3 AM UTC) or manual GET with CRON_SECRET."""
-    cron_secret = os.getenv("CRON_SECRET", "")
-    if cron_secret:
-        auth_header = request.headers.get("Authorization", "")
-        vercel_cron = request.headers.get("x-vercel-cron", "")
-        if vercel_cron != "1" and auth_header != f"Bearer {cron_secret}":
+    cron_secret = os.getenv("CRON_SECRET", "").strip()
+    vercel_cron = request.headers.get("x-vercel-cron", "")
+    auth_header = request.headers.get("Authorization", "")
+    if vercel_cron != "1":
+        # Fail closed: without a configured secret, only Vercel cron may call this.
+        if not cron_secret:
+            return jsonify({"error": "Backup endpoint disabled: CRON_SECRET not configured"}), 503
+        if not secrets.compare_digest(auth_header, f"Bearer {cron_secret}"):
             return jsonify({"error": "Unauthorized"}), 401
 
     pg_url = get_postgres_connection_url()
