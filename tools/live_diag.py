@@ -1,6 +1,10 @@
-import requests, re, json
+import requests, re, json, os
 
 BASE = "https://www.vidyarthimitra.org"
+ADMIN_USER = os.environ.get("ADMIN_LOGIN_EMAIL", "")
+ADMIN_PASS = os.environ.get("ADMIN_LOGIN_PASSWORD", "")
+if not ADMIN_USER or not ADMIN_PASS:
+    raise SystemExit("Set ADMIN_LOGIN_EMAIL and ADMIN_LOGIN_PASSWORD env vars before running.")
 s = requests.Session()
 
 # Step 1: Login page + CSRF
@@ -15,7 +19,7 @@ print("CSRF found:", bool(csrf))
 # Step 2: POST login
 print("\n=== Step 2: Login POST ===")
 r = s.post(BASE + "/epaper-admin/login",
-    data={"username": "admin123@gmail.com", "password": "vm@2026", "csrf_token": csrf or ""},
+    data={"username": ADMIN_USER, "password": ADMIN_PASS, "csrf_token": csrf or ""},
     timeout=10, allow_redirects=True)
 print("Final URL:", r.url, "| HTTP:", r.status_code)
 

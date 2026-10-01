@@ -4,9 +4,11 @@ ePaper End-to-End Diagnostic Script
 Tests: login -> create -> save -> fetch -> publish -> verify visibility
 Run: .venv\Scripts\python.exe tools\epaper_diagnostic.py
 """
-import sys, json, time, re, requests
+import sys, json, time, re, os, requests
 
 BASE = "http://127.0.0.1:5000"
+ADMIN_USER = os.environ.get("ADMIN_LOGIN_EMAIL", "")
+ADMIN_PASS = os.environ.get("ADMIN_LOGIN_PASSWORD", "")
 SESSION = requests.Session()
 TEST_DATE = "2026-07-10"
 TEST_LANG = "Hindi"
@@ -47,7 +49,7 @@ print("  CSRF found: " + str(bool(csrf)))
 step("POST login")
 r = SESSION.post(
     BASE + "/epaper-admin/login",
-    data={"username": "admin123@gmail.com", "password": "vm@2026", "csrf_token": csrf or ""},
+    data={"username": ADMIN_USER, "password": ADMIN_PASS, "csrf_token": csrf or ""},
     timeout=10, allow_redirects=True,
 )
 print("  Final URL: " + r.url + "  HTTP " + str(r.status_code))
@@ -288,7 +290,7 @@ m3 = csrf_pat.search(lp2.text)
 csrf3 = m3.group(1) if m3 else csrf
 r = SESSION.post(
     BASE + "/epaper-admin/login",
-    data={"username": "admin123@gmail.com", "password": "vm@2026", "csrf_token": csrf3 or ""},
+    data={"username": ADMIN_USER, "password": ADMIN_PASS, "csrf_token": csrf3 or ""},
     timeout=10, allow_redirects=True,
 )
 relogged = "/epaper-admin" in r.url and "login" not in r.url.split("?")[0]

@@ -240,6 +240,25 @@ def add_cache_headers(response):
     return response
 
 
+@app.after_request
+def add_security_headers(response):
+    """Baseline hardening headers on every response (clickjacking, sniffing, referrer, HSTS)."""
+    response.headers.setdefault('X-Content-Type-Options', 'nosniff')
+    response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
+    response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
+    response.headers.setdefault('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+    response.headers.setdefault(
+        'Content-Security-Policy',
+        "frame-ancestors 'self'; object-src 'none'; base-uri 'self'",
+    )
+    forwarded_proto = (request.headers.get('X-Forwarded-Proto') or '').lower()
+    if request.is_secure or forwarded_proto == 'https':
+        response.headers.setdefault(
+            'Strict-Transport-Security', 'max-age=31536000; includeSubDomains'
+        )
+    return response
+
+
 @app.errorhandler(404)
 def page_not_found(e):
     if request.is_json or request.path.startswith('/api/'):
@@ -2938,8 +2957,8 @@ def api_admin_create_user():
         return jsonify({"error": "Name, email and password are required"}), 400
     if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
         return jsonify({"error": "Enter a valid email address"}), 400
-    if len(password) < 6:
-        return jsonify({"error": "Password must be at least 6 characters long"}), 400
+    if len(password) < 8:
+        return jsonify({"error": "Password must be at least 8 characters long"}), 400
 
     try:
         with get_auth_db_connection() as connection:
@@ -5253,8 +5272,8 @@ def register():
             flash("Passwords do not match.", "error")
             return render_template("auth.html", mode="register", page_title="Register")
 
-        if len(password) < 6:
-            flash("Password must be at least 6 characters long.", "error")
+        if len(password) < 8:
+            flash("Password must be at least 8 characters long.", "error")
             return render_template("auth.html", mode="register", page_title="Register")
 
         try:
@@ -5683,8 +5702,8 @@ def reset_password(token):
             flash("Passwords do not match.", "error")
             return render_template("auth.html", mode="reset", page_title="Reset Password")
 
-        if len(password) < 6:
-            flash("Password must be at least 6 characters long.", "error")
+        if len(password) < 8:
+            flash("Password must be at least 8 characters long.", "error")
             return render_template("auth.html", mode="reset", page_title="Reset Password")
 
         email = record["email"]
@@ -5897,6 +5916,13 @@ def sitemap_xml():
 def api_env_health():
     """Verify that critical external services are configured and reachable."""
     import time as _time
+
+    # Requires the server-side secret as proof of authorization; otherwise 404
+    # so the endpoint's existence and content are not publicly discoverable.
+    expected_token = os.environ.get("SECRET_KEY", "")
+    provided_token = request.headers.get("X-Health-Token", "") or request.args.get("token", "")
+    if not expected_token or not secrets.compare_digest(provided_token, expected_token):
+        return jsonify({"error": "Not found"}), 404
 
     result = {"status": "ok", "env_check": {}}
 
