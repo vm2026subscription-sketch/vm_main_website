@@ -5907,19 +5907,95 @@ def excel_upload():
     return redirect(url_for("admin"))
 
 
+# ── AI crawler blocking ────────────────────────────────────────────
+# Search engines keep crawling so SEO/ranking is unaffected, but no AI
+# training/scraping/answer bot may read the site. robots.txt covers compliant
+# crawlers; the before_request guard below also returns 403 to the ones that
+# ignore it.
+AI_BLOCKED_BOTS = (
+    # OpenAI
+    "GPTBot", "ChatGPT", "OAI-SearchBot",
+    # Anthropic
+    "ClaudeBot", "Claude-Web", "anthropic-ai",
+    # Google AI products (Googlebot itself stays allowed for search)
+    "Google-Extended", "Gemini", "GoogleOther",
+    # Meta
+    "meta-externalagent", "meta-externalfetcher", "FacebookBot",
+    "FacebookExternalAgent",
+    # Amazon / Alexa
+    "Amazonbot", "Amazonbot-User", "AlexaBot",
+    # Perplexity
+    "PerplexityBot", "Perplexity-User",
+    # Apple Intelligence (Applebot stays allowed for search/Spotlight)
+    "Applebot-Extended", "Applebot-User",
+    # Common Crawl + AI training datasets
+    "CCBot", "Bytespider", "PanguBot", "DeepSeekBot", "AI2Bot", "Dolma",
+    "Cohere", "MistralAI", "Kangaroo Bot", "Webzio-Extended", "ImagesiftBot",
+    "Omgilibot", "Timpibot", "YouBot", "Diffbot",
+    # SEO/scraping vendors with AI crawlers
+    "AhrefsBot", "SemrushBot", "BLEXBot", "DataForSeoBot", "DataForSEO",
+    "SerperBot", "Cliqzbot", "Cocolyzebot", "MegaIndex", "NetChaos",
+    "ScrapingBee", "Scrapy", "Meltwater", "Seekr", "PetalBot",
+    # Generic AI answer engines
+    "DuckAssistBot", "BingCopilot", "CopilotBot",
+)
+
+SEARCH_BOTS_ALLOWED = (
+    "Googlebot", "Googlebot-Image", "Googlebot-News", "Googlebot-Video",
+    "Google-InspectionTool", "Bingbot", "BingPreview", "Applebot",
+    "DuckDuckBot", "YandexBot", "Baiduspider", "Slurp",
+    "facebookexternalhit", "Twitterbot", "LinkedInBot", "WhatsApp",
+    "Pinterestbot", "TelegramBot", "Discordbot", "Embedly", "Iframely",
+    "SkypeUriPreview",
+)
+
+
+def _is_blocked_ai_bot(user_agent):
+    ua = (user_agent or "").lower()
+    if not ua:
+        return False
+    for bot in AI_BLOCKED_BOTS:
+        if bot.lower() in ua:
+            return True
+    return False
+
+
+@app.before_request
+def block_ai_crawlers():
+    """Return 403 to AI training/scraping/answer crawlers (humans unaffected)."""
+    if _is_blocked_ai_bot(request.headers.get("User-Agent", "")):
+        from flask import Response
+        response = Response(
+            "Access denied for AI crawlers.", status=403, mimetype="text/plain"
+        )
+        response.headers["X-Robots-Tag"] = "noindex, nofollow"
+        return response
+    return None
+
+
 @app.route('/robots.txt')
 def robots_txt():
     from flask import Response
-    content = (
-        "User-agent: *\n"
-        "Allow: /\n"
-        "Disallow: /admin\n"
-        "Disallow: /api/\n"
-        "Disallow: /excel-upload\n"
-        "Disallow: /api/vmadmin/\n"
-        f"Sitemap: https://vidyarthimitra.org/sitemap.xml\n"
-    )
-    return Response(content, mimetype='text/plain')
+
+    # Search engines stay crawlable so SEO/ranking is unaffected.
+    # Reuse the single source of truth shared with the 403 guard.
+    search_engines = SEARCH_BOTS_ALLOWED
+    ai_blocked = AI_BLOCKED_BOTS
+    lines = ["User-agent: *", "Allow: /",
+             "Disallow: /admin", "Disallow: /api/", "Disallow: /excel-upload",
+             "Disallow: /api/vmadmin/"]
+    for bot in ai_blocked:
+        lines.append("")
+        lines.append(f"User-agent: {bot}")
+        lines.append("Disallow: /")
+    for bot in search_engines:
+        lines.append("")
+        lines.append(f"User-agent: {bot}")
+        lines.append("Allow: /")
+    lines.append("")
+    lines.append("Sitemap: https://vidyarthimitra.org/sitemap.xml")
+    lines.append("")
+    return Response("\n".join(lines), mimetype='text/plain')
 
 
 @app.route('/sitemap.xml')
