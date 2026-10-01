@@ -5980,10 +5980,10 @@ def api_env_health():
             }
         except Exception as e:
             result["supabase"] = {"ok": False, "error": str(e)[:200]}
-            result["status"] = "degraded"
     else:
-        result["supabase"] = {"ok": False, "error": "env vars missing"}
-        result["status"] = "degraded"
+        # Supabase is optional: the app runs on direct Postgres, so its absence
+        # is not a degraded state.
+        result["supabase"] = {"ok": False, "error": "optional: not configured"}
 
     # ── 4. Supabase Postgres ──
     pg_url = os.getenv("SUPABASE_POSTGRES_URL", "").strip() or os.getenv("DATABASE_URL", "").strip()
