@@ -338,6 +338,48 @@ except Exception as exc:
     app.logger.warning("Skipping ads blueprint registration: %s", exc)
 
 
+# ── Cross-site mutation guard for CSRF-exempt blueprints ───────────
+# The epaper and ads blueprints are exempted from Flask-WTF CSRF (browser
+# fetch()/mobile app need it), so they rely on SameSite cookies alone. This
+# guard adds Origin/Referer validation for state-changing requests so a
+# cookie-authenticated admin cannot be driven from an attacker's site.
+# Requests without an Origin/Referer (mobile app, server-to-server) pass.
+def _registrable_domain(host):
+    parts = [p for p in (host or "").lower().replace(':', '').split('.') if p]
+    return '.'.join(parts[-2:]) if len(parts) >= 2 else (host or '').lower()
+
+
+@app.before_request
+def _block_cross_site_session_mutations():
+    if request.method not in ('POST', 'PUT', 'PATCH', 'DELETE'):
+        return None
+
+    if not (session.get('epaper_admin_auth') or session.get('auth_user')):
+        return None
+
+    source = request.headers.get('Origin') or ''
+    if not source or source.lower() == 'null':
+        referer = request.headers.get('Referer') or ''
+        source = referer.split('//')[-1].split('/')[0] if referer else ''
+    if not source:
+        return None
+
+    try:
+        origin_host = urlparse(source if '//' in source else f'//{source}').netloc
+    except Exception:
+        return None
+    if not origin_host:
+        return None
+
+    if _registrable_domain(origin_host) != _registrable_domain(request.host):
+        app.logger.warning(
+            'BLOCKED cross-site %s to %s from origin %s',
+            request.method, request.path, origin_host,
+        )
+        return jsonify({'error': 'Cross-site request blocked'}), 403
+    return None
+
+
 # ── Subdomain routing: epaper.vidyarthimitra.org → /epaper ──────────
 @app.before_request
 def _epaper_subdomain_route():
