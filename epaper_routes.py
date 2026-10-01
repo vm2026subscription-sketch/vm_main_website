@@ -83,6 +83,7 @@ from epaper_helpers import (
     allowed_image,
     allowed_upload,
     compress_image_bytes,
+sanitize_article_html,
     tts_cache_key,
     trans_cache_key,
     evict,
@@ -541,6 +542,9 @@ def epaper_article(article_id):
     if edition:
         img_meta = epaper_preview_image_meta(edition)
         edition_image = img_meta.get("url", "")
+    if isinstance(article, dict) and article.get("body_html"):
+        article = dict(article)
+        article["body_html"] = sanitize_article_html(article["body_html"])
     return render_template(
         "epaper_article.html",
         article=article,
@@ -826,7 +830,10 @@ def api_get_edition_views(date):
 def api_article(article_id):
     article, related, edition, page = find_epaper_article(article_id)
     if article:
-        return jsonify({**article, "related_articles": related})
+        payload = {**article, "related_articles": related}
+        if isinstance(article, dict) and article.get("body_html"):
+            payload["body_html"] = sanitize_article_html(article["body_html"])
+        return jsonify(payload)
     return jsonify({"error": "Article not found."}), 404
 
 

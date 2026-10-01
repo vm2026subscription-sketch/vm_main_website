@@ -21,6 +21,30 @@ from epaper_storage import (
 )
 
 
+# ── HTML sanitizing (stored-XSS defense for admin-authored article bodies) ──
+def sanitize_article_html(raw_html):
+    """Re-sanitize article HTML at render time.
+
+    Save-time sanitizing (_sanitize_edition_payload) uses the same allowlist;
+    this second pass also cleans rows stored before that sanitizing existed.
+    Falls back to escaped text if bleach is unavailable, never to raw HTML.
+    """
+    if not raw_html or not isinstance(raw_html, str):
+        return ""
+    try:
+        import bleach
+        return bleach.clean(
+            raw_html,
+            tags=ALLOWED_HTML_TAGS,
+            attributes=ALLOWED_HTML_ATTRS,
+            protocols=["http", "https", "mailto", "tel"],
+            strip=True,
+        )
+    except Exception:
+        import html as _html
+        return _html.escape(raw_html)
+
+
 # ── Auth helpers ──────────────────────────────────────────────
 
 def is_epaper_admin():
