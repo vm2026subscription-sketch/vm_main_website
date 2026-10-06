@@ -334,6 +334,12 @@ try:
     # Admin ad APIs are protected by the epaper admin session, same as epaper_bp.
     # Exempt from CSRF so browser fetch() + mobile app calls work (see epaper note above).
     csrf.exempt(ads_bp)
+    try:
+        csrf.exempt(app.view_functions['guide_me'])
+        csrf.exempt(app.view_functions['send_message'])
+        csrf.exempt(app.view_functions['subscribe'])
+    except Exception as exc:
+        app.logger.warning("Skipping public form CSRF exemption: %s", exc)
 except Exception as exc:
     app.logger.warning("Skipping ads blueprint registration: %s", exc)
 
