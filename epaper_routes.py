@@ -1103,7 +1103,8 @@ def api_delete_edition(date):
 @limiter.limit("10 per minute")
 def api_translate():
     data = request.get_json(silent=True) or {}
-    text = data.get("text", "").strip()
+    raw_text = data.get("text", "")
+    text = raw_text.strip()[:12000] if isinstance(raw_text, str) else ""
     target = data.get("target_lang", "en")
 
     if not text:
@@ -1125,23 +1126,28 @@ def api_translate():
         evict(trans_cache, TRANS_CACHE_MAX)
         trans_cache[ck] = translated
 
-    fast_error = None
-    try:
-        from deep_translator import GoogleTranslator
-        chunks, start = [], 0
-        while start < len(text):
-            end = min(start + 4500, len(text))
-            if end < len(text):
+    def _split_chunks(source, size=4500):
+        parts, start = [], 0
+        while start < len(source):
+            end = min(start + size, len(source))
+            if end < len(source):
                 for sep in ('। ', '. ', '\n', ' '):
-                    pos = text.rfind(sep, start, end)
+                    pos = source.rfind(sep, start, end)
                     if pos > start:
                         end = pos + len(sep)
                         break
-            chunks.append(text[start:end].strip())
+            chunk = source[start:end].strip()
+            if chunk:
+                parts.append(chunk)
             start = end
+        return parts
+
+    fast_error = None
+    try:
+        from deep_translator import GoogleTranslator
         translated_chunks = [
             GoogleTranslator(source="auto", target=target).translate(c) or c
-            for c in chunks if c
+            for c in _split_chunks(text, 4500)
         ]
         result = "\n\n".join(translated_chunks)
         _save_cache(result)
@@ -1153,32 +1159,32 @@ def api_translate():
     if api_key:
         try:
             from groq import Groq
-            client = Groq(api_key=api_key, timeout=45)
+            client = Groq(api_key=api_key, timeout=60)
             env_model = (os.getenv("GROQ_MODEL") or "").strip()
             models = [m for m in dict.fromkeys(
                 [env_model, "openai/gpt-oss-20b", "openai/gpt-oss-120b"]) if m]
-            messages = [
-                {
-                    "role": "system",
-                    "content": (
-                        f"You are a professional translator. Translate the following text to {target_name}. "
-                        "Return ONLY the translated text — no explanations, no notes, no extra lines."
-                    ),
-                },
-                {"role": "user", "content": text[:3500]},
-            ]
+            system_msg = (
+                f"You are a professional translator. Translate the following text to {target_name}. "
+                "Return ONLY the translated text — no explanations, no notes, no extra lines."
+            )
             last_error = None
             for model in models:
                 try:
-                    response = client.chat.completions.create(
-                        messages=messages,
-                        model=model,
-                        temperature=0.1,
-                        max_tokens=2000,
-                    )
-                    translated = response.choices[0].message.content.strip()
-                    _save_cache(translated)
-                    return jsonify({"translated_text": translated})
+                    translated_chunks = [
+                        (client.chat.completions.create(
+                            messages=[
+                                {"role": "system", "content": system_msg},
+                                {"role": "user", "content": chunk},
+                            ],
+                            model=model,
+                            temperature=0.1,
+                            max_tokens=8000,
+                        ).choices[0].message.content or "").strip()
+                        for chunk in _split_chunks(text, 8000)
+                    ]
+                    result = "\n\n".join(translated_chunks)
+                    _save_cache(result)
+                    return jsonify({"translated_text": result})
                 except Exception as exc:
                     last_error = exc
             return jsonify({"error": f"Groq translation fallback failed: {last_error}"}), 500

@@ -3512,7 +3512,7 @@ const EP = {
       const res = await fetch('/api/epaper/translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: text.slice(0, 3500), target_lang: lang })
+        body: JSON.stringify({ text: text.slice(0, 8000), target_lang: lang })
       });
       if (res.ok) {
         const data = await res.json();
