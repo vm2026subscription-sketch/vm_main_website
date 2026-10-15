@@ -2,6 +2,16 @@
    Vidyarthi Mitra E-Paper Viewer JS
    ══════════════════════════════════════════════════ */
 
+// Preferred display order for edition cards by language.
+// marathi=0, english=1, hindi=2; unknown languages sort last.
+const EPAPER_LANG_ORDER = { marathi: 0, english: 1, hindi: 2 };
+function epaperLangRank(lang) {
+  const key = String(lang || '').trim().toLowerCase();
+  return Object.prototype.hasOwnProperty.call(EPAPER_LANG_ORDER, key)
+    ? EPAPER_LANG_ORDER[key]
+    : 99;
+}
+
 const EP = {
   // State
   currentDate: null,
@@ -870,7 +880,7 @@ const EP = {
       published = all.slice(0, 3);
       hasMore = all.length > 3;
     } else {
-      // No filter: show latest 1 per language (Hindi, English, Marathi)
+      // No filter: show latest 1 per language
       const seenLangs = new Set();
       published = [];
       for (const e of all) {
@@ -882,6 +892,9 @@ const EP = {
         if (published.length >= 3) break;
       }
       hasMore = all.length > published.length;
+      // Order cards by preferred language sequence (Marathi, English, Hindi);
+      // unknown languages go last.
+      published.sort((a, b) => epaperLangRank(a.language) - epaperLangRank(b.language));
     }
 
     if (!published.length) {
