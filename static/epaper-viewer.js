@@ -3517,17 +3517,17 @@ const EP = {
       if (res.ok) {
         const data = await res.json();
         if (data.error) {
-          this.el.translateOutput.textContent = text;
+          this.el.translateOutput.textContent = 'Translation unavailable for this article. Please try again later.';
           this.showToast('Translation failed');
         } else {
           this.el.translateOutput.textContent = data.translated_text || text;
         }
       } else {
-        this.el.translateOutput.textContent = text;
+        this.el.translateOutput.textContent = 'Translation unavailable for this article. Please try again later.';
         this.showToast('Translation failed');
       }
     } catch (e) {
-      this.el.translateOutput.textContent = text;
+      this.el.translateOutput.textContent = 'Translation unavailable for this article. Please try again later.';
       this.showToast('Translation service unavailable');
     }
   },

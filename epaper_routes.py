@@ -1153,25 +1153,35 @@ def api_translate():
     if api_key:
         try:
             from groq import Groq
-            client = Groq(api_key=api_key)
-            response = client.chat.completions.create(
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            f"You are a professional translator. Translate the following text to {target_name}. "
-                            "Return ONLY the translated text — no explanations, no notes, no extra lines."
-                        ),
-                    },
-                    {"role": "user", "content": text[:3500]},
-                ],
-                model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
-                temperature=0.1,
-                max_tokens=2000,
-            )
-            translated = response.choices[0].message.content.strip()
-            _save_cache(translated)
-            return jsonify({"translated_text": translated})
+            client = Groq(api_key=api_key, timeout=45)
+            env_model = (os.getenv("GROQ_MODEL") or "").strip()
+            models = [m for m in dict.fromkeys(
+                [env_model, "openai/gpt-oss-20b", "openai/gpt-oss-120b"]) if m]
+            messages = [
+                {
+                    "role": "system",
+                    "content": (
+                        f"You are a professional translator. Translate the following text to {target_name}. "
+                        "Return ONLY the translated text — no explanations, no notes, no extra lines."
+                    ),
+                },
+                {"role": "user", "content": text[:3500]},
+            ]
+            last_error = None
+            for model in models:
+                try:
+                    response = client.chat.completions.create(
+                        messages=messages,
+                        model=model,
+                        temperature=0.1,
+                        max_tokens=2000,
+                    )
+                    translated = response.choices[0].message.content.strip()
+                    _save_cache(translated)
+                    return jsonify({"translated_text": translated})
+                except Exception as exc:
+                    last_error = exc
+            return jsonify({"error": f"Groq translation fallback failed: {last_error}"}), 500
         except Exception as exc:
             return jsonify({"error": f"Groq translation fallback failed: {str(exc)}"}), 500
 
