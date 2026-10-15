@@ -6239,6 +6239,13 @@ if os.environ.get("VERCEL") != "1" and os.environ.get("FLASK_ENV") != "productio
     _threading.Thread(target=_preload_cutoff_data, daemon=True).start()
 
 
+# Exempt public forms from CSRF (must run after all routes are defined)
+for _public_view in ("guide_me", "send_message", "subscribe", "fyjc_predict"):
+    _fn = app.view_functions.get(_public_view)
+    if _fn is not None:
+        csrf.exempt(_fn)
+
+
 if __name__ == "__main__":
     debug = os.environ.get("FLASK_ENV") != "production"
     port = int(os.environ.get("PORT", 5001))
