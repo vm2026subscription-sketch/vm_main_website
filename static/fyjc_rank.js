@@ -90,7 +90,7 @@ async function predict() {
 
 /* ── Render results ──────────────────────────────────────────────────────── */
 const BOARD_NAMES    = { maharashtra: 'SSC Maharashtra', cbse: 'CBSE', icse: 'ICSE', other: 'Other Board' };
-const CAT_NAMES      = { open: 'Open/General', obc: 'OBC', sc: 'SC', st: 'ST', nt: 'NT', vj: 'VJ/DT', sbc: 'SBC', ews: 'EWS' };
+const CAT_NAMES      = { open: 'Open/General', obc: 'OBC', sc: 'SC', st: 'ST', nt: 'NT', vj: 'VJ/DT', sbc: 'SBC', scbc: 'SCBC', ews: 'EWS' };
 const STREAM_NAMES   = { science: 'Science', commerce: 'Commerce', arts: 'Arts/Humanities' };
 const CHANCE_LABELS  = { high: '<i class="fa fa-check"></i> High', moderate: '~ Moderate', borderline: '~ Borderline', low: '<i class="fa fa-times"></i> Low' };
 

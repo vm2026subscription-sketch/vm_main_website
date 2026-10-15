@@ -3904,7 +3904,7 @@ def fyjc_predict():
     # Reserved category seat fraction
     CAT_FACTOR = {
         "open": 1.0, "obc": 0.27, "sc": 0.13, "st": 0.075,
-        "nt": 0.11, "vj": 0.03, "sbc": 0.02, "ews": 0.10,
+        "nt": 0.11, "vj": 0.03, "sbc": 0.02, "scbc": 0.02, "ews": 0.10,
     }
     cat_factor = CAT_FACTOR.get(category, 1.0)
 
