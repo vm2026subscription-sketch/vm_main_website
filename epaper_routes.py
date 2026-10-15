@@ -1098,6 +1098,72 @@ def api_delete_edition(date):
     return jsonify({"success": True})
 
 
+# ── Shared translation helpers (Google → Groq fallback) ──
+_LANG_NAMES = {
+    'hi': 'Hindi', 'mr': 'Marathi', 'en': 'English',
+    'bn': 'Bengali', 'ta': 'Tamil', 'te': 'Telugu',
+    'gu': 'Gujarati', 'kn': 'Kannada', 'ml': 'Malayalam', 'ur': 'Urdu',
+    'pa': 'Punjabi', 'or': 'Odia', 'as': 'Assamese',
+}
+
+
+def _split_chunks(source, size=4500):
+    """Split long text into translation-friendly chunks on sentence boundaries."""
+    parts, start = [], 0
+    while start < len(source):
+        end = min(start + size, len(source))
+        if end < len(source):
+            for sep in ('। ', '. ', '\n', ' '):
+                pos = source.rfind(sep, start, end)
+                if pos > start:
+                    end = pos + len(sep)
+                    break
+        chunk = source[start:end].strip()
+        if chunk:
+            parts.append(chunk)
+        start = end
+    return parts
+
+
+def _groq_translate(text, target, chunk_size=8000):
+    """Translate text through Groq, trying several models. Raises RuntimeError on failure."""
+    from groq import Groq
+
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        raise RuntimeError("GROQ_API_KEY not configured")
+
+    target_name = _LANG_NAMES.get(target, target)
+    client = Groq(api_key=api_key, timeout=60)
+    env_model = (os.getenv("GROQ_MODEL") or "").strip()
+    models = [m for m in dict.fromkeys(
+        [env_model, "openai/gpt-oss-20b", "openai/gpt-oss-120b"]) if m]
+    system_msg = (
+        f"You are a professional translator. Translate the following text to {target_name}. "
+        "Return ONLY the translated text — no explanations, no notes, no extra lines."
+    )
+
+    last_error = None
+    for model in models:
+        try:
+            translated_chunks = [
+                (client.chat.completions.create(
+                    messages=[
+                        {"role": "system", "content": system_msg},
+                        {"role": "user", "content": chunk},
+                    ],
+                    model=model,
+                    temperature=0.1,
+                    max_tokens=8000,
+                ).choices[0].message.content or "").strip()
+                for chunk in _split_chunks(text, chunk_size)
+            ]
+            return "\n\n".join(translated_chunks)
+        except Exception as exc:
+            last_error = exc
+    raise RuntimeError(str(last_error))
+
+
 # ── AI: Translate ──────────────────────────────────
 @epaper_bp.route("/api/epaper/translate", methods=["POST"])
 @limiter.limit("10 per minute")
@@ -1115,32 +1181,9 @@ def api_translate():
         trans_cache.move_to_end(ck)
         return jsonify({"translated_text": trans_cache[ck]})
 
-    lang_names = {
-        'hi': 'Hindi', 'mr': 'Marathi', 'en': 'English',
-        'bn': 'Bengali', 'ta': 'Tamil', 'te': 'Telugu',
-        'gu': 'Gujarati', 'kn': 'Kannada', 'ml': 'Malayalam', 'ur': 'Urdu',
-    }
-    target_name = lang_names.get(target, target)
-
     def _save_cache(translated):
         evict(trans_cache, TRANS_CACHE_MAX)
         trans_cache[ck] = translated
-
-    def _split_chunks(source, size=4500):
-        parts, start = [], 0
-        while start < len(source):
-            end = min(start + size, len(source))
-            if end < len(source):
-                for sep in ('। ', '. ', '\n', ' '):
-                    pos = source.rfind(sep, start, end)
-                    if pos > start:
-                        end = pos + len(sep)
-                        break
-            chunk = source[start:end].strip()
-            if chunk:
-                parts.append(chunk)
-            start = end
-        return parts
 
     fast_error = None
     try:
@@ -1155,43 +1198,12 @@ def api_translate():
     except Exception as exc:
         fast_error = f"Google Translate path failed: {str(exc)}"
 
-    api_key = os.getenv("GROQ_API_KEY")
-    if api_key:
-        try:
-            from groq import Groq
-            client = Groq(api_key=api_key, timeout=60)
-            env_model = (os.getenv("GROQ_MODEL") or "").strip()
-            models = [m for m in dict.fromkeys(
-                [env_model, "openai/gpt-oss-20b", "openai/gpt-oss-120b"]) if m]
-            system_msg = (
-                f"You are a professional translator. Translate the following text to {target_name}. "
-                "Return ONLY the translated text — no explanations, no notes, no extra lines."
-            )
-            last_error = None
-            for model in models:
-                try:
-                    translated_chunks = [
-                        (client.chat.completions.create(
-                            messages=[
-                                {"role": "system", "content": system_msg},
-                                {"role": "user", "content": chunk},
-                            ],
-                            model=model,
-                            temperature=0.1,
-                            max_tokens=8000,
-                        ).choices[0].message.content or "").strip()
-                        for chunk in _split_chunks(text, 8000)
-                    ]
-                    result = "\n\n".join(translated_chunks)
-                    _save_cache(result)
-                    return jsonify({"translated_text": result})
-                except Exception as exc:
-                    last_error = exc
-            return jsonify({"error": f"Groq translation fallback failed: {last_error}"}), 500
-        except Exception as exc:
-            return jsonify({"error": f"Groq translation fallback failed: {str(exc)}"}), 500
-
-    return jsonify({"error": fast_error or "Translation failed after all translation providers."}), 500
+    try:
+        result = _groq_translate(text, target)
+        _save_cache(result)
+        return jsonify({"translated_text": result})
+    except Exception as exc:
+        return jsonify({"error": f"Groq translation fallback failed: {exc}"}), 500
 
 
 # ── AI: Summarize ──────────────────────────────────
@@ -1199,18 +1211,36 @@ def api_translate():
 @limiter.limit("10 per minute")
 def api_summarize():
     data = request.get_json(silent=True) or {}
-    text = data.get("text", "")
+    raw_text = data.get("text", "")
+    text = raw_text if isinstance(raw_text, str) else ""
+    target = (data.get("target_lang") or "").strip().lower()
 
     if not text:
         return jsonify({"error": "No text provided."}), 400
 
+    def _finish(summary):
+        """Translate the extracted summary when a target language was requested."""
+        if target and target not in ('orig', 'auto', 'same') and summary:
+            try:
+                translated = _groq_translate("\n".join(summary), target)
+                items = [
+                    re.sub(r'^\s*[-•*]\s*|^\s*\d+[.)]\s*', '', line).strip()
+                    for line in translated.splitlines()
+                ]
+                items = [i for i in items if i]
+                if items:
+                    return jsonify({"summary": items})
+            except Exception:
+                pass
+        return jsonify({"summary": summary})
+
     sentences = [s.strip() for s in re.split(r'[।.!?\n]+', text) if s.strip() and len(s.strip()) > 10]
 
     if not sentences:
-        return jsonify({"summary": [text[:200]]})
+        return _finish([text[:200]])
 
     if len(sentences) <= 3:
-        return jsonify({"summary": sentences})
+        return _finish(sentences)
 
     stopwords = {'का', 'की', 'के', 'में', 'है', 'हैं', 'को', 'से', 'और', 'पर', 'ने',
                  'एक', 'यह', 'वह', 'भी', 'इस', 'the', 'is', 'a', 'an', 'of', 'in',
@@ -1245,7 +1275,7 @@ def api_summarize():
     top = sorted(scored[:5], key=lambda x: x[1])
     summary = [s[2] for s in top]
 
-    return jsonify({"summary": summary})
+    return _finish(summary)
 
 
 # ── AI: TTS (Edge Neural Voices — Real Indian Anchor) ───────────────────────────────────

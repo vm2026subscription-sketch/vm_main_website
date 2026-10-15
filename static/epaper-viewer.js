@@ -423,6 +423,29 @@ const EP = {
       summarizePane.parentNode.insertBefore(translatePane, summarizePane);
     }
 
+    const summaryOutput = document.getElementById('epSummaryOutput');
+    if (summaryOutput && !document.getElementById('epSummaryLang')) {
+      const summaryLangRow = document.createElement('div');
+      summaryLangRow.style.cssText = 'display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px;';
+      summaryLangRow.innerHTML = `
+        <label for="epSummaryLang" style="font-size:12px;font-weight:600;color:#6b7280;">Language</label>
+        <select id="epSummaryLang" class="ep-tts-voice-select" title="Select summary language">
+          <option value="orig">Same as article</option>
+          <option value="en">English</option>
+          <option value="hi">Hindi</option>
+          <option value="mr">Marathi</option>
+          <option value="gu">Gujarati</option>
+          <option value="bn">Bengali</option>
+          <option value="ta">Tamil</option>
+          <option value="te">Telugu</option>
+          <option value="kn">Kannada</option>
+          <option value="ml">Malayalam</option>
+          <option value="ur">Urdu</option>
+        </select>
+      `;
+      summaryOutput.parentNode.insertBefore(summaryLangRow, summaryOutput);
+    }
+
     const articleDate = document.getElementById('epArtDate');
     if (articleDate && !document.getElementById('epVideoBtn')) {
       const videoBtn = document.createElement('button');
@@ -513,6 +536,7 @@ const EP = {
       translateSelect: document.getElementById('epTranslateSelect'),
       translateOutput: document.getElementById('epTranslateOutput'),
       summaryOutput: document.getElementById('epSummaryOutput'),
+      summaryLang: document.getElementById('epSummaryLang'),
       toast: document.getElementById('epToast'),
       // Thumbnail strip
       thumbStrip: document.getElementById('epThumbStrip'),
@@ -3538,14 +3562,16 @@ const EP = {
     const text = this._getArticleText();
     if (!text) { this.el.summaryOutput.innerHTML = '<p>No content to summarize.</p>'; return; }
 
+    const summaryLang = (document.getElementById('epSummaryLang')?.value || 'orig').trim();
+
     this.el.summaryOutput.innerHTML = '<div class="ep-summary-loading"><div class="spinner"></div>AI is summarizing...</div>';
-    this.trackEvent('ai_summarize', { article: this.currentArticle?.headline });
+    this.trackEvent('ai_summarize', { article: this.currentArticle?.headline, lang: summaryLang });
 
     try {
       const res = await fetch('/api/epaper/summarize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
+        body: JSON.stringify({ text, target_lang: summaryLang })
       });
       if (res.ok) {
         const data = await res.json();
