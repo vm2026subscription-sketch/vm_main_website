@@ -2458,7 +2458,7 @@ const EP = {
     if (grid) {
       grid.style.zoom = '';
       grid.style.width = targetWidth;
-      grid.style.maxWidth = usePixelWidth ? 'none' : (z > 1 ? `${z * 860}px` : '');
+      grid.style.maxWidth = 'none';
     }
     if (container) {
       container.style.zoom = '';

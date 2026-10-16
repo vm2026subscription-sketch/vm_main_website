@@ -230,10 +230,17 @@ body.epaper-body:not(.ep-edition-open) .ep-thumb-strip {
   min-height: calc(100vh - var(--ep-nav-h) - 104px);
 }
 
+/* Reader fills the available column; the paper then fills the reader so the
+   page matches the container width (no fixed 920px cap). */
+.ep-reader-container {
+  width: 100%;
+  max-width: none;
+}
+
 @media (min-width: 1101px) {
   body.epaper-body.ep-edition-open .ep-main {
     display: grid;
-    grid-template-columns: 280px minmax(0, 920px) 280px;
+    grid-template-columns: 280px minmax(0, 1fr) 280px;
     justify-content: center;
     align-items: flex-start;
   }
@@ -244,13 +251,13 @@ body.epaper-body:not(.ep-edition-open) .ep-thumb-strip {
 
   body.epaper-body.ep-edition-open .ep-reader-container {
     grid-column: 2;
-    width: min(920px, 100%);
-    max-width: 920px;
+    width: 100%;
+    max-width: none;
     justify-self: center;
   }
 
   body.epaper-body.ep-edition-open .ep-main.news-sidebar-collapsed {
-    grid-template-columns: minmax(0, 920px);
+    grid-template-columns: minmax(0, 1fr);
   }
 
   body.epaper-body.ep-edition-open .ep-main.news-sidebar-collapsed .ep-reader-container {
@@ -1101,10 +1108,10 @@ body.epaper-body:not(.ep-edition-open) .ep-edition-card-language {
   margin-bottom: 8px;
 }
 
-/* ── NEWSPAPER PAPER (masthead + page, same width) ─ */
+/* ── NEWSPAPER PAPER (masthead + page, comfortable centered width) ─ */
 .ep-paper {
-  width: 920px;
-  max-width: 100%;
+  width: 100%;
+  max-width: 1100px;
   min-width: 0;
   margin: 0 auto;
   align-self: center;
@@ -1702,7 +1709,7 @@ body.epaper-body:not(.has-masthead) .ep-masthead {
 .ep-block-grid {
   display: block;
   width: 100%;
-  max-width: 860px;
+  max-width: none;
   margin: 16px auto;
   padding: 0;
 }
@@ -3285,7 +3292,7 @@ body.epaper-body:not(.has-masthead) .ep-masthead {
   }
 
   body.epaper-body.ep-edition-open .ep-main {
-    grid-template-columns: 240px minmax(0, 920px) 240px;
+    grid-template-columns: 240px minmax(0, 1fr) 240px;
   }
 }
 
