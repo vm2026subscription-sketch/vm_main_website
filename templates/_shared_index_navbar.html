@@ -6,8 +6,7 @@
         var saved = localStorage.getItem('theme');
         if (saved === 'light' || saved === 'dark') return saved;
       } catch (e) {}
-      return (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches)
-        ? 'light' : 'dark';
+      return 'light';
     }
     if (document.body) {
       document.body.classList.toggle('light-mode', currentTheme() === 'light');
