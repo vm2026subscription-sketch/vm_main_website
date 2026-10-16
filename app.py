@@ -203,8 +203,11 @@ class _EpaperSubdomainMiddleware:
         ).lower().split(':')[0]
         if host == _CUTOFF_HOST:
             # cutoffs subdomain serves the cut-offs page at its root.
-            environ = dict(environ)
-            environ['PATH_INFO'] = '/cutoffs'
+            # Only rewrite the root path so /static/* assets and /api/* keep working.
+            path = environ.get('PATH_INFO', '/')
+            if path in ('', '/'):
+                environ = dict(environ)
+                environ['PATH_INFO'] = '/cutoffs'
         if host == _EPAPER_HOST:
             path = environ.get('PATH_INFO', '/')
             if not path.startswith('/epaper') and _EPAPER_SUBPATH_RE.match(path):
