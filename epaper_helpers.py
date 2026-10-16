@@ -94,7 +94,7 @@ def tts_cache_key(text, voice, rate, pitch):
 
 
 def trans_cache_key(text, target):
-    return hashlib.md5(f"{text[:4000]}|{target}".encode("utf-8")).hexdigest()
+    return hashlib.md5(f"{len(text)}|{text}|{target}".encode("utf-8")).hexdigest()
 
 
 def evict(cache, max_size):

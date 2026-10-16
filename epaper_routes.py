@@ -8,6 +8,7 @@ import os
 import re
 import sys
 import threading
+import time
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
@@ -1106,6 +1107,10 @@ _LANG_NAMES = {
     'pa': 'Punjabi', 'or': 'Odia', 'as': 'Assamese',
 }
 
+# Set when the Google path fails so later requests go straight to Groq
+# instead of paying the failed-attempt latency on every single request.
+_GOOGLE_STATE = {'blocked_until': 0.0}
+
 
 def _split_chunks(source, size=4500):
     """Split long text into translation-friendly chunks on sentence boundaries."""
@@ -1125,8 +1130,57 @@ def _split_chunks(source, size=4500):
     return parts
 
 
-def _groq_translate(text, target, chunk_size=8000):
-    """Translate text through Groq, trying several models. Raises RuntimeError on failure."""
+def _translate_model_configs():
+    """Ordered (model, reasoning_effort) candidates — fastest/most reliable first.
+
+    Every Groq model has its own ~8k tokens/min budget, so on a 429 we skip
+    straight to the next model instead of waiting for the window to reset.
+    """
+    configs = []
+    env_model = (os.getenv("GROQ_MODEL") or "").strip()
+    if env_model:
+        configs.append((env_model, "none" if "qwen" in env_model.lower() else "low"))
+    configs.extend([
+        ("openai/gpt-oss-20b", "low"),
+        ("openai/gpt-oss-120b", "low"),
+        ("qwen/qwen3.8-27b", "none"),
+    ])
+    seen, ordered = set(), []
+    for model, effort in configs:
+        if model not in seen:
+            seen.add(model)
+            ordered.append((model, effort))
+    return ordered
+
+
+def _groq_complete(client, model, effort, system_msg, chunk, max_tokens=6000):
+    """One Groq translation call. Raises when the model returns no text."""
+    args = {
+        "messages": [
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": chunk},
+        ],
+        "model": model,
+        "temperature": 0.1,
+        "max_tokens": max_tokens,
+    }
+    if effort:
+        try:
+            resp = client.chat.completions.create(**args, extra_body={"reasoning_effort": effort})
+        except Exception as exc:
+            if "reasoning_effort" not in str(exc):
+                raise
+            resp = client.chat.completions.create(**args)
+    else:
+        resp = client.chat.completions.create(**args)
+    out = (resp.choices[0].message.content or "").strip()
+    if not out:
+        raise RuntimeError(f"{model} returned an empty translation")
+    return out
+
+
+def _groq_translate(text, target, chunk_size=6000):
+    """Translate through Groq with parallel chunk calls. Raises RuntimeError on failure."""
     from groq import Groq
 
     api_key = os.getenv("GROQ_API_KEY")
@@ -1134,30 +1188,23 @@ def _groq_translate(text, target, chunk_size=8000):
         raise RuntimeError("GROQ_API_KEY not configured")
 
     target_name = _LANG_NAMES.get(target, target)
-    client = Groq(api_key=api_key, timeout=60)
-    env_model = (os.getenv("GROQ_MODEL") or "").strip()
-    models = [m for m in dict.fromkeys(
-        [env_model, "openai/gpt-oss-20b", "openai/gpt-oss-120b"]) if m]
+    # max_retries=0: a 429 must fall through to the next model immediately instead
+    # of waiting out the (~50s) token-window backoff inside the SDK.
+    client = Groq(api_key=api_key, timeout=25, max_retries=0)
+    chunks = _split_chunks(text, chunk_size)
     system_msg = (
         f"You are a professional translator. Translate the following text to {target_name}. "
         "Return ONLY the translated text — no explanations, no notes, no extra lines."
     )
 
     last_error = None
-    for model in models:
+    for model, effort in _translate_model_configs():
+        def _one(chunk, _model=model, _effort=effort):
+            return _groq_complete(client, _model, _effort, system_msg, chunk)
+
         try:
-            translated_chunks = [
-                (client.chat.completions.create(
-                    messages=[
-                        {"role": "system", "content": system_msg},
-                        {"role": "user", "content": chunk},
-                    ],
-                    model=model,
-                    temperature=0.1,
-                    max_tokens=8000,
-                ).choices[0].message.content or "").strip()
-                for chunk in _split_chunks(text, chunk_size)
-            ]
+            with ThreadPoolExecutor(max_workers=min(3, max(len(chunks), 1))) as pool:
+                translated_chunks = list(pool.map(_one, chunks))
             return "\n\n".join(translated_chunks)
         except Exception as exc:
             last_error = exc
@@ -1186,17 +1233,21 @@ def api_translate():
         trans_cache[ck] = translated
 
     fast_error = None
-    try:
-        from deep_translator import GoogleTranslator
-        translated_chunks = [
-            GoogleTranslator(source="auto", target=target).translate(c) or c
-            for c in _split_chunks(text, 4500)
-        ]
-        result = "\n\n".join(translated_chunks)
-        _save_cache(result)
-        return jsonify({"translated_text": result})
-    except Exception as exc:
-        fast_error = f"Google Translate path failed: {str(exc)}"
+    # Skip Google entirely while it is in its failure cooldown window — otherwise
+    # every request pays the failed-attempt latency before reaching Groq.
+    if time.time() >= _GOOGLE_STATE['blocked_until']:
+        try:
+            from deep_translator import GoogleTranslator
+            translated_chunks = [
+                GoogleTranslator(source="auto", target=target).translate(c) or c
+                for c in _split_chunks(text, 4500)
+            ]
+            result = "\n\n".join(translated_chunks)
+            _save_cache(result)
+            return jsonify({"translated_text": result})
+        except Exception as exc:
+            fast_error = f"Google Translate path failed: {str(exc)}"
+            _GOOGLE_STATE['blocked_until'] = time.time() + 600
 
     try:
         result = _groq_translate(text, target)
@@ -1219,16 +1270,13 @@ def api_summarize():
         return jsonify({"error": "No text provided."}), 400
 
     def _finish(summary):
-        """Translate the extracted summary when a target language was requested."""
+        """Translate the extracted summary (one call per bullet) when a language is requested."""
         if target and target not in ('orig', 'auto', 'same') and summary:
             try:
-                translated = _groq_translate("\n".join(summary), target)
-                items = [
-                    re.sub(r'^\s*[-•*]\s*|^\s*\d+[.)]\s*', '', line).strip()
-                    for line in translated.splitlines()
-                ]
-                items = [i for i in items if i]
-                if items:
+                with ThreadPoolExecutor(max_workers=min(5, len(summary))) as pool:
+                    items = list(pool.map(lambda s: _groq_translate(s, target), summary))
+                items = [re.sub(r'^\s*[-•*]\s*|^\s*\d+[.)]\s*', '', i).strip() for i in items]
+                if all(items):
                     return jsonify({"summary": items})
             except Exception:
                 pass
