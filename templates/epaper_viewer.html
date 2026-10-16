@@ -45,67 +45,406 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='epaper-viewer.min.css', v='20260827-min') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='epaper-landing-light.min.css', v='min1') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='epaper-whatsapp.css', v='1') }}">
-  <style>
-    .ep-views-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      margin-left: 10px;
-      padding: 5px 12px;
-      border-radius: 20px;
-      background: rgba(255, 102, 0, 0.12);
-      border: 1px solid rgba(255, 102, 0, 0.3);
-      color: #ff6600;
-      font-size: 12px;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-    .ep-views-badge i { font-size: 11px; opacity: 0.9; }
-    .ep-views-badge .ep-views-num { font-weight: 700; }
-  </style>
+  
 
-  <!-- PWA Manifest -->
-  <link rel="manifest" href="{{ url_for('static', filename='epaper-manifest.json') }}">
-  <meta name="theme-color" content="#ff6600">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="apple-touch-icon" href="{{ url_for('static', filename='title.png') }}">
+    <!-- Newspaper fonts: Playfair Display (English) + Noto Serif Devanagari (Marathi/Hindi) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Noto+Serif+Devanagari:wght@600;700&display=swap" rel="stylesheet">
 
-  <!-- Schema.org: WebSite -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "Vidyarthi Mitra ePaper",
-    "url": "{{ og_url }}",
-    "publisher": {
-      "@type": "Organization",
-      "name": "Vidyarthi Mitra",
-      "logo": { "@type": "ImageObject", "url": "{{ url_for('static', filename='logo.png', _external=True) }}" }
-    }
-  }
-  </script>
+    <style>
+      .no-shared-navbar .vm-nav-topbar,
+      .no-shared-navbar .vm-main-header {
+        display: none !important; 
+      }
 
-  <!-- Schema.org: BreadcrumbList -->
-  {% if initial_language %}
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    "itemListElement": [
-      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.vidyarthimitra.org" },
-      { "@type": "ListItem", "position": 2, "name": "ePaper", "item": "https://epaper.vidyarthimitra.org/epaper" },
-      { "@type": "ListItem", "position": 3, "name": "{{ initial_language|capitalize }}", "item": "{{ og_url }}" }
-      {% if initial_date %},
-        { "@type": "ListItem", "position": 4, "name": "{{ initial_date }}" }
-      {% endif %}
-    ]
-  }
-  </script>
-  {% endif %}
+      /* ══ Newspaper-style article page ══ */
+      .ep-article-panel {
+        --ap-bg: #faf7f2;
+        --ap-card: #ffffff;
+        --ap-surface: #ffffff;
+        --ap-surface-2: #faf8f4;
+        --ap-text: #222222;
+        --ap-title: #141210;
+        --ap-muted: #6f675e;
+        --ap-line: #e9e3da;
+        --ap-red: #d9252a;
+        --ap-shadow: 0 6px 24px rgba(30, 22, 14, .07);
+        background: var(--ap-bg);
+      }
+      @media (prefers-color-scheme: dark) {
+        .ep-article-panel {
+          --ap-bg: #131110;
+          --ap-card: #1d1a17;
+          --ap-surface: #1d1a17;
+          --ap-surface-2: #24211d;
+          --ap-text: #e7e1d8;
+          --ap-title: #f6f1e8;
+          --ap-muted: #a89e92;
+          --ap-line: #34302a;
+          --ap-shadow: 0 6px 24px rgba(0, 0, 0, .4);
+        }
+      }
+      body.dark-mode .ep-article-panel {
+        --ap-bg: #131110;
+        --ap-card: #1d1a17;
+        --ap-surface: #1d1a17;
+        --ap-surface-2: #24211d;
+        --ap-text: #e7e1d8;
+        --ap-title: #f6f1e8;
+        --ap-muted: #a89e92;
+        --ap-line: #34302a;
+        --ap-shadow: 0 6px 24px rgba(0, 0, 0, .4);
+      }
+
+      /* ── Top bar: Back + edition badge + listen estimate ── */
+      .ep-article-topbar {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        min-height: 48px;
+        padding: 0 12px;
+        background: var(--ap-surface);
+        border-bottom: 1px solid var(--ap-line);
+      }
+      .ep-art-topbar-left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+      }
+      .ep-article-back {
+        padding: 13px 8px;
+        font-size: 13.5px;
+        color: var(--ap-red);
+        flex-shrink: 0;
+      }
+      .ep-edition-badge {
+        display: inline-block;
+        max-width: 52vw;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .2px;
+        color: var(--ap-muted);
+        background: var(--ap-surface-2);
+        border: 1px solid var(--ap-line);
+        border-radius: 999px;
+        padding: 4px 11px;
+      }
+      .ep-tts-estimate {
+        font-size: 10.5px;
+        color: var(--ap-muted);
+        opacity: .95;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      /* ── Sticky toolbar: voice + Play / Translate / Summarize / Share ── */
+      .ep-ai-bar {
+        position: sticky;
+        top: 48px;
+        z-index: 4;
+        display: flex;
+        align-items: stretch;
+        height: 56px;
+        padding: 0 6px;
+        background: var(--ap-surface);
+        border-bottom: 1px solid var(--ap-line);
+        box-shadow: 0 3px 12px rgba(30, 22, 14, .08);
+      }
+      .ep-voice-tab-slot {
+        flex: 2 1 0;
+        min-width: 0;
+        height: 100%;
+        align-items: center;
+        gap: 8px;
+        padding: 0 8px;
+        border-right: 1px solid var(--ap-line);
+      }
+      .ep-voice-tab-slot .ep-tts-voice-select {
+        flex: 1 1 auto;
+        min-width: 0;
+        height: 36px;
+        font-size: 12px;
+        background: var(--ap-card);
+        color: var(--ap-text);
+        border-color: var(--ap-line);
+        border-radius: 8px;
+      }
+      .ep-voice-tab-slot .ep-art-play-btn {
+        flex: 0 0 auto;
+        height: 36px;
+        padding: 0 16px;
+        border-radius: 999px;
+        background: var(--ap-red);
+        color: #fff;
+        font-size: 13px;
+        box-shadow: 0 2px 8px rgba(217, 37, 42, .3);
+      }
+      .ep-ai-tab {
+        flex: 1 1 0;
+        min-width: 0;
+        height: 100%;
+        flex-direction: column;
+        gap: 2px;
+        padding: 7px 4px;
+        font-size: 10px;
+        color: var(--ap-muted);
+      }
+      .ep-ai-tab i { font-size: 15px; }
+      .ep-ai-tab.active { color: var(--ap-red); border-bottom-color: var(--ap-red); }
+      .ep-ai-content {
+        background: var(--ap-surface-2);
+        border-bottom-color: var(--ap-line);
+      }
+      .ep-ai-content.active {
+        margin: 16px 16px 0;
+        border: 1px solid var(--ap-line);
+        border-radius: 12px;
+      }
+      .ep-article-panel .ep-ai-close {
+        background: var(--ap-line);
+        color: var(--ap-muted);
+      }
+      .ep-article-panel .ep-ai-close:hover {
+        background: var(--ap-line);
+        color: var(--ap-title);
+      }
+
+      /* ── Article card: kicker → headline → meta → body ── */
+      .ep-article-body {
+        width: 100%;
+        max-width: 1400px;
+        margin: 18px auto 32px;
+        padding: 24px 40px;
+        box-sizing: border-box;
+        background: var(--ap-card);
+        border: 1px solid var(--ap-line);
+        border-radius: 12px;
+        box-shadow: var(--ap-shadow);
+      }
+      .ep-article-title {
+        max-width: none;
+        font-family: 'Playfair Display', 'Noto Serif Devanagari', Georgia, serif;
+        font-weight: 700;
+        font-size: clamp(1.7rem, 4.4vw, 2.4rem);
+        line-height: 1.35;
+        letter-spacing: normal;
+        color: var(--ap-title);
+        margin: 8px 0 14px;
+        text-wrap: balance;
+      }
+      .ep-article-meta {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        font-size: 13.5px;
+        color: var(--ap-muted);
+        padding-bottom: 14px;
+        margin-bottom: 22px;
+        border-bottom: 1px solid var(--ap-line);
+      }
+      .ep-article-meta .ep-article-date {
+        font-size: 13.5px;
+        font-weight: 600;
+        color: var(--ap-muted);
+        margin: 0;
+        text-transform: none;
+        letter-spacing: normal;
+      }
+      .ep-meta-sep {
+        width: 3px;
+        height: 3px;
+        border-radius: 50%;
+        background: currentColor;
+        opacity: .6;
+        flex-shrink: 0;
+      }
+      .ep-art-read { font-weight: 600; }
+      .ep-meta-brand { font-weight: 700; }
+      .ep-article-meta #epVideoBtn {
+        margin: 0 0 0 auto !important;
+        height: 30px;
+        padding: 0 12px;
+        font-size: 12px;
+        order: 9;
+      }
+
+      /* ── Body copy: full-width measure, 19px/1.85, 2-line red drop cap ── */
+      .ep-article-text {
+        font-size: 19px;
+        line-height: 1.85;
+        color: var(--ap-text);
+        text-align: left;
+      }
+      .ep-article-text p {
+        margin: 0 0 0.8em;
+      }
+      /* Admin-authored blank spacer paragraphs (<p><br></p>) — hide, warna
+         Marathi/Hindi articles me paragraphs ke beech bade gaps dikhte hain */
+      .ep-article-text p:empty,
+      .ep-article-text p:has(> br:only-child) {
+        display: none;
+      }
+      .ep-article-text img,
+      .ep-article-text table,
+      .ep-article-body img,
+      .ep-article-body table {
+        max-width: 100%;
+      }
+      .ep-article-text p:first-of-type::first-letter {
+        float: left;
+        font-size: 3em;
+        line-height: 1.15;
+        margin: .04em .1em 0 0;
+        font-weight: 800;
+        color: var(--ap-red);
+      }
+
+      /* ── End of article: prev/next + more from this edition ── */
+      .ep-art-foot {
+        margin-top: 26px;
+        padding-top: 20px;
+        border-top: 1px solid var(--ap-line);
+      }
+      .ep-art-nav {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+      }
+      .ep-art-nav-btn {
+        flex: 0 1 auto;
+        min-width: 220px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding: 12px;
+        font-size: 13.5px;
+        font-weight: 700;
+        font-family: var(--ep-font);
+        color: var(--ap-text);
+        background: var(--ap-surface-2);
+        border: 1px solid var(--ap-line);
+        border-radius: 10px;
+        cursor: pointer;
+        transition: border-color .2s, color .2s;
+      }
+      .ep-art-nav-btn:hover:not(:disabled) {
+        border-color: var(--ap-red);
+        color: var(--ap-red);
+      }
+      .ep-art-nav-btn:disabled {
+        opacity: .45;
+        cursor: default;
+      }
+      .ep-more { margin-top: 24px; }
+      .ep-more[hidden] { display: none; }
+      .ep-more-title {
+        font-size: 11.5px;
+        font-weight: 800;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        color: var(--ap-muted);
+        margin: 0 0 12px;
+      }
+      .ep-more-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 20px;
+      }
+      .ep-more-card {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        padding: 0;
+        text-align: left;
+        background: var(--ap-surface-2);
+        border: 1px solid var(--ap-line);
+        border-radius: 10px;
+        overflow: hidden;
+        cursor: pointer;
+        font-family: var(--ep-font);
+        transition: border-color .2s, box-shadow .2s;
+      }
+      .ep-more-card:hover {
+        border-color: var(--ap-red);
+        box-shadow: 0 4px 14px rgba(30, 22, 14, .1);
+      }
+      .ep-more-thumb {
+        width: 100%;
+        height: 150px;
+        object-fit: cover;
+        display: block;
+        background: var(--ap-line);
+      }
+      .ep-more-ph {
+        width: 100%;
+        height: 150px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--ap-line);
+        color: var(--ap-muted);
+        font-size: 24px;
+      }
+      .ep-more-card-title {
+        font-size: 14px;
+        line-height: 1.55;
+        font-weight: 700;
+        color: var(--ap-text);
+        padding: 14px 16px 18px;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      /* ── Responsive ── */
+      @media (max-width: 700px) {
+        .ep-edition-badge { max-width: 44vw; }
+        .ep-ai-bar {
+          overflow-x: auto;
+          overflow-y: hidden;
+          flex-wrap: nowrap;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+        }
+        .ep-ai-bar::-webkit-scrollbar { display: none; }
+        .ep-voice-tab-slot { flex: 0 0 auto; min-width: 216px; }
+        .ep-ai-tab { flex: 0 0 auto; min-width: 78px; }
+        .ep-more-grid {
+          grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        }
+      }
+      @media (max-width: 1200px) {
+        .ep-article-body {
+          max-width: 100%;
+          padding: 24px;
+        }
+      }
+      @media (max-width: 640px) {
+        .ep-article-body { padding: 16px; }
+        .ep-article-title { font-size: 1.6rem; }
+        .ep-article-text { font-size: 16.5px; }
+        .ep-ai-content.active { margin: 12px 12px 0; }
+        .ep-art-nav-btn { flex: 1; min-width: 0; }
+        .ep-more-thumb,
+        .ep-more-ph { height: 110px; }
+      }
+    </style>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='design-system.css') }}?v=2">
 </head>
-<body class="epaper-body" data-epaper-mode="{{ 'edition' if initial_date else 'landing' }}" data-initial-language="{{ initial_language or '' }}">
+<body class="epaper-body no-shared-navbar" data-epaper-mode="{{ 'edition' if initial_date else 'landing' }}" data-initial-language="{{ initial_language or '' }}">
   {% include '_shared_index_navbar.html' %}
 
   <!-- ── CATEGORY NAV ── -->
@@ -323,11 +662,14 @@
   <!-- ── ARTICLE DETAIL PANEL ── -->
   <div class="ep-article-panel" id="epArticlePanel">
 
-    <!-- ── Top bar: Back only ── -->
+    <!-- ── Top bar: Back + edition badge + listen estimate ── -->
     <div class="ep-article-topbar">
-      <button class="ep-article-back" id="epArtBack">
-        <i class="fa fa-chevron-left"></i> Back
-      </button>
+      <div class="ep-art-topbar-left">
+        <button class="ep-article-back" id="epArtBack">
+          <i class="fa fa-chevron-left"></i> Back
+        </button>
+        <span class="ep-edition-badge" id="epEditionBadge"></span>
+      </div>
       <span class="ep-tts-estimate" id="epTtsEstimate"></span>
     </div>
 
@@ -382,6 +724,7 @@
       <!-- Voice slot replaces Translate tab -->
       <div class="ep-voice-tab-slot">
         <select class="ep-tts-voice-select" id="epVoiceSelect" title="Select voice" aria-label="Select voice">
+          <option value="">AI Voice (Auto)</option>
           <optgroup label="Hindi">
             <option value="hi-IN-MadhurNeural">Hindi – Madhur (Male)</option>
             <option value="hi-IN-SwaraNeural">Hindi – Swara (Female)</option>
@@ -461,9 +804,30 @@
     <div class="ep-article-body">
       <div class="ep-article-category" id="epArtCategory">News</div>
       <h1 class="ep-article-title" id="epArtTitle"></h1>
-      <div class="ep-article-date" id="epArtDate"></div>
+      <div class="ep-article-meta" id="epArtMeta">
+        <span class="ep-article-date" id="epArtDate"></span>
+        <span class="ep-meta-sep" aria-hidden="true"></span>
+        <span class="ep-art-read" id="epArtReadTime"></span>
+        <span class="ep-meta-sep" aria-hidden="true"></span>
+        <span class="ep-meta-brand">Vidyarthi Mitra</span>
+      </div>
       <img class="ep-article-img" id="epArtImg" src="" alt="" style="display:none" loading="lazy" decoding="async">
       <div class="ep-article-text" id="epArtText"></div>
+
+      <div class="ep-art-foot" id="epArtFoot">
+        <div class="ep-art-nav">
+          <button class="ep-art-nav-btn" id="epArtPrev" type="button">
+            <i class="fa fa-chevron-left"></i> Previous article
+          </button>
+          <button class="ep-art-nav-btn" id="epArtNext" type="button">
+            Next article <i class="fa fa-chevron-right"></i>
+          </button>
+        </div>
+        <div class="ep-more" id="epMoreBlock" hidden>
+          <h3 class="ep-more-title">More from this edition</h3>
+          <div class="ep-more-grid" id="epMoreGrid"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -485,21 +849,158 @@
 
   <script src="{{ url_for('static', filename='epaper-viewer.js', v='20260905-sharp-pages') }}"></script>
 
-  <!-- PWA Service Worker -->
+  <!-- ── Article page chrome: edition badge, meta row, prev/next, more grid ── -->
   <script>
-    // The old caching service worker trapped users on stale JS/CSS. Stop using
-    // it entirely: unregister any existing worker and wipe its caches on every
-    // load so the latest deployed code always runs.
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations()
-        .then(function (regs) { regs.forEach(function (r) { r.unregister(); }); })
-        .catch(function () {});
-    }
-    if (window.caches && caches.keys) {
-      caches.keys()
-        .then(function (keys) { keys.forEach(function (k) { caches.delete(k); }); })
-        .catch(function () {});
-    }
+    (function () {
+      function fmtDate(iso) {
+        var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+        if (!m) return iso || '';
+        var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return parseInt(m[3], 10) + ' ' + months[parseInt(m[2], 10) - 1] + ' ' + m[1];
+      }
+
+      function editionBadgeText() {
+        var ed = EP.currentEdition || {};
+        var lang = String(ed.language || EP.currentLanguage || '').trim();
+        var name = String(ed.name || '').trim();
+        var edPart = name;
+        if (lang && name) {
+          var re = new RegExp('^' + lang.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*[\\-–:•]?\\s*', 'i');
+          edPart = name.replace(re, '').trim() || name;
+        }
+        return [lang, edPart, fmtDate(ed.date)].filter(Boolean).join(' • ');
+      }
+
+      function editionArticles() {
+        var out = [];
+        var cur = EP.currentArticle || null;
+        (EP.pages || []).forEach(function (page, pi) {
+          var isBlocks = !!(page.blocks && page.blocks.length);
+          var list = isBlocks ? page.blocks : (page.articles || []);
+          var artIdx = -1;
+          for (var bi = 0; bi < list.length; bi++) {
+            var b = list[bi];
+            if (!b) continue;
+            if (isBlocks && (b.type === 'shape' || b.type === 'divider')) continue;
+            artIdx++;
+            if (!b.headline) continue;
+            if (!(b.body_text || b.body_html)) continue;
+            if (cur && b.headline === cur.headline) continue;
+            out.push({ page: pi + 1, idx: artIdx, art: b });
+          }
+        });
+        return out;
+      }
+
+      function openEditionArticle(pageNum, idx) {
+        try {
+          EP.showPage(pageNum, false);
+          EP.openArticle(idx);
+        } catch (e) {}
+      }
+
+      function goArticle(delta) {
+        try {
+          var list = EP.articles || [];
+          var i = list.indexOf(EP.currentArticle);
+          var j = i + delta;
+          if (i >= 0 && j >= 0 && j < list.length) EP.openArticle(j);
+        } catch (e) {}
+      }
+
+      function renderMore() {
+        var block = document.getElementById('epMoreBlock');
+        var grid = document.getElementById('epMoreGrid');
+        if (!block || !grid) return;
+        var items = editionArticles().slice(0, 3);
+        grid.innerHTML = '';
+        if (!items.length) { block.hidden = true; return; }
+        block.hidden = false;
+        items.forEach(function (it) {
+          var card = document.createElement('button');
+          card.type = 'button';
+          card.className = 'ep-more-card';
+          var gal = it.art.gallery || [];
+          try { if (EP.filterGalleryImages) gal = EP.filterGalleryImages(gal); } catch (e) {}
+          var src = gal[0] || it.art.image_url || '';
+          if (src) {
+            var img = document.createElement('img');
+            img.className = 'ep-more-thumb';
+            img.loading = 'lazy';
+            img.alt = '';
+            try { img.src = EP.optimizeCloudinaryUrl ? EP.optimizeCloudinaryUrl(src, 400) : src; }
+            catch (e) { img.src = src; }
+            card.appendChild(img);
+          } else {
+            var ph = document.createElement('div');
+            ph.className = 'ep-more-ph';
+            ph.innerHTML = '<i class="fa fa-newspaper" aria-hidden="true"></i>';
+            card.appendChild(ph);
+          }
+          var title = document.createElement('span');
+          title.className = 'ep-more-card-title';
+          title.textContent = it.art.headline;
+          card.appendChild(title);
+          card.addEventListener('click', function () { openEditionArticle(it.page, it.idx); });
+          grid.appendChild(card);
+        });
+      }
+
+      function refreshArticleChrome() {
+        try {
+          var ed = EP.currentEdition || {};
+          var lang = String(ed.language || EP.currentLanguage || '').trim();
+
+          var badge = document.getElementById('epEditionBadge');
+          if (badge) badge.textContent = editionBadgeText();
+
+          var opt = document.querySelector('#epVoiceSelect option[value=""]');
+          if (opt && lang) opt.textContent = lang + ' - AI Voice';
+
+          var read = document.getElementById('epArtReadTime');
+          if (read && EP.currentArticle && typeof EP._calcReadingTime === 'function') {
+            read.textContent = EP._calcReadingTime(EP._getArticleText()) + ' min read';
+          }
+
+          // Viewer JS drops the video button right after the date; keep it at the meta row's end
+          var vb = document.getElementById('epVideoBtn');
+          var meta = document.getElementById('epArtMeta');
+          if (vb && meta && meta.contains(vb)) meta.appendChild(vb);
+
+          var list = EP.articles || [];
+          var i = list.indexOf(EP.currentArticle);
+          var prev = document.getElementById('epArtPrev');
+          var next = document.getElementById('epArtNext');
+          if (prev && prev.parentElement) prev.parentElement.style.display = list.length > 1 ? 'flex' : 'none';
+          if (prev) prev.disabled = i <= 0;
+          if (next) next.disabled = i < 0 || i >= list.length - 1;
+
+          renderMore();
+        } catch (e) {}
+      }
+
+      var chromeTimer = null;
+      function scheduleChrome() {
+        clearTimeout(chromeTimer);
+        chromeTimer = setTimeout(refreshArticleChrome, 60);
+      }
+
+      document.addEventListener('DOMContentLoaded', function () {
+        var prev = document.getElementById('epArtPrev');
+        var next = document.getElementById('epArtNext');
+        if (prev) prev.addEventListener('click', function () { goArticle(-1); });
+        if (next) next.addEventListener('click', function () { goArticle(1); });
+
+        var titleEl = document.getElementById('epArtTitle');
+        if (titleEl && window.MutationObserver) {
+          new MutationObserver(scheduleChrome).observe(titleEl, { childList: true, characterData: true, subtree: true });
+        }
+        scheduleChrome();
+      });
+    })();
   </script>
+
+  <!-- PWA Service Worker -->
+  
 </body>
 </html>
