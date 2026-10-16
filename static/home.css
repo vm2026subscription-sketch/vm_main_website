@@ -49,9 +49,7 @@ body section:not(.hero) { padding: 72px 0; }
 
 .orange-text, .highlight-orange, .orange { color: var(--h-accent) !important; }
 
-/* ── Homepage header/nav override ────────────────────────────────────────
-   At the top the header sits over the dark hero, so it stays solid white.
-   Once scrolled it matches every other page → dark glass.                */
+/* ── Homepage header/nav override (neutralise the dark glass navbar) ────── */
 body .vm-main-header {
   background: #fff !important;
   border-bottom: 1px solid var(--h-line) !important;
@@ -60,11 +58,11 @@ body .vm-main-header {
   box-shadow: none !important;
 }
 body .vm-main-header.vm-scrolled {
-  background: rgba(5, 10, 21, 0.88) !important;
-  backdrop-filter: blur(24px) !important;
-  -webkit-backdrop-filter: blur(24px) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2) !important;
+  background: #fff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-bottom: 1px solid var(--h-line) !important;
+  box-shadow: 0 4px 16px rgba(16, 24, 40, 0.06) !important;
 }
 body .vm-nav-topbar { background: var(--h-navy) !important; border-bottom: none !important; }
 body .vm-nav-topbar a { color: #c7d2e0 !important; }
@@ -77,30 +75,6 @@ body .vm-nav-item:hover,
 body .vm-dropdown-trigger:hover,
 body .vm-nav-item.vm-active,
 body .vm-btn-link:hover { color: var(--h-accent) !important; background: transparent !important; }
-
-/* Scrolled → dark glass, so flip text/brand/search to their light variants */
-body .vm-main-header.vm-scrolled .vm-nav-item,
-body .vm-main-header.vm-scrolled .vm-dropdown-trigger,
-body .vm-main-header.vm-scrolled .vm-btn-link { color: #fff !important; }
-body .vm-main-header.vm-scrolled .vm-nav-item:hover,
-body .vm-main-header.vm-scrolled .vm-dropdown-trigger:hover,
-body .vm-main-header.vm-scrolled .vm-nav-item.vm-active,
-body .vm-main-header.vm-scrolled .vm-btn-link:hover { color: #fff !important; background: rgba(255, 255, 255, 0.08) !important; }
-body .vm-main-header.vm-scrolled .vm-brand { background: #fff !important; padding: var(--space-1) var(--space-2) !important; border-radius: 8px !important; }
-body .vm-main-header.vm-scrolled .vm-search-btn-container {
-  background: rgba(255, 255, 255, 0.08) !important;
-  border-color: rgba(255, 255, 255, 0.16) !important;
-  color: #e2e8f0 !important;
-}
-body .vm-main-header.vm-scrolled .vm-theme-toggle {
-  border-color: rgba(255, 255, 255, 0.2) !important;
-  color: #e2e8f0 !important;
-}
-body .vm-main-header.vm-scrolled .vm-nav-toggle {
-  background: rgba(255, 255, 255, 0.08) !important;
-  border-color: rgba(255, 255, 255, 0.16) !important;
-  color: #fff !important;
-}
 
 body .vm-brand { background: transparent !important; padding: 0 !important; }
 body .vm-brand img { mix-blend-mode: normal !important; }

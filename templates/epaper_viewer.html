@@ -418,7 +418,7 @@
       }
     </style>
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='design-system.css') }}?v=2">
+    <link rel="stylesheet" href="{{ url_for('static', filename='design-system.css', v='20261016c') }}?v=2">
 </head>
 <body class="epaper-body no-shared-navbar" data-epaper-mode="{{ 'edition' if initial_date else 'landing' }}" data-initial-language="{{ initial_language or '' }}">
   {% include '_shared_index_navbar.html' %}
