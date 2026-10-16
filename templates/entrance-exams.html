@@ -12,43 +12,16 @@
   <meta property="og:type" content="website">
   <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
 
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
-  <!-- Font Awesome Icons -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"></noscript>
-
-  <link rel="stylesheet" href="{{ url_for('static', filename='entrance-exams.min.css') }}">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
-  <style>
-    .navbar { display: none; }
-
-    /* ── GEN-Z MODERN OVERRIDES ── */
-    :root {
-      --orange: #ff6600; /* Neon Lime */
-      --orange-light: #e05500;
-      --orange-pale: rgba(255,102,0, 0.08);
-      --orange-mid: rgba(255,102,0, 0.2);
-      --white: rgba(13, 22, 39, 0.65); /* Translucent glass */
-      --off-white: #0a1128;
-      --gray-50: #0a1128;
-      --gray-100: rgba(255, 255, 255, 0.06);
-      --gray-300: rgba(255, 255, 255, 0.15);
-      --gray-500: #94a3b8;
-      --gray-700: #cbd5e1;
-      --dark: #ffffff;
-      --shadow-sm: 0 4px 20px rgba(255,102,0, 0.08);
-      --shadow-md: 0 8px 32px rgba(255,102,0, 0.12);
-      --shadow-lg: 0 20px 60px rgba(255,102,0, 0.16);
-    }
-
-    body {
-      background-color: #050a15 !important;
-      color: #ffffff !important;
-      font-family: 'Inter', sans-serif !important;
-      transition: background-color 0.4s ease, color 0.4s ease;
-    }
+  <!-- Design System Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap"></noscript>
+  <!-- Font Awesome 6 -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"></noscript>
+  <!-- Design System CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='design-system.css') }}">
 
     /* ── HERO ────────────────────────────────────────────────── */
     .hero {
@@ -659,6 +632,15 @@
       color: #475569 !important;
     }
   </style>
+
+    <!-- Design System Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap"></noscript>
+    <!-- Font Awesome 6 -->
+    <!-- Design System CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='design-system.css') }}">
 </head>
 <body>
 {% include '_shared_index_navbar.html' %}
@@ -1174,15 +1156,7 @@
   </div>
 </section>
 
-<footer style="background:#0a1128;color:#94a3b8;padding:20px 24px;text-align:center;font-size:13px;margin-top:0;">
-  <p>&copy; 2026 VidyarthiMitra.org - All Rights Reserved |
-    <a href="{{ url_for('about_us') }}" style="color:#ff6600;">About Us</a> |
-    <a href="/terms" style="color:#ff6600;">Terms &amp; Conditions</a> |
-    <a href="/privacy" style="color:#ff6600;">Privacy Policy</a> |
-    <a href="{{ url_for('contact') }}" style="color:#ff6600;">Contact Us</a> |
-    <a href="{{ url_for('refund_policy') }}" style="color:#ff6600;">Refund &amp; Cancellation</a>
-  </p>
-</footer>
+  {% include '_shared_footer.html' %}
 
 <script src="{{ url_for('static', filename='entrance-exams.js') }}"></script>
 </body>

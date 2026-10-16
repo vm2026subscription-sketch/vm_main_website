@@ -2,102 +2,127 @@
 {% block title %}Previous Year Cut-offs | Vidyarthi Mitra{% endblock %}
 {% block page_styles %}
 <style>
-  :root {
-    --primary: #ff6600;
-    --primary-dark: #e05500;
-    --text: #ffffff;
-    --muted: #94a3b8;
-    --bg-main: #050a15;
-    --bg-card: rgba(13, 22, 39, 0.65);
-    --border: rgba(255, 255, 255, 0.06);
-  }
-
-  body {
-    background: var(--bg-main) !important;
-    color: var(--text) !important;
-    font-family: 'Inter', sans-serif !important;
-    transition: background-color 0.4s ease, color 0.4s ease;
-  }
-
-  /* ── CUTOFFS PAGE STYLING ── */
+  /* Minimal page-specific styles - design system handles the rest */
   .cutoff-hero {
-    background: radial-gradient(circle at top right, rgba(255, 102, 0, 0.15), transparent 40%),
-                radial-gradient(circle at bottom left, rgba(139, 92, 246, 0.1), transparent 40%),
-                var(--bg-main) !important;
-    border-bottom: 1px solid var(--border) !important;
-    color: #fff;
-    padding: 60px 20px;
+    background: linear-gradient(180deg, var(--c-primary) 0%, var(--c-primary-600) 100%);
+    color: var(--c-white);
+    padding: var(--space-12) var(--container-pad);
     text-align: center;
   }
-  .cutoff-hero h1 { font-family: 'Poppins', sans-serif; font-size: 2.2rem; font-weight: 800; margin: 0 0 10px; }
-  .cutoff-hero p { font-size: 16px; color: var(--muted); margin: 0 auto; max-width: 600px; }
+  .cutoff-hero h1 { font-family: var(--ff-display); font-size: var(--fs-4xl); font-weight: 800; margin: 0 0 var(--space-3); }
+  .cutoff-hero p { font-size: var(--fs-lg); color: rgba(255,255,255,0.8); margin: 0 auto; max-width: 600px; }
 
-  .cutoff-main { max-width: 1240px; margin: 0 auto; padding: 40px 20px; display: grid; grid-template-columns: 260px 1fr; gap: 40px; }
+  .cutoff-main { max-width: var(--container-max); margin: 0 auto; padding: var(--space-10) var(--container-pad); display: grid; grid-template-columns: 280px 1fr; gap: var(--space-8); }
 
-  /* SIDEBAR FILTERS */
-  .cutoff-sidebar { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; height: fit-content; }
-  .cutoff-sidebar h3 { font-family: 'Poppins', sans-serif; font-size: 1.1rem; margin-bottom: 20px; color: #fff; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
-  
+  .cutoff-sidebar { background: var(--c-white); border: 1px solid var(--c-line); border-radius: var(--radius-lg); padding: var(--space-5); height: fit-content; }
+  .cutoff-sidebar h3 { font-family: var(--ff-display); font-size: var(--fs-lg); margin-bottom: var(--space-4); color: var(--c-ink); border-bottom: 1px solid var(--c-line); padding-bottom: var(--space-3); }
+
   .cutoff-nav-btn {
     display: block; width: 100%; text-align: left; background: transparent; border: none;
-    color: var(--muted); padding: 12px 16px; border-radius: 8px; font-size: 15px; cursor: pointer; transition: all 0.3s;
-    margin-bottom: 8px; font-family: 'Inter', sans-serif;
+    color: var(--c-muted); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md);
+    font-size: var(--fs-base); cursor: pointer; transition: all 0.2s ease; font-family: var(--ff-sans);
+    margin-bottom: var(--space-2);
   }
-  .cutoff-nav-btn:hover { background: rgba(255,255,255,0.05); color: #fff; }
-  .cutoff-nav-btn.active { background: var(--primary); color: #050a15; font-weight: 600; }
+  .cutoff-nav-btn:hover { background: var(--c-soft); color: var(--c-ink); }
+  .cutoff-nav-btn.active { background: var(--c-accent); color: var(--c-white); font-weight: 600; }
 
-  /* CONTENT AREA */
   .cutoff-content { display: none; }
   .cutoff-content.active { display: block; animation: fadeIn 0.4s ease; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-  .cutoff-content-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
-  .cutoff-content-header h2 { font-family: 'Poppins', sans-serif; font-size: 1.5rem; color: #fff; }
+  .cutoff-content-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-5); border-bottom: 1px solid var(--c-line); padding-bottom: var(--space-4); }
+  .cutoff-content-header h2 { font-family: var(--ff-display); font-size: var(--fs-2xl); color: var(--c-ink); }
 
-  .cutoff-table-wrapper { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
-  .cutoff-table { width: 100%; border-collapse: collapse; }
-  .cutoff-table th, .cutoff-table td { padding: 16px 20px; text-align: left; border-bottom: 1px solid var(--border); }
-  .cutoff-table th { background: rgba(255,255,255,0.02); color: var(--muted); font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }
-  .cutoff-table td { color: #cbd5e1; font-size: 15px; }
+  .cutoff-table-wrapper { background: var(--c-white); border: 1px solid var(--c-line); border-radius: var(--radius-lg); overflow: hidden; }
+  .cutoff-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+  .cutoff-table th, .cutoff-table td { padding: var(--space-4) var(--space-5); text-align: left; border-bottom: 1px solid var(--c-line); }
+  .cutoff-table th { background: var(--c-soft); color: var(--c-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .cutoff-table td { color: var(--c-body); }
   .cutoff-table tr:last-child td { border-bottom: none; }
-  .cutoff-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .cutoff-table tr:hover td { background: var(--c-soft); }
 
   .pdf-btn {
-    display: inline-flex; align-items: center; gap: 8px; background: rgba(255, 102, 0, 0.1);
-    color: var(--primary); padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
-    transition: all 0.2s; border: 1px solid rgba(255, 102, 0, 0.2);
+    display: inline-flex; align-items: center; gap: var(--space-2);
+    background: var(--c-accent-light); color: var(--c-accent-dark);
+    padding: var(--space-2) var(--space-4); border-radius: var(--radius-md);
+    font-size: var(--fs-xs); font-weight: 600;
+    transition: all 0.2s ease; border: 1px solid var(--c-line);
   }
-  .pdf-btn:hover { background: var(--primary); color: #050a15; }
+  .pdf-btn:hover { background: var(--c-accent); color: var(--c-white); }
 
-  /* LIGHT MODE */
-  body.light-mode .cutoff-hero {
-    background: radial-gradient(circle at top right, rgba(255,102,0, 0.2), transparent 40%),
-                radial-gradient(circle at bottom left, rgba(255, 102, 0, 0.1), transparent 40%),
-                #ffffff;
-    border-bottom: 2px solid var(--primary);
+  .counsel-btn {
+    display: inline-flex; align-items: center; gap: var(--space-2);
+    background: var(--c-accent); color: var(--c-white);
+    border: none; padding: var(--space-3) var(--space-5); border-radius: var(--radius-md);
+    font-weight: 700; font-size: var(--fs-sm); cursor: pointer;
+    transition: all 0.2s ease; font-family: var(--ff-sans);
   }
-  body.light-mode .cutoff-hero h1 { color: #0f172a; }
-  body.light-mode .cutoff-hero p { color: #475569; }
-  body.light-mode .cutoff-sidebar { background: #ffffff; border-color: #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-  body.light-mode .cutoff-sidebar h3 { color: #0f172a; border-bottom-color: #e2e8f0; }
-  body.light-mode .cutoff-nav-btn { color: #475569; }
-  body.light-mode .cutoff-nav-btn:hover { background: #f1f5f9; color: #0f172a; }
-  body.light-mode .cutoff-nav-btn.active { background: var(--primary); color: #ffffff; }
-  body.light-mode .cutoff-content-header h2 { color: #0f172a; }
-  body.light-mode .cutoff-content-header { border-bottom-color: #e2e8f0; }
-  body.light-mode .cutoff-table-wrapper { background: #ffffff; border-color: #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-  body.light-mode .cutoff-table th { background: #f8fafc; color: #64748b; border-bottom-color: #e2e8f0; }
-  body.light-mode .cutoff-table td { color: #334155; border-bottom-color: #e2e8f0; }
-  body.light-mode .cutoff-table tr:hover td { background: #f1f5f9; }
-  body.light-mode .pdf-btn { background: #fff5f0; border-color: #ffccb3; }
-  body.light-mode .pdf-btn:hover { background: var(--primary); color: #ffffff; }
+  .counsel-btn:hover { background: var(--c-accent-dark); }
+
+  .lead-modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(2, 6, 16, 0.75); backdrop-filter: blur(4px);
+    z-index: var(--z-modal); align-items: center; justify-content: center; padding: var(--space-4);
+  }
+  .lead-modal-overlay.open { display: flex; }
+  .lead-modal {
+    background: var(--c-white); border: 1px solid var(--c-line); border-radius: var(--radius-lg);
+    max-width: 440px; width: 100%; padding: var(--space-6); position: relative;
+    box-shadow: var(--shadow-lg);
+  }
+  .lead-modal h3 { font-family: var(--ff-display); color: var(--c-ink); font-size: var(--fs-xl); margin: 0 0 var(--space-2); }
+  .lead-modal .lead-sub { color: var(--c-muted); font-size: var(--fs-sm); margin: 0 0 var(--space-5); }
+  .lead-modal .lead-field { margin-bottom: var(--space-4); }
+  .lead-modal label { display: block; font-size: var(--fs-xs); color: var(--c-muted); margin-bottom: var(--space-2); }
+  .lead-modal input, .lead-modal select {
+    width: 100%; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md);
+    background: var(--c-soft); color: var(--c-ink); border: 1px solid var(--c-line);
+    font-size: var(--fs-base); box-sizing: border-box;
+  }
+  .lead-modal input:focus, .lead-modal select:focus { outline: none; border-color: var(--c-accent); box-shadow: var(--shadow-focus); }
+  .lead-modal .lead-hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+  .lead-modal .lead-submit {
+    width: 100%; padding: var(--space-3); border-radius: var(--radius-md);
+    background: var(--c-accent); color: var(--c-white); border: none;
+    font-weight: 700; font-size: var(--fs-sm); cursor: pointer; margin-top: var(--space-2);
+  }
+  .lead-modal .lead-submit:hover { background: var(--c-accent-dark); }
+  .lead-modal .lead-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+  .lead-modal .lead-close {
+    position: absolute; top: var(--space-4); right: var(--space-4);
+    background: transparent; border: none; color: var(--c-muted);
+    font-size: var(--fs-2xl); cursor: pointer; line-height: 1;
+  }
+  .lead-modal .lead-msg { font-size: var(--fs-sm); margin-top: var(--space-3); min-height: 18px; }
+  .lead-modal .lead-msg.error { color: var(--c-error); }
+  .lead-modal .lead-msg.success { color: var(--c-success); }
+
+  /* Data filters */
+  .data-filters { display: flex; gap: var(--space-3); margin-bottom: var(--space-5); flex-wrap: wrap; }
+  .data-filters select {
+    flex: 1; min-width: 180px; padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md); background: var(--c-white);
+    color: var(--c-ink); border: 1px solid var(--c-line); font-size: var(--fs-sm);
+  }
+  .data-filters select:focus { outline: none; border-color: var(--c-accent); box-shadow: var(--shadow-focus); }
+
+  .pagination { margin-top: var(--space-5); display: flex; justify-content: space-between; align-items: center; color: var(--c-muted); }
+  .pagination-btn {
+    padding: var(--space-2) var(--space-4); background: var(--c-soft);
+    color: var(--c-ink); border: 1px solid var(--c-line); border-radius: var(--radius-sm);
+    cursor: pointer; font-size: var(--fs-sm);
+  }
+  .pagination-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
   @media (max-width: 900px) {
     .cutoff-main { grid-template-columns: 1fr; }
-    .cutoff-sidebar { display: flex; overflow-x: auto; padding: 16px; }
+    .cutoff-sidebar { display: flex; overflow-x: auto; padding: var(--space-4); }
     .cutoff-sidebar h3 { display: none; }
-    .cutoff-nav-btn { white-space: nowrap; margin-bottom: 0; margin-right: 8px; width: auto; }
+    .cutoff-nav-btn { white-space: nowrap; margin-bottom: 0; margin-right: var(--space-2); width: auto; }
+    .cutoff-main > .cutoff-details { padding: 0; }
   }
+
+  body.light-mode .cutoff-hero { background: linear-gradient(180deg, var(--c-primary) 0%, var(--c-primary-600) 100%); }
 </style>
 {% endblock %}
 
@@ -125,31 +150,34 @@
     <div id="tab-engineering" class="cutoff-content {% if exam_cat == 'engineering' or not exam_cat %}active{% endif %}">
       <div class="cutoff-content-header">
         <h2>B.E / B.Tech Previous Cut-offs (MHT-CET / JEE Main)</h2>
+        <button type="button" class="counsel-btn" onclick="openLeadModal('counselling')">
+          <i class="fa-solid fa-headset"></i> Counselling book karo
+        </button>
       </div>
       
       <!-- DATA FILTERS -->
-      <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
-        <select id="btech-branch" style="padding: 10px; border-radius: 8px; background: var(--bg-card); color: var(--text); border: 1px solid var(--border);">
+      <div class="data-filters">
+        <select id="btech-branch">
           <option value="">All Branches</option>
           {% for branch in branches %}
             <option value="{{ branch }}">{{ branch }}</option>
           {% endfor %}
         </select>
         
-        <select id="btech-category" style="padding: 10px; border-radius: 8px; background: var(--bg-card); color: var(--text); border: 1px solid var(--border);">
+        <select id="btech-category">
           <option value="">All Categories</option>
           {% for cat in categories %}
             <option value="{{ cat }}">{{ cat }}</option>
           {% endfor %}
         </select>
         
-        <select id="btech-gender" style="padding: 10px; border-radius: 8px; background: var(--bg-card); color: var(--text); border: 1px solid var(--border);">
+        <select id="btech-gender">
           {% for g in genders %}
             <option value="{{ g.value }}">{{ g.label }}</option>
           {% endfor %}
         </select>
         
-        <button onclick="fetchBtechCutoffs()" style="padding: 10px 20px; border-radius: 8px; background: var(--primary); color: #fff; border: none; font-weight: 600; cursor: pointer;">
+        <button onclick="fetchBtechCutoffs()" class="btn btn--primary">
           View Cut-offs
         </button>
       </div>
@@ -172,11 +200,11 @@
           </tbody>
         </table>
       </div>
-      <div id="btech-pagination" style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center; color: var(--muted);">
+      <div id="btech-pagination" class="pagination">
         <span id="btech-total-msg"></span>
-        <div style="display: flex; gap: 10px;">
-          <button id="btech-prev" onclick="changeBtechPage(-1)" style="padding: 6px 12px; background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; display: none;">Previous</button>
-          <button id="btech-next" onclick="changeBtechPage(1)" style="padding: 6px 12px; background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; display: none;">Next</button>
+        <div style="display: flex; gap: var(--space-2);">
+          <button id="btech-prev" onclick="changeBtechPage(-1)" class="pagination-btn" style="display:none;">Previous</button>
+          <button id="btech-next" onclick="changeBtechPage(1)" class="pagination-btn" style="display:none;">Next</button>
         </div>
       </div>
     </div>
@@ -186,7 +214,6 @@
       <div class="cutoff-content-header">
         <h2>MBBS / BDS Previous Cut-offs (NEET UG)</h2>
       </div>
-      <!-- TODO: Cutoff PDF files are pending upload to static/pdfs/ -->
       <div class="cutoff-table-wrapper">
         <table class="cutoff-table">
           <thead>
@@ -207,7 +234,6 @@
       <div class="cutoff-content-header">
         <h2>B.Pharmacy Previous Cut-offs (MHT-CET)</h2>
       </div>
-      <!-- TODO: Cutoff PDF files are pending upload to static/pdfs/ -->
       <div class="cutoff-table-wrapper">
         <table class="cutoff-table">
           <thead>
@@ -227,7 +253,6 @@
       <div class="cutoff-content-header">
         <h2>MBA / MMS Previous Cut-offs (MAH-MBA CET)</h2>
       </div>
-      <!-- TODO: Cutoff PDF files are pending upload to static/pdfs/ -->
       <div class="cutoff-table-wrapper">
         <table class="cutoff-table">
           <thead>
@@ -247,7 +272,6 @@
       <div class="cutoff-content-header">
         <h2>B.Architecture Previous Cut-offs (NATA)</h2>
       </div>
-      <!-- TODO: Cutoff PDF files are pending upload to static/pdfs/ -->
       <div class="cutoff-table-wrapper">
         <table class="cutoff-table">
           <thead>
@@ -267,7 +291,6 @@
       <div class="cutoff-content-header">
         <h2>LLB Previous Cut-offs (MAH-LLB CET)</h2>
       </div>
-      <!-- TODO: Cutoff PDF files are pending upload to static/pdfs/ -->
       <div class="cutoff-table-wrapper">
         <table class="cutoff-table">
           <thead>
@@ -287,7 +310,6 @@
       <div class="cutoff-content-header">
         <h2>B.Sc Agriculture Previous Cut-offs (MCAER)</h2>
       </div>
-      <!-- TODO: Cutoff PDF files are pending upload to static/pdfs/ -->
       <div class="cutoff-table-wrapper">
         <table class="cutoff-table">
           <thead>
@@ -305,28 +327,147 @@
   </section>
 </div>
 
+<div class="lead-modal-overlay" id="lead-modal">
+  <div class="lead-modal" role="dialog" aria-modal="true" aria-labelledby="lead-title">
+    <button type="button" class="lead-close" onclick="closeLeadModal()" aria-label="Close">&times;</button>
+    <h3 id="lead-title">Get Your Cut-offs & Free Counselling</h3>
+    <p class="lead-sub" id="lead-sub">Apni details bhariye — cut-offs turant dekhein aur hamare counsellor se free guidance payein.</p>
+    <form id="lead-form" onsubmit="submitLead(event)">
+      <div class="lead-field">
+        <label for="lead-name">Name</label>
+        <input id="lead-name" name="name" type="text" placeholder="Your full name" required maxlength="200">
+      </div>
+      <div class="lead-field">
+        <label for="lead-phone">Phone</label>
+        <input id="lead-phone" name="phone" type="tel" placeholder="10-digit mobile number" required maxlength="30">
+      </div>
+      <div class="lead-field">
+        <label for="lead-class">Class / Course</label>
+        <select id="lead-class" name="class" required>
+          <option value="">Select</option>
+          <option value="Class 10th">Class 10th</option>
+          <option value="Class 11th">Class 11th</option>
+          <option value="Class 12th">Class 12th</option>
+          <option value="Diploma">Diploma</option>
+          <option value="Graduate">Graduate</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="lead-field">
+        <label for="lead-city">City</label>
+        <input id="lead-city" name="city" type="text" placeholder="Your city" required maxlength="200">
+      </div>
+      <input class="lead-hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <button type="submit" class="lead-submit" id="lead-submit-btn">Submit & View Cut-offs</button>
+      <div class="lead-msg" id="lead-msg"></div>
+    </form>
+  </div>
+</div>
+
 <script>
   let btechCurrentPage = 1;
   const btechPerPage = 50;
+  let btechLeadCaptured = false;
+  let leadIntent = 'view';
+  let pendingBtechPage = 1;
 
   function switchTab(tabId, btn) {
-    // Update buttons
     var btns = document.querySelectorAll('.cutoff-nav-btn');
     btns.forEach(function(b) { b.classList.remove('active'); });
     btn.classList.add('active');
 
-    // Update content blocks
     var contents = document.querySelectorAll('.cutoff-content');
     contents.forEach(function(c) { c.classList.remove('active'); });
     document.getElementById('tab-' + tabId).classList.add('active');
 
-    // Scroll into view on mobile
     if (window.innerWidth <= 900) {
       btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }
   }
 
+  function openLeadModal(intent) {
+    leadIntent = intent || 'view';
+    var title = document.getElementById('lead-title');
+    var sub = document.getElementById('lead-sub');
+    var btn = document.getElementById('lead-submit-btn');
+    if (leadIntent === 'counselling') {
+      title.innerHTML = 'Book Free Counselling';
+      sub.innerText = 'Apni details bhariye — hamare expert counsellor aapko call karenge.';
+      btn.innerText = 'Book Counselling';
+    } else {
+      title.innerHTML = 'Get Your Cut-offs & Free Counselling';
+      sub.innerText = 'Apni details bhariye — cut-offs turant dekhein aur hamare counsellor se free guidance payein.';
+      btn.innerText = 'Submit & View Cut-offs';
+    }
+    document.getElementById('lead-msg').innerText = '';
+    document.getElementById('lead-msg').className = 'lead-msg';
+    document.getElementById('lead-modal').classList.add('open');
+  }
+
+  function closeLeadModal() {
+    document.getElementById('lead-modal').classList.remove('open');
+  }
+
+  function submitLead(e) {
+    e.preventDefault();
+    var form = document.getElementById('lead-form');
+    var msg = document.getElementById('lead-msg');
+    var btn = document.getElementById('lead-submit-btn');
+    var payload = {
+      name: form.name.value.trim(),
+      phone: form.phone.value.trim(),
+      class: form['class'].value,
+      city: form.city.value.trim(),
+      website: form.website.value,
+      source: leadIntent === 'counselling' ? 'cutoffs-counselling' : 'cutoffs'
+    };
+    msg.innerText = '';
+    msg.className = 'lead-msg';
+    btn.disabled = true;
+    fetch('/api/lead-counselling', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+      btn.disabled = false;
+      if (!data.success) {
+        msg.innerText = data.error || 'Something went wrong. Please try again.';
+        msg.className = 'lead-msg error';
+        return;
+      }
+      form.reset();
+      if (leadIntent === 'counselling') {
+        msg.innerText = 'Thank you! Our counsellor will contact you shortly.';
+        msg.className = 'lead-msg success';
+        setTimeout(closeLeadModal, 1500);
+      } else {
+        btechLeadCaptured = true;
+        closeLeadModal();
+        fetchBtechCutoffs(pendingBtechPage);
+      }
+    })
+    .catch(() => {
+      btn.disabled = false;
+      msg.innerText = 'Network error. Please try again.';
+      msg.className = 'lead-msg error';
+    });
+  }
+
+  document.getElementById('lead-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeLeadModal();
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeLeadModal();
+  });
+
   function fetchBtechCutoffs(page = 1) {
+    if (!btechLeadCaptured) {
+      pendingBtechPage = page;
+      openLeadModal('view');
+      return;
+    }
     btechCurrentPage = page;
     const branch = document.getElementById('btech-branch').value;
     const category = document.getElementById('btech-category').value;
@@ -343,15 +484,15 @@
     .then(res => res.json())
     .then(data => {
       if (!data.success) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: red;">Error: ${data.error}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--c-error);">Error: ${data.error}</td></tr>`;
         return;
       }
       
       const total = data.total;
       document.getElementById('btech-total-msg').innerText = `Showing page ${page} of ${Math.ceil(total/btechPerPage)} (${total} results)`;
       
-      document.getElementById('btech-prev').style.display = page > 1 ? 'block' : 'none';
-      document.getElementById('btech-next').style.display = (page * btechPerPage) < total ? 'block' : 'none';
+      document.getElementById('btech-prev').style.display = page > 1 ? 'inline-flex' : 'none';
+      document.getElementById('btech-next').style.display = (page * btechPerPage) < total ? 'inline-flex' : 'none';
 
       if (data.data.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No cut-offs found for this combination.</td></tr>';
@@ -365,7 +506,7 @@
           <td><strong>${row.college}</strong></td>
           <td>${row.branch}</td>
           <td>${row.category} (${row.gender})</td>
-          <td style="color: var(--primary); font-weight: bold;">${row.final_cutoff ? row.final_cutoff.toFixed(2) : '-'}</td>
+          <td style="color: var(--c-accent); font-weight: bold;">${row.final_cutoff ? row.final_cutoff.toFixed(2) : '-'}</td>
           <td>${row.cap_1_cutoff ? row.cap_1_cutoff.toFixed(2) : '-'}</td>
           <td>${row.cap_2_cutoff ? row.cap_2_cutoff.toFixed(2) : '-'}</td>
           <td>${row.cap_3_cutoff ? row.cap_3_cutoff.toFixed(2) : '-'}</td>
@@ -374,7 +515,7 @@
       });
     })
     .catch(err => {
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: red;">Failed to load data.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--c-error);">Failed to load data.</td></tr>';
     });
   }
 
@@ -382,9 +523,9 @@
     fetchBtechCutoffs(btechCurrentPage + delta);
   }
 
-  // Load initial data on load if we are on engineering tab
   if (document.getElementById('tab-engineering').classList.contains('active')) {
-    fetchBtechCutoffs(1);
+    pendingBtechPage = 1;
+    openLeadModal('view');
   }
 </script>
 {% endblock %}

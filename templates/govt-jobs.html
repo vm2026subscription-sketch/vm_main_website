@@ -9,11 +9,16 @@
   <meta property="og:title" content="Government Jobs 2025-26 | VidyarthiMitra.org">
   <meta property="og:description" content="Latest Sarkari Naukri — SSC, Banking, Railway, Defence and more. Vacancy, last date, eligibility all in one place.">
   <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"></noscript>
-  <link rel="stylesheet" href="{{ url_for('static', filename='govt-jobs.min.css') }}">
-  <style>.navbar { display: none; }</style>
+  <!-- Design System Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap"></noscript>
+  <!-- Font Awesome 6 -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"></noscript>
+  <!-- Design System CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='design-system.css') }}">
 </head>
 <body>
   {% include '_shared_index_navbar.html' %}
@@ -134,12 +139,7 @@
     </div>
   </div>
 
-  <footer style="background:#0a1128;color:#64748b;padding:20px;text-align:center;font-size:13px;border-top:1px solid rgba(255,255,255,.06);">
-    <p>&copy; 2026 VidyarthiMitra.org &nbsp;|&nbsp;
-      <a href="/terms" style="color:#ff6600;">Terms</a> &nbsp;|&nbsp;
-      <a href="/privacy" style="color:#ff6600;">Privacy</a>
-    </p>
-  </footer>
+    {% include '_shared_footer.html' %}
 
   <script>
   (function() {

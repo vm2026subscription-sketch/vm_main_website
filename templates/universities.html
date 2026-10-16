@@ -3,16 +3,21 @@
 
 <head>
     <meta charset="utf-8">
-  <meta name="description" content="Explore top universities in India - rankings, courses, fees, placements and admission details for UG and PG programs.">
+    <meta name="description" content="Explore top universities in India - rankings, courses, fees, placements and admission details for UG and PG programs.">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Universities | Vidyarthi Mitra</title>
     <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
 
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"
-        rel="stylesheet">
+    <!-- Design System Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap"></noscript>
+    <!-- Font Awesome 6 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"></noscript>
+    <!-- Design System CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='design-system.css') }}">
 
     <style>
         :root {
@@ -38,39 +43,9 @@
             transition: background-color 0.3s ease, color 0.3s ease;
         }
 
-        h1,
-        h2,
-        h3,
-        h4,
-        h5,
-        h6 {
-            font-family: 'Poppins', sans-serif;
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Plus Jakarta Sans', sans-serif;
             font-weight: 700;
-        }
-
-        .main-nav {
-            border-bottom: 1px solid var(--line);
-            background: #fff;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
-
-        .navbar-brand img {
-            height: 42px;
-        }
-
-        .navbar-nav .nav-link {
-            color: var(--text);
-            font-weight: 600;
-            margin: 0 6px;
-            padding: 8px 10px !important;
-            text-decoration: none !important;
-        }
-
-        .navbar-nav .nav-link:hover,
-        .navbar-nav .nav-link.active {
-            color: var(--primary);
         }
 
         .hero {
@@ -96,10 +71,6 @@
 
         .section-pad {
             padding: 34px 0 52px;
-        }
-
-        .layout-grid {
-            /* Removed sidebar grid */
         }
 
         .top-filter-bar {
@@ -202,8 +173,6 @@
             border-color: #cbd5e1;
             color: #1e293b;
         }
-
-
 
         .cards-wrap {
             display: grid;
@@ -293,7 +262,7 @@
             font-weight: 600;
         }
 
-        /* -- LIGHT MODE OVERRIDES ------------------------------------------ */
+        /* LIGHT MODE OVERRIDES */
         body.light-mode {
             background: #f8fafc;
             color: #1e293b;
@@ -313,41 +282,11 @@
             color: #475569;
         }
 
-        body.light-mode .panel,
         body.light-mode .uni-card {
             background: #ffffff;
             border-color: #e2e8f0;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
             color: #1e293b;
-        }
-
-        body.light-mode .panel-head {
-            background: rgba(255, 102, 0, 0.15);
-            color: #0f172a;
-            border-bottom-color: rgba(255, 102, 0, 0.3);
-        }
-
-        body.light-mode .panel-search {
-            color: #1e293b;
-            border-bottom-color: #e2e8f0;
-        }
-
-        body.light-mode .panel-search::placeholder {
-            color: #94a3b8;
-        }
-
-        body.light-mode .state-item {
-            color: #475569;
-            border-bottom-color: #f1f5f9;
-        }
-
-        body.light-mode .state-item:hover {
-            background: rgba(255, 102, 0, 0.15);
-            color: #0f172a;
-        }
-
-        body.light-mode .state-item input {
-            accent-color: #c2410c;
         }
 
         body.light-mode .uni-card:hover {
@@ -388,117 +327,6 @@
             background: #ffffff;
             border-color: #cbd5e1;
             color: #64748b;
-        }
-
-        @media (max-width: 992px) {
-            .layout-grid {
-                /* Removed sidebar grid */
-            }
-
-            .top-filter-bar {
-                background: #0d1627;
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                border-radius: 14px;
-                padding: 18px 24px;
-                margin-bottom: 24px;
-                display: flex;
-                flex-wrap: wrap;
-                gap: 16px;
-                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            }
-
-            .filter-group {
-                flex: 1;
-                min-width: 160px;
-            }
-
-            .filter-group label {
-                display: block;
-                font-size: 0.85rem;
-                color: var(--muted);
-                margin-bottom: 6px;
-                font-weight: 600;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }
-
-            .custom-select {
-                background-color: rgba(255, 255, 255, 0.03);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                color: #fff;
-            }
-
-            .custom-select:focus {
-                background-color: rgba(255, 255, 255, 0.05);
-                border-color: var(--primary);
-                color: #fff;
-                box-shadow: 0 0 0 0.25rem rgba(255, 102, 0, 0.25);
-            }
-
-            .custom-select option {
-                background: #0d1627;
-                color: #fff;
-            }
-
-            .pagination-controls {
-                background: #0d1627;
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                border-radius: 14px;
-                padding: 16px 24px;
-                margin-top: 24px;
-                color: #cbd5e1;
-            }
-
-            .pagination-controls .btn-outline-secondary {
-                border-color: rgba(255, 255, 255, 0.2);
-                color: #fff;
-            }
-
-            .pagination-controls .btn-outline-secondary:hover:not(:disabled) {
-                background-color: rgba(255, 102, 0, 0.15);
-                border-color: var(--primary);
-                color: var(--primary);
-            }
-
-            .pagination-controls .btn-outline-secondary:disabled {
-                opacity: 0.3;
-            }
-
-            /* Light mode overrides */
-            body.light-mode .top-filter-bar,
-            body.light-mode .pagination-controls {
-                background: #ffffff;
-                border-color: #e2e8f0;
-                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
-            }
-
-            body.light-mode .custom-select {
-                background-color: #f8fafc;
-                border-color: #cbd5e1;
-                color: #1e293b;
-            }
-
-            body.light-mode .custom-select option {
-                background: #fff;
-                color: #1e293b;
-            }
-
-            body.light-mode .filter-group label {
-                color: #64748b;
-            }
-
-            body.light-mode .pagination-controls {
-                color: #475569;
-            }
-
-            body.light-mode .pagination-controls .btn-outline-secondary {
-                border-color: #cbd5e1;
-                color: #1e293b;
-            }
-
-            .panel-stack {
-                order: 2;
-            }
         }
 
         @media (max-width: 576px) {
@@ -515,529 +343,6 @@
 
 <body>
     {% include '_shared_index_navbar.html' %}
-    <style>
-        :root {
-            --primary: #ff6600;
-            --primary-dark: #ff6600;
-            --secondary: #ff6600;
-            --text: #ffffff;
-            --muted: #94a3b8;
-            --bg-soft: #0a1128;
-            --line: rgba(255, 255, 255, 0.08);
-            --chip: rgba(255, 255, 255, 0.1);
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            font-family: 'Inter', sans-serif;
-            color: var(--text);
-            background: #050a15;
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-
-        h1,
-        h2,
-        h3,
-        h4,
-        h5,
-        h6 {
-            font-family: 'Poppins', sans-serif;
-            font-weight: 700;
-        }
-
-        .main-nav {
-            border-bottom: 1px solid var(--line);
-            background: #fff;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
-
-        .navbar-brand img {
-            height: 42px;
-        }
-
-        .navbar-nav .nav-link {
-            color: var(--text);
-            font-weight: 600;
-            margin: 0 6px;
-            padding: 8px 10px !important;
-            text-decoration: none !important;
-        }
-
-        .navbar-nav .nav-link:hover,
-        .navbar-nav .nav-link.active {
-            color: var(--primary);
-        }
-
-        .hero {
-            background: #0f1b2d;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            color: #fff;
-            padding: 56px 0;
-        }
-
-        .hero h1 {
-            font-size: clamp(2rem, 5vw, 3rem);
-            margin-bottom: 12px;
-            text-transform: uppercase;
-        }
-
-        .hero p {
-            margin: 0;
-            max-width: 960px;
-            opacity: .95;
-            font-size: 1rem;
-            color: #94a3b8;
-        }
-
-        .section-pad {
-            padding: 34px 0 52px;
-        }
-
-        .layout-grid {
-            /* Removed sidebar grid */
-        }
-
-        .top-filter-bar {
-            background: #0d1627;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 14px;
-            padding: 18px 24px;
-            margin-bottom: 24px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 16px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        }
-
-        .filter-group {
-            flex: 1;
-            min-width: 160px;
-        }
-
-        .filter-group label {
-            display: block;
-            font-size: 0.85rem;
-            color: var(--muted);
-            margin-bottom: 6px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .custom-select {
-            background-color: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #fff;
-        }
-
-        .custom-select:focus {
-            background-color: rgba(255, 255, 255, 0.05);
-            border-color: var(--primary);
-            color: #fff;
-            box-shadow: 0 0 0 0.25rem rgba(255, 102, 0, 0.25);
-        }
-
-        .custom-select option {
-            background: #0d1627;
-            color: #fff;
-        }
-
-        .pagination-controls {
-            background: #0d1627;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 14px;
-            padding: 16px 24px;
-            margin-top: 24px;
-            color: #cbd5e1;
-        }
-
-        .pagination-controls .btn-outline-secondary {
-            border-color: rgba(255, 255, 255, 0.2);
-            color: #fff;
-        }
-
-        .pagination-controls .btn-outline-secondary:hover:not(:disabled) {
-            background-color: rgba(255, 102, 0, 0.15);
-            border-color: var(--primary);
-            color: var(--primary);
-        }
-
-        .pagination-controls .btn-outline-secondary:disabled {
-            opacity: 0.3;
-        }
-
-        /* Light mode overrides */
-        body.light-mode .top-filter-bar,
-        body.light-mode .pagination-controls {
-            background: #ffffff;
-            border-color: #e2e8f0;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
-        }
-
-        body.light-mode .custom-select {
-            background-color: #f8fafc;
-            border-color: #cbd5e1;
-            color: #1e293b;
-        }
-
-        body.light-mode .custom-select option {
-            background: #fff;
-            color: #1e293b;
-        }
-
-        body.light-mode .filter-group label {
-            color: #64748b;
-        }
-
-        body.light-mode .pagination-controls {
-            color: #475569;
-        }
-
-        body.light-mode .pagination-controls .btn-outline-secondary {
-            border-color: #cbd5e1;
-            color: #1e293b;
-        }
-
-
-
-        .cards-wrap {
-            display: grid;
-            gap: 14px;
-        }
-
-        .uni-card {
-            background: #0d1627;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 14px;
-            padding: 14px;
-            display: grid;
-            grid-template-columns: 110px 1fr;
-            gap: 14px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s;
-            text-decoration: none;
-            color: inherit;
-        }
-
-        .uni-card:hover {
-            transform: translateY(-4px);
-            border-color: var(--primary);
-            box-shadow: 0 12px 40px rgba(255, 102, 0, 0.15);
-        }
-
-        .uni-logo {
-            width: 100%;
-            height: 90px;
-            object-fit: contain;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.03);
-            padding: 8px;
-        }
-
-        .uni-title {
-            margin: 0 0 10px;
-            color: #ffffff;
-            font-size: clamp(1rem, 1.7vw, 1.25rem);
-            line-height: 1.35;
-            transition: color 0.3s ease;
-        }
-
-        .uni-card:hover .uni-title {
-            color: var(--primary);
-        }
-
-        .chips {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .chip {
-            background: rgba(255, 255, 255, 0.05);
-            color: #cbd5e1;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 999px;
-            padding: 6px 10px;
-            font-size: .76rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: .2px;
-        }
-
-        .chip.nirf {
-            background: rgba(255, 102, 0, 0.15);
-            color: var(--primary);
-            border-color: rgba(255, 102, 0, 0.3);
-        }
-
-        .meta-note {
-            margin-bottom: 14px;
-            font-size: .92rem;
-            color: var(--muted);
-        }
-
-        .empty-state {
-            background: #0d1627;
-            border: 1px dashed rgba(255, 255, 255, 0.2);
-            border-radius: 12px;
-            padding: 18px;
-            color: #94a3b8;
-            text-align: center;
-            font-weight: 600;
-        }
-
-        /* -- LIGHT MODE OVERRIDES ------------------------------------------ */
-        body.light-mode {
-            background: #f8fafc;
-            color: #1e293b;
-        }
-
-        body.light-mode .hero {
-            background: linear-gradient(135deg, #f8fafc, #eef2f6);
-            border-bottom: 2px solid var(--primary);
-            color: #0f172a;
-        }
-
-        body.light-mode .hero h1 {
-            color: #0f172a;
-        }
-
-        body.light-mode .hero p {
-            color: #475569;
-        }
-
-        body.light-mode .panel,
-        body.light-mode .uni-card {
-            background: #ffffff;
-            border-color: #e2e8f0;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
-            color: #1e293b;
-        }
-
-        body.light-mode .panel-head {
-            background: rgba(255, 102, 0, 0.15);
-            color: #0f172a;
-            border-bottom-color: rgba(255, 102, 0, 0.3);
-        }
-
-        body.light-mode .panel-search {
-            color: #1e293b;
-            border-bottom-color: #e2e8f0;
-        }
-
-        body.light-mode .panel-search::placeholder {
-            color: #94a3b8;
-        }
-
-        body.light-mode .state-item {
-            color: #475569;
-            border-bottom-color: #f1f5f9;
-        }
-
-        body.light-mode .state-item:hover {
-            background: rgba(255, 102, 0, 0.15);
-            color: #0f172a;
-        }
-
-        body.light-mode .state-item input {
-            accent-color: #c2410c;
-        }
-
-        body.light-mode .uni-card:hover {
-            border-color: var(--primary);
-            box-shadow: 0 12px 30px rgba(255, 102, 0, 0.25);
-        }
-
-        body.light-mode .uni-card:hover .uni-title {
-            color: #c2410c;
-        }
-
-        body.light-mode .uni-logo {
-            background: #ffffff;
-            border-color: #e2e8f0;
-        }
-
-        body.light-mode .uni-title {
-            color: #0f172a;
-        }
-
-        body.light-mode .chip {
-            background: #f1f5f9;
-            color: #475569;
-            border-color: #e2e8f0;
-        }
-
-        body.light-mode .chip.nirf {
-            background: var(--primary);
-            color: #0f172a;
-            border-color: #a3e635;
-        }
-
-        body.light-mode .meta-note {
-            color: #64748b;
-        }
-
-        body.light-mode .empty-state {
-            background: #ffffff;
-            border-color: #cbd5e1;
-            color: #64748b;
-        }
-
-        @media (max-width: 992px) {
-            .layout-grid {
-                /* Removed sidebar grid */
-            }
-
-            .top-filter-bar {
-                background: #0d1627;
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                border-radius: 14px;
-                padding: 18px 24px;
-                margin-bottom: 24px;
-                display: flex;
-                flex-wrap: wrap;
-                gap: 16px;
-                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            }
-
-            .filter-group {
-                flex: 1;
-                min-width: 160px;
-            }
-
-            .filter-group label {
-                display: block;
-                font-size: 0.85rem;
-                color: var(--muted);
-                margin-bottom: 6px;
-                font-weight: 600;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }
-
-            .custom-select {
-                background-color: rgba(255, 255, 255, 0.03);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                color: #fff;
-            }
-
-            .custom-select:focus {
-                background-color: rgba(255, 255, 255, 0.05);
-                border-color: var(--primary);
-                color: #fff;
-                box-shadow: 0 0 0 0.25rem rgba(255, 102, 0, 0.25);
-            }
-
-            .custom-select option {
-                background: #0d1627;
-                color: #fff;
-            }
-
-            .pagination-controls {
-                background: #0d1627;
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                border-radius: 14px;
-                padding: 16px 24px;
-                margin-top: 24px;
-                color: #cbd5e1;
-            }
-
-            .pagination-controls .btn-outline-secondary {
-                border-color: rgba(255, 255, 255, 0.2);
-                color: #fff;
-            }
-
-            .pagination-controls .btn-outline-secondary:hover:not(:disabled) {
-                background-color: rgba(255, 102, 0, 0.15);
-                border-color: var(--primary);
-                color: var(--primary);
-            }
-
-            .pagination-controls .btn-outline-secondary:disabled {
-                opacity: 0.3;
-            }
-
-            /* Light mode overrides */
-            body.light-mode .top-filter-bar,
-            body.light-mode .pagination-controls {
-                background: #ffffff;
-                border-color: #e2e8f0;
-                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
-            }
-
-            body.light-mode .custom-select {
-                background-color: #f8fafc;
-                border-color: #cbd5e1;
-                color: #1e293b;
-            }
-
-            body.light-mode .custom-select option {
-                background: #fff;
-                color: #1e293b;
-            }
-
-            body.light-mode .filter-group label {
-                color: #64748b;
-            }
-
-            body.light-mode .pagination-controls {
-                color: #475569;
-            }
-
-            body.light-mode .pagination-controls .btn-outline-secondary {
-                border-color: #cbd5e1;
-                color: #1e293b;
-            }
-
-            .panel-stack {
-                order: 2;
-            }
-        }
-
-        @media (max-width: 576px) {
-            .uni-card {
-                grid-template-columns: 1fr;
-            }
-
-            .uni-logo {
-                height: 80px;
-            }
-        }
-    </style>
-
-    <header class="main-nav">
-        <div class="container">
-            <nav class="navbar navbar-expand-lg">
-                <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="{{ url_for('index') }}">
-                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Vidyarthi Mitra">
-                </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
-                    aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="mainNav">
-                    <ul class="navbar-nav ms-auto">
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Home</a></li>
-                        <li class="nav-item"><a class="nav-link active"
-                                href="{{ url_for('universities') }}">Universities</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('colleges') }}">Colleges</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('courses') }}">Courses</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('exams') }}">Entrance Exams</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('mock_exams') }}">Mock Exams</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('admissions') }}">Admissions</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('news') }}">News</a></li>
-                    </ul>
-                </div>
-            </nav>
-        </div>
-    </header>
 
     <section class="hero">
         <div class="container">
@@ -1213,20 +518,17 @@
             }
 
             function renderPage() {
-                // Hide all cards first
                 allCards.forEach(c => c.style.display = 'none');
 
                 const start = (currentPage - 1) * itemsPerPage;
                 const end = start + itemsPerPage;
                 const paginated = filteredCards.slice(start, end);
 
-                // Re-append to DOM in sorted order
                 paginated.forEach(c => {
                     cardsWrap.appendChild(c);
                     c.style.display = 'grid';
                 });
 
-                // Update UI state
                 const total = filteredCards.length;
                 emptyState.style.display = total === 0 ? 'block' : 'none';
                 paginationControls.style.display = total === 0 ? 'none' : 'flex';
@@ -1266,7 +568,6 @@
                 }
             });
 
-            // Initialize
             applyFilters();
         });
     </script>

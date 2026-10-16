@@ -111,6 +111,15 @@
     .media-meta .mm-chip{background:#fff;border:1px solid var(--border);border-radius:6px;padding:1px 7px;}
     @media(max-width:720px){.row,.stats{grid-template-columns:1fr;}.row-2{grid-template-columns:1fr;}table{font-size:12px;}}
   </style>
+
+    <!-- Design System Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap"></noscript>
+    <!-- Font Awesome 6 -->
+    <!-- Design System CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='design-system.css') }}">
 </head>
 <body>
   <div class="epa-header">

@@ -56,46 +56,18 @@
     </script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"></noscript>
-    <!-- Google Fonts: load async -->
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap"></noscript>
+    <!-- Design System Fonts: Inter + Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap"></noscript>
+    <!-- Design System CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='design-system.css') }}">
     <style>
-        :root { --orange: #ff6600; --text: #2f2f2f; --muted: #6b7280; }
         * { box-sizing: border-box; }
-        body { margin: 0; font-family: 'Roboto', sans-serif; color: #e2e8f0; background: #050a15; overflow-x: hidden; transition: background-color 0.3s ease, color 0.3s ease; }
-        body.light-mode { color: var(--text); background: #fff; }
-        a,
-        a:hover,
-        a:focus,
-        a:active,
-        a:visited {
-            text-decoration: none !important;
-        }
+        body { margin: 0; overflow-x: hidden; }
+        a { text-decoration: none; }
         .site-main { min-height: calc(100vh - 140px); }
-        .site-footer {
-            background: #1f2738;
-            color: #c9d4e2;
-            margin-top: 30px;
-        }
-        .site-footer .footer-inner {
-            max-width: 1240px;
-            margin: 0 auto;
-            padding: 18px 16px;
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 10px;
-            font-size: 13px;
-            align-items: center;
-        }
-        .site-footer .footer-links {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            justify-content: center;
-        }
-        .site-footer a { color: #ff8a33; text-decoration: none; }
-        .site-footer a:hover { color: #fff; }
     </style>
     {% block page_styles %}{% endblock %}
 </head>
@@ -106,18 +78,7 @@
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="site-footer">
-        <div class="footer-inner">
-            <div>&copy; 2026 VidyarthiMitra.org - All Rights Reserved</div>
-            <div class="footer-links">
-                <a href="{{ url_for('about_us') }}">About Us</a>
-                <a href="{{ url_for('contact') }}">Contact Us</a>
-                <a href="{{ url_for('privacy') }}">Privacy Policy</a>
-                <a href="{{ url_for('terms') }}">Terms &amp; Conditions</a>
-                <a href="{{ url_for('refund_policy') }}">Refund &amp; Cancellation</a>
-            </div>
-        </div>
-    </footer>
+    {% include '_shared_footer.html' %}
 
     {% block page_scripts %}{% endblock %}
 </body>

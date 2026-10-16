@@ -10,28 +10,17 @@
 <meta property="og:title" content="FYJC Rank Predictor 2026-27 | VidyarthiMitra.org">
 <meta property="og:description" content="Predict your 11th admission merit rank and see eligible colleges based on your SSC marks, category, and division.">
 <meta property="og:type" content="website">
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700;800&family=Noto+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"></noscript>
-<link rel="stylesheet" href="{{ url_for('static', filename='fyjc_rank.min.css') }}">
+<!-- Design System Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap"></noscript>
+<!-- Font Awesome 6 -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"></noscript>
+<!-- Design System CSS -->
+<link rel="stylesheet" href="{{ url_for('static', filename='design-system.css') }}">
 <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
-<style>
-  /* Fix shared navbar on light background and ensure dropdowns stay on top */
-  .vm-nav-topbar {
-    position: relative !important;
-    z-index: 99999 !important;
-  }
-  .vm-main-header {
-    background: #050a15 !important;
-    backdrop-filter: blur(24px) !important;
-    -webkit-backdrop-filter: blur(24px) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
-    position: sticky !important;
-    top: 0;
-    z-index: 99998 !important;
-    overflow: visible !important;
-  }
-</style>
 </head>
 <body>
 
@@ -286,18 +275,7 @@
   </div><!-- /result-section -->
 </div><!-- /container -->
 
-<footer>
-  <strong>Vidyarthi Mitra</strong> — Maharashtra FYJC Centralized Admission Process &nbsp;|&nbsp;
-  School Education &amp; Sports Department, Government of Maharashtra &nbsp;|&nbsp;
-  <strong>vidyarthimitra.org</strong>
-  <div class="footer-links">
-    <a href="{{ url_for('about_us') }}">About Us</a>
-    <a href="{{ url_for('contact') }}">Contact Us</a>
-    <a href="{{ url_for('privacy') }}">Privacy Policy</a>
-    <a href="{{ url_for('terms') }}">Terms &amp; Conditions</a>
-    <a href="{{ url_for('refund_policy') }}">Refund &amp; Cancellation</a>
-  </div>
-</footer>
+  {% include '_shared_footer.html' %}
 
 <script src="{{ url_for('static', filename='fyjc_rank.js') }}"></script>
 </body>

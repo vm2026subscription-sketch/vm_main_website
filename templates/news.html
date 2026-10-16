@@ -8,15 +8,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
 
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-  <!-- Font Awesome Icons -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"></noscript>
-
-
-  <!-- Page Styles -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='news.min.css') }}">
+  <!-- Design System Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap"></noscript>
+  <!-- Font Awesome 6 -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"></noscript>
+  <!-- Design System CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='design-system.css') }}">
 </head>
 
 <body>
@@ -49,30 +50,6 @@
       </div>
     </div>
   </div>
-
-  <!-- MASTHEAD -->
-  <header class="masthead">
-    <div class="masthead-inner">
-      <a href="/" class="masthead-logo">VidyarthiMitra<span>.org</span></a>
-      <div class="masthead-divider"></div>
-      <div class="masthead-title">Education News</div>
-      <div class="masthead-search">
-        <i class="fa fa-search"></i>
-        <input type="text" id="searchInput" placeholder="Search news..." autocomplete="off">
-      </div>
-      <div class="masthead-date" id="currentDate">--</div>
-    </div>
-    <nav class="cat-nav">
-      <div class="cat-nav-inner">
-        <button class="cat-btn active" data-cat="all">All News</button>
-        <button class="cat-btn" data-cat="entrance">Entrance Exams</button>
-        <button class="cat-btn" data-cat="results">Results</button>
-        <button class="cat-btn" data-cat="admissions">Admissions</button>
-        <button class="cat-btn" data-cat="govtjobs">Govt Jobs</button>
-        <button class="cat-btn" data-cat="scholarship">Scholarships</button>
-      </div>
-    </nav>
-  </header>
 
   <!-- PAGE LAYOUT -->
   <div class="page-wrap">
@@ -109,12 +86,8 @@
         {% if initial_articles %}
         {% for article in initial_articles %}
         {% set badge_label = category_labels.get(article.category, article.category|title) %}
-        {% set stripe_class = 'admission' if article.category == 'admissions' else 'results' if article.category ==
-        'results' else 'govt' if article.category == 'govtjobs' else 'scholar' if article.category == 'scholarship' else
-        'exams' %}
-        {% set thumb_class = 'bg-admission' if article.category == 'admissions' else 'bg-result' if article.category ==
-        'results' else 'bg-govt' if article.category == 'govtjobs' else 'bg-scholar' if article.category ==
-        'scholarship' else 'bg-exam' %}
+        {% set stripe_class = 'admission' if article.category == 'admissions' else 'results' if article.category == 'results' else 'govt' if article.category == 'govtjobs' else 'scholar' if article.category == 'scholarship' else 'exams' %}
+        {% set thumb_class = 'bg-admission' if article.category == 'admissions' else 'bg-result' if article.category == 'results' else 'bg-govt' if article.category == 'govtjobs' else 'bg-scholar' if article.category == 'scholarship' else 'bg-exam' %}
         {% set fallback_imgs = [
         'https://media.istockphoto.com/id/2177186284/photo/may-i-answer-your-question-professor.jpg?s=612x612&w=0&k=20&c=q7jhVUW8r3K6GJESS_5L8QS_4wOuRSb1ChfHsK_7aJI=',
         'https://img.jagranjosh.com/imported/images/E/Articles/Tips-to-Focus-Better-on-Your-Studies-Body-Image.webp',
@@ -124,20 +97,17 @@
         {% if 'neet' in article.title|lower or 'neet' in article.desc|lower %}
         {% set img_url = 'https://csacademy.in/wp-content/uploads/2021/05/blog-image10.jpg' %}
         {% elif 'jee' in article.title|lower or 'jee' in article.desc|lower %}
-        {% set img_url =
-        'https://www.shutterstock.com/image-photo/jee-joint-entrance-examination-conducted-260nw-2279191817.jpg' %}
+        {% set img_url = 'https://www.shutterstock.com/image-photo/jee-joint-entrance-examination-conducted-260nw-2279191817.jpg' %}
         {% elif 'nda' in article.title|lower or 'nda' in article.desc|lower %}
         {% set img_url = 'https://i.pinimg.com/736x/74/fa/7f/74fa7f7cb31d44075a8c7cc76f6da589.jpg' %}
         {% elif 'result' in article.title|lower or 'result' in article.desc|lower %}
-        {% set img_url =
-        'https://img.freepik.com/free-photo/results-evaluate-progress-outcome-productivity-concept_53876-121131.jpg' %}
+        {% set img_url = 'https://img.freepik.com/free-photo/results-evaluate-progress-outcome-productivity-concept_53876-121131.jpg' %}
         {% endif %}
         <div class="news-card" data-fallback="true" onclick="window.location.href='{{ ('/news/detail/' ~ article.link)|urlencode }}'">
           <div class="card-stripe {{ stripe_class }}"></div>
           <div class="card-thumb {{ thumb_class }}" style="padding: 0;">
             <img src="{{ img_url }}" alt="News Thumbnail" style="width: 100%; height: 100%; object-fit: cover;">
-            <div class="card-thumb-badge {{ article.category if article.category != 'admissions' else 'admission' }}">{{
-              badge_label }}</div>
+            <div class="card-thumb-badge {{ article.category if article.category != 'admissions' else 'admission' }}">{{ badge_label }}</div>
           </div>
           <div class="card-body">
             <div class="card-source" style="font-size: 11px; color: #888; margin-bottom: 6px;">
@@ -189,142 +159,3 @@
           <a class="tag-pill hot" href="{{ url_for('exams') }}">JEE Main &#128293;</a>
           <a class="tag-pill" href="{{ url_for('exams') }}">MHT-CET</a>
           <a class="tag-pill" href="{{ url_for('admissions') }}">11th Admission</a>
-          <a class="tag-pill" href="{{ url_for('exams') }}">GATE</a>
-          <a class="tag-pill" href="{{ url_for('scholarships') }}">Scholarships</a>
-          <a class="tag-pill" href="{{ url_for('exams') }}">Results</a>
-          <a class="tag-pill" href="{{ url_for('govt_jobs') }}">Govt Jobs</a>
-          <a class="tag-pill" href="{{ url_for('colleges') }}">Engineering</a>
-          <a class="tag-pill" href="{{ url_for('exams') }}">CBSE</a>
-          <a class="tag-pill" href="{{ url_for('courses') }}">AI Courses</a>
-          <a class="tag-pill" href="{{ url_for('exams') }}">CAT 2026</a>
-          <a class="tag-pill" href="{{ url_for('exams') }}">CLAT</a>
-          <a class="tag-pill" href="{{ url_for('exams') }}">NDA</a>
-        </div>
-      </div>
-
-      <!-- Most Read -->
-      <div class="sidebar-widget">
-        <div class="widget-title"><i class="fa fa-chart-bar"></i> Most Read This Week</div>
-        <div class="story-list">
-          <div class="story-list-item">
-            <div class="story-num">01</div>
-            <div class="story-info">
-              <h5>DTE Maharashtra Option Form Filling Begins — Complete Guide</h5>
-              <small><i class="fa fa-eye"></i> 24.6k views</small>
-            </div>
-          </div>
-          <div class="story-list-item">
-            <div class="story-num">02</div>
-            <div class="story-info">
-              <h5>JEE Main 2026: Last-Minute Preparation Tips From Toppers</h5>
-              <small><i class="fa fa-eye"></i> 18.3k views</small>
-            </div>
-          </div>
-          <div class="story-list-item">
-            <div class="story-num">03</div>
-            <div class="story-info">
-              <h5>NEET UG 2026 Counselling — State vs All India Quota Explained</h5>
-              <small><i class="fa fa-eye"></i> 15.9k views</small>
-            </div>
-          </div>
-          <div class="story-list-item">
-            <div class="story-num">04</div>
-            <div class="story-info">
-              <h5>MHT-CET Cut-offs 2026 — Expected vs Previous Year Analysis</h5>
-              <small><i class="fa fa-eye"></i> 12.1k views</small>
-            </div>
-          </div>
-          <div class="story-list-item">
-            <div class="story-num">05</div>
-            <div class="story-info">
-              <h5>Scholarship Portal Deadline Extended — How to Apply Now</h5>
-              <small><i class="fa fa-eye"></i> 9.4k views</small>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Why VM -->
-      <div class="sidebar-widget">
-        <div class="widget-title"><i class="fa fa-shield-halved"></i> Why Vidyarthi Mitra?</div>
-        <div class="feature-list">
-          <div class="feature-item">
-            <div class="feature-icon"><i class="fa fa-check"></i></div>
-            Verified &amp; Accurate Updates
-          </div>
-          <div class="feature-item">
-            <div class="feature-icon"><i class="fa fa-bolt"></i></div>
-            Fast Breaking Notifications
-          </div>
-          <div class="feature-item">
-            <div class="feature-icon"><i class="fa fa-graduation-cap"></i></div>
-            Student-First Approach
-          </div>
-          <div class="feature-item">
-            <div class="feature-icon"><i class="fa fa-bullseye"></i></div>
-            Exam-Focused Coverage
-          </div>
-        </div>
-      </div>
-
-      <!-- Newsletter -->
-      <div class="sidebar-widget">
-        <div class="widget-title"><i class="fa fa-envelope"></i> Daily News Digest</div>
-        <p style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6;">
-          Get the most important education news delivered to your inbox every morning.
-        </p>
-        <div class="nl-form">
-          <input type="email" id="nlEmail" placeholder="your@email.com" required>
-          <button onclick="validateSubscription()">
-            <i class="fa fa-paper-plane"></i> Subscribe Free
-          </button>
-        </div>
-      </div>
-  </div>
-
-  </aside>
-  </div>
-
-  <!-- MODAL -->
-  <div class="modal-bg" id="modalBg">
-    <div class="modal" id="modal">
-      <div class="modal-head">
-        <button class="modal-close-btn" id="modalClose"><i class="fa fa-times"></i></button>
-        <div class="modal-cat-badge" id="mCat">--</div>
-        <h2 class="modal-title" id="mTitle">--</h2>
-        <div class="modal-meta">
-          <span><i class="fa fa-calendar"></i> <span id="mDate">--</span></span>
-          <span><i class="fa fa-clock"></i> <span id="mRead">--</span></span>
-          <span><i class="fa fa-eye"></i> <span id="mViews">--</span></span>
-        </div>
-      </div>
-      <div class="modal-divider"></div>
-      <div class="modal-body">
-        <p id="mBody">--</p>
-        <div class="modal-actions">
-          <button class="modal-btn primary" id="mFullArticleBtn">
-            <i class="fa fa-external-link-alt"></i> Full Article
-          </button>
-          <button class="modal-btn secondary" onclick="shareArticle()">
-            <i class="fa fa-share-alt"></i> Share
-          </button>
-          <button class="modal-btn secondary" id="mBookmarkBtn" onclick="toggleModalBookmark()">
-            <i class="fa fa-bookmark"></i> Save
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- TOAST -->
-  <div class="toast" id="toast">
-    <i class="fa fa-check-circle"></i>
-    <span id="toastMsg">Done</span>
-  </div>
-
-  <!-- Page Script -->
-  <script src="{{ url_for('static', filename='news.js') }}"></script>
-
-</body>
-
-</html>

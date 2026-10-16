@@ -63,6 +63,36 @@ except ImportError:
 
 import threading as _threading
 
+# ── Central Postgres circuit breaker ───────────────────────────────
+# When the database is unreachable, psycopg2 can block for a long time
+# (connect_timeout is applied per resolved address, so a host that
+# resolves to several IPs multiplies the wait). Many pages die and the
+# request thread stalls. This guard fails fast during a cooldown after
+# the first failure, letting callers fall back to JSON/file data. It is
+# a no-op while the database is healthy.
+_pg_down_until = 0.0
+_PG_FAIL_COOLDOWN = 60  # seconds to skip the DB after a failure
+if psycopg2 is not None:
+    _psycopg2_connect = psycopg2.connect
+
+    def _guarded_pg_connect(*args, **kwargs):
+        global _pg_down_until
+        if time.time() < _pg_down_until:
+            raise psycopg2.OperationalError("database temporarily unavailable (backing off)")
+        timeout = kwargs.get("connect_timeout")
+        if timeout is None or timeout > 3:
+            kwargs["connect_timeout"] = 3
+        try:
+            return _psycopg2_connect(*args, **kwargs)
+        except Exception:
+            _pg_down_until = time.time() + _PG_FAIL_COOLDOWN
+            raise
+
+    psycopg2.connect = _guarded_pg_connect
+    # `from psycopg2 import connect` (line ~44) bound the original name
+    # before the patch, so rebind it too.
+    connect = _guarded_pg_connect
+
 from supabase import create_client
 
 # Load credentials from .env/default (directory-based env config) or plain .env file
@@ -336,15 +366,6 @@ try:
     csrf.exempt(ads_bp)
 except Exception as exc:
     app.logger.warning("Skipping ads blueprint registration: %s", exc)
-
-# Exempt public forms from CSRF after all routes are registered
-try:
-    csrf.exempt(app.view_functions['guide_me'])
-    csrf.exempt(app.view_functions['send_message'])
-    csrf.exempt(app.view_functions['subscribe'])
-except Exception as exc:
-    app.logger.warning("Skipping public form CSRF exemption: %s", exc)
-
 
 # ── Cross-site mutation guard for CSRF-exempt blueprints ───────────
 # The epaper and ads blueprints are exempted from Flask-WTF CSRF (browser
@@ -4307,9 +4328,16 @@ _SITE_SETTINGS_DDL = """
 _site_settings_table_ready = False
 _settings_cache = {}          # key -> (value, expires_at)
 _SETTINGS_CACHE_TTL = 60      # seconds
+# When the database is unreachable we must not block page requests (e.g. the
+# homepage reads a setting on every load). We bound the wait and then back off
+# for a cooldown so a down/slow DB degrades to the JSON/file fallback instead
+# of hanging the request thread.
+_SETTINGS_DB_WAIT = 4           # seconds to wait for the DB before giving up
+_SETTINGS_DB_FAIL_COOLDOWN = 120  # seconds to skip the DB after a failure
+_settings_db_down_until = 0.0
 
 def _pg_get_setting(key):
-    global _site_settings_table_ready
+    global _site_settings_table_ready, _settings_db_down_until, _pg_down_until
     # Serve from in-memory cache if fresh
     entry = _settings_cache.get(key)
     if entry is not None:
@@ -4317,27 +4345,52 @@ def _pg_get_setting(key):
         if time.time() < expires_at:
             return value
 
+    # DB recently failed — skip it so requests stay fast (fallback is used).
+    if time.time() < _settings_db_down_until or time.time() < _pg_down_until:
+        return None
+
     db_url = get_postgres_connection_url()
     if not db_url or not psycopg2:
         return None
-    try:
-        conn = psycopg2.connect(db_url, connect_timeout=5)
+
+    box = {}
+
+    def _worker():
+        global _site_settings_table_ready
         try:
-            with conn.cursor() as cur:
-                if not _site_settings_table_ready:
-                    cur.execute(_SITE_SETTINGS_DDL)
-                    conn.commit()
-                    _site_settings_table_ready = True
-                cur.execute("SELECT value FROM site_settings WHERE key = %s", (key,))
-                row = cur.fetchone()
-                result = json.loads(row[0]) if row else None
-        finally:
-            conn.close()
-        _settings_cache[key] = (result, time.time() + _SETTINGS_CACHE_TTL)
-        return result
-    except Exception as exc:
-        app.logger.warning("site_settings get(%s) failed: %s", key, exc)
+            conn = psycopg2.connect(db_url, connect_timeout=5)
+            try:
+                with conn.cursor() as cur:
+                    if not _site_settings_table_ready:
+                        cur.execute(_SITE_SETTINGS_DDL)
+                        conn.commit()
+                        _site_settings_table_ready = True
+                    cur.execute("SELECT value FROM site_settings WHERE key = %s", (key,))
+                    row = cur.fetchone()
+                    box['value'] = json.loads(row[0]) if row else None
+            finally:
+                conn.close()
+        except Exception as exc:
+            box['error'] = exc
+
+    worker = _threading.Thread(target=_worker, daemon=True)
+    worker.start()
+    worker.join(timeout=_SETTINGS_DB_WAIT)
+
+    if worker.is_alive():
+        app.logger.warning("site_settings get(%s) timed out after %ss; backing off", key, _SETTINGS_DB_WAIT)
+        _settings_db_down_until = time.time() + _SETTINGS_DB_FAIL_COOLDOWN
+        _pg_down_until = time.time() + _PG_FAIL_COOLDOWN
         return None
+    if 'error' in box:
+        app.logger.warning("site_settings get(%s) failed: %s", key, box['error'])
+        _settings_db_down_until = time.time() + _SETTINGS_DB_FAIL_COOLDOWN
+        _pg_down_until = time.time() + _PG_FAIL_COOLDOWN
+        return None
+
+    result = box.get('value')
+    _settings_cache[key] = (result, time.time() + _SETTINGS_CACHE_TTL)
+    return result
 
 def _pg_set_setting(key, value):
     global _site_settings_table_ready
@@ -6239,16 +6292,61 @@ if os.environ.get("VERCEL") != "1" and os.environ.get("FLASK_ENV") != "productio
     _threading.Thread(target=_preload_cutoff_data, daemon=True).start()
 
 
+_LEADS_FILE = os.path.join(os.path.dirname(__file__), 'data', 'leads.json')
+
+@app.route('/api/lead-counselling', methods=['POST'])
+@limiter.limit("5 per minute; 20 per hour")
+def lead_counselling():
+    data = request.get_json(silent=True) or request.form.to_dict(flat=True)
+    name = str(data.get('name', '')).strip()[:200]
+    phone = str(data.get('phone', '')).strip()[:30]
+    email = str(data.get('email', '')).strip()[:200]
+    clss = str(data.get('class', '') or data.get('course', '') or data.get('year', '')).strip()[:100]
+    city = str(data.get('city', '')).strip()[:200]
+    source = str(data.get('source', 'cutoffs')).strip()[:100]
+    if data.get('website') or data.get('url'):
+        return jsonify({'success': True}), 200
+    if not name or not phone or not clss or not city:
+        return jsonify({'success': False, 'error': 'All fields are required'}), 400
+    if not re.search(r'[A-Za-z\u0900-\u097F]', name):
+        return jsonify({'success': False, 'error': 'Enter valid name'}), 400
+    if not re.fullmatch(r'[\d+\s()-]{10,}', phone):
+        return jsonify({'success': False, 'error': 'Enter valid phone number'}), 400
+    if email and not _EMAIL_RE.match(email):
+        return jsonify({'success': False, 'error': 'Enter valid email'}), 400
+    entry = {'submitted_at': datetime.utcnow().isoformat() + 'Z', 'name': name, 'phone': phone, 'email': email, 'class': clss, 'city': city, 'source': source}
+    try:
+        os.makedirs(os.path.dirname(_LEADS_FILE), exist_ok=True)
+        try:
+            with open(_LEADS_FILE, 'r', encoding='utf-8') as f:
+                leads = json.load(f)
+        except Exception:
+            leads = []
+        leads.append(entry)
+        with open(_LEADS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(leads, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+    try:
+        _send_notification_email(subject=f"[Lead] Counselling enquiry from {name}", body=f"Name: {name}\nPhone: {phone}\nEmail: {email or '-'}\nClass/Year: {clss}\nCity: {city}\nSource: {source}", reply_to=email or None)
+    except Exception:
+        pass
+    if request.is_json:
+        return jsonify({'success': True})
+    from flask import flash, redirect
+    flash('Your enquiry has been submitted. Our counsellor will contact you shortly.', 'success')
+    return redirect(request.referrer or '/')
+
+
 # Exempt public forms from CSRF (must run after all routes are defined)
-for _public_view in ("guide_me", "send_message", "subscribe", "fyjc_predict"):
+for _public_view in ("guide_me", "send_message", "subscribe", "lead_counselling", "fyjc_predict"):
     _fn = app.view_functions.get(_public_view)
     if _fn is not None:
         csrf.exempt(_fn)
+
 
 
 if __name__ == "__main__":
     debug = os.environ.get("FLASK_ENV") != "production"
     port = int(os.environ.get("PORT", 5001))
     app.run(host='0.0.0.0', port=port, debug=debug)
-
-
