@@ -1533,7 +1533,10 @@ const EP = {
       this.el.navList.innerHTML = '';
       return;
     }
-    this.el.navList.innerHTML = editions.map(ed =>
+    // Header language tabs follow the same fixed order as edition cards:
+    // Marathi → English → Hindi (unknown languages last).
+    const ordered = editions.slice().sort((a, b) => epaperLangRank(a.language) - epaperLangRank(b.language));
+    this.el.navList.innerHTML = ordered.map(ed =>
       `<a class="ep-nav-item ${ed.language === this.currentLanguage ? 'active' : ''}" data-lang="${ed.language}">${ed.language}</a>`
     ).join('');
     this.el.navList.querySelectorAll('.ep-nav-item').forEach(item => {
