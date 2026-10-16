@@ -1,0 +1,86 @@
+<!-- ==========================================================================
+     Unified professional footer — included on every page.
+     Styled by static/design-system.css (.vm-footer). Single source of truth.
+     ========================================================================== -->
+<footer class="vm-footer" role="contentinfo">
+  <div class="vm-footer__inner">
+    <div class="vm-footer__grid">
+
+      <div class="vm-footer__brand">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="Vidyarthi Mitra" loading="lazy" class="vm-footer__logo">
+        <p class="vm-footer__desc">India's trusted educational guidance portal — college predictor, MHT-CET cut-offs, entrance exams, admissions, career counselling and e-paper for students.</p>
+        <div class="vm-footer__social">
+          <a href="https://www.facebook.com/VidyarthiMitra.org/" aria-label="Facebook" target="_blank" rel="noopener" class="vm-footer__social-link"><i class="fab fa-facebook-f"></i></a>
+          <a href="https://x.com/Vidyarthimitra" aria-label="Twitter / X" target="_blank" rel="noopener" class="vm-footer__social-link"><i class="fab fa-x-twitter"></i></a>
+          <a href="https://in.linkedin.com/in/vidyarthi-mitra-0aba1911b" aria-label="LinkedIn" target="_blank" rel="noopener" class="vm-footer__social-link"><i class="fab fa-linkedin-in"></i></a>
+          <a href="https://www.instagram.com/vidyarthi_mitra/" aria-label="Instagram" target="_blank" rel="noopener" class="vm-footer__social-link"><i class="fab fa-instagram"></i></a>
+          <a href="https://api.whatsapp.com/send/?phone=917720025900&text&type=phone_number&app_absent=0" aria-label="WhatsApp" target="_blank" rel="noopener" class="vm-footer__social-link"><i class="fab fa-whatsapp"></i></a>
+        </div>
+      </div>
+
+      <div class="vm-footer__col">
+        <h4 class="vm-footer__title">Explore</h4>
+        <ul class="vm-footer__list">
+          <li><a href="{{ url_for('universities') }}" class="vm-footer__link">Universities</a></li>
+          <li><a href="{{ url_for('colleges') }}" class="vm-footer__link">Colleges</a></li>
+          <li><a href="{{ url_for('courses') }}" class="vm-footer__link">Courses</a></li>
+          <li><a href="{{ url_for('scholarships') }}" class="vm-footer__link">Scholarships</a></li>
+          <li><a href="{{ url_for('admissions') }}" class="vm-footer__link">Admissions</a></li>
+        </ul>
+      </div>
+
+      <div class="vm-footer__col">
+        <h4 class="vm-footer__title">Exams & Tools</h4>
+        <ul class="vm-footer__list">
+          <li><a href="{{ url_for('exams') }}" class="vm-footer__link">Entrance Exams</a></li>
+          <li><a href="{{ url_for('exam_updates') }}" class="vm-footer__link">Exam Updates</a></li>
+          <li><a href="{{ url_for('mock_exams') }}" class="vm-footer__link">Mock Exams</a></li>
+          <li><a href="{{ url_for('fyjc_rank') }}" class="vm-footer__link">FYJC Rank Predictor</a></li>
+          <li><a href="https://cutoff.vidyarthimitra.org/" target="_blank" rel="noopener" class="vm-footer__link">College Cut-offs</a></li>
+        </ul>
+      </div>
+
+      <div class="vm-footer__col">
+        <h4 class="vm-footer__title">More</h4>
+        <ul class="vm-footer__list">
+          <li><a href="{{ url_for('news') }}" class="vm-footer__link">News & Updates</a></li>
+          <li><a href="{{ url_for('govt_jobs') }}" class="vm-footer__link">Govt & Private Jobs</a></li>
+          <li><a href="{{ url_for('blog') }}" class="vm-footer__link">Blog & Articles</a></li>
+          <li><a href="{{ url_for('guide_me') }}" class="vm-footer__link">Guide Me</a></li>
+          <li><a href="{{ url_for('epaper.epaper_viewer') }}" class="vm-footer__link">E-Paper</a></li>
+        </ul>
+      </div>
+
+      <div class="vm-footer__col">
+        <h4 class="vm-footer__title">Get In Touch</h4>
+        <ul class="vm-footer__contact">
+          <li><i class="fa fa-phone"></i><a href="tel:+917720025900" class="vm-footer__contact-link">+91 77200 25900</a></li>
+          <li><i class="fa fa-phone"></i><a href="tel:+917720081400" class="vm-footer__contact-link">+91 77200 81400</a></li>
+          <li><i class="fa fa-envelope"></i><a href="mailto:info@vidyarthimitra.org" class="vm-footer__contact-link">info@vidyarthimitra.org</a></li>
+          <li><i class="fa fa-location-dot"></i><span class="vm-footer__contact-text">Pune, Maharashtra, India</span></li>
+        </ul>
+        <div class="vm-footer__newsletter">
+          <form action="{{ url_for('subscribe') }}" method="POST" class="vm-footer__form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="name" value="Footer Subscriber">
+            <input type="email" name="email" placeholder="Your email address" required aria-label="Email address" class="vm-footer__input">
+            <button type="submit" class="btn btn--primary btn--sm" aria-label="Subscribe">Join</button>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="vm-footer__bottom">
+    <div class="vm-footer__copyright">&copy; 2026 VidyarthiMitra.org — All Rights Reserved.</div>
+    <div class="vm-footer__bottom-links">
+      <a href="{{ url_for('about_us') }}" class="vm-footer__bottom-link">About Us</a>
+      <a href="{{ url_for('contact') }}" class="vm-footer__bottom-link">Contact</a>
+      <a href="{{ url_for('privacy') }}" class="vm-footer__bottom-link">Privacy Policy</a>
+      <a href="{{ url_for('terms') }}" class="vm-footer__bottom-link">Terms & Conditions</a>
+      <a href="{{ url_for('refund_policy') }}" class="vm-footer__bottom-link">Refund & Cancellation</a>
+    </div>
+    <div class="vm-footer__made">Made with <b>&#9829;</b> in India</div>
+  </div>
+</footer>

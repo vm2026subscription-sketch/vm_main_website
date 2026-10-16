@@ -26,16 +26,20 @@
         content="College predictor, MHT-CET cutoffs, entrance exams, FYJC rank predictor, career counselling for Indian students." />
     <meta name="twitter:image" content="{{ url_for('static', filename='logo.png', _external=True) }}" />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/3.3.7/css/bootstrap.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet"></noscript>
-    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet"></noscript>
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet"></noscript>
+    <!-- Font Awesome 6 (for new icons) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"></noscript>
+    <!-- Design System Fonts: Inter + Plus Jakarta Sans -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap"></noscript>
+    <!-- Design System CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='design-system.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='left_feedback_button.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='hero-reference-redesign.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
     <style>
         .topbar {
             display: none;
@@ -59,39 +63,63 @@
         </div>
     </div>
 
-        <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
-    </head>
-
-    <body>
-        <a href="{{ url_for('contact') }}" class="left-feedback-btn">FEEDBACK</a>
+    <a href="{{ url_for('contact') }}" class="left-feedback-btn">FEEDBACK</a>
         <!-- HEADER & NAVIGATION (moved to shared component) -->
 
-        <!-- HERO SECTION -->
+<!-- HERO SECTION -->
         <section class="hero" id="heroSlider">
+            <div class="hero-carousel" role="region" aria-label="Campus highlights">
+                <div class="hero-carousel-track">
+                    <img class="hero-slide" src="{{ url_for('static', filename='_campus_candidates/mum-arch-1-convocation-hall.jpg') }}"
+                         alt="Convocation Hall, University of Mumbai" fetchpriority="high" decoding="async" width="4000" height="3000">
+                    <img class="hero-slide" src="{{ url_for('static', filename='_campus_candidates/mum-arch-2-library-detail.jpg') }}"
+                         alt="Library building detail, University of Mumbai" fetchpriority="high" decoding="async" width="4000" height="3000">
+                    <img class="hero-slide" src="{{ url_for('static', filename='_campus_candidates/mum-arch-3-buildings-05.jpg') }}"
+                         alt="University of Mumbai building" fetchpriority="high" decoding="async" width="4128" height="3096">
+                    <img class="hero-slide" src="{{ url_for('static', filename='_campus_candidates/mum-arch-4-buildings-06.jpg') }}"
+                         alt="University of Mumbai building" fetchpriority="high" decoding="async" width="4128" height="3096">
+                    <img class="hero-slide" src="{{ url_for('static', filename='_campus_candidates/mum-arch-8-neo-gothic.jpg') }}"
+                         alt="Rajabai Clock Tower facade, University of Mumbai" fetchpriority="high" decoding="async" width="2592" height="2417">
+                </div>
+                <button class="hero-carousel-btn hero-carousel-prev" aria-label="Previous slide" type="button">
+                    <i class="fa fa-chevron-left" aria-hidden="true"></i>
+                </button>
+                <button class="hero-carousel-btn hero-carousel-next" aria-label="Next slide" type="button">
+                    <i class="fa fa-chevron-right" aria-hidden="true"></i>
+                </button>
+                <div class="hero-carousel-dots" aria-label="Slide indicators"></div>
+            </div>
+            <span class="hero-overlay" aria-hidden="true"></span>
             <div class="hero-inner">
                 <div class="hero-left">
-                    <span class="hero-badge">GEN Z APPROVED</span>
-                    <h1 class="hero-heading">YOUR FUTURE,<br><em>UNFILTERED.</em></h1>
-                    <p class="hero-subtitle">Ditch the boring brochures. Get the real tea on colleges, careers, and the
-                        vibes that actually matter.</p>
-                    <div class="hero-buttons">
-                        <a href="{{ url_for('fyjc_rank') }}" class="btn btn-primary">START YOUR SEARCH NOW <i class="fa fa-arrow-right"></i></a>
-                        <a href="{{ url_for('guide_me') }}" class="btn btn-default">GUIDE ME</a>
-                    </div>
-                </div>
-                <div class="hero-right">
-                    <div class="hero-card hero-card-1">
-                        <picture><source srcset="{{ url_for('static', filename='hero_card_1.webp') }}" type="image/webp"><img src="{{ url_for('static', filename='hero_card_1.jpg') }}" alt="Student" width="800" height="800" fetchpriority="high" decoding="async"></picture>
-                    </div>
-                    <div class="hero-card hero-card-2">
-                        <picture><source srcset="{{ url_for('static', filename='hero_card_2.webp') }}" type="image/webp"><img src="{{ url_for('static', filename='hero_card_2.jpg') }}" alt="Students" loading="lazy" width="800" height="800" decoding="async"></picture>
-                    </div>
-                    <div class="hero-card hero-card-3">
-                        <picture><source srcset="{{ url_for('static', filename='hero_card_3.webp') }}" type="image/webp"><img src="{{ url_for('static', filename='hero_card_3.jpg') }}" alt="Student" loading="lazy" width="800" height="800" decoding="async"></picture>
+                    <span class="hero-eyebrow">India's trusted student guidance platform</span>
+                    <h1 class="hero-heading">Find the <em>right</em> college,<br>course & career path</h1>
+                    <p class="hero-subtitle">Cut-offs, rank predictors, entrance exams and admission guidance for
+                        Maharashtra and India — accurate, up-to-date and free to use.</p>
+                    <form class="hero-search" action="{{ url_for('colleges') }}" method="get" role="search">
+                        <i class="fa fa-search" aria-hidden="true"></i>
+                        <input type="text" name="q" placeholder="Search colleges, courses, exams…" aria-label="Search colleges, courses and exams">
+                        <button type="submit">Search</button>
+                    </form>
+                    <div class="hero-quick">
+                        <a href="{{ url_for('fyjc_rank') }}"><i class="fa fa-line-chart"></i> FYJC Rank Predictor</a>
+                        <a href="https://cutoff.vidyarthimitra.org/" target="_blank" rel="noopener"><i class="fa fa-table"></i> DTE Cut-offs</a>
+                        <a href="{{ url_for('mock_exams') }}"><i class="fa fa-pencil"></i> Mock Tests</a>
                     </div>
                 </div>
             </div>
         </section>
+
+        <!-- STATS STRIP -->
+        <div class="stats-strip">
+            <div class="container stats-grid">
+                <div class="stat"><strong>10+</strong><span>Years of guidance</span></div>
+                <div class="stat"><strong>1000+</strong><span>Colleges &amp; institutes</span></div>
+                <div class="stat"><strong>50+</strong><span>Entrance exams covered</span></div>
+                <div class="stat"><strong>1&nbsp;Lakh+</strong><span>Students helped</span></div>
+            </div>
+        </div>
+
         <!-- ANNOUNCEMENT BAR -->
         <div class="container">
             <div class="announcement-bar">
@@ -103,8 +131,8 @@
         <!-- FEATURED ALERTS -->
         <section class="featured-alerts-section">
             <div class="container">
-                <h2 class="section-title"><span class="orange-text">FEATURED</span> ALERTS</h2>
-                <p class="section-subtitle">Latest News From Notice Board</p>
+                <h2 class="section-title">Latest <span class="orange-text">Alerts</span></h2>
+                <p class="section-subtitle">Recent updates from the notice board</p>
                 <div class="featured-alert-grid">
                     {% for alert in featured_alerts %}
                     <div class="alert-box">
@@ -123,7 +151,8 @@
         <!-- TOP SEARCHES -->
         <section class="top-searches">
             <div class="container">
-                <h2 class="section-title">TOP <span class="orange-text">SEARCHES</span></h2>
+                <h2 class="section-title">Quick <span class="orange-text">Links</span></h2>
+                <p class="section-subtitle">Jump straight to the tools students use the most</p>
                 <div class="top-search-grid">
                     <div class="search-item">
                         <i class="fa fa-graduation-cap"></i>
@@ -149,8 +178,8 @@
         <!-- E-PAPER SECTION -->
         <section class="epaper-section">
             <div class="container">
-                <h2 class="section-title">VIDYARTHI MITRA <span class="orange-text">E-PAPER</span></h2>
-                <p class="section-subtitle">Maharashtra's first student-focused digital newspaper — now with Read Aloud
+                <h2 class="section-title">Vidyarthi Mitra <span class="orange-text">E-Paper</span></h2>
+                <p class="section-subtitle">Maharashtra's first student-focused digital newspaper — with Read Aloud
                     in Marathi, Hindi &amp; English.</p>
                 <div class="epaper-grid">
                     <a href="{{ url_for('epaper.epaper_viewer') }}" class="card-link">
@@ -178,9 +207,9 @@
         <!-- ABOUT SECTION -->
         <section class="about-section">
             <div class="container">
-                <h2 class="section-title">ABOUT <span class="orange-text">VIDYARTHI MITRA</span></h2>
+                <h2 class="section-title">Explore the <span class="orange-text">Platform</span></h2>
                 <p class="section-subtitle">VidyarthiMitra.org is an extensive search engine for anyone who wants
-                    precise, authentic and up-to-date information on everything related to education & career.</p>
+                    precise, authentic and up-to-date information on everything related to education &amp; career.</p>
 
                 <div class="about-grid">
                     <div class="info-box">
@@ -243,7 +272,7 @@
 
         <section class="partners-section">
             <div class="container">
-                <h2 class="section-title">PLACEMENT <span class="orange-text">PARTNERS</span></h2>
+                <h2 class="section-title">Placement <span class="orange-text">Partners</span></h2>
 
                 <div class="slider-viewport">
                     <div class="partner-track">
@@ -275,7 +304,7 @@
 
         <section class="featured-section">
             <div class="container">
-                <h2><span class="orange">WE</span> FEATURED IN</h2>
+                <h2><span class="orange">Featured</span> In</h2>
 
                 <div class="slider-container">
                     <div class="slider-track">
@@ -301,7 +330,7 @@
 
         <section class="subscribe-section">
             <div class="subscribe-container">
-                <h2>SUBSCRIBE <span>US</span></h2>
+                <h2>Subscribe <span>for Updates</span></h2>
                 <p>Stay ahead with the latest admission news, exam dates, and career guidance.</p>
 
                 <form id="subscribeForm" class="subscribe-form" action="/subscribe" method="POST">
@@ -315,7 +344,7 @@
         <!-- ══ TRENDING ACADEMIC PATHS ═══════════════════════════════════════ -->
         <section class="section soft">
             <div class="container">
-                <h2 class="center">Trending <span class="highlight-orange">Academic Paths</span></h2>
+                <h2 class="center">Popular <span class="highlight-orange">Academic Paths</span></h2>
 
                 <!-- Stream Filter Buttons -->
                 <div class="stream-filter">
@@ -500,7 +529,7 @@
         <!-- TESTIMONIALS -->
         <section class="testimonial-section">
             <div class="container">
-                <h2 class="section-title">WORDS OF <span class="orange-text">GRATITUDE</span></h2>
+                <h2 class="section-title">Words of <span class="orange-text">Gratitude</span></h2>
                 <div class="row">
                     <div class="col-md-6">
                         <div class="testimonial-item">
@@ -597,119 +626,11 @@
             </div>
         </section>
 
-        <!-- FOOTER -->
-        <footer>
-            <div class="container">
-                <div class="row">
-                    <div class="col-md-2">
-                        <div class="footer-widget">
-                            <div class="footer-logo">Vidyarthi<span class="orange-text">Mitra.org</span></div>
-                            <p style="font-size: 12px; margin-top: 12px; line-height: 1.6;">India's leading educational
-                                web portal for universities, colleges, courses and entrance exams.</p>
-                            <h5>Quick <span class="footer-accent">Links</span></h5>
-                            <ul>
-                                <li><a href="/universities">Universities</a></li>
-                                <li><a href="/colleges">Colleges</a></li>
-                                <li><a href="/courses">Courses</a></li>
-                                <li><a href="/entrance-exams">Entrance Exams</a></li>
-                                <li><a href="/mock-exams">Mock Exams</a></li>
-                                <li><a href="/news">News</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="footer-widget">
-                            <h5>Useful <span class="footer-accent">URLs</span></h5>
-                            <ul>
-                                <li><a
-                                        href="https://play.google.com/store/apps/details?id=co.mark.jdhkd&pcampaignid=web_share">Download
-                                        App</a></li>
-                                <li><a href="/guide-me">Expert Advise</a></li>
-                                <li><a href="/feedback">Feedback</a></li>
-                                <li><a href="{{ url_for('login') }}">Sign In</a></li>
-                                <li><a href="{{ url_for('register') }}">Join Us</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="footer-widget">
-                            <h5>Follow <span class="footer-accent">Us</span></h5>
-                            <ul>
-                                <li><a href="https://www.facebook.com/VidyarthiMitra.org/"><i
-                                            class="fa fa-facebook"></i> Facebook</a></li>
-                                <li><a href="https://x.com/Vidyarthimitra"><i class="fa fa-twitter"></i> Twitter</a>
-                                </li>
-                                <li><a href="https://in.linkedin.com/in/vidyarthi-mitra-0aba1911b"><i
-                                            class="fa fa-linkedin"></i> LinkedIn</a></li>
-                                <li><a href="https://www.instagram.com/vidyarthi_mitra/"><i class="fa fa-instagram"></i>
-                                        Instagram</a></li>
-                                <li><a
-                                        href="https://api.whatsapp.com/send/?phone=917720025900&text&type=phone_number&app_absent=0"><i
-                                            class="fa fa-whatsapp"></i> WhatsApp</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="footer-widget">
-                            <h5>Entrance <span class="footer-accent">Exams</span></h5>
-                            <ul>
-                                <li><a href="{{ url_for('exams') }}">MHT-CET</a></li>
-                                <li><a href="{{ url_for('exams') }}">JEE Main</a></li>
-                                <li><a href="{{ url_for('exams') }}">JEE Advanced</a></li>
-                                <li><a href="{{ url_for('exams') }}">NEET UG</a></li>
-                                <li><a href="{{ url_for('exams') }}">NEET PG</a></li>
-                                <li><a href="{{ url_for('exams') }}">NDA</a></li>
-                                <li><a href="{{ url_for('exams') }}">CLAT</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="footer-widget">
-                            <h5>Our <span class="footer-accent">Products</span></h5>
-                            <ul>
-                                <li><a href="/">VidyarthiMitra.org</a></li>
-                                <li><a href="{{ url_for('epaper.epaper_viewer') }}">E-Paper - Digital News</a></li>
-                                <li><a href="https://test.vidyarthimitra.org" target="_blank" rel="noopener">Career
-                                        Assessment Test</a></li>
-                                <li><a href="https://cutoff.vidyarthimitra.org/" target="_blank" rel="noopener">DTE Cut-offs 2025-26</a></li>
-                                <li><a href="{{ url_for('fyjc_rank') }}">11th Cut-offs 2025-26</a></li>
-                                <li><a href="{{ url_for('news') }}?category=Govt+Jobs">Govt. &amp; Private Jobs</a></li>
-                                <li><a href="{{ url_for('mock_exams') }}">Practice Tests</a></li>
-                                <li><a href="https://studyabroad.vidyarthimitra.org" target="_blank"
-                                        rel="noopener">Study Abroad</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="footer-widget">
-                            <h5>Contact <span class="footer-accent">Us</span></h5>
-                            <ul>
-                                <li><a href="tel:+917720025900"><i class="fa fa-phone"></i> +91 7720025900</a></li>
-                                <li><a href="tel:+917720081400"><i class="fa fa-phone"></i> +91 7720081400</a></li>
-                                <li><a href="mailto:info@vidyarthimitra.org"><i class="fa fa-envelope"></i>
-                                        info@vidyarthimitra.org</a></li>
-                                <li><a href="mailto:info@vidyarthimitra.org"><i class="fa fa-envelope"></i>
-                                        info@vidyarthimitra.org</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-                <div class="footer-bottom">
-                    <p>&copy; 2026 VidyarthiMitra.org - All Rights Reserved |
-                        <a href="/terms">Terms and Conditions</a> |
-                        <a href="/privacy">Privacy Policy</a> |
-                        <a href="/about-us">About Us</a> |
-                        <a href="{{ url_for('contact') }}">Contact Us</a> |
-                        <a href="{{ url_for('register') }}">Join Us</a> |
-                        <a href="{{ url_for('refund_policy') }}">Refund &amp; Cancellation</a>
-                    </p>
-                </div>
-            </div>
-        </footer>
+        <!-- FOOTER (shared, unified) -->
+        {% include '_shared_footer.html' %}
 
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.2/jquery.min.js" defer></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/3.3.7/js/bootstrap.min.js" defer></script>
-    </body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.2/jquery.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/3.3.7/js/bootstrap.min.js" defer></script>
     <script>
 
         $(document).ready(function () {
@@ -736,65 +657,7 @@
                 }
             });
 
-            // Navbar scroll effect
-            $(window).scroll(function () {
-                if ($(this).scrollTop() > 50) {
-                    $('header').addClass('scrolled');
-                } else {
-                    $('header').removeClass('scrolled');
-                }
-            });
 
-            // Animate elements on scroll
-            function animateOnScroll() {
-                $('.info-box, .testimonial-item, .partner-logo-box').each(function () {
-                    var elementTop = $(this).offset().top;
-                    var windowBottom = $(window).scrollTop() + $(window).height();
-
-                    if (elementTop < windowBottom - 100) {
-                        $(this).css({
-                            'opacity': '1',
-                            'transform': 'translateY(0)'
-                        });
-                    }
-                });
-            }
-
-            // Initialize animation states
-            $('.info-box, .testimonial-item, .partner-logo-box').css({
-                'opacity': '0',
-                'transform': 'translateY(30px)',
-                'transition': 'all 0.6s ease'
-            });
-
-            $(window).on('scroll', animateOnScroll);
-            animateOnScroll(); // Run once on load
-
-            // Hero auto slider (5 seconds)
-            var hero = document.getElementById('heroSlider');
-            var heroImages = [
-                "{{ url_for('static', filename='IITDELHI.webp') }}",
-                "{{ url_for('static', filename='iit-roorkee.webp') }}",
-                "{{ url_for('static', filename='pune_krishi_mahavidyalay.webp') }}",
-                "{{ url_for('static', filename='Colleges.webp') }}"
-            ];
-
-            if (hero && heroImages.length) {
-                var heroIndex = 0;
-
-                function setHeroImage(index) {
-                    hero.style.backgroundImage = "linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('" + heroImages[index] + "')";
-                }
-
-                setHeroImage(heroIndex);
-
-                if (heroImages.length > 1) {
-                    setInterval(function () {
-                        heroIndex = (heroIndex + 1) % heroImages.length;
-                        setHeroImage(heroIndex);
-                    }, 5000);
-                }
-            }
         });
 
         // Search overlay - Smart search with routing
@@ -1042,28 +905,84 @@
         };
 
     </script>
-
-    
     <script>
         (function () {
-            var revealTargets = document.querySelectorAll(
-                '.hero, .featured-alerts-section .alert-box, .top-search-grid .search-item, .epaper-card, .about-grid .info-box, .course-row-wrapper, .testimonial-item, .partner-logo-box, .subscribe-container'
-            );
-            revealTargets.forEach(function (el) { el.classList.add('reveal-item'); });
+            var track = document.querySelector('.hero-carousel-track');
+            var slides = document.querySelectorAll('.hero-slide');
+            var prevBtn = document.querySelector('.hero-carousel-prev');
+            var nextBtn = document.querySelector('.hero-carousel-next');
+            var dotsContainer = document.querySelector('.hero-carousel-dots');
+            if (!track || slides.length < 2) return;
+            var current = 0;
+            var timer = null;
+            var isPaused = false;
 
-            if ('IntersectionObserver' in window) {
-                var io = new IntersectionObserver(function (entries) {
-                    entries.forEach(function (entry) {
-                        if (entry.isIntersecting) {
-                            entry.target.classList.add('is-visible');
-                            io.unobserve(entry.target);
-                        }
-                    });
-                }, { threshold: 0.13 });
-                revealTargets.forEach(function (el) { io.observe(el); });
-            } else {
-                revealTargets.forEach(function (el) { el.classList.add('is-visible'); });
+            // Create dots
+            slides.forEach(function (_, i) {
+                var btn = document.createElement('button');
+                btn.setAttribute('role', 'tab');
+                btn.setAttribute('aria-label', 'Slide ' + (i + 1));
+                btn.setAttribute('aria-selected', i === 0 ? 'true' : 'false');
+                if (i === 0) btn.classList.add('active');
+                btn.addEventListener('click', function () { goTo(i); });
+                dotsContainer.appendChild(btn);
+            });
+            var dots = dotsContainer.querySelectorAll('button');
+
+            function update() {
+                track.style.transform = 'translateX(' + (-current * 25) + '%)';
+                dots.forEach(function (d, i) {
+                    d.classList.toggle('active', i === current);
+                    d.setAttribute('aria-selected', i === current ? 'true' : 'false');
+                });
             }
+            function goTo(i) {
+                current = (i + slides.length) % slides.length;
+                update();
+                resetTimer();
+            }
+            function next() { goTo(current + 1); }
+            function prev() { goTo(current - 1); }
+            function startTimer() {
+                timer = setInterval(next, 5500);
+            }
+            function resetTimer() {
+                clearInterval(timer);
+                startTimer();
+            }
+            function pauseTimer() { clearInterval(timer); isPaused = true; }
+            function resumeTimer() { if (isPaused) { isPaused = false; startTimer(); } }
+
+            prevBtn.addEventListener('click', prev);
+            nextBtn.addEventListener('click', next);
+
+            var carousel = document.querySelector('.hero-carousel');
+            carousel.addEventListener('mouseenter', pauseTimer);
+            carousel.addEventListener('mouseleave', resumeTimer);
+            carousel.addEventListener('focusin', pauseTimer);
+            carousel.addEventListener('focusout', resumeTimer);
+
+            document.addEventListener('visibilitychange', function () {
+                if (document.hidden) pauseTimer(); else resumeTimer();
+            });
+
+            // Keyboard nav
+            carousel.addEventListener('keydown', function (e) {
+                if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+                else if (e.key === 'ArrowRight') { e.preventDefault(); next(); }
+            });
+
+            // Swipe support
+            var startX = null;
+            carousel.addEventListener('touchstart', function (e) { startX = e.touches[0].clientX; }, { passive: true });
+            carousel.addEventListener('touchend', function (e) {
+                if (startX === null) return;
+                var dx = e.changedTouches[0].clientX - startX;
+                if (Math.abs(dx) > 40) { dx < 0 ? next() : prev(); }
+                startX = null;
+            }, { passive: true });
+
+            startTimer();
         })();
     </script>
 </body>
