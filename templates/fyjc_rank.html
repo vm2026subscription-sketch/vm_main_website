@@ -21,6 +21,14 @@
 <!-- Design System CSS -->
 <link rel="stylesheet" href="{{ url_for('static', filename='design-system.css', v='20261016c') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='fyjc_rank.min.css') }}">
+<style>
+.hdr-sub{font-weight:400;font-size:.72rem;opacity:.7}
+.round-cut{font-variant-numeric:tabular-nums;font-size:.8rem;white-space:nowrap;color:#64748b}
+.no-cols{text-align:center;padding:22px;color:#64748b;font-size:.9rem}
+.est-tag{font-size:.6rem;font-weight:700;letter-spacing:.08em;vertical-align:middle;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);border-radius:999px;padding:2px 7px;margin-left:6px;text-transform:uppercase}
+.result-hero-note{margin-top:12px;font-size:.8rem;line-height:1.5;opacity:.9;max-width:640px}
+.result-hero-note i{margin-right:4px}
+</style>
 <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
 </head>
 <body>
@@ -53,8 +61,8 @@
     <span class="icon"><i class="fa-solid fa-circle-info" aria-hidden="true"></i></span>
     <div>
       <strong>FYJC Rank Predictor</strong> — Enter your SSC (10th) marks, board, category, and preferences
-      to get an estimated merit rank and eligible college list for the upcoming FYJC admission round.
-      This tool uses historical cut-off data and is for <em>reference only</em>.
+      to get an estimated merit rank and a list of colleges where you can get admission, based on the
+      <strong>official FYJC 2026-27 CAP cut-offs (all rounds)</strong>. This tool is for <em>reference only</em>.
     </div>
   </div>
 
@@ -106,6 +114,20 @@
             <option value="nagpur">Nagpur</option>
             <option value="konkan">Konkan</option>
             <option value="latur">Latur</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="medium">Medium of Instruction</label>
+          <select id="medium">
+            <option value="any">Any Medium</option>
+            <option value="marathi">Marathi</option>
+            <option value="english">English</option>
+            <option value="urdu">Urdu</option>
+            <option value="gujarati">Gujarati</option>
+            <option value="hindi">Hindi</option>
+            <option value="kannada">Kannada</option>
+            <option value="sindhi">Sindhi</option>
           </select>
         </div>
 
@@ -215,45 +237,47 @@
   <div id="result-section" style="display:none">
 
     <div class="result-hero">
-      <div class="result-hero-label">ESTIMATED MERIT RANK</div>
+      <div class="result-hero-label">ESTIMATED MERIT RANK <span class="est-tag">approx.</span></div>
       <div class="result-hero-rank">
         <span class="rank-prefix">#</span>
         <span id="rank-number">—</span>
         <span class="rank-suffix" id="rank-suffix-text">to #—</span>
       </div>
-      <div class="result-hero-sub" id="result-sub-text">Based on historical FYJC data</div>
+      <div class="result-hero-sub" id="result-sub-text">Statistical estimate — not an official rank</div>
       <div class="result-pills" id="result-pills"></div>
+      <div class="result-hero-note"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> Rank &amp; percentile are a statistical <strong>estimate</strong>. The college cut-offs below are <strong>official FYJC 2026–27 CAP</strong> data.</div>
     </div>
 
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-icon"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></div>
         <div class="stat-value" id="stat-percentile">—</div>
-        <div class="stat-label">Percentile</div>
+        <div class="stat-label">Est. Percentile</div>
       </div>
       <div class="stat-card">
         <div class="stat-icon"><i class="fa-solid fa-school" aria-hidden="true"></i></div>
         <div class="stat-value" id="stat-colleges">—</div>
-        <div class="stat-label">Eligible Colleges</div>
+        <div class="stat-label">Matching Colleges</div>
       </div>
       <div class="stat-card">
         <div class="stat-icon"><i class="fa-solid fa-star" aria-hidden="true"></i></div>
         <div class="stat-value" id="stat-cutoff">—</div>
-        <div class="stat-label">Marks vs Last Cutoff</div>
+        <div class="stat-label">Marks vs Cut-off</div>
       </div>
     </div>
 
     <div class="colleges-card">
       <div class="colleges-header">
         <i class="fa-solid fa-building-columns" aria-hidden="true"></i>
-        Likely Eligible Colleges (Based on Last Year Cut-offs)
+        Colleges matching your marks — official FYJC 2026–27 cut-offs
       </div>
       <table>
         <thead>
           <tr>
             <th>College</th>
-            <th>Min Cut-off %</th>
-            <th>Admission Chance</th>
+            <th>Cut-off<br><span class="hdr-sub">marks / 500</span></th>
+            <th>Rounds R1→R4</th>
+            <th>Chance</th>
           </tr>
         </thead>
         <tbody id="colleges-tbody"></tbody>
@@ -263,10 +287,11 @@
     <div class="disclaimer">
       <span class="icon"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></span>
       <div>
-        <strong>Disclaimer:</strong> This rank prediction is based on
-        <em>historical cut-off data and statistical modelling</em> and is provided for reference only.
-        Actual merit rank and eligibility depend on the total number of applicants, current-year
-        reservation policy, and official Vidyarthi Mitra CAP rounds.
+        <strong>Disclaimer:</strong> The estimated rank &amp; percentile are a
+        <em>statistical approximation</em> (not an official merit rank). The college cut-offs shown are the
+        <strong>actual FYJC 2026–27 CAP cut-offs</strong> published on the official portal; "Chance" compares your
+        total marks with those cut-offs and is only indicative. Final admission depends on the total number of
+        applicants, current-year seat matrix, reservation policy and actual CAP rounds.
         Always verify with the official portal at <strong>vidyarthimitra.org</strong>.
       </div>
     </div>

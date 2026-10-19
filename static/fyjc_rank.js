@@ -17,6 +17,8 @@ function collectForm() {
   const category = document.getElementById('category').value;
   const division = document.getElementById('division').value;
   const pwd      = document.getElementById('pwd').value;
+  const mediumEl = document.getElementById('medium');
+  const medium   = mediumEl ? mediumEl.value : 'any';
   const streamEl = document.querySelector('input[name="stream"]:checked');
 
   const ids  = ['m1', 'm2', 'm3', 'm4', 'm5'];
@@ -40,7 +42,7 @@ function collectForm() {
     return { error: true, messages: errors, marksValid: marksValid && marks.length === 5 };
   }
 
-  return { error: false, board, category, division, pwd, stream: streamEl.value, marks };
+  return { error: false, board, category, division, medium, pwd, stream: streamEl.value, marks };
 }
 
 /* ── Main predict function ───────────────────────────────────────────────── */
@@ -106,35 +108,45 @@ function renderResults(d) {
     `Among ~${fmt(d.total_applicants)} applicants in ${capitalize(d.division)} Division`;
 
   // Pills
+  const mediumPill = (d.medium && d.medium !== 'any')
+    ? `<div class="result-pill"><span class="dot" style="background:#9C27B0"></span>${capitalize(d.medium)} Medium</div>` : '';
   document.getElementById('result-pills').innerHTML = `
     <div class="result-pill"><span class="dot" style="background:#FF6B00"></span>${BOARD_NAMES[d.board] || d.board}</div>
     <div class="result-pill"><span class="dot" style="background:#4CAF50"></span>${CAT_NAMES[d.category] || d.category}</div>
     <div class="result-pill"><span class="dot" style="background:#FFC107"></span>${STREAM_NAMES[d.stream] || d.stream}</div>
-    <div class="result-pill"><span class="dot" style="background:#4DB6AC"></span>${d.percentage}%</div>
+    ${mediumPill}
+    <div class="result-pill"><span class="dot" style="background:#4DB6AC"></span>${d.percentage}% · ${fmt(Math.round(d.percentage * 5))}/500</div>
   `;
 
   // Stats
   document.getElementById('stat-percentile').textContent = d.percentile + '%';
-  document.getElementById('stat-colleges').textContent   = d.eligible_colleges;
+  document.getElementById('stat-colleges').textContent   = fmt(d.eligible_colleges);
   const diff = d.marks_vs_cutoff;
-  document.getElementById('stat-cutoff').textContent     = (diff >= 0 ? '+' : '') + diff + '%';
+  document.getElementById('stat-cutoff').textContent     = (diff >= 0 ? '+' : '') + diff;
 
   // College table
   const tbody = document.getElementById('colleges-tbody');
   tbody.innerHTML = '';
-  d.colleges.forEach(c => {
-    const chance  = c.chance;
-    const label   = CHANCE_LABELS[chance] || chance;
-    tbody.innerHTML += `
-      <tr>
-        <td>
-          <div class="college-name">${escHtml(c.name)}</div>
-          <div class="college-loc"><i class="fa fa-map-marker-alt"></i> ${escHtml(c.loc)}</div>
-        </td>
-        <td><strong>${c.cutoff}%</strong></td>
-        <td><span class="chance-badge chance-${chance}">${label}</span></td>
-      </tr>`;
-  });
+  if (!d.colleges || !d.colleges.length) {
+    tbody.innerHTML = `<tr><td colspan="4" class="no-cols">No colleges found for this Division / Stream / Medium. Try <strong>Any Medium</strong> or a different division.</td></tr>`;
+  } else {
+    d.colleges.forEach(c => {
+      const chance = c.chance;
+      const label  = CHANCE_LABELS[chance] || chance;
+      const rounds = (c.cutoffs || []).map(v => (v == null ? '–' : v)).join(' · ');
+      const sub    = [c.medium, c.status].filter(Boolean).join(' · ');
+      tbody.innerHTML += `
+        <tr>
+          <td>
+            <div class="college-name">${escHtml(c.name)}</div>
+            <div class="college-loc">${escHtml(sub)}</div>
+          </td>
+          <td><strong>${c.ref}</strong></td>
+          <td class="round-cut">${rounds}</td>
+          <td><span class="chance-badge chance-${chance}">${label}</span></td>
+        </tr>`;
+    });
+  }
 
   // Show section
   const section = document.getElementById('result-section');

@@ -1,4 +1,5 @@
 import io
+import gzip
 import base64
 import hashlib
 import hmac
@@ -3890,6 +3891,51 @@ def api_full_cutoff_colleges():
     )
 
 
+# ── FYJC 2026-27 real cut-off data (mahafyjcadmissions.in CAP rounds) ──────────
+_FYJC_CUTOFFS_FILE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "data", "fyjc_cutoffs_2026.json.gz"
+)
+_fyjc_cutoffs_cache = None
+
+_FYJC_CATS = ["SC", "ST", "VJA", "NTB", "NTC", "NTD", "OBC", "SBC", "SEBC", "EWS", "General"]
+# UI category -> cut-off columns considered (max of these is used)
+_FYJC_CAT_MAP = {
+    "open": ["General"], "obc": ["OBC"], "sc": ["SC"], "st": ["ST"],
+    "nt": ["NTB", "NTC", "NTD"], "vj": ["VJA"], "sbc": ["SBC"],
+    "scbc": ["SEBC"], "ews": ["EWS"],
+}
+# UI division -> region label used in the dataset
+_FYJC_DIVISION_REGION = {
+    "mumbai": "Mumbai", "pune": "Pune", "nashik": "Nashik",
+    "aurangabad": "Chhatrapati Sambhajinagar", "amravati": "Amravati",
+    "nagpur": "Nagpur", "konkan": "Mumbai", "latur": "Latur",
+}
+
+
+def _load_fyjc_cutoffs():
+    """Lazily load the compact 2026-27 cut-off dataset (bundled, gzipped)."""
+    global _fyjc_cutoffs_cache
+    if _fyjc_cutoffs_cache is not None:
+        return _fyjc_cutoffs_cache
+    try:
+        with gzip.open(_FYJC_CUTOFFS_FILE, "rt", encoding="utf-8") as fh:
+            _fyjc_cutoffs_cache = json.load(fh)
+    except Exception:
+        _fyjc_cutoffs_cache = {"cats": _FYJC_CATS, "rounds": [1, 2, 3, 4], "colleges": []}
+    return _fyjc_cutoffs_cache
+
+
+def _fyjc_pair_cutoff(pairs, cat_idxs):
+    """From a flat [idx,value,idx,value,...] list return max value for the given cat indices."""
+    best = None
+    for i in range(0, len(pairs), 2):
+        if pairs[i] in cat_idxs:
+            v = pairs[i + 1]
+            if best is None or v > best:
+                best = v
+    return best
+
+
 @app.route("/fyjc_rank")
 def fyjc_rank():
     return render_template("fyjc_rank.html", page_title="FYJC Rank Predictor")
@@ -3905,6 +3951,7 @@ def fyjc_predict():
     division = str(payload.get("division", "mumbai")).strip()
     pwd = str(payload.get("pwd", "no")).strip()
     stream = str(payload.get("stream", "science")).strip()
+    medium = str(payload.get("medium", "any")).strip()
     marks_raw = payload.get("marks", [])
 
     try:
@@ -3952,89 +3999,65 @@ def fyjc_predict():
     rank_low = max(1, int(rank_mid * 0.88))
     rank_high = max(rank_low + 50, int(rank_mid * 1.12))
 
-    # College lists per stream (representative Maharashtra FYJC cut-offs)
-    COLLEGE_DATA = {
-        "science": [
-            ("Jai Hind College", "Churchgate, Mumbai", 95.0),
-            ("Mithibai College", "Vile Parle, Mumbai", 93.6),
-            ("Ruia College", "Matunga, Mumbai", 92.8),
-            ("Wilson College", "Chowpatty, Mumbai", 91.4),
-            ("Bhavan's College", "Andheri, Mumbai", 90.2),
-            ("KC College", "Churchgate, Mumbai", 89.6),
-            ("Sathaye College", "Vile Parle, Mumbai", 88.0),
-            ("Patkar College", "Goregaon, Mumbai", 86.4),
-            ("NES Ratnam College", "Bhandup, Mumbai", 84.0),
-            ("Guru Nanak Khalsa College", "Matunga, Mumbai", 82.6),
-            ("VES College of Arts", "Chembur, Mumbai", 80.0),
-            ("Kelkar College", "Mulund, Mumbai", 78.4),
-            ("Saraswati College", "Kharghar, Navi Mumbai", 76.0),
-            ("Fergusson College", "Shivajinagar, Pune", 91.2),
-            ("SP College", "Sadashiv Peth, Pune", 89.4),
-            ("Nowrosjee Wadia College", "Pune", 87.6),
-            ("Brihan Maharashtra College", "Pune", 85.8),
-            ("BMCC (Balmohan Vishramshetra)", "Paud Rd, Pune", 84.0),
-            ("Abasaheb Garware College", "Karve Rd, Pune", 82.0),
-            ("Sir Parashurambhau College", "Tilak Rd, Pune", 80.4),
-        ],
-        "commerce": [
-            ("Jai Hind College (Commerce)", "Churchgate, Mumbai", 94.0),
-            ("H.R. College of Commerce", "Churchgate, Mumbai", 93.0),
-            ("N.M. College of Commerce", "Vile Parle, Mumbai", 92.0),
-            ("Mithibai College (Commerce)", "Vile Parle, Mumbai", 91.0),
-            ("Sydenham College", "Mumbai", 90.2),
-            ("Lala Lajpat Rai College", "Matunga, Mumbai", 89.0),
-            ("SIES College of Commerce", "Sion, Mumbai", 87.6),
-            ("Mulund College of Commerce", "Mulund, Mumbai", 86.0),
-            ("Thakur College of Science", "Kandivali, Mumbai", 84.4),
-            ("VES College of Arts", "Chembur, Mumbai", 82.0),
-            ("Nowrosjee Wadia College (Commerce)", "Pune", 90.0),
-            ("Abasaheb Garware College (Commerce)", "Pune", 88.0),
-            ("Brihan Maharashtra College (Commerce)", "Pune", 86.0),
-            ("Modern College Shivajinagar (Commerce)", "Pune", 84.0),
-            ("Shri Shivaji Science College", "Amravati", 82.0),
-        ],
-        "arts": [
-            ("Elphinstone College", "Fort, Mumbai", 88.0),
-            ("St. Xavier's College", "Fort, Mumbai", 87.0),
-            ("Wilson College (Arts)", "Chowpatty, Mumbai", 85.4),
-            ("Khalsa College", "Matunga, Mumbai", 83.0),
-            ("R.D. National College", "Bandra, Mumbai", 80.6),
-            ("K.J. Somaiya College", "Vidyavihar, Mumbai", 78.0),
-            ("Gurukul College of Arts", "Ghantali, Thane", 75.0),
-            ("Tilak College of Education", "Pune", 83.0),
-            ("Fergusson College (Arts)", "Shivajinagar, Pune", 85.0),
-            ("Modern College (Arts)", "Shivajinagar, Pune", 82.0),
-            ("Maulana Azad College", "Aurangabad", 74.0),
-            ("Hislop College (Arts)", "Nagpur", 76.0),
-            ("Institute of Science (Arts)", "Nagpur", 78.0),
-            ("S.M.T. Kasturbai College", "Nashik", 72.0),
-            ("New Arts College", "Ahmednagar", 70.0),
-        ],
-    }
+    # ── Real 2026-27 cut-off matching (bundled CAP round data) ────────────────
+    data = _load_fyjc_cutoffs()
+    cats = data.get("cats") or _FYJC_CATS
+    region = _FYJC_DIVISION_REGION.get(division, "")
+    cat_cols = _FYJC_CAT_MAP.get(category, ["General"])
+    cat_idxs = {cats.index(c) for c in cat_cols if c in cats}
 
-    college_list = COLLEGE_DATA.get(stream, COLLEGE_DATA["science"])
-    # Sort by cutoff descending; last year's cutoff
-    last_year_cutoff = percentage  # use student's % as reference
-    eligible_colleges = 0
+    stream_want = stream.lower()
+    medium_want = medium.lower()
     colleges_out = []
-    for name, loc, cutoff in college_list:
-        diff = percentage - cutoff
-        if diff >= 2:
+    for rec in data.get("colleges") or []:
+        if (rec.get("s") or "").lower() != stream_want:
+            continue
+        if region and (rec.get("r") or "") != region:
+            continue
+        if medium_want and medium_want != "any" and (rec.get("m") or "").lower() != medium_want:
+            continue
+        rounds = rec.get("x") or []
+        cut = [None, None, None, None]
+        for i in range(4):
+            if i < len(rounds) and rounds[i]:
+                cut[i] = _fyjc_pair_cutoff(rounds[i], cat_idxs)
+        ref = cut[3]
+        if ref is None:
+            present = [c for c in cut if c is not None]
+            ref = max(present) if present else None
+        if ref is None:
+            continue
+        margin = total - ref
+        if margin >= 15:
             chance = "high"
-        elif diff >= -1:
+        elif margin >= 0:
             chance = "moderate"
-        elif diff >= -3:
+        elif margin >= -15:
             chance = "borderline"
         else:
             chance = "low"
-        if chance != "low":
-            eligible_colleges += 1
-        colleges_out.append({"name": name, "loc": loc, "cutoff": cutoff, "chance": chance})
+        colleges_out.append({
+            "name": rec.get("n") or "—",
+            "status": rec.get("t") or "",
+            "medium": rec.get("m") or "",
+            "region": rec.get("r") or "",
+            "cutoffs": cut,
+            "ref": ref,
+            "margin": margin,
+            "chance": chance,
+        })
 
-    # marks_vs_cutoff: student % minus median cutoff for the stream
-    cutoffs = [c[2] for c in college_list]
-    median_cutoff = sorted(cutoffs)[len(cutoffs) // 2]
-    marks_vs_cutoff = round(percentage - median_cutoff, 1)
+    # Eligible (margin >= 0) first, then the best/hardest first within each group
+    colleges_out.sort(key=lambda c: (0 if c["margin"] >= 0 else 1, -c["ref"]))
+    eligible_colleges = sum(1 for c in colleges_out if c["margin"] >= 0)
+    eligible_refs = [c["ref"] for c in colleges_out if c["margin"] >= 0]
+    if eligible_refs:
+        marks_vs_cutoff = total - max(eligible_refs)
+    elif colleges_out:
+        marks_vs_cutoff = total - min(c["ref"] for c in colleges_out)
+    else:
+        marks_vs_cutoff = 0
+    colleges_out = colleges_out[:50]
 
     return jsonify({
         "rank_low": rank_low,
@@ -4044,6 +4067,7 @@ def fyjc_predict():
         "category": category,
         "division": division,
         "stream": stream,
+        "medium": medium,
         "percentage": percentage,
         "percentile": percentile,
         "eligible_colleges": eligible_colleges,
