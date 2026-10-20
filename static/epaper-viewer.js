@@ -2904,59 +2904,74 @@ const EP = {
     return sentences.filter(Boolean);
   },
 
-  _prepareHighlight() {
+  _prepareHighlight(rawText) {
     this._ttsSpans = [];
     this._ttsCurrentSpan = -1;
     let charOffset = 0;
 
-    const titleEl = this.el.articleTitle;
-    if (titleEl) {
-      titleEl.querySelectorAll('.ep-tts-sentence').forEach(s => s.outerHTML = s.textContent);
-      titleEl.normalize();
-      const t = titleEl.textContent.trim();
-      const sp = document.createElement('span');
-      sp.className = 'ep-tts-sentence';
-      sp.textContent = t;
-      titleEl.textContent = '';
-      titleEl.appendChild(sp);
-      this._ttsSpans.push({ el: sp, start: charOffset, end: charOffset + t.length });
-      charOffset += t.length + 2;
-    }
+    const titleEnd = rawText.indexOf('। ');
+    const titleText = titleEnd >= 0 ? rawText.slice(0, titleEnd + 1).trim() : '';
+    const bodyText = titleEnd >= 0 ? rawText.slice(titleEnd + 1).trim() : rawText;
 
-    const paras = this.el.articleText ? this.el.articleText.querySelectorAll('p') : [];
-    (paras.length ? paras : (this.el.articleText ? [this.el.articleText] : [])).forEach(p => {
-      p.querySelectorAll('.ep-tts-sentence').forEach(s => s.outerHTML = s.textContent);
-      p.normalize();
-      const txt = p.textContent.trim();
-      const sentences = this._splitSentences(txt);
-      p.textContent = '';
-      sentences.forEach((s, si) => {
+    if (titleText) {
+      const titleEl = this.el.articleTitle;
+      if (titleEl) {
+        titleEl.querySelectorAll('.ep-tts-sentence').forEach(s => s.outerHTML = s.textContent);
+        titleEl.normalize();
         const sp = document.createElement('span');
         sp.className = 'ep-tts-sentence';
-        sp.textContent = s;
-        p.appendChild(sp);
-        if (si < sentences.length - 1) p.appendChild(document.createTextNode(' '));
-        this._ttsSpans.push({ el: sp, start: charOffset, end: charOffset + s.length });
-        charOffset += s.length + 1;
-      });
-    });
+        sp.textContent = titleText;
+        titleEl.textContent = '';
+        titleEl.appendChild(sp);
+        this._ttsSpans.push({ el: sp, start: charOffset, end: charOffset + titleText.length });
+        charOffset += titleText.length + 1;
+      }
+    }
+
+    if (bodyText) {
+      const paras = this.el.articleText ? this.el.articleText.querySelectorAll('p') : [];
+      const container = paras.length ? paras[0] : this.el.articleText;
+      if (container) {
+        container.querySelectorAll('.ep-tts-sentence').forEach(s => s.outerHTML = s.textContent);
+        container.normalize();
+        const sentences = this._splitSentences(bodyText);
+        container.textContent = '';
+        sentences.forEach((s, si) => {
+          const sp = document.createElement('span');
+          sp.className = 'ep-tts-sentence';
+          sp.textContent = s;
+          container.appendChild(sp);
+          if (si < sentences.length - 1) container.appendChild(document.createTextNode(' '));
+          this._ttsSpans.push({ el: sp, start: charOffset, end: charOffset + s.length });
+          charOffset += s.length + 1;
+        });
+      }
+    }
 
     this._ttsTotalChars = charOffset || 1;
-    // Estimate audio duration for the whole text so highlighting can use
-    // a stable timebase even if the actual audio blob durations differ
-    const fullText = (this.el.articleTitle?.textContent || '') + ' ' + (this.el.articleText?.innerText || '');
-    this._estimatedTtsDuration = this._estimateAudioDuration(fullText.trim());
+    this._estimatedTtsDuration = this._estimateAudioDuration(rawText.trim());
   },
 
   _highlightAt(currentTime, duration) {
     if (!this._ttsTotalChars) return;
-    // Use the larger of measured audio duration and estimated total duration
-    const denom = Math.max(duration || 0, this._estimatedTtsDuration || 0.001);
-    if (!denom) return;
-    const pos = (currentTime / denom) * this._ttsTotalChars;
+    const ci = this._voice._chunkIdx;
+    let preppedPos;
+    if (ci >= 0 && this._voice._chunkCharOffsets && ci < this._voice._chunkCharOffsets.length) {
+      const chunkStart = this._voice._chunkCharOffsets[ci];
+      const chunkLen = this._voice._chunks[ci]?.length || 0;
+      const chunkDur = duration || Math.max(1, Math.round(this._estimatedTtsDuration * (chunkLen / (this._voice._preppedTotalChars || 1))));
+      const localPos = chunkLen ? (currentTime / chunkDur) * chunkLen : 0;
+      preppedPos = chunkStart + Math.min(localPos, chunkLen);
+    } else {
+      const denom = Math.max(duration || 0, this._estimatedTtsDuration || 0.001);
+      preppedPos = (currentTime / denom) * this._voice._preppedTotalChars;
+    }
+    // Map preprocessed position -> original text position using the prep map
+    const prepMap = this._voice._prepMap;
+    const origPos = (prepMap && preppedPos < prepMap.length) ? prepMap[Math.floor(preppedPos)] : Math.round(preppedPos * (this._ttsTotalChars / (this._voice._preppedTotalChars || 1)));
     let idx = -1;
     for (let i = 0; i < this._ttsSpans.length; i++) {
-      if (pos >= this._ttsSpans[i].start && pos < this._ttsSpans[i].end) { idx = i; break; }
+      if (origPos >= this._ttsSpans[i].start && origPos < this._ttsSpans[i].end) { idx = i; break; }
     }
     if (idx === this._ttsCurrentSpan) return;
     if (this._ttsCurrentSpan >= 0 && this._ttsSpans[this._ttsCurrentSpan])
@@ -3024,11 +3039,27 @@ const EP = {
   },
 
   // Fast inline text preprocessing for TTS (no LLM needed)
+  // Returns { text: processedText, map: Int32Array } where map[prepIdx] = origIdx
   _preprocessTTSText(text) {
-    if (!text) return text;
-    let t = text;
+    if (!text) return { text: '', map: new Int32Array(0) };
+    let orig = text;
+    let prep = '';
+    const map = [];
+    let origIdx = 0;
+    let prepIdx = 0;
 
-    // Expand common Hindi abbreviations
+    // Helper: copy chars from orig to prep, advancing both indices
+    const copy = (n) => {
+      for (let i = 0; i < n; i++) {
+        if (origIdx < orig.length) {
+          prep += orig[origIdx];
+          map[prepIdx++] = origIdx++;
+        }
+      }
+    };
+
+    // Process abbreviation expansions first (they're word-boundary replacements)
+    // We'll scan orig and build prep with expansions
     const hindiAbbr = {
       'JEE': 'जे ई ई', 'NEET': 'नीट', 'IIT': 'आई आई टी',
       'IIM': 'आई आई एम', 'NIT': 'एन आई टी',
@@ -3041,32 +3072,108 @@ const EP = {
       'DTE': 'डी टी ई', 'NGO': 'एन जी ओ',
     };
 
-    // Only replace standalone abbreviations (word boundaries)
-    for (const [abbr, expansion] of Object.entries(hindiAbbr)) {
-      const regex = new RegExp(`\\b${abbr}\\b`, 'g');
-      t = t.replace(regex, expansion);
+    // Single pass: handle abbreviations, ₹, %, pauses, whitespace
+    while (origIdx < orig.length) {
+      let matched = false;
+
+      // Try abbreviations at current position
+      for (const [abbr, expansion] of Object.entries(hindiAbbr)) {
+        if (orig.startsWith(abbr, origIdx)) {
+          // Check word boundaries
+          const before = origIdx === 0 || !/[A-Za-z0-9]/.test(orig[origIdx - 1]);
+          const after = origIdx + abbr.length >= orig.length || !/[A-Za-z0-9]/.test(orig[origIdx + abbr.length]);
+          if (before && after) {
+            // Map each char of expansion to the abbreviation's start position (approximate)
+            for (let i = 0; i < expansion.length; i++) {
+              prep += expansion[i];
+              map[prepIdx++] = origIdx;
+            }
+            origIdx += abbr.length;
+            matched = true;
+            break;
+          }
+        }
+      }
+      if (matched) continue;
+
+      // ₹ amounts
+      const rupeeMatch = orig.slice(origIdx).match(/^₹\s?(\d[\d,]*)/);
+      if (rupeeMatch) {
+        const full = rupeeMatch[0];
+        const num = parseInt(rupeeMatch[1].replace(/,/g, ''));
+        let expansion;
+        if (num >= 10000000) expansion = `${(num / 10000000).toFixed(1)} करोड़ रुपये`;
+        else if (num >= 100000) expansion = `${(num / 100000).toFixed(1)} लाख रुपये`;
+        else if (num >= 1000) expansion = `${(num / 1000).toFixed(0)} हज़ार रुपये`;
+        else expansion = `${num} रुपये`;
+        for (let i = 0; i < expansion.length; i++) {
+          prep += expansion[i];
+          map[prepIdx++] = origIdx;
+        }
+        origIdx += full.length;
+        continue;
+      }
+
+      // Percentage
+      const pctMatch = orig.slice(origIdx).match(/^(\d+)%/);
+      if (pctMatch) {
+        const full = pctMatch[0];
+        const expansion = `${pctMatch[1]} प्रतिशत`;
+        for (let i = 0; i < expansion.length; i++) {
+          prep += expansion[i];
+          map[prepIdx++] = origIdx;
+        }
+        origIdx += full.length;
+        continue;
+      }
+
+      // Copy current char
+      const ch = orig[origIdx];
+      prep += ch;
+      map[prepIdx++] = origIdx;
+      origIdx++;
+
+      // After sentence terminators, add pause (but don't advance origIdx for the pause chars)
+      if (ch === '।' || ch === '.') {
+        // Peek ahead for whitespace
+        let ws = '';
+        while (origIdx < orig.length && /\s/.test(orig[origIdx])) {
+          ws += orig[origIdx];
+          origIdx++;
+        }
+        // Add pause in prep, map to the terminator position
+        const pause = ' ... ';
+        for (let i = 0; i < pause.length; i++) {
+          prep += pause[i];
+          map[prepIdx++] = origIdx - 1; // map to the terminator
+        }
+        // Add the whitespace back
+        for (let i = 0; i < ws.length; i++) {
+          prep += ws[i];
+          map[prepIdx++] = origIdx - ws.length + i;
+        }
+      }
     }
 
-    // Convert ₹ amounts to Hindi words
-    t = t.replace(/₹\s?(\d[\d,]*)/g, (_, num) => {
-      const n = parseInt(num.replace(/,/g, ''));
-      if (n >= 10000000) return `${(n / 10000000).toFixed(1)} करोड़ रुपये`;
-      if (n >= 100000) return `${(n / 100000).toFixed(1)} लाख रुपये`;
-      if (n >= 1000) return `${(n / 1000).toFixed(0)} हज़ार रुपये`;
-      return `${n} रुपये`;
-    });
+    // Collapse excessive whitespace in prep (map accordingly)
+    const finalPrep = [];
+    const finalMap = [];
+    let wsCount = 0;
+    for (let i = 0; i < prep.length; i++) {
+      if (/\s/.test(prep[i])) {
+        wsCount++;
+        if (wsCount <= 2) {
+          finalPrep.push(prep[i]);
+          finalMap.push(map[i]);
+        }
+      } else {
+        wsCount = 0;
+        finalPrep.push(prep[i]);
+        finalMap.push(map[i]);
+      }
+    }
 
-    // Convert percentage symbols
-    t = t.replace(/(\d+)%/g, '$1 प्रतिशत');
-
-    // Add natural pauses after sentences
-    t = t.replace(/।\s*/g, '। ... ');
-    t = t.replace(/\.\s+/g, '. ... ');
-
-    // Clean up excessive whitespace
-    t = t.replace(/\s{3,}/g, '  ');
-
-    return t.trim();
+    return { text: finalPrep.join('').trim(), map: Int32Array.from(finalMap) };
   },
 
   // ── Start playing (fetch audio from Edge TTS API) ──
@@ -3093,23 +3200,34 @@ const EP = {
     const session = this._voice._session;
 
     this._voice.loading = true;
-    this._voice._chunks = this._chunkText(this._preprocessTTSText(rawText));
+    const prepResult = this._preprocessTTSText(rawText);
+    const prepped = prepResult.text;
+    this._voice._prepMap = prepResult.map;
+    this._voice._chunks = this._chunkText(prepped);
     this._voice._chunkIdx = -1;
     this._voice._nextAudio = null;
     this._voice.text = rawText;
+    // Cumulative char offsets for each chunk in preprocessed text
+    this._voice._chunkCharOffsets = [];
+    let acc = 0;
+    for (const ch of this._voice._chunks) {
+      this._voice._chunkCharOffsets.push(acc);
+      acc += ch.length;
+    }
+    this._voice._preppedTotalChars = acc;
 
     if (this.el.voiceBar) this.el.voiceBar.classList.add('loading', 'topbar');
     if (this.el.voiceTitle) this.el.voiceTitle.textContent = displayedTitle || this.currentArticle.headline || 'Article';
     if (this.el.ttsStartBtn) { this.el.ttsStartBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> <span>Loading...</span>'; this.el.ttsStartBtn.classList.add('loading'); }
     this._voiceUpdatePlayIcon();
-    this._prepareHighlight();
+    this._prepareHighlight(rawText);
 
     await this._playChunk(0, session);
   },
 
   // Split text into ~600-char chunks at sentence boundaries
   _chunkText(text, maxChars) {
-    maxChars = maxChars || 600;
+    maxChars = maxChars || 400;
     const sentences = text.match(/[^।!?\n]+[।!?\n]*/g) || [text];
     const chunks = [];
     let cur = '';
@@ -3129,15 +3247,31 @@ const EP = {
   async _fetchChunkAudio(text, signal) {
     const pct = Math.round((this._voice.rate - 1) * 100);
     const rateStr = pct >= 0 ? `+${pct}%` : `${pct}%`;
-    const res = await fetch('/api/epaper/tts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, voice: this._voice.selectedVoice || '', rate: rateStr, pitch: '+0Hz' }),
-      signal,
+    const payload = { text, voice: this._voice.selectedVoice || '', rate: rateStr, pitch: '+0Hz' };
+    const wait = ms => new Promise((resolve, reject) => {
+      const t = setTimeout(resolve, ms);
+      if (signal) signal.addEventListener('abort', () => { clearTimeout(t); reject(new DOMException('Aborted', 'AbortError')); }, { once: true });
     });
+    let res = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      res = await fetch('/api/epaper/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal,
+      });
+      if (res.ok) break;
+      // Rate limit (429) or transient server error — back off and retry
+      if ((res.status === 429 || res.status >= 500) && attempt < 2) {
+        if (signal && signal.aborted) throw new DOMException('Aborted', 'AbortError');
+        await wait(1200 * (attempt + 1));
+        continue;
+      }
+      break;
+    }
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'TTS failed');
+      throw new Error(err.error || `TTS failed (${res.status})`);
     }
     const blob = await res.blob();
     const audio = new Audio(URL.createObjectURL(blob));

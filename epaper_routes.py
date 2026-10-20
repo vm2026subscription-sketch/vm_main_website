@@ -1393,7 +1393,7 @@ def _resolve_voice(text, voice, rate, pitch):
     return voice, rate, pitch
 
 
-def _collect_edge_tts_audio(text, voice, rate, pitch):
+def _collect_edge_tts_audio(text, voice, rate, pitch, timeout=25):
     chunks = []
     error_holder = []
 
@@ -1419,7 +1419,7 @@ def _collect_edge_tts_audio(text, voice, rate, pitch):
 
     t = threading.Thread(target=_run, daemon=True)
     t.start()
-    t.join(timeout=6)
+    t.join(timeout=timeout)
 
     if t.is_alive():
         raise TimeoutError("TTS generation timed out")
@@ -1431,7 +1431,7 @@ def _collect_edge_tts_audio(text, voice, rate, pitch):
 
 
 @epaper_bp.route("/api/epaper/tts", methods=["POST"])
-@limiter.limit("5 per minute")
+@limiter.limit("60 per minute")
 def api_tts():
     data = request.get_json(silent=True) or {}
     text = data.get("text", "").strip()
