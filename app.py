@@ -3536,30 +3536,65 @@ def courses():
 
 @app.route("/entrance-exams")
 def exams():
-    exams_data = {}
+    # Server-side pagination for the Complete Exam Directory (8000+ rows)
+    per_page = 48
+    try:
+        page = max(1, int(request.args.get('page', 1)))
+    except (TypeError, ValueError):
+        page = 1
+
+    page_exams = []
     total_exams = 0
+    total_pages = 1
     try:
         connection_url = get_postgres_connection_url()
         if connection_url and connect:
             import psycopg2.extras
             with connect(connection_url) as conn:
                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-                    cur.execute("SELECT payload FROM entrance_exams LIMIT 8208")
-                    rows = cur.fetchall()
-                    for row in rows:
+                    cur.execute("SELECT COUNT(*) AS total FROM entrance_exams")
+                    total_exams = int(cur.fetchone()['total'] or 0)
+                    total_pages = max(1, (total_exams + per_page - 1) // per_page)
+                    if page > total_pages:
+                        page = total_pages
+                    offset = (page - 1) * per_page
+                    # ORDER BY id keeps pagination stable across requests
+                    cur.execute(
+                        "SELECT payload FROM entrance_exams "
+                        "ORDER BY id LIMIT %s OFFSET %s",
+                        (per_page, offset)
+                    )
+                    for row in cur.fetchall():
                         payload = row.get("payload", {})
                         if isinstance(payload, dict):
-                            category = payload.get("category", "general").lower()
-                            if category not in exams_data:
-                                exams_data[category] = []
-                            exams_data[category].append(payload)
-                            total_exams += 1
+                            page_exams.append(payload)
     except Exception as e:
         app.logger.warning("Failed to fetch entrance exams from Postgres: %s", e)
         import traceback
         app.logger.warning(traceback.format_exc())
-    
-    return render_template("entrance-exams.html", exams_data=exams_data, total_exams=total_exams)
+
+    # Compact page window: 1 … p-1 p p+1 … N
+    pages_set = {1, total_pages, page}
+    for p in (page - 1, page + 1):
+        if 1 <= p <= total_pages:
+            pages_set.add(p)
+    page_list = []
+    prev_p = 0
+    for p in sorted(pages_set):
+        if prev_p and p - prev_p > 1:
+            page_list.append('…')
+        page_list.append(p)
+        prev_p = p
+
+    return render_template(
+        "entrance-exams.html",
+        exams=page_exams,
+        total_exams=total_exams,
+        page=page,
+        total_pages=total_pages,
+        per_page=per_page,
+        page_list=page_list,
+    )
 
 
 @app.route("/mock-exams")

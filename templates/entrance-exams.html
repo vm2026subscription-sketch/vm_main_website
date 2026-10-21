@@ -304,6 +304,67 @@
       color: #ff6600 !important;
     }
 
+    /* ── PAGINATION (Complete Exam Directory) ─────────────────── */
+    .exam-pagination {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 36px;
+    }
+
+    .pg-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 40px;
+      height: 40px;
+      padding: 0 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      color: #cbd5e1;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 0.88rem;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .pg-btn:hover {
+      border-color: rgba(255, 102, 0, 0.4);
+      background: rgba(255, 102, 0, 0.08);
+      color: #ff6600;
+    }
+
+    .pg-btn.pg-active {
+      background: #ff6600;
+      border-color: #ff6600;
+      color: #050a15;
+      font-weight: 800;
+      box-shadow: 0 4px 14px rgba(255, 102, 0, 0.3);
+    }
+
+    .pg-btn.pg-disabled {
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    .pg-dots {
+      color: #64748b;
+      padding: 0 4px;
+      user-select: none;
+    }
+
+    .pg-info {
+      text-align: center;
+      color: #94a3b8;
+      font-size: 0.82rem;
+      margin-top: 14px;
+    }
+
     /* Level Badges */
     .exam-level {
       font-family: 'Inter', sans-serif !important;
@@ -591,7 +652,30 @@
     body.light-mode .exam-link {
       color: #c2410c !important;
     }
-    
+
+    /* Pagination — light mode */
+    body.light-mode .pg-btn {
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #475569 !important;
+    }
+    body.light-mode .pg-btn:hover {
+      background: rgba(22, 101, 52, 0.05) !important;
+      border-color: rgba(22, 101, 52, 0.4) !important;
+      color: #c2410c !important;
+    }
+    body.light-mode .pg-btn.pg-active {
+      background: #c2410c !important;
+      border-color: #c2410c !important;
+      color: #ffffff !important;
+    }
+    body.light-mode .pg-dots {
+      color: #94a3b8 !important;
+    }
+    body.light-mode .pg-info {
+      color: #64748b !important;
+    }
+
     body.light-mode .prep-section {
       background: radial-gradient(circle at center, rgba(22, 101, 52, 0.05), transparent 60%),
                   linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
@@ -1091,8 +1175,8 @@
     </div>
   </section>
 
-  <!-- ── DYNAMIC EXAMS FROM DATABASE ── -->
-  {% if exams_data %}
+  <!-- ── DYNAMIC EXAMS FROM DATABASE (paginated) ── -->
+  {% if exams %}
   <section class="exam-section" data-category="all" id="sec-database-exams">
     <div class="section-header">
       <div class="section-icon"><i class="fa-solid fa-book-open" aria-hidden="true"></i></div>
@@ -1102,23 +1186,48 @@
       </div>
     </div>
     <div class="exam-grid">
-      {% for category, exams in exams_data.items() %}
-        {% for exam in exams %}
-        <div class="exam-card">
-          <div class="exam-card-top">
-            <div class="exam-abbr">{{ exam.get('exam_id', 'N/A')[:12] }}</div>
-            <span class="exam-level level-{{ exam.get('level', 'national')|lower|replace(' ', '-') }}">{{ exam.get('level', 'National')|title }}</span>
-          </div>
-          <div class="exam-body">{{ exam.get('full_form', exam.get('exam_name', 'Entrance Exam')) }}</div>
-          <div class="exam-name">{{ exam.get('exam_name', 'Exam') }}</div>
-          <div class="exam-footer-row">
-            <span class="exam-conducting">{{ exam.get('college_name', 'N/A')|truncate(20) }}</span>
-            <a href="{{ exam.get('official_website', '#') }}" class="exam-link" target="_blank">Details <i class="fas fa-arrow-right"></i></a>
-          </div>
+      {% for exam in exams %}
+      <div class="exam-card">
+        <div class="exam-card-top">
+          <div class="exam-abbr">{{ exam.get('exam_id', 'N/A')[:12] }}</div>
+          <span class="exam-level level-{{ exam.get('level', 'national')|lower|replace(' ', '-') }}">{{ exam.get('level', 'National')|title }}</span>
         </div>
-        {% endfor %}
+        <div class="exam-body">{{ exam.get('full_form', exam.get('exam_name', 'Entrance Exam')) }}</div>
+        <div class="exam-name">{{ exam.get('exam_name', 'Exam') }}</div>
+        <div class="exam-footer-row">
+          <span class="exam-conducting">{{ exam.get('college_name', 'N/A')|truncate(20) }}</span>
+          <a href="{{ exam.get('official_website', '#') }}" class="exam-link" target="_blank">Details <i class="fas fa-arrow-right"></i></a>
+        </div>
+      </div>
       {% endfor %}
     </div>
+
+    {% if total_pages > 1 %}
+    <nav class="exam-pagination" aria-label="Exam directory pages">
+      {% if page > 1 %}
+      <a class="pg-btn pg-prev" href="{{ url_for('exams', page=page-1) }}#sec-database-exams" aria-label="Previous page"><i class="fas fa-chevron-left"></i></a>
+      {% else %}
+      <span class="pg-btn pg-prev pg-disabled" aria-hidden="true"><i class="fas fa-chevron-left"></i></span>
+      {% endif %}
+
+      {% for p in page_list %}
+        {% if p == '…' %}
+        <span class="pg-dots">&hellip;</span>
+        {% elif p == page %}
+        <span class="pg-btn pg-active" aria-current="page">{{ p }}</span>
+        {% else %}
+        <a class="pg-btn" href="{{ url_for('exams', page=p) }}#sec-database-exams">{{ p }}</a>
+        {% endif %}
+      {% endfor %}
+
+      {% if page < total_pages %}
+      <a class="pg-btn pg-next" href="{{ url_for('exams', page=page+1) }}#sec-database-exams" aria-label="Next page"><i class="fas fa-chevron-right"></i></a>
+      {% else %}
+      <span class="pg-btn pg-next pg-disabled" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+      {% endif %}
+    </nav>
+    <p class="pg-info">Showing {{ (page-1)*per_page + 1 }}&ndash;{{ (page-1)*per_page + exams|length }} of {{ total_exams }} exams &middot; Page {{ page }} of {{ total_pages }}</p>
+    {% endif %}
   </section>
   {% endif %}
 
