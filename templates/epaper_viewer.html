@@ -42,6 +42,7 @@
   <link rel="shortcut icon" href="{{ url_for('static', filename='title.png') }}" type="image/x-icon">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"></noscript>
+  <link rel="stylesheet" href="{{ url_for('static', filename='design-system.css', v='20261016c') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='epaper-viewer.min.css', v='20261016-band2') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='epaper-landing-light.min.css', v='min1') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='epaper-whatsapp.css', v='1') }}">
@@ -418,7 +419,6 @@
       }
     </style>
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='design-system.css', v='20261016c') }}?v=2">
 </head>
 <body class="epaper-body no-shared-navbar" data-epaper-mode="{{ 'edition' if initial_date else 'landing' }}" data-initial-language="{{ initial_language or '' }}">
   {% include '_shared_index_navbar.html' %}

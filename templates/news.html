@@ -18,6 +18,42 @@
   <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"></noscript>
   <!-- Design System CSS -->
   <link rel="stylesheet" href="{{ url_for('static', filename='design-system.css', v='20261016c') }}">
+  <!-- Page base styles (news cards, grid, sidebar) — must load AFTER design-system.css -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='news.min.css', v='20261021a') }}">
+
+  <style>
+    /* ── CATEGORY FILTER TABS (client-side) ───────────────────── */
+    .cat-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    .cat-btn {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted, #6b7280);
+      background: #fff;
+      border: 1px solid var(--border, #e5e7eb);
+      border-radius: 100px;
+      padding: 7px 16px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+    .cat-btn:hover {
+      color: var(--orange, #ff6600);
+      border-color: var(--orange, #ff6600);
+      background: rgba(255, 102, 0, 0.05);
+    }
+    .cat-btn.active {
+      color: #fff;
+      background: var(--orange, #ff6600);
+      border-color: var(--orange, #ff6600);
+      box-shadow: 0 3px 10px rgba(255, 102, 0, 0.25);
+    }
+  </style>
 </head>
 
 <body data-category="{{ selected_category }}">
