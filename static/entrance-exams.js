@@ -134,17 +134,37 @@ const ALL_EXAMS = [
 ];
 
 // ── LIVE SEARCH ───────────────────────────────────────────
+// Full-form aliases so legacy QR links like "Joint Entrance Test"
+// still resolve to the right exam card.
+const EXAM_ALIASES = {
+  'joint entrance test': 'JEE Main',
+  'joint entrance examination': 'JEE Main',
+  'joint entrance examination main': 'JEE Main',
+  'national eligibility cum entrance test': 'NEET UG',
+  'national eligibility cum entrance test ug': 'NEET UG',
+  'common admission test': 'CAT',
+  'common law admission test': 'CLAT',
+  'national aptitude test in architecture': 'NATA',
+  'graduate aptitude test in engineering': 'GATE'
+};
+
 function liveSearch() {
   const q   = document.getElementById('examInput').value.trim().toLowerCase();
   const out = document.getElementById('searchResults');
 
   if (!q) { out.innerHTML = ''; return; }
 
-  const matches = ALL_EXAMS.filter(e =>
+  let matches = ALL_EXAMS.filter(e =>
     e.name.toLowerCase().includes(q) ||
     e.body.toLowerCase().includes(q) ||
     e.cat.toLowerCase().includes(q)
   );
+
+  // Alias fallback (e.g. "joint entrance test" → "JEE Main")
+  if (!matches.length && EXAM_ALIASES[q]) {
+    const target = EXAM_ALIASES[q].toLowerCase();
+    matches = ALL_EXAMS.filter(e => e.name.toLowerCase() === target);
+  }
 
   if (!matches.length) {
     out.innerHTML = `
@@ -171,6 +191,19 @@ document.getElementById('examInput').addEventListener('keyup', function (e) {
   this._debounce = setTimeout(liveSearch, 250);
   if (e.key === 'Enter') liveSearch();
 });
+
+// ── PREFILL SEARCH FROM URL (?q=...) — legacy QR-code links ──
+(function () {
+  const params = new URLSearchParams(window.location.search);
+  const q = (params.get('q') || '').trim();
+  if (!q) return;
+  const input = document.getElementById('examInput');
+  if (!input) return;
+  input.value = q;
+  liveSearch();
+  const sec = document.getElementById('search');
+  if (sec) sec.scrollIntoView({ behavior: 'smooth' });
+})();
 
 // ── FILTER TABS ───────────────────────────────────────────
 document.querySelectorAll('.filter-tab').forEach(function (tab) {

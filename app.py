@@ -4184,9 +4184,14 @@ def news():
         selected_category=category,
     )
 
-# Redirect legacy underscore URLs to hyphenated versions
+# Legacy underscore URLs (career-book QR codes) → entrance-exams page
+# with the exam name pre-filled in the search box.
 @app.route("/entrance_exams/<path:exam>")
 def entrance_exams_legacy_redirect(exam):
+    slug = (exam or "").replace("-", " ").replace("_", " ").strip()
+    slug = " ".join(w for w in slug.split() if w)
+    if slug:
+        return redirect(url_for("exams", q=slug) + "#search")
     return redirect(url_for("exams"))
 
 @app.route("/news_category/<category>")
