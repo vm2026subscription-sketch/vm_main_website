@@ -14,6 +14,12 @@ let currentModal = null;
 const PAGE_SIZE  = 9;
 let pageCount    = PAGE_SIZE;
 
+/* Read selected category from template (set by server) */
+const initialCat = document.body.dataset.category || "";
+if (initialCat && ["entrance","results","admissions","govtjobs","scholarship","latest"].includes(initialCat)) {
+  activeCat = initialCat;
+}
+
 /* Category mapping: API -> UI */
 const categoryMap = {
   "entrance": { ui: "entrance", label: "Entrance Exams", img: "https://images.unsplash.com/photo-1546410531-bd4cb0153f3e?auto=format&fit=crop&w=400&q=80", bgCls: "bg-exam" },
@@ -323,6 +329,13 @@ document.addEventListener('DOMContentLoaded', function () {
       renderGrid();
     });
   });
+
+  /* Set active category tab on load */
+  const activeBtn = document.querySelector('.cat-btn[data-cat="' + activeCat + '"]');
+  if (activeBtn) {
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    activeBtn.classList.add('active');
+  }
 
   /* Search input */
   const searchInput = document.getElementById('searchInput');

@@ -20,7 +20,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='design-system.css', v='20261016c') }}">
 </head>
 
-<body>
+<body data-category="{{ selected_category }}">
   {% include '_shared_index_navbar.html' %}
 
   <!-- BREAKING NEWS TICKER -->
@@ -79,6 +79,16 @@
         <h3>Latest News</h3>
         <div class="sec-line"></div>
         <div class="sec-count" id="visibleCount">0</div>
+      </div>
+
+      <!-- Category Tabs -->
+      <div class="cat-tabs" id="catTabs">
+        <button class="cat-btn active" data-cat="all">All</button>
+        <button class="cat-btn" data-cat="entrance">Entrance Exams</button>
+        <button class="cat-btn" data-cat="results">Results</button>
+        <button class="cat-btn" data-cat="admissions">Admissions</button>
+        <button class="cat-btn" data-cat="govtjobs">Govt Jobs</button>
+        <button class="cat-btn" data-cat="scholarship">Scholarships</button>
       </div>
 
       <!-- Cards populated by JS -->

@@ -4125,6 +4125,7 @@ def admissions():
 
 @app.route("/news")
 def news():
+    category = request.args.get("category", "").lower()
     initial_articles = []
     category_labels = {
         "entrance": "Entrance Exams",
@@ -4145,7 +4146,17 @@ def news():
         "news.html",
         initial_articles=initial_articles,
         category_labels=category_labels,
+        selected_category=category,
     )
+
+# Redirect legacy underscore URLs to hyphenated versions
+@app.route("/entrance_exams/<path:exam>")
+def entrance_exams_legacy_redirect(exam):
+    return redirect(url_for("exams"))
+
+@app.route("/news_category/<category>")
+def news_category_redirect(category):
+    return redirect(url_for("news", category=category.lower()))
 
 _EXAM_UPDATES_FILE = os.path.join(os.path.dirname(__file__), 'data', 'exam_updates.json')
 
