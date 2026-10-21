@@ -1,0 +1,943 @@
+/* ==========================================================================
+   VidyarthiMitra — Entrance Exams Page CSS Override
+   Polished, modern redesign using existing design-system tokens.
+   No HTML/JS changes — drop-in replacement for inline <style> block.
+   ========================================================================== */
+
+/* ==========================================================================
+   1. CSS VARIABLES & THEME SYNC (map brand tokens to design-system)
+   ========================================================================== */
+:root {
+  /* Brand colors — aligned with design-system */
+  --brand-navy: #0a1128;
+  --brand-navy-elevated: #0b1426;
+  --brand-accent: #c2410c;        /* burnt orange */
+  --brand-accent-hover: #ea580c;
+  --brand-accent-light: rgba(194, 65, 12, 0.12);
+  --brand-accent-glow: rgba(194, 65, 12, 0.25);
+
+  /* Light mode overrides (design-system uses .light-mode on body) */
+  --bg: var(--c-white);
+  --surface: var(--c-white);
+  --surface-elevated: var(--c-soft);
+  --text: var(--c-ink);
+  --text-muted: var(--c-muted);
+  --border: var(--c-line);
+
+  /* Container */
+  --container-max: 1200px;
+  --container-pad: clamp(16px, 4vw, 32px);
+
+  /* Spacing scale (4/8/12/16/24/32/48) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-full: 999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.06);
+  --shadow-md: 0 6px 20px rgba(16,24,40,0.08);
+  --shadow-lg: 0 12px 40px rgba(16,24,40,0.12);
+  --shadow-card: 0 4px 18px rgba(16,24,40,0.06);
+  --shadow-card-hover: 0 12px 32px rgba(16,24,40,0.12);
+  --shadow-focus: 0 0 0 3px var(--brand-accent-light);
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow: 300ms ease;
+
+  /* Z-index */
+  --z-float: 1500;
+}
+
+/* Dark mode — sync with design-system .dark-mode */
+body.dark-mode,
+body:not(.light-mode):not(.dark-mode) {
+  --bg: var(--c-dark-bg);
+  --surface: var(--c-dark-surface);
+  --surface-elevated: var(--c-dark-surface);
+  --text: var(--c-dark-text);
+  --text-muted: var(--c-dark-muted);
+  --border: var(--c-dark-line);
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ==========================================================================
+   2. CONTAINER — shared max-width wrapper for all sections
+   ========================================================================== */
+.hero,
+.search-section,
+.filter-bar,
+.exam-section,
+.prep-section,
+.career-section {
+  /* Override inline left/right padding and use container */
+  padding-left: var(--container-pad) !important;
+  padding-right: var(--container-pad) !important;
+}
+
+/* Sections that need vertical rhythm */
+.search-section,
+.prep-section,
+.career-section {
+  padding-top: var(--space-12) !important;
+  padding-bottom: var(--space-12) !important;
+}
+
+.exam-section {
+  padding-top: var(--space-10) !important;
+  padding-bottom: var(--space-10) !important;
+}
+
+/* ==========================================================================
+   3. HERO — two-column desktop, stacked mobile
+   ========================================================================== */
+.hero {
+  min-height: auto !important;            /* let content dictate height */
+  background: radial-gradient(circle at top right, rgba(255,102,0,0.06), transparent 50%),
+              radial-gradient(circle at bottom left, rgba(194,65,12,0.04), transparent 50%),
+              var(--brand-navy) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+  padding-top: var(--space-16) !important;
+  padding-bottom: var(--space-16) !important;
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-10);
+  align-items: center;
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--container-pad);
+}
+
+@media (min-width: 1024px) {
+  .hero-grid {
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: var(--space-12);
+  }
+}
+
+.hero-content {
+  text-align: left;
+}
+
+.hero-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--brand-accent-light) !important;
+  color: var(--brand-accent) !important;
+  border: 1px solid rgba(194,65,12,0.2) !important;
+  padding: var(--space-1) var(--space-4);
+  border-radius: var(--radius-full);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin-bottom: var(--space-4);
+}
+
+.hero h1 {
+  font-family: var(--ff-display) !important;
+  font-weight: 800 !important;
+  font-size: clamp(2.5rem, 5vw, 3.5rem);
+  line-height: 1.1;
+  color: #ffffff !important;
+  margin-bottom: var(--space-4);
+  background: none !important;
+  -webkit-background-clip: initial;
+  -webkit-text-fill-color: initial;
+}
+
+.hero h1 em {
+  color: var(--brand-accent) !important;
+  font-style: normal;
+  background: none !important;
+  -webkit-background-clip: initial;
+  -webkit-text-fill-color: initial;
+}
+
+.hero-sub {
+  color: var(--text-muted) !important;
+  font-size: clamp(1rem, 1.5vw, 1.125rem);
+  line-height: 1.7;
+  max-width: 52ch;
+  margin-bottom: var(--space-6);
+}
+
+/* Buttons */
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.btn-primary,
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 12px 24px;
+  border-radius: var(--radius-full);
+  font-family: var(--ff-sans) !important;
+  font-weight: 700 !important;
+  font-size: var(--fs-sm);
+  text-decoration: none;
+  transition: all var(--transition-normal);
+}
+
+.btn-primary {
+  background: var(--brand-accent) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 16px var(--brand-accent-glow) !important;
+  border: none;
+}
+
+.btn-primary:hover {
+  background: var(--brand-accent-hover) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px var(--brand-accent-glow) !important;
+}
+
+.btn-outline {
+  background: transparent !important;
+  color: #fff !important;
+  border: 1.5px solid rgba(255,255,255,0.18) !important;
+}
+
+.btn-outline:hover {
+  border-color: var(--brand-accent) !important;
+  color: var(--brand-accent) !important;
+  background: rgba(194,65,12,0.06) !important;
+}
+
+/* Hero visual panel */
+.hero-visual-inner {
+  background: linear-gradient(135deg, rgba(10,17,40,0.85) 0%, var(--brand-navy) 100%) !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+  box-shadow: var(--shadow-lg) !important;
+}
+
+/* Hero stats grid */
+.hero-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .hero-stat-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.hero-stat {
+  background: rgba(255,255,255,0.03) !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  text-align: center;
+  transition: all var(--transition-normal);
+}
+
+.hero-stat:hover {
+  transform: translateY(-3px);
+  border-color: rgba(194,65,12,0.2) !important;
+  box-shadow: 0 8px 24px rgba(194,65,12,0.08) !important;
+}
+
+.hero-stat-num {
+  font-family: var(--ff-display) !important;
+  font-weight: 800 !important;
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  color: var(--brand-accent) !important;
+  line-height: 1.1;
+  margin-bottom: var(--space-1);
+}
+
+.hero-stat-lbl {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ==========================================================================
+   4. SEARCH SECTION — pill input with attached button
+   ========================================================================== */
+.search-section {
+  background: var(--brand-navy) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+.search-inner {
+  max-width: var(--container-max);
+  margin-inline: auto;
+  text-align: center;
+}
+
+.search-inner h2 {
+  font-family: var(--ff-display) !important;
+  font-weight: 800 !important;
+  color: var(--text) !important;
+  margin-bottom: var(--space-2);
+}
+
+.search-inner p {
+  color: var(--text-muted) !important;
+  margin-bottom: var(--space-6);
+}
+
+.search-bar {
+  display: flex;
+  align-items: stretch;
+  background: var(--surface-elevated) !important;
+  border: 1.5px solid var(--border) !important;
+  border-radius: var(--radius-full) !important;
+  box-shadow: var(--shadow-md) !important;
+  overflow: hidden;
+  max-width: 720px;
+  margin-inline: auto;
+}
+
+.search-bar:focus-within {
+  border-color: var(--brand-accent) !important;
+  box-shadow: var(--shadow-md), var(--shadow-focus) !important;
+}
+
+.search-bar input {
+  flex: 1;
+  min-width: 0;
+  height: 52px;
+  padding: 0 var(--space-5);
+  background: transparent !important;
+  color: var(--text) !important;
+  font-family: var(--ff-sans);
+  font-size: var(--fs-base);
+  border: none;
+  outline: none;
+}
+
+.search-bar input::placeholder {
+  color: var(--text-muted);
+}
+
+.search-bar button {
+  height: 52px;
+  padding: 0 var(--space-6);
+  background: var(--brand-accent) !important;
+  color: #fff !important;
+  font-family: var(--ff-sans) !important;
+  font-weight: 700 !important;
+  font-size: var(--fs-sm);
+  border: none;
+  border-radius: 0 var(--radius-full) var(--radius-full) 0;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.search-bar button:hover {
+  background: var(--brand-accent-hover) !important;
+}
+
+.search-bar button:focus-visible {
+  outline: 2px solid var(--brand-accent);
+  outline-offset: -2px;
+}
+
+/* ==========================================================================
+   5. FILTER TABS — horizontal pill chips, scrollable on mobile
+   ========================================================================== */
+.filter-bar {
+  background: rgba(10,17,40,0.85) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border) !important;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding-top: var(--space-3) !important;
+  padding-bottom: var(--space-3) !important;
+}
+
+.filter-tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--space-2);
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: var(--space-1);
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.filter-tabs::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+.filter-tab {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted) !important;
+  font-family: var(--ff-sans) !important;
+  font-weight: 600 !important;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.filter-tab:hover {
+  color: var(--brand-accent) !important;
+  border-color: var(--brand-accent);
+  background: var(--brand-accent-light);
+}
+
+.filter-tab.active {
+  background: var(--brand-accent) !important;
+  color: #fff !important;
+  border-color: var(--brand-accent);
+  font-weight: 700 !important;
+  box-shadow: 0 2px 8px var(--brand-accent-glow);
+}
+
+/* ==========================================================================
+   6. EXAM SECTIONS — headers & cards
+   ========================================================================== */
+.exam-sections {
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--container-pad);
+}
+
+.exam-section {
+  background: var(--bg) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+.exam-section:nth-child(even) {
+  background: var(--surface-elevated) !important;
+}
+
+/* Section header */
+.section-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--container-pad);
+}
+
+.section-icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--brand-accent-light) !important;
+  border: 1px solid rgba(194,65,12,0.15) !important;
+  border-radius: var(--radius-md);
+  color: var(--brand-accent);
+  font-size: 20px; /* shrink from oversized default */
+}
+
+.section-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.section-label {
+  display: inline-block;
+  font-family: var(--ff-sans) !important;
+  font-weight: 700 !important;
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--brand-accent) !important;
+  margin-bottom: var(--space-1);
+}
+
+.section-title {
+  font-family: var(--ff-display) !important;
+  font-weight: 700 !important;
+  font-size: clamp(1.25rem, 2vw, 1.5rem);
+  color: var(--text) !important;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.section-count {
+  display: inline-flex;
+  align-items: center;
+  background: var(--brand-accent-light) !important;
+  color: var(--brand-accent) !important;
+  border: 1px solid rgba(194,65,12,0.2) !important;
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  margin-left: var(--space-2);
+}
+
+/* Exam grid */
+.exam-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--container-pad);
+}
+
+/* Exam card */
+.exam-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 16px !important;
+  padding: 20px !important;
+  box-shadow: var(--shadow-card) !important;
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal), border-color var(--transition-normal) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.exam-card:hover {
+  transform: translateY(-4px) !important;
+  border-color: rgba(194,65,12,0.25) !important;
+  box-shadow: var(--shadow-card-hover) !important;
+}
+
+/* Card top: abbr + level badge */
+.exam-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.exam-abbr {
+  font-family: var(--ff-display) !important;
+  font-weight: 700 !important;
+  font-size: var(--fs-lg);
+  color: var(--text) !important;
+  transition: color var(--transition-fast);
+}
+
+.exam-card:hover .exam-abbr {
+  color: var(--brand-accent) !important;
+}
+
+/* Level badges — pill style with accent tint */
+.exam-level {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--ff-sans) !important;
+  font-weight: 700 !important;
+  font-size: var(--fs-xs);
+  padding: 4px 10px;
+  border-radius: var(--radius-full) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.level-national { background: rgba(59,130,246,0.12) !important; color: #60a5fa !important; }
+.level-state    { background: rgba(249,115,22,0.12) !important; color: #fb923c !important; }
+.level-university { background: rgba(139,92,246,0.12) !important; color: #c084fc !important; }
+.level-upsc     { background: rgba(168,85,247,0.12) !important; color: #c084fc !important; }
+.level-pg       { background: rgba(236,72,153,0.12) !important; color: #f472b6 !important; }
+.level-intl     { background: rgba(20,184,166,0.12) !important; color: #2dd4bf !important; }
+.level-defence  { background: rgba(239,68,68,0.12) !important; color: #f87171 !important; }
+.level-banking  { background: rgba(16,185,129,0.12) !important; color: #34d399 !important; }
+
+/* Card body */
+.exam-body {
+  color: var(--text-muted) !important;
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  margin-bottom: var(--space-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.exam-name {
+  color: var(--text-muted) !important;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  line-height: 1.5;
+  margin-bottom: var(--space-3);
+}
+
+/* Card footer */
+.exam-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border) !important;
+  margin-top: auto; /* pin to bottom */
+}
+
+.exam-conducting {
+  font-size: var(--fs-xs);
+  color: var(--text-muted) !important;
+}
+
+.exam-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--brand-accent) !important;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--brand-accent-light);
+}
+
+.exam-link:hover {
+  background: var(--brand-accent) !important;
+  color: #fff !important;
+  transform: translateX(2px);
+}
+
+.exam-link:focus-visible {
+  outline: 2px solid var(--brand-accent);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   7. PREP SECTION — same card grid
+   ========================================================================== */
+.prep-section {
+  background: var(--brand-navy) !important;
+  border-top: 1px solid var(--border) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+.prep-section h2,
+.prep-section > p {
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--container-pad);
+}
+
+.prep-section h2 {
+  font-family: var(--ff-display) !important;
+  font-weight: 800 !important;
+  color: var(--text) !important;
+  margin-bottom: var(--space-2);
+}
+
+.prep-section > p {
+  color: var(--text-muted) !important;
+  margin-bottom: var(--space-8);
+}
+
+.prep-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--space-4);
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--container-pad);
+}
+
+.prep-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-3);
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 16px !important;
+  padding: var(--space-6) var(--space-4) !important;
+  transition: all var(--transition-normal) !important;
+  color: var(--text) !important;
+}
+
+.prep-card:hover {
+  background: var(--brand-accent-light) !important;
+  border-color: rgba(194,65,12,0.25) !important;
+  transform: translateY(-4px) !important;
+  box-shadow: var(--shadow-card-hover) !important;
+}
+
+.prep-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--brand-accent-light);
+  border-radius: var(--radius-md);
+  color: var(--brand-accent);
+  font-size: 22px;
+}
+
+.prep-card span {
+  font-weight: 600;
+  font-size: var(--fs-sm);
+}
+
+/* ==========================================================================
+   8. CAREER SECTION — same card grid
+   ========================================================================== */
+.career-section {
+  background: var(--bg) !important;
+}
+
+.career-section .sec-title,
+.career-section .sec-sub {
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--container-pad);
+  text-align: center;
+}
+
+.sec-title {
+  font-family: var(--ff-display) !important;
+  font-weight: 800 !important;
+  color: var(--text) !important;
+  margin-bottom: var(--space-2);
+}
+
+.sec-sub {
+  color: var(--text-muted) !important;
+  margin-bottom: var(--space-8);
+}
+
+.career-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--space-4);
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--container-pad);
+}
+
+.career-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-3);
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 16px !important;
+  padding: var(--space-6) var(--space-4) !important;
+  transition: all var(--transition-normal) !important;
+  color: var(--text) !important;
+}
+
+.career-card:hover {
+  border-color: rgba(194,65,12,0.25) !important;
+  color: var(--brand-accent) !important;
+  transform: translateY(-4px) !important;
+  box-shadow: var(--shadow-card-hover) !important;
+}
+
+.career-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--brand-accent-light);
+  border-radius: var(--radius-md);
+  color: var(--brand-accent);
+  font-size: 22px;
+}
+
+.career-card span {
+  font-weight: 600;
+  font-size: var(--fs-sm);
+}
+
+/* ==========================================================================
+   9. COMPLETE EXAM DIRECTORY — performance optimization
+   ========================================================================== */
+#sec-database-exams .exam-grid {
+  /* content-visibility for offscreen cards */
+}
+#sec-database-exams .exam-card {
+  content-visibility: auto;
+  contain-intrinsic-size: 280px 200px;
+}
+
+/* ==========================================================================
+   10. FLOATING AI CHATBOT BUTTON — ensure it never covers cards
+   ========================================================================== */
+.vm-chat-launcher {
+  position: fixed !important;
+  right: 24px !important;
+  left: auto !important;
+  bottom: 24px !important;
+  width: 60px;
+  height: 60px;
+  border: none;
+  border-radius: 50%;
+  background: var(--brand-accent) !important;
+  color: #fff !important;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 30px var(--brand-accent-glow) !important;
+  z-index: var(--z-float) !important;
+  transition: all var(--transition-normal) !important;
+}
+
+.vm-chat-launcher:hover {
+  transform: scale(1.08) translateY(-3px) !important;
+  box-shadow: 0 14px 38px var(--brand-accent-glow) !important;
+}
+
+.vm-chat-launcher:active {
+  transform: scale(0.95) !important;
+}
+
+/* Add padding-bottom to page so chatbot never covers last cards */
+body {
+  padding-bottom: 100px;
+}
+
+/* ==========================================================================
+   11. GLOBAL FOCUS & ACCESSIBILITY
+   ========================================================================== */
+:focus-visible {
+  outline: 2px solid var(--brand-accent);
+  outline-offset: 2px;
+}
+
+/* Remove default focus from buttons that have custom focus */
+.btn-primary:focus-visible,
+.btn-outline:focus-visible,
+.search-bar button:focus-visible,
+.filter-tab:focus-visible,
+.exam-link:focus-visible,
+.vm-chat-launcher:focus-visible,
+.prep-card:focus-visible,
+.career-card:focus-visible {
+  outline: 2px solid var(--brand-accent);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   12. RESPONSIVE TWEAKS
+   ========================================================================== */
+
+/* Mobile: hero content centered */
+@media (max-width: 639px) {
+  .hero-content {
+    text-align: center;
+  }
+  .hero-label {
+    margin-inline: auto;
+  }
+  .hero-actions {
+    justify-content: center;
+  }
+  .hero-stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Small mobile */
+@media (max-width: 380px) {
+  .hero h1 {
+    font-size: 2rem;
+  }
+  .btn-primary,
+  .btn-outline {
+    padding: 10px 18px;
+    font-size: var(--fs-xs);
+  }
+  .search-bar input {
+    padding: 0 var(--space-4);
+  }
+  .search-bar button {
+    padding: 0 var(--space-4);
+  }
+}
+
+/* Tablet */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .hero-stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ==========================================================================
+   13. PRINT STYLES
+   ========================================================================== */
+@media print {
+  .filter-bar,
+  .vm-chat-launcher,
+  .hero-visual,
+  .search-section {
+    display: none !important;
+  }
+  .exam-section {
+    break-inside: avoid-page;
+    background: white !important;
+    color: black !important;
+    border-color: #e0e0e0 !important;
+  }
+  .exam-card {
+    break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #e0e0e0 !important;
+  }
+}
