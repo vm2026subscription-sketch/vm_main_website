@@ -4241,7 +4241,14 @@ def _exam_payload_to_item(payload):
 
 
 def _fetch_exam_updates():
-    """Exam updates from Postgres (primary), supplemented by curated JSON, JSON as fallback."""
+    """Exam updates from live auto-sync (newest first), then Postgres, curated JSON fallback."""
+    live_items = []
+    try:
+        import auto_updates
+        live_items = auto_updates.get_live_exam_items(limit=40)
+    except Exception as exc:
+        app.logger.warning("Live exam updates unavailable: %s", exc)
+
     db_items = []
     try:
         db_url = get_postgres_connection_url()
@@ -4277,19 +4284,24 @@ def _fetch_exam_updates():
                 "title": title,
                 "desc": str(rec.get("desc") or "").strip() or None,
             })
-        return db_items
+    else:
+        for rec in _read_json_file(_EXAM_UPDATES_FILE, []):
+            title = str(rec.get("title") or "").strip()
+            if not title:
+                continue
+            db_items.append({
+                "category": str(rec.get("category", "other")).strip() or "other",
+                "title": title,
+                "desc": str(rec.get("desc") or "").strip() or None,
+            })
 
-    fallback = []
-    for rec in _read_json_file(_EXAM_UPDATES_FILE, []):
-        title = str(rec.get("title") or "").strip()
-        if not title:
-            continue
-        fallback.append({
-            "category": str(rec.get("category", "other")).strip() or "other",
-            "title": title,
-            "desc": str(rec.get("desc") or "").strip() or None,
-        })
-    return fallback
+    # Live auto-synced items go first (newest real-time updates on top);
+    # drop exact-title dupes against curated/DB items below.
+    if live_items:
+        curated_titles = {i["title"].strip().lower() for i in db_items}
+        fresh = [i for i in live_items if i["title"].strip().lower() not in curated_titles]
+        return fresh + db_items
+    return db_items
 
 
 @app.route('/exam-updates')
@@ -5391,13 +5403,34 @@ GOVT_JOB_CATEGORIES = [
     {"value": "others",   "label": "Others",   "icon": "fa-solid fa-briefcase"},
 ]
 
-@app.route('/govt-jobs')
-def govt_jobs():
+def _load_govt_jobs():
+    """Static JSON jobs + live auto-synced jobs (live first)."""
     try:
         with open(_GOVT_JOBS_FILE, 'r', encoding='utf-8') as f:
             jobs = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         jobs = []
+
+    try:
+        import auto_updates
+        live = auto_updates.get_live_job_items(limit=40)
+    except Exception as exc:
+        app.logger.warning("Live govt jobs unavailable: %s", exc)
+        live = []
+
+    if live:
+        seen = {j['title'].strip().lower() for j in jobs}
+        fresh = [j for j in live if j['title'].strip().lower() not in seen]
+        # Keep live detail-page ids stable and non-colliding with JSON ids
+        for offset, j in enumerate(fresh):
+            j['id'] = 1000000 + offset
+        jobs = fresh + jobs
+    return jobs
+
+
+@app.route('/govt-jobs')
+def govt_jobs():
+    jobs = _load_govt_jobs()
     states = sorted({j['state'] for j in jobs})
     categories = []
     for cat in GOVT_JOB_CATEGORIES:
@@ -5409,16 +5442,35 @@ def govt_jobs():
 
 @app.route('/govt-jobs/<int:job_id>')
 def govt_job_detail(job_id):
-    try:
-        with open(_GOVT_JOBS_FILE, 'r', encoding='utf-8') as f:
-            jobs = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        jobs = []
+    jobs = _load_govt_jobs()
     job = next((j for j in jobs if j['id'] == job_id), None)
     if job is None:
         return redirect(url_for('govt_jobs'))
     related = [j for j in jobs if j['category'] == job['category'] and j['id'] != job_id][:3]
     return render_template('govt-job-detail.html', job=job, related=related)
+
+
+# ── Live auto-sync admin APIs (Exam Updates + Govt Jobs) ─────────────────────
+@app.route('/api/admin/auto-sync/status', methods=['GET'])
+@require_admin
+def admin_auto_sync_status():
+    import auto_updates
+    return jsonify({'success': True, 'status': auto_updates.get_status()})
+
+
+@app.route('/api/admin/auto-sync', methods=['POST'])
+@require_admin
+def admin_auto_sync_trigger():
+    import auto_updates
+    status = auto_updates.get_status()
+    if status.get('running'):
+        return jsonify({'success': True, 'running': True, 'status': status,
+                        'message': 'Sync already in progress'})
+    # Run in background so the request returns immediately
+    _threading.Thread(target=auto_updates.sync_all, kwargs={'force': True},
+                      daemon=True, name='auto-updates-manual-sync').start()
+    return jsonify({'success': True, 'started': True,
+                    'status': auto_updates.get_status()})
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -6369,6 +6421,13 @@ def _preload_cutoff_data():
 if os.environ.get("VERCEL") != "1" and os.environ.get("FLASK_ENV") != "production":
     _threading.Thread(target=_preload_cutoff_data, daemon=True).start()
 
+# Live auto-updates (Exam Updates + Govt Jobs): periodic sync from official sources
+try:
+    import auto_updates
+    auto_updates.start_background_sync(logger=app.logger)
+except Exception as _au_exc:  # pragma: no cover
+    app.logger.warning("Auto-updates module failed to start: %s", _au_exc)
+
 
 _LEADS_FILE = os.path.join(os.path.dirname(__file__), 'data', 'leads.json')
 
@@ -6421,6 +6480,12 @@ for _public_view in ("guide_me", "send_message", "subscribe", "lead_counselling"
     _fn = app.view_functions.get(_public_view)
     if _fn is not None:
         csrf.exempt(_fn)
+
+# Auto-sync trigger is a dashboard fetch() POST without a form token; it is
+# protected by @require_admin (session auth) like the epaper/ads admin APIs.
+_fn = app.view_functions.get("admin_auto_sync_trigger")
+if _fn is not None:
+    csrf.exempt(_fn)
 
 
 

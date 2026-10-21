@@ -104,8 +104,12 @@
           <div class="gjd-item">
             <div class="gjd-item-label"><i class="fa fa-calendar fa-xs"></i> Last Date</div>
             <div class="gjd-item-value urgent">
+              {% if job.last_date %}
               {% set parts = job.last_date.split('-') %}
               {{ parts[2] }}/{{ parts[1] }}/{{ parts[0] }}
+              {% else %}
+              Check official notice
+              {% endif %}
             </div>
           </div>
           <div class="gjd-item">
