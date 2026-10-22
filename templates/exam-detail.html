@@ -29,6 +29,21 @@
     .guide-btn-primary:hover { background: #ea580c; }
     .guide-btn-secondary { background: #fff; color: var(--guide-ink); }
     .guide-btn-secondary:hover { background: #f1f5f9; }
+    .guide-btn-ghost { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2); color: #fff; }
+    .guide-btn-ghost:hover { background: rgba(255,255,255,.18); }
+    .guide-tools { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 0; }
+    .guide-tool { background: transparent; border: 1px solid var(--guide-line); border-radius: 9px; color: var(--guide-muted); cursor: pointer; font: inherit; font-size: .85rem; font-weight: 700; min-height: 38px; padding: 8px 12px; }
+    .guide-tool:hover, .guide-tool:focus-visible { border-color: var(--guide-orange); color: var(--guide-orange-dark); outline: none; }
+    .guide-layout { align-items: start; display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr) 230px; margin-top: 28px; }
+    .guide-content { min-width: 0; }
+    .guide-toc { background: #fff; border: 1px solid var(--guide-line); border-radius: 16px; padding: 18px; position: sticky; top: 18px; }
+    .guide-toc strong { display: block; font-size: .78rem; letter-spacing: .08em; margin-bottom: 10px; text-transform: uppercase; }
+    .guide-toc a { border-left: 2px solid transparent; color: var(--guide-muted); display: block; font-size: .86rem; padding: 8px 10px; text-decoration: none; }
+    .guide-toc a:hover, .guide-toc a:focus-visible { border-left-color: var(--guide-orange); color: var(--guide-orange-dark); outline: none; }
+    .guide-facts { display: grid; gap: 12px; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 20px; }
+    .guide-fact { background: #fff; border: 1px solid var(--guide-line); border-radius: 14px; padding: 16px; }
+    .guide-fact small { color: var(--guide-muted); display: block; font-size: .75rem; margin-bottom: 6px; }
+    .guide-fact strong { font-size: .92rem; }
     .guide-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-top: 28px; }
     .guide-card { background: #fff; border: 1px solid var(--guide-line); border-radius: 18px; padding: 26px; box-shadow: 0 8px 24px rgba(15,23,42,.05); }
     .guide-card-wide { grid-column: 1 / -1; }
@@ -37,8 +52,17 @@
     .guide-card p, .guide-card li { color: var(--guide-muted); line-height: 1.75; }
     .guide-card ul, .guide-card ol { margin: 0; padding-left: 22px; }
     .guide-card li + li { margin-top: 8px; }
+    .guide-card details { border-top: 1px solid var(--guide-line); padding: 14px 0; }
+    .guide-card details:first-of-type { border-top: 0; padding-top: 0; }
+    .guide-card summary { cursor: pointer; font-weight: 700; list-style-position: outside; padding-left: 4px; }
+    .guide-card details p { margin: 10px 0 0 20px; }
+    .related-grid { display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .related-link { background: var(--guide-soft); border: 1px solid #fed7aa; border-radius: 12px; color: var(--guide-orange-dark); font-weight: 800; padding: 14px; text-decoration: none; }
+    .related-link:hover { background: #ffedd5; }
     .guide-note { border: 1px solid #fed7aa; border-left: 4px solid var(--guide-orange); background: var(--guide-soft); border-radius: 10px; color: #7c2d12; padding: 16px 18px; margin-top: 26px; line-height: 1.65; }
-    @media (max-width: 700px) { .guide-wrap { padding: 24px 16px 44px; } .guide-grid { grid-template-columns: 1fr; gap: 14px; } .guide-card-wide { grid-column: auto; } .guide-card { padding: 22px; } .guide-actions .guide-btn { flex: 1 1 100%; justify-content: center; } }
+    @media print { .guide-wrap { max-width: none; padding: 0; } .guide-hero { box-shadow: none; } .guide-tools, .guide-toc, .guide-actions, .guide-note { display: none; } .guide-layout { display: block; } .guide-card { break-inside: avoid; box-shadow: none; } }
+    @media (max-width: 850px) { .guide-layout { grid-template-columns: 1fr; } .guide-toc { order: -1; position: static; } .guide-toc nav { display: flex; flex-wrap: wrap; gap: 4px; } }
+    @media (max-width: 700px) { .guide-wrap { padding: 24px 16px 44px; } .guide-grid, .guide-facts { grid-template-columns: 1fr; gap: 14px; } .guide-card-wide { grid-column: auto; } .guide-card { padding: 22px; } .guide-actions .guide-btn { flex: 1 1 100%; justify-content: center; } .related-grid { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
@@ -62,35 +86,89 @@
         <a class="guide-btn guide-btn-primary" href="{{ url_for('exams') }}">Browse Entrance Exams <i class="fas fa-arrow-right"></i></a>
         {% endif %}
         <a class="guide-btn guide-btn-secondary" href="{{ url_for('exams') }}">View All Exams</a>
+        <a class="guide-btn guide-btn-ghost" href="#guide-content">Explore Guide <i class="fas fa-arrow-down"></i></a>
       </div>
     </section>
-    <div class="guide-grid">
-      <section class="guide-card guide-card-wide">
+    <div class="guide-tools" aria-label="Page actions">
+      <button class="guide-tool" type="button" id="shareGuide"><i class="fas fa-share-nodes"></i> Share guide</button>
+      <button class="guide-tool" type="button" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
+    </div>
+    <div class="guide-facts" aria-label="Quick facts">
+      {% for label, value in exam.quick_facts %}
+      <div class="guide-fact"><small>{{ label }}</small><strong>{{ value }}</strong></div>
+      {% endfor %}
+    </div>
+    <div class="guide-layout" id="guide-content">
+      <div class="guide-content">
+      <div class="guide-grid">
+      <section class="guide-card guide-card-wide" id="eligibility">
         <h2>Eligibility</h2>
         <ul>{% for item in exam.eligibility %}<li>{{ item }}</li>{% endfor %}</ul>
       </section>
-      <section class="guide-card">
+      <section class="guide-card" id="pattern">
         <h2>Exam Pattern</h2>
         <ul>{% for item in exam.pattern %}<li>{{ item }}</li>{% endfor %}</ul>
       </section>
-      <section class="guide-card">
+      <section class="guide-card" id="syllabus">
         <h2>Syllabus</h2>
         <p>{{ exam.syllabus }}</p>
       </section>
-      <section class="guide-card">
+      <section class="guide-card" id="dates">
         <h2>Important Dates</h2>
         <p>{{ exam.dates }}</p>
       </section>
-      <section class="guide-card">
+      <section class="guide-card" id="apply">
         <h2>How to Apply</h2>
         <ol>{% for item in exam.application %}<li>{{ item }}</li>{% endfor %}</ol>
       </section>
-      <section class="guide-card guide-card-wide">
+      <section class="guide-card guide-card-wide" id="preparation">
         <h2>Preparation Tips</h2>
         <ul>{% for item in exam.preparation %}<li>{{ item }}</li>{% endfor %}</ul>
       </section>
+      <section class="guide-card guide-card-wide" id="faq">
+        <h2>Frequently Asked Questions</h2>
+        {% for question, answer in exam.faq %}
+        <details><summary>{{ question }}</summary><p>{{ answer }}</p></details>
+        {% endfor %}
+      </section>
+      <section class="guide-card guide-card-wide" id="related">
+        <h2>Related Exams</h2>
+        <div class="related-grid">
+          {% for related in exam.related_exams %}
+          <a class="related-link" href="{{ url_for('exam_detail', exam_slug=related.slug) }}">{{ related.name }} <i class="fas fa-arrow-right"></i></a>
+          {% endfor %}
+        </div>
+      </section>
+    </div>
+      </div>
+      <aside class="guide-toc" aria-label="Guide navigation">
+        <strong>On this page</strong>
+        <nav>
+          <a href="#eligibility">Eligibility</a>
+          <a href="#pattern">Exam Pattern</a>
+          <a href="#syllabus">Syllabus</a>
+          <a href="#dates">Important Dates</a>
+          <a href="#apply">How to Apply</a>
+          <a href="#preparation">Preparation</a>
+          <a href="#faq">FAQs</a>
+        </nav>
+      </aside>
     </div>
     <div class="guide-note">Important: dates, eligibility, fees and exam pattern may change each year. Always verify the latest official notification before applying.</div>
   </main>
+  <script>
+    document.getElementById('shareGuide').addEventListener('click', async function () {
+      const shareData = { title: document.title, text: 'Exam guide on Vidyarthi Mitra', url: window.location.href };
+      try {
+        if (navigator.share) await navigator.share(shareData);
+        else {
+          await navigator.clipboard.writeText(window.location.href);
+          this.innerHTML = '<i class="fas fa-check"></i> Link copied';
+        }
+      } catch (error) {
+        if (error.name !== 'AbortError') this.textContent = 'Copy link manually';
+      }
+    });
+  </script>
 </body>
 </html>

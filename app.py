@@ -3649,6 +3649,17 @@ def exam_detail(exam_slug):
                 "Revise Physics and Chemistry formulas regularly.",
                 "Solve chapter-wise Mathematics or Biology mock tests.",
                 "Review every incorrect answer after each mock test."
+            ],
+            "quick_facts": [
+                ("Level", "State level"),
+                ("Mode", "Computer-based test"),
+                ("Streams", "PCM / PCB"),
+                ("Admissions", "Engineering, Pharmacy & Agriculture")
+            ],
+            "faq": [
+                ("Who can apply for MHT-CET?", "Class 12 passed or appearing students who meet the current course-wise subject and eligibility rules can apply."),
+                ("Is MHT-CET available for pharmacy?", "Yes. Pharmacy applicants should select the relevant stream and check the current subject requirements."),
+                ("Where can I apply?", "Use the Apply / Official Website button on this page and follow the latest CET Cell notification.")
             ]
         }
     }
@@ -3696,6 +3707,56 @@ def exam_detail(exam_slug):
                 "Review incorrect answers and track your progress regularly."
             ]
         }
+
+    guide.setdefault("quick_facts", [
+        ("Level", "Entrance examination"),
+        ("Mode", "Check current notification"),
+        ("Eligibility", "Course and year specific"),
+        ("Admissions", "Check the participating institutions")
+    ])
+    guide.setdefault("faq", [
+        ("Where can I find the latest dates?", "Check the latest notification published by the exam conducting authority."),
+        ("Can the eligibility rules change?", "Yes. Always verify the current year information brochure before applying."),
+        ("How should I start preparing?", "Begin with the official syllabus, make a weekly plan and practise timed previous-year questions.")
+    ])
+    official_links = {
+        "jee-main": "https://jeemain.nta.ac.in",
+        "jee-advanced": "https://jeeadv.ac.in",
+        "neet-ug": "https://neet.nta.nic.in",
+        "cat": "https://iimcat.ac.in",
+        "clat": "https://consortiumofnlus.ac.in",
+        "mh-cet-law": "https://cetcell.mahacet.org",
+        "gpat": "https://gpat.nta.nic.in",
+    }
+    if not guide.get("official_url"):
+        guide["official_url"] = official_links.get(normalized_slug)
+    related_slugs = {
+        "mht-cet": ["jee-main", "mh-cet-law", "gpat"],
+        "jee-main": ["jee-advanced", "mht-cet", "bitsat"],
+        "jee-advanced": ["jee-main", "bitsat", "mht-cet"],
+        "neet-ug": ["aiims-pg", "jipmer", "fmge"],
+        "cat": ["xat", "cmat", "snap"],
+        "clat": ["ailet", "mh-cet-law", "slat"],
+    }
+    related_names = {
+        "jee-main": "JEE Main",
+        "jee-advanced": "JEE Advanced",
+        "neet-ug": "NEET-UG",
+        "mh-cet-law": "MH-CET Law",
+        "gpat": "GPAT",
+        "bitsat": "BITSAT",
+        "ailet": "AILET",
+        "slat": "SLAT",
+        "xat": "XAT",
+        "cmat": "CMAT",
+        "snap": "SNAP",
+        "jipmer": "JIPMER",
+        "fmge": "FMGE",
+    }
+    guide["related_exams"] = [
+        {"slug": slug, "name": related_names.get(slug, slug.replace("-", " ").title())}
+        for slug in related_slugs.get(normalized_slug, ["jee-main", "neet-ug", "cat"])
+    ]
 
     return render_template(
         "exam-detail.html",
