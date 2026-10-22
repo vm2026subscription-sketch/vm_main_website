@@ -32,7 +32,7 @@ def _get_pandas():
             pass
     return pd
 
-from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
+from flask import Flask, abort, flash, jsonify, redirect, render_template, request, session, url_for
 from flask_wtf.csrf import CSRFProtect
 from dotenv import load_dotenv
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -3536,6 +3536,14 @@ def courses():
 
 @app.route("/entrance-exams")
 def exams():
+    qr_exam = (request.args.get("exam") or "").strip().lower()
+    if qr_exam:
+        if not qr_exam or any(
+            character not in "abcdefghijklmnopqrstuvwxyz0123456789-" for character in qr_exam
+        ):
+            abort(404)
+        return redirect(url_for("exam_detail", exam_slug=qr_exam))
+
     # Server-side pagination for the Complete Exam Directory (8000+ rows)
     per_page = 48
     try:
@@ -3594,6 +3602,105 @@ def exams():
         total_pages=total_pages,
         per_page=per_page,
         page_list=page_list,
+    )
+
+
+@app.route("/entrance-exams/<path:exam_slug>")
+def exam_detail(exam_slug):
+    """Render a student-friendly internal guide for an entrance exam."""
+    normalized_slug = (exam_slug or "").strip().lower()
+    if not normalized_slug or any(
+        character not in "abcdefghijklmnopqrstuvwxyz0123456789-" for character in normalized_slug
+    ):
+        abort(404)
+
+    exam_guides = {
+        "mht-cet": {
+            "name": "MHT-CET",
+            "full_name": "Maharashtra Common Entrance Test",
+            "category": "Engineering, Pharmacy & Agriculture",
+            "conducting_body": "Maharashtra State CET Cell",
+            "official_url": "https://cetcell.mahacet.org",
+            "overview": "MHT-CET is Maharashtra's state-level entrance examination for admission to engineering, pharmacy and agriculture programmes.",
+            "eligibility": [
+                "Candidates must have passed or be appearing for Class 12, subject to the current admission rules.",
+                "Engineering applicants generally need Physics, Chemistry and Mathematics or the subjects specified for their programme.",
+                "Subject requirements for pharmacy and agriculture programmes may vary by course.",
+                "Always verify the exact criteria in the latest official information brochure."
+            ],
+            "pattern": [
+                "The examination is conducted as a computer-based test.",
+                "The engineering paper includes Physics, Chemistry and Mathematics sections.",
+                "Biology may apply for pharmacy and agriculture streams, depending on the programme.",
+                "Questions are objective type; verify the current marking scheme in the official notification."
+            ],
+            "syllabus": "The MHT-CET syllabus is primarily based on Maharashtra State Board Class 11 and Class 12 topics in Physics, Chemistry and Mathematics or Biology.",
+            "dates": "Registration, admit card, examination, answer key and result dates are published each year by the CET Cell.",
+            "application": [
+                "Open the official CET Cell website.",
+                "Select the MHT-CET registration link.",
+                "Enter your personal, academic and category details carefully.",
+                "Upload the required documents and pay the application fee.",
+                "Download and safely save the confirmation page."
+            ],
+            "preparation": [
+                "Complete the Maharashtra State Board syllabus.",
+                "Practise timed multiple-choice questions every day.",
+                "Revise Physics and Chemistry formulas regularly.",
+                "Solve chapter-wise Mathematics or Biology mock tests.",
+                "Review every incorrect answer after each mock test."
+            ]
+        }
+    }
+    guide = exam_guides.get(normalized_slug)
+    if not guide:
+        display_name = normalized_slug.replace("-", " ").title()
+        guide = {
+            "name": display_name,
+            "full_name": display_name + " Entrance Exam",
+            "category": "Entrance Exam",
+            "conducting_body": "Exam conducting authority",
+            "official_url": None,
+            "overview": (
+                f"Student-friendly guidance for {display_name} admissions, eligibility and preparation."
+            ),
+            "eligibility": [
+                "Eligibility may vary by course, level and admission year.",
+                "Class 10, Class 12 or graduation requirements depend on the examination.",
+                "Verify age, subject, marks and category rules in the latest notification.",
+                "Read the official information brochure before submitting an application."
+            ],
+            "pattern": [
+                "The exam authority defines the mode, duration, sections and marking scheme.",
+                "Questions may be objective, descriptive or practical depending on the examination.",
+                "Check the current year's official notification for the latest pattern."
+            ],
+            "syllabus": (
+                "The syllabus depends on the examination, course and level. "
+                "Verify the latest syllabus and subject-wise topics in the official notification."
+            ),
+            "dates": (
+                "Registration, admit card, examination, answer key, result and counselling dates "
+                "may change each admission year."
+            ),
+            "application": [
+                "Check the latest examination notification and eligibility.",
+                "Enter your personal and academic details carefully.",
+                "Upload the required documents and pay the applicable fee.",
+                "Save the confirmation page and login details securely."
+            ],
+            "preparation": [
+                "Break the official syllabus into topics and create a study plan.",
+                "Revise concepts and solve chapter-wise questions.",
+                "Practise previous-year papers and timed mock tests.",
+                "Review incorrect answers and track your progress regularly."
+            ]
+        }
+
+    return render_template(
+        "exam-detail.html",
+        exam=guide,
+        exam_slug=normalized_slug,
     )
 
 

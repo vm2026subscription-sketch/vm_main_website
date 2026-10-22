@@ -175,7 +175,7 @@ function liveSearch() {
   }
 
   out.innerHTML = matches.slice(0, 8).map(e => `
-    <div class="search-result-item">
+    <div class="search-result-item" data-exam-name="${e.name}" role="button" tabindex="0" aria-label="View ${e.name} details">
       <div>
         <div class="sri-name">${e.name}</div>
         <div class="sri-cat">${e.cat} · ${e.body}</div>
@@ -184,6 +184,40 @@ function liveSearch() {
     </div>
   `).join('');
 }
+
+function focusExamCard(examName) {
+  const normalize = value => value.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const targetName = normalize(examName);
+  const card = Array.from(document.querySelectorAll('.exam-card')).find(item => {
+    const name = item.querySelector('.exam-abbr');
+    return name && normalize(name.textContent) === targetName;
+  });
+
+  if (!card) return;
+
+  const section = card.closest('.exam-section');
+  if (section && section.style.display === 'none') {
+    const filterTab = document.querySelector(`.filter-tab[data-filter="${section.dataset.category}"]`);
+    if (filterTab) filterTab.click();
+  }
+
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  card.classList.add('search-result-highlight');
+  setTimeout(() => card.classList.remove('search-result-highlight'), 1600);
+}
+
+document.getElementById('searchResults').addEventListener('click', function (event) {
+  const result = event.target.closest('.search-result-item[data-exam-name]');
+  if (result) focusExamCard(result.dataset.examName);
+});
+
+document.getElementById('searchResults').addEventListener('keydown', function (event) {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  const result = event.target.closest('.search-result-item[data-exam-name]');
+  if (!result) return;
+  event.preventDefault();
+  focusExamCard(result.dataset.examName);
+});
 
 // Debounced keyup listener on search input
 document.getElementById('examInput').addEventListener('keyup', function (e) {

@@ -369,6 +369,20 @@ body {
 
 .search-result-item:hover { transform: translateX(4px); }
 
+.search-result-item:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+}
+
+.search-result-highlight {
+  animation: search-result-highlight 1.6s ease;
+}
+
+@keyframes search-result-highlight {
+  0%, 100% { box-shadow: var(--shadow-sm); }
+  35% { box-shadow: 0 0 0 4px var(--orange-mid), var(--shadow-md); }
+}
+
 .sri-name { font-weight: 600; color: var(--dark); }
 .sri-cat  { font-size: .8rem; color: var(--gray-500); }
 
