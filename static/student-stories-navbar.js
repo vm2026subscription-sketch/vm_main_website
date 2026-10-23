@@ -188,7 +188,8 @@ const openModal = (story) => {
     document.getElementById("modalBody").textContent  = story.fullStory;
     document.getElementById("modalLink").href         = story.link;
     modal.classList.add("active");
-    document.body.style.overflow = "hidden";       // prevent background scroll};
+    document.body.style.overflow = "hidden";       // prevent background scroll
+};
 
 const closeModal = () => {
     modal.classList.remove("active");
