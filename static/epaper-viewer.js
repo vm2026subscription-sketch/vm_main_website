@@ -1836,15 +1836,15 @@ const EP = {
 
     const viewer = this.el.viewer || document.getElementById('epViewer');
     document.getElementById('epEmptyState')?.style.setProperty('display', 'none');
+    const source = page.page_image_url || page.image_path || '';
 
     // Check if page uses new block format
     if (page.blocks && page.blocks.length > 0) {
       if (this.el.pageContainer) this.el.pageContainer.style.display = 'none';
-      const source = page.page_image_url || page.image_path || '';
       this.renderBlockGrid(page.blocks, viewer, this.pageImageUrl(source, 800));
       this.trackPageImage(document.querySelector('#epBlockGrid .ep-canvas-viewer'), source, 800, true);
-    } else if (page.page_image_url) {
-      const isPdf = page.page_image_url.toLowerCase().endsWith('.pdf');
+    } else if (source) {
+      const isPdf = source.toLowerCase().endsWith('.pdf');
       if (this.el.pageContainer) this.el.pageContainer.style.display = '';
 
       if (isPdf) {
@@ -1857,15 +1857,15 @@ const EP = {
           this.el.pageContainer.appendChild(pdfFrame);
         }
         pdfFrame.style.display = 'block';
-        pdfFrame.src = page.page_image_url;
+        pdfFrame.src = source;
         if (this.el.hotspotsLayer) this.el.hotspotsLayer.style.display = 'none';
       } else {
         const pdfFrame = document.getElementById('epPdfFrame');
         if (pdfFrame) pdfFrame.style.display = 'none';
         if (this.el.pageImg) {
           this.el.pageImg.style.display = 'block';
-          this.el.pageImg.src = this.pageImageUrl(page.page_image_url, 800);
-          this.trackPageImage(this.el.pageImg, page.page_image_url, 800);
+          this.el.pageImg.src = this.pageImageUrl(source, 800);
+          this.trackPageImage(this.el.pageImg, source, 800);
           if (this.el.pageImg.complete) this.scheduleFitToWidth();
         }
         if (this.el.hotspotsLayer) this.el.hotspotsLayer.style.display = 'block';
