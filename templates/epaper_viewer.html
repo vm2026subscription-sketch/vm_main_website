@@ -46,6 +46,9 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='epaper-viewer.min.css', v='20261016-band2') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='epaper-landing-light.min.css', v='min1') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='epaper-whatsapp.css', v='1') }}">
+  <!-- Realistic curved page-curl flip engine -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/page-flip@2.0.3/dist/page-flip.css">
+  <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.3/dist/page-flip.browser.js"></script>
   
 
     <!-- Newspaper fonts: Playfair Display (English) + Noto Serif Devanagari (Marathi/Hindi) -->
@@ -531,30 +534,7 @@
 
         <!-- Page Viewer -->
         <div class="ep-viewer paper-viewer-container" id="epViewer">
-          <div class="ep-page-container" id="epPageContainer">
-            <img class="ep-page-img" id="epPageImg" src="" alt="E-Paper Page" draggable="false" loading="lazy" decoding="async">
-            <div id="epHotspots" style="position:absolute;inset:0;"></div>
-          </div>
-
-          <!-- ── 3D Page Turn Stage ── -->
-          <div class="ep-3d-flip-stage" id="ep3DFlipStage" style="display:none;" aria-hidden="true">
-            <div class="ep-3d-under-page" id="ep3DUnderPage">
-              <img class="ep-3d-under-img" id="ep3DUnderImg" src="" alt="" draggable="false">
-              <div class="ep-3d-under-shadow" id="ep3DUnderShadow"></div>
-            </div>
-            <div class="ep-3d-turning-page" id="ep3DTurningPage">
-              <div class="ep-3d-page-face ep-3d-page-front" id="ep3DPageFront">
-                <img class="ep-3d-face-img ep-3d-front-img" id="ep3DFrontImg" src="" alt="" draggable="false">
-                <div class="ep-3d-spine-shadow"></div>
-                <div class="ep-3d-lift-shadow" id="ep3DFrontShadow"></div>
-              </div>
-              <div class="ep-3d-page-face ep-3d-page-back" id="ep3DPageBack">
-                <img class="ep-3d-face-img ep-3d-back-img" id="ep3DBackImg" src="" alt="" draggable="false">
-                <div class="ep-3d-spine-shadow"></div>
-                <div class="ep-3d-lift-shadow" id="ep3DBackShadow"></div>
-              </div>
-            </div>
-          </div>
+          <div id="stPageFlipContainer" style="width:100%;height:100%;max-width:860px;margin:0 auto;position:relative;"></div>
 
           <!-- Empty state -->
           <div id="epEmptyState" style="display:none; text-align:center; padding:80px 24px;">
@@ -977,6 +957,36 @@
   </script>
 
   <!-- PWA Service Worker -->
-  
+  <script>
+    (function() {
+      const container = document.getElementById('stPageFlipContainer');
+      if (!container || !window.StPageFlip) return;
+      (async function() {
+        try {
+          const dateMatch = window.location.pathname.match(/\d{4}-\d{2}-\d{2}/);
+          const dateStr = dateMatch ? dateMatch[0] : '';
+          const langMatch = window.location.pathname.match(/(hindi|english|marathi)/i);
+          const langStr = langMatch ? langMatch[1] : 'Hindi';
+          const url = dateStr ? `/api/epaper/edition/${dateStr}${langStr ? '?lang=' + encodeURIComponent(langStr) : ''}` : '/api/epaper/latest';
+          const res = await fetch(url);
+          const data = await res.json();
+          const pages = data.pages || [];
+          if (!pages.length) return;
+          pages.forEach(p => {
+            const src = p.page_image_url || p.image_path || '';
+            if (!src) return;
+            const el = document.createElement('div');
+            el.className = 'stf__item';
+            el.style.backgroundImage = `url('${src}')`;
+            el.style.backgroundSize = 'cover';
+            el.style.backgroundPosition = 'center';
+            container.appendChild(el);
+          });
+          window.EPFlip = new StPageFlip(container, { width: 760, height: 1050, size: 'stretch', flippingTime: 900, maxShadowOpacity: 0.5, showCover: false, mobileScrollSupport: false, drawShadow: true, usePortrait: true, startPage: 1, swipeDistance: 30, clickToFlip: true });
+        } catch (e) { console.warn('[epaper-flip] Initialization skipped:', e); }
+      })();
+    })();
+  </script>
+
 </body>
 </html>

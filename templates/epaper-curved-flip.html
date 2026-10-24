@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Vidyarthi Mitra E-Paper — Realistic Curved Flip</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/page-flip@2.0.3/dist/page-flip.css">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.3/dist/page-flip.browser.js"></script>
+  <style>
+    :root{--ep-dark:#0b0f19;--ep-paper:#fdfcf8;--ep-orange:#d9252a;--ep-text:#1a1a1a;--ep-muted:#6b6b6b;--font-sans:'DM Sans',system-ui,sans-serif;--font-serif:'Playfair Display',Georgia,serif;}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    html,body{height:100%;font-family:var(--font-sans);background:var(--ep-dark);color:var(--ep-text);overflow:hidden;touch-action:manipulation;-webkit-user-select:none;user-select:none;}
+    body.dark-mode{background:#050814;}
+    .ep-wrap{display:flex;flex-direction:column;height:100vh;width:100vw;max-width:1400px;margin:0 auto;padding:12px 20px 20px;}
+    .ep-header{display:flex;align-items:center;justify-content:space-between;padding:10px 0;flex-shrink:0;}
+    .ep-brand{font-family:var(--font-serif);font-size:22px;font-weight:700;color:#fff;letter-spacing:-0.5px;text-decoration:none;display:flex;align-items:center;gap:10px;}
+    .ep-brand i{color:var(--ep-orange);font-size:20px;}
+    .ep-indicator{font-size:13px;color:#9ca3af;font-weight:600;background:rgba(255,255,255,.05);padding:6px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.08);letter-spacing:.4px;}
+    .ep-controls{display:flex;gap:8px;flex-shrink:0;}
+    .ep-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;}
+    .ep-btn:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.2);transform:translateY(-1px);}
+    .ep-btn i{font-size:12px;}
+    .ep-stage{flex:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;border-radius:16px;background:linear-gradient(180deg,#0f1320 0%,#070a12 100%);box-shadow:inset 0 0 120px rgba(217,37,42,.12);}
+    .stf__parent{box-shadow:0 32px 80px rgba(0,0,0,.7),0 8px 24px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.06);border-radius:6px;background:#fdfcf8;transition:box-shadow .3s ease;}
+    .stf__parent:hover{box-shadow:0 40px 100px rgba(0,0,0,.8),0 12px 36px rgba(0,0,0,.55),0 0 0 1px rgba(217,37,42,.25);}
+    .stf__block{box-shadow:0 1px 3px rgba(0,0,0,.06);}
+    .stf__shadow{transition:opacity .25s ease;}
+    /* Custom shadow depth via overlay */
+    .ep-stage::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,transparent 40%,rgba(11,15,25,.85) 100%);pointer-events:none;z-index:2;}
+    .ep-hint{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:#e2e2e2;padding:8px 18px;border-radius:999px;font-size:12px;font-weight:600;letter-spacing:.3px;pointer-events:none;z-index:10;animation:epFadeIn .6s ease;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
+    @keyframes epFadeIn{from{opacity:0;transform:translateX(-50%) translateY(8px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+    @media(max-width:768px){.ep-wrap{padding:12px 12px 16px;}.ep-brand{font-size:18px;}.ep-indicator{font-size:11px;padding:5px 10px;}.ep-btn{padding:6px 10px;font-size:12px;}}
+  </style>
+</head>
+<body>
+  <div class="ep-wrap">
+    <header class="ep-header">
+      <a href="#" class="ep-brand" aria-label="Vidyarthi Mitra"><i class="fa-solid fa-newspaper"></i> E-Paper</a>
+      <div class="ep-indicator" id="epIndicator" aria-live="polite">Page 1 / 24</div>
+      <div class="ep-controls">
+        <button class="ep-btn" onclick="EP.zoomIn()" aria-label="Zoom in" title="Zoom in"><i class="fa-solid fa-plus"></i></button>
+        <button class="ep-btn" onclick="EP.zoomOut()" aria-label="Zoom out" title="Zoom out"><i class="fa-solid fa-minus"></i></button>
+        <button class="ep-btn" onclick="EP.fitPage()" aria-label="Fit to width" title="Fit"><i class="fa-solid fa-compress"></i></button>
+        <button class="ep-btn" onclick="EP.toggleFullscreen()" aria-label="Fullscreen" title="Fullscreen"><i class="fa-solid fa-expand"></i></button>
+      </div>
+    </header>
+
+    <main class="ep-stage" id="epStage" aria-label="Newspaper page viewer">
+      <!-- The image URLs below are placeholders. Replace the src array in the script with your actual page images. -->
+      <div id="epFlipBook"></div>
+      <div class="ep-hint" id="epHint">Drag from the corner or tap edges to turn pages</div>
+    </main>
+  </div>
+
+  <script>
+    // ===========================
+    // CONFIG: Put your image URLs here
+    // ===========================
+    const PAGE_IMAGE_URLS = [
+      // Page 1 — Masthead / Cover
+      'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&q=80&auto=format',
+      // Page 2 — Editorial
+      'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=800&q=80&auto=format',
+      // Page 3 — News
+      'https://images.unsplash.com/photo-1523995462485-3d171b5c8fa9?w=800&q=80&auto=format',
+      // Page 4 — Education feature
+      'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&q=80&auto=format',
+      // Page 5
+      'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=800&q=80&auto=format',
+      // Page 6
+      'https://images.unsplash.com/photo-1471970471555-19ddfc1b776f?w=800&q=80&auto=format',
+      // Page 7
+      'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80&auto=format',
+      // Page 8
+      'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800&q=80&auto=format',
+      // Page 9
+      'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&q=80&auto=format',
+      // Page 10
+      'https://images.unsplash.com/photo-1491438590914-bc09fcaaf77a?w=800&q=80&auto=format',
+      // Page 11
+      'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800&q=80&auto=format',
+      // Page 12
+      'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=800&q=80&auto=format',
+      // Page 13
+      'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800&q=80&auto=format',
+      // Page 14
+      'https://images.unsplash.com/photo-1471970471555-19ddfc1b776f?w=800&q=80&auto=format',
+      // Page 15
+      'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&q=80&auto=format',
+      // Page 16
+      'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80&auto=format',
+      // Page 17
+      'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=800&q=80&auto=format',
+      // Page 18
+      'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&q=80&auto=format',
+      // Page 19
+      'https://images.unsplash.com/photo-1523995462485-3d171b5c8fa9?w=800&q=80&auto=format',
+      // Page 20
+      'https://images.unsplash.com/photo-1471970471555-19ddfc1b776f?w=800&q=80&auto=format',
+      // Page 21
+      'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80&auto=format',
+      // Page 22
+      'https://images.unsplash.com/photo-1491438590914-bc09fcaaf77a?w=800&q=80&auto=format',
+      // Page 23
+      'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=800&q=80&auto=format',
+      // Page 24 — Back cover
+      'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800&q=80&auto=format',
+    ];
+
+    (function() {
+      'use strict';
+      const EP = window.EP = {
+        flip: null,
+        current: 1,
+        total: PAGE_IMAGE_URLS.length,
+
+        init() {
+          const container = document.getElementById('epFlipBook');
+          // Build page nodes
+          PAGE_IMAGE_URLS.forEach((url, i) => {
+            const page = document.createElement('div');
+            page.className = 'stf__item';
+            page.style.backgroundImage = `url('${url}')`;
+            page.style.backgroundSize = 'cover';
+            page.style.backgroundPosition = 'center';
+            page.innerHTML = `<span style="position:absolute;bottom:14px;left:14px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;color:rgba(255,255,255,.85);background:rgba(0,0,0,.45);padding:4px 10px;border-radius:6px;pointer-events:none;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);">Page ${i + 1}</span>`;
+            container.appendChild(page);
+          });
+
+          // Initialize StPageFlip
+          this.flip = new StPageFlip(container, {
+            width: 760,
+            height: 1050,
+            size: 'stretch',
+            flippingTime: 900,
+            maxShadowOpacity: 0.5,
+            showCover: false,
+            mobileScrollSupport: false,
+            drawShadow: true,
+            usePortrait: true,
+            startPage: 1,
+            autoSize: true,
+            swipeDistance: 30,
+            clickToFlip: true,
+          });
+
+          this.flip.on('flipEnd', (e) => {
+            this.current = e.data + 1;
+            document.getElementById('epIndicator').textContent = `Page ${this.current} / ${this.total}`;
+          });
+
+          this.flip.loadFromImages(PAGE_IMAGE_URLS);
+          document.getElementById('epIndicator').textContent = `Page 1 / ${this.total}`;
+        },
+
+        zoomIn() { if (this.flip) this.flip.zoom(); },
+        zoomOut() { if (this.flip) this.flip.zoom(-1); },
+        fitPage() { if (this.flip) this.flip.view(); },
+        toggleFullscreen() {
+          if (!document.fullscreenElement) document.body.requestFullscreen?.();
+          else document.exitFullscreen?.();
+        },
+      };
+
+      if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        EP.init();
+      } else {
+        document.addEventListener('DOMContentLoaded', () => EP.init());
+      }
+    })();
+  </script>
+</body>
+</html>
