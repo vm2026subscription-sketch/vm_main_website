@@ -494,7 +494,10 @@ def load_editions():
         pg_data = pg_future.result()
         mongo_data = mongo_future.result()
 
-    base = pg_data if pg_data is not None else load_editions_from_file()
+    base = pg_data if (pg_data is not None and len(pg_data or []) > 0) else load_editions_from_file()
+    file_fallback = load_editions_from_file() or []
+    if not base and file_fallback:
+        base = file_fallback
     result = _merge_edition_lists(base or [], mongo_data or [])
 
     with editions_cache_lock:

@@ -1517,6 +1517,7 @@ const EPAdmin = {
     const meta = {
       date, name: name || `Edition ${date}`, language: lang,
       published: status === 'published',
+      force: true,
       masthead_image_url: this.editionMeta.masthead_image_url || '',
       footer_links: this.editionMeta.footer_links || [],
     };
