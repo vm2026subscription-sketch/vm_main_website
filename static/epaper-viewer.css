@@ -1478,7 +1478,7 @@ body.epaper-body:not(.has-masthead) .ep-masthead {
   position: absolute;
   top: 20px;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%) translateZ(0);
   width: 100%;
   max-width: 860px;
   height: calc(100% - 68px);
@@ -1486,6 +1486,8 @@ body.epaper-body:not(.has-masthead) .ep-masthead {
   transform-style: preserve-3d;
   pointer-events: none;
   z-index: 100;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 /* Under page (underneath the turning page) */
@@ -1529,6 +1531,7 @@ body.epaper-body:not(.has-masthead) .ep-masthead {
   transform-origin: left center; /* Spine pivot */
   transform-style: preserve-3d;
   will-change: transform;
+  transform: translateZ(0);
 }
 
 .ep-3d-turning-page.is-flipping-transition {
