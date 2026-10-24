@@ -534,7 +534,7 @@
 
         <!-- Page Viewer -->
         <div class="ep-viewer paper-viewer-container" id="epViewer">
-          <div id="stPageFlipContainer" style="width:100%;height:100%;max-width:860px;margin:0 auto;position:relative;"></div>
+          <div id="stPageFlipContainer" style="width:100%;height:100%;max-width:100%;margin:0 auto;position:relative;display:flex;align-items:center;justify-content:center;"></div>
 
           <!-- Empty state -->
           <div id="epEmptyState" style="display:none; text-align:center; padding:80px 24px;">
@@ -805,6 +805,58 @@
 
   <script src="{{ url_for('static', filename='epaper-viewer.js', v='20261016-wide') }}"></script>
 
+  <!-- Keep Latest News reopen button aligned to paper edge -->
+  <script>
+    (function() {
+      const btn = document.getElementById('epNewsReopenBtn');
+      const paper = document.getElementById('epPaper');
+      const main = document.getElementById('epMain');
+      if (!btn || !paper) return;
+
+      let ticking = false;
+
+      function positionBtn() {
+        if (!document.body.classList.contains('ep-edition-open')) {
+          btn.style.left = '16px';
+          btn.style.right = 'auto';
+          return;
+        }
+        if (main && main.classList.contains('news-sidebar-collapsed')) {
+          const rect = paper.getBoundingClientRect();
+          const btnWidth = btn.offsetWidth || 150;
+          let left = rect.left - btnWidth - 18;
+
+          if (left < 16) left = 16;
+          btn.style.left = left + 'px';
+          btn.style.right = 'auto';
+        } else {
+          btn.style.left = '16px';
+          btn.style.right = 'auto';
+        }
+      }
+
+      function onScrollOrResize() {
+        if (!ticking) {
+          window.requestAnimationFrame(() => {
+            positionBtn();
+            ticking = false;
+          });
+          ticking = true;
+        }
+      }
+
+      window.addEventListener('scroll', onScrollOrResize, { passive: true });
+      window.addEventListener('resize', onScrollOrResize);
+      const observer = new MutationObserver(onScrollOrResize);
+      if (main) observer.observe(main, { attributes: true, attributeFilter: ['class'] });
+      if (document.body) observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+      positionBtn();
+      setTimeout(positionBtn, 200);
+      setTimeout(positionBtn, 600);
+    })();
+  </script>
+
   <!-- ── Article page chrome: edition badge, meta row, prev/next, more grid ── -->
   <script>
     (function () {
@@ -956,35 +1008,228 @@
     })();
   </script>
 
-  <!-- PWA Service Worker -->
+  <!-- StPageFlip Integration -->
   <script>
     (function() {
       const container = document.getElementById('stPageFlipContainer');
       if (!container || !window.StPageFlip) return;
-      (async function() {
+
+      function getCloudinaryOptimized(url, width) {
+        if (!url) return '';
+        try {
+          const parsed = new URL(url);
+          if (!parsed.hostname.endsWith('cloudinary.com')) return url;
+          parsed.pathname = parsed.pathname.replace(
+            /\/image\/upload\/(?:f_|q_|w_|h_|c_|g_|dpr_)[^/]+\//,
+            '/image/upload/'
+          );
+          const preset = `f_auto,q_auto,w_${width || 900}`;
+          parsed.pathname = parsed.pathname.replace('/image/upload/', `/image/upload/${preset}/`);
+          return parsed.href;
+        } catch (e) {
+          return url;
+        }
+      }
+
+      window.initFlipBook = async function initFlipBook() {
         try {
           const dateMatch = window.location.pathname.match(/\d{4}-\d{2}-\d{2}/);
           const dateStr = dateMatch ? dateMatch[0] : '';
           const langMatch = window.location.pathname.match(/(hindi|english|marathi)/i);
-          const langStr = langMatch ? langMatch[1] : 'Hindi';
-          const url = dateStr ? `/api/epaper/edition/${dateStr}${langStr ? '?lang=' + encodeURIComponent(langStr) : ''}` : '/api/epaper/latest';
+          const langStr = langMatch ? langMatch[1] : '';
+          let url = dateStr ? `/api/epaper/edition/${dateStr}${langStr ? '?lang=' + encodeURIComponent(langStr) : ''}` : '/api/epaper/latest';
           const res = await fetch(url);
           const data = await res.json();
           const pages = data.pages || [];
           if (!pages.length) return;
-          pages.forEach(p => {
-            const src = p.page_image_url || p.image_path || '';
-            if (!src) return;
+
+          if (window.EPFlip) {
+            try { window.EPFlip.destroy(); } catch (e) {}
+            window.EPFlip = null;
+          }
+          container.innerHTML = '';
+
+          const pageUrls = [];
+          pages.forEach((p, idx) => {
+            let src = p.page_image_url || p.image_path || p.imageUrl || p.url || '';
+            if (!src && Array.isArray(p.blocks)) {
+              for (let i = 0; i < p.blocks.length; i++) {
+                const b = p.blocks[i];
+                if (b && (b.image_url || b.image_path || b.imagePath || b.imageUrl)) {
+                  src = b.image_url || b.image_path || b.imagePath || b.imageUrl;
+                  break;
+                }
+              }
+            }
+            if (!src && p.background_image) src = p.background_image;
+            if (!src && p.preview_image_url) src = p.preview_image_url;
+            const optimizedSrc = src ? getCloudinaryOptimized(src, 900) : '';
             const el = document.createElement('div');
             el.className = 'stf__item';
-            el.style.backgroundImage = `url('${src}')`;
-            el.style.backgroundSize = 'cover';
-            el.style.backgroundPosition = 'center';
+            if (optimizedSrc || src) {
+              el.style.backgroundImage = `url('${optimizedSrc || src}')`;
+              el.style.backgroundSize = 'cover';
+              el.style.backgroundPosition = 'center';
+              el.dataset.src = optimizedSrc || src;
+            } else {
+              el.style.background = '#ffffff';
+              el.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#666;font-size:13px;padding:20px;text-align:center;">Page ' + (idx + 1) + '</div>';
+            }
+            el.dataset.pageIndex = idx;
             container.appendChild(el);
+            pageUrls.push(optimizedSrc || src || '');
           });
-          window.EPFlip = new StPageFlip(container, { width: 760, height: 1050, size: 'stretch', flippingTime: 900, maxShadowOpacity: 0.5, showCover: false, mobileScrollSupport: false, drawShadow: true, usePortrait: true, startPage: 1, swipeDistance: 30, clickToFlip: true });
-        } catch (e) { console.warn('[epaper-flip] Initialization skipped:', e); }
-      })();
+
+          function getFlipSize() {
+            const isMobile = window.innerWidth < 900;
+            if (isMobile) {
+              return { width: Math.min(window.innerWidth * 0.95, 600), height: Math.min(window.innerHeight * 0.75, 750), usePortrait: true };
+            }
+            return { width: 600, height: 750, usePortrait: false };
+          }
+
+          const size = getFlipSize();
+          window.EPFlip = new St.PageFlip(container, {
+            width: 600,
+            height: 750,
+            size: "stretch",
+            flippingTime: 900,
+            maxShadowOpacity: 0.5,
+            drawShadow: true,
+            showCover: false,
+            usePortrait: size.usePortrait,
+            mobileScrollSupport: false,
+            startPage: 0,
+            swipeDistance: 30,
+            clickToFlip: true
+          });
+
+          try {
+            const items = container.querySelectorAll('.stf__item');
+            window.EPFlip.loadFromHTML(items);
+          } catch (e) {
+            try {
+              const images = pageUrls.filter(u => u && u.length > 0);
+              if (images.length > 0) {
+                window.EPFlip.loadFromImages(images);
+              } else {
+                window.EPFlip.loadFromHTML(container.querySelectorAll('.stf__item'));
+              }
+            } catch (e2) {}
+          }
+
+          const pageInfo = document.getElementById('epPageInfo');
+          window.EPFlip.on('flip', (e) => {
+            const pageNum = (e.data !== undefined && e.data !== null) ? e.data + 1 : 1;
+            if (pageInfo) pageInfo.textContent = `${pageNum} / ${pages.length}`;
+            if (window.EP) {
+              window.EP.currentPage = pageNum;
+              window.EP.totalPages = pages.length;
+              window.EP.updatePager?.();
+            }
+            try {
+              const url = new URL(window.location.href);
+              url.searchParams.set('page', pageNum.toString());
+              history.replaceState(null, '', url.pathname + '?' + url.searchParams.toString());
+            } catch (err) {}
+            try {
+              if (window.EP && typeof window.EP.renderHotspots === 'function') {
+                const p = pages[pageNum - 1];
+                if (p) {
+                  window.EP.renderHotspots(p.articles || []);
+                  const hotspotsLayer = document.getElementById('epHotspots');
+                  if (hotspotsLayer) {
+                    hotspotsLayer.style.display = 'block';
+                    hotspotsLayer.style.position = 'absolute';
+                    hotspotsLayer.style.top = '0';
+                    hotspotsLayer.style.left = '0';
+                    hotspotsLayer.style.width = '100%';
+                    hotspotsLayer.style.height = '100%';
+                    hotspotsLayer.style.pointerEvents = 'none';
+                    hotspotsLayer.querySelectorAll('.ep-hotspot').forEach(hs => {
+                      hs.style.pointerEvents = 'auto';
+                    });
+                  }
+                }
+              }
+            } catch (err) {}
+          });
+
+          const urlParams = new URLSearchParams(window.location.search);
+          const pageParam = urlParams.get('page');
+          if (pageParam) {
+            const targetPage = parseInt(pageParam, 10);
+            if (!isNaN(targetPage) && targetPage >= 1 && targetPage <= pages.length) {
+              setTimeout(() => {
+                try {
+                  window.EPFlip.turnToPage(targetPage - 1);
+                } catch (e) {}
+              }, 100);
+            }
+          }
+
+          const prevBtn = document.getElementById('epPrevPage');
+          const nextBtn = document.getElementById('epNextPage');
+          function isZoomedIn() {
+            try {
+              if (window.EP && typeof window.EP.zoom === 'number') {
+                const minZ = typeof window.EP.getMinZoom === 'function' ? window.EP.getMinZoom() : 1;
+                if (window.EP.zoom > minZ + 0.01) return true;
+              }
+            } catch (e) {}
+            return false;
+          }
+          if (prevBtn) prevBtn.onclick = (e) => { e.preventDefault(); try { if (isZoomedIn()) return; window.EPFlip.flipPrev(); } catch (err) {} };
+          if (nextBtn) nextBtn.onclick = (e) => { e.preventDefault(); try { if (isZoomedIn()) return; window.EPFlip.flipNext(); } catch (err) {} };
+
+          document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') { try { if (isZoomedIn()) return; window.EPFlip.flipPrev(); } catch (err) {} }
+            if (e.key === 'ArrowRight') { try { if (isZoomedIn()) return; window.EPFlip.flipNext(); } catch (err) {} }
+          });
+
+          let resizeTimer;
+          window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+              try {
+                let currentPageIndex = 0;
+                if (window.EPFlip && typeof window.EPFlip.getCurrentPageIndex === 'function') {
+                  currentPageIndex = window.EPFlip.getCurrentPageIndex() || 0;
+                } else if (window.EP && typeof window.EP.currentPage === 'number') {
+                  currentPageIndex = window.EP.currentPage - 1;
+                }
+                initFlipBook().then(() => {
+                  try {
+                    if (window.EPFlip && typeof window.EPFlip.turnToPage === 'function' && currentPageIndex >= 0) {
+                      setTimeout(() => {
+                        try { window.EPFlip.turnToPage(currentPageIndex); } catch (e) {}
+                      }, 50);
+                    }
+                  } catch (e) {}
+                });
+              } catch (e) {}
+            }, 300);
+          });
+        } catch (e) {
+          console.warn('[epaper-flip] Initialization skipped:', e);
+        }
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', window.initFlipBook);
+      } else {
+        window.initFlipBook();
+      }
+      try {
+        const pageImg = document.getElementById('epPageImg');
+        const pageContainer = document.getElementById('epPageContainer');
+        const hotspots = document.getElementById('epHotspots');
+        const blockGrid = document.getElementById('epBlockGrid');
+        if (pageImg) pageImg.style.display = 'none';
+        if (pageContainer) pageContainer.style.display = 'none';
+        if (hotspots) hotspots.style.display = 'none';
+        if (blockGrid) blockGrid.style.display = 'none';
+      } catch (e) {}
     })();
   </script>
 

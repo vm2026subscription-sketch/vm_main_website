@@ -173,7 +173,30 @@ const EP = {
     this.fetchAndRenderLanguageTabs(data.date);
     this.renderThumbnails();
     this.setReaderMode(true);
-    this.showPage(1);
+    // Rebuild StPageFlip if available
+    if (window.EPFlip && typeof window.initFlipBook === 'function') {
+      try {
+        window.initFlipBook();
+      } catch (e) {
+        this.showPage(1);
+      }
+    } else if (window.EPFlip) {
+      try {
+        if (window.EPFlip.destroy) window.EPFlip.destroy();
+        window.EPFlip = null;
+        const container = document.getElementById('stPageFlipContainer');
+        if (container) container.innerHTML = '';
+      } catch (e) {}
+      // Let template script handle re-init by reloading or just call showPage
+      setTimeout(() => {
+        if (document.querySelector('#stPageFlipContainer .stf__item')) {
+          // already initialized
+        }
+      }, 100);
+      this.showPage(1);
+    } else {
+      this.showPage(1);
+    }
     this.registerEditionView();
     if (updateUrl && data?.date) {
       // Use language-specific URL so WhatsApp/social OG preview shows correct edition image
@@ -1782,6 +1805,14 @@ const EP = {
 
   showPage(num, animate = false) {
     const target = Math.max(1, Math.min(num, this.totalPages));
+    if (window.EPFlip) {
+      try {
+        window.EPFlip.turnToPage(target - 1);
+        this.currentPage = target;
+        this.updatePager();
+        return;
+      } catch (e) {}
+    }
     if (animate && target !== this.currentPage && !this._isFlipping &&
         this._getPageImageUrl(target) && this._getPageImageUrl(this.currentPage)) {
       this.flipToPage(target);
@@ -1860,6 +1891,16 @@ const EP = {
   },
 
   changePage(dir) {
+    if (window.EPFlip) {
+      try {
+        if (dir > 0) {
+          window.EPFlip.flipNext();
+        } else {
+          window.EPFlip.flipPrev();
+        }
+        return;
+      } catch (e) {}
+    }
     this.showPage(this.currentPage + dir, true);
   },
 
