@@ -64,6 +64,8 @@ except ImportError:
 
 import threading as _threading
 
+import exam_catalog
+
 # ── Central Postgres circuit breaker ───────────────────────────────
 # When the database is unreachable, psycopg2 can block for a long time
 # (connect_timeout is applied per resolved address, so a host that
@@ -502,6 +504,7 @@ UPLOAD_TARGET_TABLES = [
     {"value": "exam_updates", "label": "Exam Updates"},
     {"value": "govt_jobs", "label": "Govt Jobs"},
     {"value": "scholarships", "label": "Scholarships"},
+    {"value": "btech_cutoffs", "label": "B.Tech Cutoffs"},
 ]
 
 BTECH_CUTOFF_DIR = os.path.join(app.root_path, "data", "btech")
@@ -3536,328 +3539,109 @@ def courses():
 
 @app.route("/entrance-exams")
 def exams():
+    """Searchable, de-duplicated hub for every entrance exam we cover."""
     qr_exam = (request.args.get("exam") or "").strip().lower()
     if qr_exam:
-        if not qr_exam or any(
-            character not in "abcdefghijklmnopqrstuvwxyz0123456789-" for character in qr_exam
+        if any(
+            character not in "abcdefghijklmnopqrstuvwxyz0123456789-"
+            for character in qr_exam
         ):
             abort(404)
         return redirect(url_for("exam_detail", exam_slug=qr_exam))
 
-    # Server-side pagination for the Complete Exam Directory (8000+ rows)
-    per_page = 48
-    try:
-        page = max(1, int(request.args.get('page', 1)))
-    except (TypeError, ValueError):
-        page = 1
+    catalog = exam_catalog.get_catalog(
+        connect=connect,
+        connection_url=get_postgres_connection_url(),
+    )
+    stats = exam_catalog.catalog_stats(catalog)
+    popular = []
+    for exam_id in ("jee-main", "neet-ug", "mht-cet", "cuet", "cat", "clat"):
+        entry = exam_catalog.find_exam(catalog, exam_id)
+        if entry and entry not in popular:
+            popular.append(entry)
+    for entry in catalog:
+        if len(popular) >= 6:
+            break
+        if entry not in popular and entry["official_url"]:
+            popular.append(entry)
 
-    page_exams = []
-    total_exams = 0
-    total_pages = 1
-    try:
-        connection_url = get_postgres_connection_url()
-        if connection_url and connect:
-            import psycopg2.extras
-            with connect(connection_url) as conn:
-                with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-                    cur.execute("SELECT COUNT(*) AS total FROM entrance_exams")
-                    total_exams = int(cur.fetchone()['total'] or 0)
-                    total_pages = max(1, (total_exams + per_page - 1) // per_page)
-                    if page > total_pages:
-                        page = total_pages
-                    offset = (page - 1) * per_page
-                    # ORDER BY id keeps pagination stable across requests
-                    cur.execute(
-                        "SELECT payload FROM entrance_exams "
-                        "ORDER BY id LIMIT %s OFFSET %s",
-                        (per_page, offset)
-                    )
-                    for row in cur.fetchall():
-                        payload = row.get("payload", {})
-                        if isinstance(payload, dict):
-                            page_exams.append(payload)
-    except Exception as e:
-        app.logger.warning("Failed to fetch entrance exams from Postgres: %s", e)
-        import traceback
-        app.logger.warning(traceback.format_exc())
+    pyq_exams = sorted(
+        (entry for entry in catalog if entry["paper_years"]),
+        key=lambda entry: (-len(entry["paper_years"]), entry["abbr"].lower()),
+    )[:8]
 
-    # Compact page window: 1 … p-1 p p+1 … N
-    pages_set = {1, total_pages, page}
-    for p in (page - 1, page + 1):
-        if 1 <= p <= total_pages:
-            pages_set.add(p)
-    page_list = []
-    prev_p = 0
-    for p in sorted(pages_set):
-        if prev_p and p - prev_p > 1:
-            page_list.append('…')
-        page_list.append(p)
-        prev_p = p
+    search_index = [
+        {
+            "id": entry["id"],
+            "abbr": entry["abbr"],
+            "name": entry["name"],
+            "category": entry["category_label"],
+            "level": entry["level_label"],
+            "official": bool(entry["official_url"]),
+            "pyq": len(entry["paper_years"]),
+            "years": entry["paper_years"],
+        }
+        for entry in catalog
+    ]
 
     return render_template(
         "entrance-exams.html",
-        exams=page_exams,
-        total_exams=total_exams,
-        page=page,
-        total_pages=total_pages,
-        per_page=per_page,
-        page_list=page_list,
+        catalog=catalog,
+        stats=stats,
+        popular=popular,
+        pyq_exams=pyq_exams,
+        search_index=search_index,
+        q=(request.args.get("q") or "").strip(),
     )
 
 
 @app.route("/entrance-exams/<path:exam_slug>")
 def exam_detail(exam_slug):
-    """Render a student-friendly internal guide for an entrance exam."""
+    """Render a complete, student-friendly guide for any catalogued exam."""
     normalized_slug = (exam_slug or "").strip().lower()
     if not normalized_slug or any(
-        character not in "abcdefghijklmnopqrstuvwxyz0123456789-" for character in normalized_slug
+        character not in "abcdefghijklmnopqrstuvwxyz0123456789-"
+        for character in normalized_slug
     ):
         abort(404)
 
-    exam_guides = {
-        "mht-cet": {
-            "name": "MHT-CET",
-            "full_name": "Maharashtra Common Entrance Test",
-            "category": "Engineering, Pharmacy & Agriculture",
-            "conducting_body": "Maharashtra State CET Cell",
-            "official_url": "https://cetcell.mahacet.org",
-            "overview": "MHT-CET is Maharashtra's state-level entrance examination for admission to engineering, pharmacy and agriculture programmes.",
-            "eligibility": [
-                "Candidates must have passed or be appearing for Class 12, subject to the current admission rules.",
-                "Engineering applicants generally need Physics, Chemistry and Mathematics or the subjects specified for their programme.",
-                "Subject requirements for pharmacy and agriculture programmes may vary by course.",
-                "Always verify the exact criteria in the latest official information brochure."
-            ],
-            "pattern": [
-                "The examination is conducted as a computer-based test.",
-                "The engineering paper includes Physics, Chemistry and Mathematics sections.",
-                "Biology may apply for pharmacy and agriculture streams, depending on the programme.",
-                "Questions are objective type; verify the current marking scheme in the official notification."
-            ],
-            "syllabus": "The MHT-CET syllabus is primarily based on Maharashtra State Board Class 11 and Class 12 topics in Physics, Chemistry and Mathematics or Biology.",
-            "dates": "Registration, admit card, examination, answer key and result dates are published each year by the CET Cell.",
-            "application": [
-                "Open the official CET Cell website.",
-                "Select the MHT-CET registration link.",
-                "Enter your personal, academic and category details carefully.",
-                "Upload the required documents and pay the application fee.",
-                "Download and safely save the confirmation page."
-            ],
-            "preparation": [
-                "Complete the Maharashtra State Board syllabus.",
-                "Practise timed multiple-choice questions every day.",
-                "Revise Physics and Chemistry formulas regularly.",
-                "Solve chapter-wise Mathematics or Biology mock tests.",
-                "Review every incorrect answer after each mock test."
-            ],
-            "quick_facts": [
-                ("Level", "State level"),
-                ("Mode", "Computer-based test"),
-                ("Streams", "PCM / PCB"),
-                ("Admissions", "Engineering, Pharmacy & Agriculture")
-            ],
-            "faq": [
-                ("Who can apply for MHT-CET?", "Class 12 passed or appearing students who meet the current course-wise subject and eligibility rules can apply."),
-                ("Is MHT-CET available for pharmacy?", "Yes. Pharmacy applicants should select the relevant stream and check the current subject requirements."),
-                ("Where can I apply?", "Use the Apply / Official Website button on this page and follow the latest CET Cell notification.")
-            ]
-        }
-    }
-    guide = exam_guides.get(normalized_slug)
+    catalog = exam_catalog.get_catalog(
+        connect=connect,
+        connection_url=get_postgres_connection_url(),
+    )
+    guide = exam_catalog.build_exam_guide(catalog, normalized_slug)
     if not guide:
-        display_name = normalized_slug.replace("-", " ").title()
-        guide = {
-            "name": display_name,
-            "full_name": display_name + " Entrance Exam",
-            "category": "Entrance Exam",
-            "conducting_body": "Exam conducting authority",
-            "official_url": None,
-            "overview": (
-                f"Student-friendly guidance for {display_name} admissions, eligibility and preparation."
-            ),
-            "eligibility": [
-                "Eligibility may vary by course, level and admission year.",
-                "Class 10, Class 12 or graduation requirements depend on the examination.",
-                "Verify age, subject, marks and category rules in the latest notification.",
-                "Read the official information brochure before submitting an application."
-            ],
-            "pattern": [
-                "The exam authority defines the mode, duration, sections and marking scheme.",
-                "Questions may be objective, descriptive or practical depending on the examination.",
-                "Check the current year's official notification for the latest pattern."
-            ],
-            "syllabus": (
-                "The syllabus depends on the examination, course and level. "
-                "Verify the latest syllabus and subject-wise topics in the official notification."
-            ),
-            "dates": (
-                "Registration, admit card, examination, answer key, result and counselling dates "
-                "may change each admission year."
-            ),
-            "application": [
-                "Check the latest examination notification and eligibility.",
-                "Enter your personal and academic details carefully.",
-                "Upload the required documents and pay the applicable fee.",
-                "Save the confirmation page and login details securely."
-            ],
-            "preparation": [
-                "Break the official syllabus into topics and create a study plan.",
-                "Revise concepts and solve chapter-wise questions.",
-                "Practise previous-year papers and timed mock tests.",
-                "Review incorrect answers and track your progress regularly."
-            ]
-        }
+        abort(404)
 
-    guide.setdefault("quick_facts", [
-        ("Level", "Entrance examination"),
-        ("Mode", "Check current notification"),
-        ("Eligibility", "Course and year specific"),
-        ("Admissions", "Check the participating institutions")
-    ])
-    guide.setdefault("faq", [
-        ("Where can I find the latest dates?", "Check the latest notification published by the exam conducting authority."),
-        ("Can the eligibility rules change?", "Yes. Always verify the current year information brochure before applying."),
-        ("How should I start preparing?", "Begin with the official syllabus, make a weekly plan and practise timed previous-year questions.")
-    ])
-    official_links = {
-        "jee-main": "https://jeemain.nta.ac.in",
-        "jee-advanced": "https://jeeadv.ac.in",
-        "bitsat": "https://www.bitsadmission.com",
-        "viteee": "https://viteee.vit.ac.in",
-        "srmjeee": "https://www.srmist.edu.in/admissions",
-        "meri": "https://www.maborogal.gov.in",
-        "neet-ug": "https://neet.nta.nic.in",
-        "neet-pg": "https://natboard.edu.in",
-        "neet-ss": "https://natboard.edu.in",
-        "aiims-pg": "https://aiimsexams.ac.in",
-        "jipmer": "https://jipmer.edu.in",
-        "fmge": "https://natboard.edu.in",
-        "ini-cet": "https://aiimsexams.ac.in",
-        "pgimer": "https://pgimer.edu.in",
-        "bhu-pmt": "https://www.bhu.ac.in",
-        "nimhans": "https://nimhans.ac.in",
-        "cat": "https://iimcat.ac.in",
-        "clat": "https://consortiumofnlus.ac.in",
-        "ailet": "https://nludelhi.ac.in",
-        "lsat-india": "https://www.discoverlaw.in",
-        "mh-cet-law": "https://cetcell.mahacet.org",
-        "slat": "https://www.set-test.org",
-        "ilicat": "https://ili.ac.in",
-        "lfat": "https://www.lloydlawcollege.edu.in",
-        "kcet": "https://kea.kar.nic.in",
-        "wbjee": "https://wbjeeb.nic.in",
-        "comedk": "https://www.comedk.org",
-        "gujcet": "https://gseb.org",
-        "ap-eamcet": "https://cets.apsche.ap.gov.in",
-        "ts-eamcet": "https://tseamcet.nic.in",
-        "keam": "https://cee.kerala.gov.in",
-        "upsee": "https://aktu.ac.in",
-        "tancet": "https://www.annauniv.edu/tancet",
-        "tnea": "https://www.tneaonline.org",
-        "ojee": "https://ojee.nic.in",
-        "hpcet": "https://www.himtu.ac.in",
-        "rpet": "https://www.bter.rajasthan.gov.in",
-        "nda": "https://upsc.gov.in",
-        "cds": "https://upsc.gov.in",
-        "inet": "https://www.joinindiannavy.gov.in",
-        "afcat": "https://afcat.cdac.in",
-        "mns": "https://joinindianarmy.nic.in",
-        "tes": "https://joinindianarmy.nic.in",
-        "ssb": "https://www.mod.gov.in",
-        "coast-guard": "https://joinindiancoastguard.cdac.in",
-        "xat": "https://xatonline.in",
-        "cmat": "https://cmat.nta.nic.in",
-        "snap": "https://www.snaptest.org",
-        "iift": "https://iift.nta.nic.in",
-        "mat": "https://mat.aima.in",
-        "nmat": "https://www.nmat.org",
-        "atma": "https://www.atmaaims.com",
-        "micat": "https://www.mica.ac.in",
-        "irmasat": "https://www.irma.ac.in",
-        "tissnet": "https://www.tiss.edu",
-        "gmat": "https://www.mba.com",
-        "ibps-po": "https://www.ibps.in",
-        "ibps-clerk": "https://www.ibps.in",
-        "sbi-po": "https://www.sbi.co.in/web/careers",
-        "sbi-clerk": "https://www.sbi.co.in/web/careers",
-        "rbi-grade-b": "https://www.rbi.org.in/scripts/Careers.aspx",
-        "nabard": "https://www.nabard.org",
-        "ibps-so": "https://www.ibps.in",
-        "lic-aao": "https://licindia.in/careers",
-        "sebi-grade-a": "https://www.sebi.gov.in",
-        "ippb-officer": "https://www.ippbonline.com",
-        "upsc-cse": "https://upsc.gov.in",
-        "ssc-cgl": "https://ssc.gov.in",
-        "ssc-chsl": "https://ssc.gov.in",
-        "mpsc": "https://www.mpsc.gov.in",
-        "upsc-ies": "https://upsc.gov.in",
-        "capf-ac": "https://upsc.gov.in",
-        "rpsc-ras": "https://rpsc.rajasthan.gov.in",
-        "tnpsc": "https://www.tnpsc.gov.in",
-        "nata": "https://www.nata.in",
-        "jee-b-arch": "https://jeemain.nta.ac.in",
-        "uceed": "https://www.uceed.iitb.ac.in",
-        "ceed": "https://www.ceed.iitb.ac.in",
-        "nid-dat": "https://admissions.nid.edu",
-        "nift": "https://www.nift.ac.in",
-        "pearl-academy": "https://www.pearlacademy.com",
-        "seed": "https://www.set-test.org",
-        "gpat": "https://gpat.nta.nic.in",
-        "niper-jee": "https://www.niper.gov.in",
-        "mht-cet-pharm": "https://cetcell.mahacet.org",
-        "ts-eamcet-pharm": "https://tseamcet.nic.in",
-        "pucet-pharma": "https://puchd.ac.in",
-        "nchmct-jee": "https://nchmjee.nta.nic.in",
-        "iihm-echat": "https://www.iihm.ac.in",
-        "aima-ugat": "https://www.aima.in",
-        "mah-hm-cet": "https://cetcell.mahacet.org",
-        "icar-aieea": "https://icar.nta.nic.in",
-        "upcatet": "https://upcatet.org",
-        "tnau": "https://www.tnau.ac.in",
-        "rawe": "https://icar.org.in",
-        "ouat": "https://ouat.ac.in",
-        "jam": "https://jam.iitb.ac.in",
-        "gate": "https://gate2025.iitr.ac.in",
-        "csir-net": "https://csirnet.nta.ac.in",
-        "ugc-net": "https://ugcnet.nta.ac.in",
-        "jest": "https://www.jest.org.in",
-        "tifr-gs": "https://www.tifr.res.in/gs/",
-        "kvpy": "https://kvpy.iisc.ac.in",
-    }
-    if not guide.get("official_url"):
-        guide["official_url"] = official_links.get(normalized_slug)
-    related_slugs = {
-        "mht-cet": ["jee-main", "mh-cet-law", "gpat"],
-        "jee-main": ["jee-advanced", "mht-cet", "bitsat"],
-        "jee-advanced": ["jee-main", "bitsat", "mht-cet"],
-        "neet-ug": ["aiims-pg", "jipmer", "fmge"],
-        "cat": ["xat", "cmat", "snap"],
-        "clat": ["ailet", "mh-cet-law", "slat"],
-    }
-    related_names = {
-        "jee-main": "JEE Main",
-        "jee-advanced": "JEE Advanced",
-        "neet-ug": "NEET-UG",
-        "mh-cet-law": "MH-CET Law",
-        "gpat": "GPAT",
-        "bitsat": "BITSAT",
-        "ailet": "AILET",
-        "slat": "SLAT",
-        "xat": "XAT",
-        "cmat": "CMAT",
-        "snap": "SNAP",
-        "jipmer": "JIPMER",
-        "fmge": "FMGE",
-    }
-    guide["related_exams"] = [
-        {"slug": slug, "name": related_names.get(slug, slug.replace("-", " ").title())}
-        for slug in related_slugs.get(normalized_slug, ["jee-main", "neet-ug", "cat"])
-    ]
+    curated = exam_catalog.CURATED_GUIDES.get(guide["id"]) or exam_catalog.CURATED_GUIDES.get(
+        normalized_slug
+    )
+    if curated:
+        merged = dict(guide)
+        merged.update(curated)
+        for key in (
+            "id",
+            "papers",
+            "paper_years",
+            "paper_types",
+            "related_exams",
+            "stats",
+            "category_key",
+            "level_group",
+            "career",
+            "career_links",
+            "level",
+        ):
+            if key not in curated and key in guide:
+                merged[key] = guide[key]
+        merged["category_key"] = guide["category_key"]
+        merged["level"] = curated.get("level", guide.get("level"))
+        guide = merged
 
     return render_template(
         "exam-detail.html",
         exam=guide,
-        exam_slug=normalized_slug,
+        exam_slug=guide["id"],
     )
 
 
