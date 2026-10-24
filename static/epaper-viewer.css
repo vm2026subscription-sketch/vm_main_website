@@ -1532,11 +1532,11 @@ body.epaper-body:not(.has-masthead) .ep-masthead {
 }
 
 .ep-3d-turning-page.is-flipping-transition {
-  transition: transform 0.42s cubic-bezier(0.25, 1, 0.5, 1);
+  transition: transform 0.48s cubic-bezier(0.32, 0.72, 0.35, 1);
 }
 
 .ep-3d-turning-page.is-spring-transition {
-  transition: transform 0.28s cubic-bezier(0.25, 1, 0.5, 1);
+  transition: transform 0.32s cubic-bezier(0.25, 0.85, 0.45, 1);
 }
 
 /* Face common styling */

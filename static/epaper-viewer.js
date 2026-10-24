@@ -1693,7 +1693,10 @@ const EP = {
 
   _cleanup3DStage() {
     const stage = this.el.flipStage || document.getElementById('ep3DFlipStage');
-    if (stage) stage.style.display = 'none';
+    // Small delay so the final frame renders before hiding the stage
+    setTimeout(() => {
+      if (stage) stage.style.display = 'none';
+    }, 35);
     const turningPage = this.el.turningPage || document.getElementById('ep3DTurningPage');
     if (turningPage) {
       turningPage.classList.remove('is-flipping-transition', 'is-spring-transition');
@@ -1772,7 +1775,7 @@ const EP = {
         };
 
         turningPage.addEventListener('transitionend', onEnd, { once: true });
-        setTimeout(onEnd, 500);
+        setTimeout(onEnd, 520);
       });
     });
   },
